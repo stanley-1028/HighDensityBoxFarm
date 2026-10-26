@@ -89,6 +89,20 @@ namespace HDBF.Core.Indoor
         /// <summary>Maximum walk distance (cells) to a manual water source (section 19.6).</summary>
         public const int ManualRefillRadiusCells = 12;
 
+        /// <summary>
+        /// Vanilla good id of water. IL-verified against Timberborn 1.1.2.8:
+        /// <c>WaterWorkshops.WaterGoodToWaterAmountConverter</c> static ctor stores the literal
+        /// <c>"Water"</c> (see docs/API_FACTS.md evidence in this card's report).
+        /// </summary>
+        public const string WaterGoodId = "Water";
+
+        /// <summary>
+        /// Water volume of one HDBF water unit in m3. IL-verified: the same static ctor stores
+        /// <c>WaterAmountConversion = 0.2</c>, i.e. one vanilla water good (one HDBF unit) is 0.2 m3,
+        /// which is also the Timber Pipes unit mapping used by the v2 pipe source.
+        /// </summary>
+        public const float WaterVolumeCubicMetersPerUnit = 0.2f;
+
         /// <summary>Game days the mode switch transition lasts (lower yield during it; reserved).</summary>
         public const float ModeTransitionDays = 1f;
 

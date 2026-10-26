@@ -48,12 +48,27 @@ namespace HDBF.Core.Indoor
         /// <returns>Yield in items, before integer rounding; 0 for fallow/invalid input.</returns>
         public static float Yield(int baseYield, float fatigue, IndoorMode mode)
         {
+            return Yield(baseYield, fatigue, mode, 1f);
+        }
+
+        /// <summary>
+        /// Harvest yield with an extra yield scale, used by the one-day mode transition to settle at
+        /// the lower of the old/new mode yield (section 19.8). A scale outside [0,1] is clamped.
+        /// </summary>
+        /// <param name="baseYield">Crop base yield per harvest.</param>
+        /// <param name="fatigue">Slot fatigue at harvest time.</param>
+        /// <param name="mode">Operating mode at harvest time.</param>
+        /// <param name="yieldScale">Extra scale in [0,1]; 1 means no transition.</param>
+        /// <returns>Yield in items, before integer rounding; 0 for fallow/invalid input.</returns>
+        public static float Yield(int baseYield, float fatigue, IndoorMode mode, float yieldScale)
+        {
             if (baseYield <= 0)
             {
                 return 0f;
             }
 
-            var value = baseYield * FatigueYieldMultiplier(fatigue) * ModeYieldMultiplier(mode);
+            var value = baseYield * FatigueYieldMultiplier(fatigue) * ModeYieldMultiplier(mode)
+                        * IndoorMath.Clamp01(yieldScale);
             return IndoorMath.IsFinite(value) && value > 0f ? value : 0f;
         }
 
@@ -67,7 +82,18 @@ namespace HDBF.Core.Indoor
         /// <returns>Item count added to the output inventory; 0 for fallow/invalid input.</returns>
         public static int HarvestItems(int baseYield, float fatigue, IndoorMode mode)
         {
-            var value = Yield(baseYield, fatigue, mode);
+            return HarvestItems(baseYield, fatigue, mode, 1f);
+        }
+
+        /// <summary>Harvest items with the optional mode-transition yield scale (section 19.8).</summary>
+        /// <param name="baseYield">Crop base yield per harvest.</param>
+        /// <param name="fatigue">Slot fatigue at harvest time.</param>
+        /// <param name="mode">Operating mode at harvest time.</param>
+        /// <param name="yieldScale">Extra scale in [0,1]; 1 means no transition.</param>
+        /// <returns>Item count added to the output inventory; 0 for fallow/invalid input.</returns>
+        public static int HarvestItems(int baseYield, float fatigue, IndoorMode mode, float yieldScale)
+        {
+            var value = Yield(baseYield, fatigue, mode, yieldScale);
             if (!(value > 0f))
             {
                 return 0;
@@ -75,6 +101,32 @@ namespace HDBF.Core.Indoor
 
             var rounded = (int)Math.Floor(value + IndoorConstants.RoundHalfUp);
             return rounded < 1 ? 1 : rounded;
+        }
+
+        /// <summary>
+        /// Yield scale of a one-game-day mode transition: settle the day at the lower of the old and
+        /// the new mode yield (section 19.8). Returns 1 when there is no transition, when the mode is
+        /// unchanged, or when the current mode has no yield (fallow never harvests anyway).
+        /// </summary>
+        /// <param name="current">Mode the farm switched to (the record mode).</param>
+        /// <param name="previous">Mode before the switch, or null when no transition is pending.</param>
+        /// <returns>Multiplier in [0,1] applied on top of the current G_mode.</returns>
+        public static float ModeTransitionYieldScale(IndoorMode current, IndoorMode? previous)
+        {
+            if (previous is null || previous.Value == current)
+            {
+                return 1f;
+            }
+
+            var currentYield = ModeYieldMultiplier(current);
+            if (!(currentYield > 0f))
+            {
+                return 1f;
+            }
+
+            var previousYield = ModeYieldMultiplier(previous.Value);
+            var lower = previousYield < currentYield ? previousYield : currentYield;
+            return IndoorMath.Clamp01(lower / currentYield);
         }
 
         /// <summary>
@@ -136,9 +188,16 @@ namespace HDBF.Core.Indoor
         /// <summary>
         /// Panel yield multiplier: G_mode x the average G_fat of the slots that currently hold a
         /// crop; with no crop there is no fatigue penalty, so only G_mode remains. Single pass, no
-        /// allocation (REQ-V2-PERF-02).
+        /// allocation (REQ-V2-PERF-02). The optional scale reports the lower transition-day yield.
         /// </summary>
         internal static float PanelYieldMultiplier(IndoorFarmRecord record, IndoorSlot[]? slots, int limit)
+        {
+            return PanelYieldMultiplier(record, slots, limit, 1f);
+        }
+
+        /// <summary>Panel yield multiplier with the one-day mode-transition scale applied.</summary>
+        internal static float PanelYieldMultiplier(IndoorFarmRecord record, IndoorSlot[]? slots, int limit,
+            float transitionScale)
         {
             var modeMultiplier = ModeYieldMultiplier(record.Mode);
             if (slots is null || limit <= 0)
@@ -160,7 +219,8 @@ namespace HDBF.Core.Indoor
                 count++;
             }
 
-            return count == 0 ? modeMultiplier : modeMultiplier * (sum / count);
+            var fatigueAverage = count == 0 ? 1f : sum / count;
+            return modeMultiplier * fatigueAverage * IndoorMath.Clamp01(transitionScale);
         }
     }
 }

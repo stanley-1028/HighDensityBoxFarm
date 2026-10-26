@@ -1,44 +1,43 @@
+// ============================================================================
+// HDBF v2 | Layer: Gameplay/Components | Owner: V2-GAMEPLAY-01 / V2-GAMEPLAY-02
+// Purpose: Write-side IBoxFarmCommand implementation for v2 indoor farms. V2-GAMEPLAY-02 adds
+//          the completed maintenance transaction, the manual-refill request and the crop-policy
+//          command, all with specific failure keys and all-or-nothing semantics.
+// Requirements: REQ-V2-UI-02, REQ-V2-BAL-02, REQ-V2-WATER-04, REQ-V2-SAFE-01,
+//               REQ-V2-CORE-03, REQ-V2-LABOR-01
+// ============================================================================
 using System;
 using HDBF.Core;
 using HDBF.Core.Abstractions;
-using HDBF.Core.Balance;
+using HDBF.Core.Indoor;
 using HDBF.Core.Logging;
-using Timberborn.BaseComponentSystem;
 using Timberborn.GameDistricts;
-using Timberborn.Goods;
-using Timberborn.InventorySystem;
-using UnityEngine;
 
 namespace HDBF.Gameplay.Components
 {
     /// <summary>
-    /// Gameplay implementation of the write-side panel contract
-    /// (<see cref="IBoxFarmCommand"/>, chapter 14.3). Kept out of the controller so the
-    /// controller stays a per-entity runtime and this service stays the session singleton that
-    /// resolves a farm by its runtime <see cref="EntityComponent.EntityId"/> and performs the
-    /// material transaction against the settlement's inventories.
-    ///
-    /// Failure policy (chapter 10): every entry point returns false with a localization key
-    /// instead of throwing; the UI renders the key and never sees an exception.
+    /// Session singleton implementing the write-side panel contract. Every entry point validates
+    /// and changes all-or-nothing, returns a specific failure key instead of throwing, and logs
+    /// under <c>ui.command-failed</c> (or the subsystem key) where the UI can find it.
     /// </summary>
     public sealed class HdbfFarmCommandService : IBoxFarmCommand
     {
-        private const string LogKeyCommand = "gameplay.command";
+        private const string LogKeyCommand = "ui.command-failed";
 
         private readonly HdbfFarmQueryService _farms;
-        private readonly DistrictCenterRegistry _districtCenters;
-        private readonly IHdbfGameConfigProvider _config;
+        private readonly HdbfMaintenanceTransaction _maintenance;
         private readonly IHdbfLog _log;
-        private readonly HdbfPlotHighlightService _highlights;
 
+        /// <summary>Creates the command service from the session singletons.</summary>
+        /// <param name="farms">Live farm source registry (query singleton).</param>
+        /// <param name="districtCenters">Finished district centers (maintenance material source).</param>
+        /// <param name="log">Throttled mod log.</param>
         public HdbfFarmCommandService(HdbfFarmQueryService farms, DistrictCenterRegistry districtCenters,
-            IHdbfGameConfigProvider config, IHdbfLog log, HdbfPlotHighlightService highlights)
+            IHdbfLog log)
         {
             _farms = farms ?? throw new ArgumentNullException(nameof(farms));
-            _districtCenters = districtCenters ?? throw new ArgumentNullException(nameof(districtCenters));
-            _config = config ?? throw new ArgumentNullException(nameof(config));
             _log = log ?? throw new ArgumentNullException(nameof(log));
-            _highlights = highlights ?? throw new ArgumentNullException(nameof(highlights));
+            _maintenance = new HdbfMaintenanceTransaction(districtCenters, log);
         }
 
         /// <inheritdoc />
@@ -51,12 +50,6 @@ namespace HDBF.Gameplay.Components
                 return false;
             }
 
-            if (mode == HdbfMode.Dense && !_config.Config.Features.DensePlanting)
-            {
-                failureKey = HdbfCommandFailures.DenseDisabled;
-                return false;
-            }
-
             try
             {
                 if (farm.TrySetMode(mode))
@@ -64,16 +57,16 @@ namespace HDBF.Gameplay.Components
                     return true;
                 }
 
-                // The controller rejects an unchanged mode, an out-of-range enum and the
-                // one-day anti-flicker cooldown; the first two are UI bugs, the cooldown is the
-                // only expected rejection (REQ-BAL-20).
-                failureKey = HdbfCommandFailures.ModeCooldown;
+                // The controller rejects a cooldown, an invalid mode and a disabled dense feature.
+                failureKey = mode == HdbfMode.Dense
+                    ? HdbfCommandFailures.DenseDisabled
+                    : HdbfCommandFailures.ModeCooldown;
                 return false;
             }
             catch (Exception exception)
             {
                 _log.Error(HdbfLogCategory.Error, LogKeyCommand,
-                    "set mode failed; no state changed", exception, entityId.ToString());
+                    "indoor set mode failed; no state changed", exception, entityId.ToString());
                 failureKey = HdbfCommandFailures.Unknown;
                 return false;
             }
@@ -91,34 +84,103 @@ namespace HDBF.Gameplay.Components
 
             try
             {
-                var profile = farm.TierProfile;
-                if (profile.MaintenanceKind == HdbfMaintenanceKind.IrrigationOnly)
+                // Plan first: the bill and the new deadline are validated before any item moves,
+                // so a rejected command can never eat the upkeep material (all-or-nothing).
+                if (!farm.TryGetMaintenancePlan(out var itemId, out var amount, out var cycleDays))
                 {
-                    failureKey = HdbfCommandFailures.PortNotAvailable;
+                    failureKey = HdbfIndoorCommandFailures.MaintenanceUnavailable;
                     return false;
                 }
 
-                if (!TryWithdrawMaintenanceMaterials(farm, profile, out failureKey))
+                if (!_maintenance.TryConsumeNearest(farm, entityId, itemId, amount, out failureKey))
                 {
                     return false;
                 }
 
-                if (farm.TryPerformMaintenance())
+                if (!farm.TryApplyMaintenance(cycleDays, out failureKey))
                 {
-                    _log.Write(HdbfLogCategory.Info, LogKeyCommand,
-                        "maintenance performed, entityId=" + entityId);
+                    return false;
+                }
+
+                _log.Write(HdbfLogCategory.Info, IndoorLogKeys.Maintenance,
+                    "indoor maintenance performed; entityId=" + entityId + ", item=" + (itemId ?? "<none>")
+                    + ", amount=" + amount + ", cycleDays=" + cycleDays);
+                return true;
+            }
+            catch (Exception exception)
+            {
+                _log.Error(HdbfLogCategory.Error, LogKeyCommand,
+                    "indoor maintenance failed; no state changed", exception, entityId.ToString());
+                failureKey = HdbfCommandFailures.Unknown;
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Queues one manual water refill trip: validates workers, entrance, remaining daily action
+        /// budget and a real 12-cell water source, then lets the next daily tick perform the draw and
+        /// spend the 2 farm actions (REQ-V2-WATER-04). Not part of the frozen v1 IBoxFarmCommand;
+        /// V2-UI-01 resolves it by name through its reflection bridge.
+        /// </summary>
+        /// <param name="entityId">Runtime entity id of the farm.</param>
+        /// <param name="failureKey">Specific failure key when false.</param>
+        /// <returns>True when the refill request is queued.</returns>
+        public bool TryRequestManualRefill(Guid entityId, out string? failureKey)
+        {
+            failureKey = null;
+            if (!TryGetController(entityId, out var farm))
+            {
+                failureKey = HdbfCommandFailures.NotABoxFarm;
+                return false;
+            }
+
+            try
+            {
+                if (farm.TryRequestManualRefill(out failureKey))
+                {
                     return true;
                 }
 
-                // The controller only refuses when it has no material cycle (on-grid top tier,
-                // maintenance feature disabled). That is not an error the player can fix.
-                failureKey = HdbfCommandFailures.Unknown;
+                failureKey ??= HdbfIndoorCommandFailures.RefillUnavailable;
                 return false;
             }
             catch (Exception exception)
             {
                 _log.Error(HdbfLogCategory.Error, LogKeyCommand,
-                    "maintenance failed; no state changed", exception, entityId.ToString());
+                    "indoor manual refill request failed; no state changed", exception, entityId.ToString());
+                failureKey = HdbfIndoorCommandFailures.RefillUnavailable;
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Applies the crop policy (auto rotation or one fixed faction crop). Invalid crops are
+        /// rejected with <see cref="HdbfIndoorCommandFailures.CropNotAvailable"/> and change nothing
+        /// (REQ-V2-EXT-01). Not part of the frozen v1 IBoxFarmCommand; resolved by name by V2-UI-01.
+        /// </summary>
+        /// <param name="entityId">Runtime entity id of the farm.</param>
+        /// <param name="policy">Rotation or fixed.</param>
+        /// <param name="fixedCropId">Crop id for a fixed policy; ignored otherwise.</param>
+        /// <param name="failureKey">Specific failure key when false.</param>
+        /// <returns>True when gameplay applied the policy.</returns>
+        public bool TrySetCropPolicy(Guid entityId, CropPolicy policy, string fixedCropId,
+            out string? failureKey)
+        {
+            failureKey = null;
+            if (!TryGetController(entityId, out var farm))
+            {
+                failureKey = HdbfCommandFailures.NotABoxFarm;
+                return false;
+            }
+
+            try
+            {
+                return farm.TrySetCropPolicy(policy, fixedCropId, out failureKey);
+            }
+            catch (Exception exception)
+            {
+                _log.Error(HdbfLogCategory.Error, LogKeyCommand,
+                    "indoor crop policy command failed; no state changed", exception, entityId.ToString());
                 failureKey = HdbfCommandFailures.Unknown;
                 return false;
             }
@@ -136,8 +198,6 @@ namespace HDBF.Gameplay.Components
 
             if (port == HdbfPortKind.Power)
             {
-                // The power port reflects the physical mechanical network; it is never toggled
-                // from the panel (chapter 8.3).
                 failureKey = HdbfCommandFailures.PortManagedByNetwork;
                 return false;
             }
@@ -155,7 +215,7 @@ namespace HDBF.Gameplay.Components
             catch (Exception exception)
             {
                 _log.Error(HdbfLogCategory.Error, LogKeyCommand,
-                    "port switch failed; no state changed", exception, entityId.ToString());
+                    "indoor port switch failed; no state changed", exception, entityId.ToString());
                 failureKey = HdbfCommandFailures.Unknown;
                 return false;
             }
@@ -164,108 +224,30 @@ namespace HDBF.Gameplay.Components
         /// <inheritdoc />
         public bool TrySetPlotHighlight(Guid entityId, bool active, out string? failureKey)
         {
-            failureKey = null;
-            if (!TryGetController(entityId, out _))
-            {
-                failureKey = HdbfCommandFailures.NotABoxFarm;
-                return false;
-            }
-
-            try
-            {
-                if (active)
-                {
-                    if (_highlights.Activate(entityId))
-                    {
-                        return true;
-                    }
-
-                    failureKey = HdbfCommandFailures.NotABoxFarm;
-                    return false;
-                }
-
-                // Closing may target a farm whose source is already gone (demolished building):
-                // the session is closed regardless, which is always the safe outcome.
-                _highlights.Deactivate();
-                return true;
-            }
-            catch (Exception exception)
-            {
-                _log.Error(HdbfLogCategory.Error, LogKeyCommand,
-                    "plot highlight toggle failed", exception, entityId.ToString());
-                failureKey = HdbfCommandFailures.Unknown;
-                return false;
-            }
+            // REQ-V2-CORE-03: v2 has no world plot overlay. The command stays in the frozen UI
+            // contract for compilation, but it now reports the specific reason instead of acting.
+            failureKey = HdbfCommandFailures.PlotNotRegistered;
+            return false;
         }
 
         /// <inheritdoc />
         public bool TryExcludePlot(Guid entityId, int plotId, out string? failureKey)
         {
-            failureKey = null;
-            if (!TryGetController(entityId, out var farm))
-            {
-                failureKey = HdbfCommandFailures.NotABoxFarm;
-                return false;
-            }
-
-            try
-            {
-                if (!farm.IsRegisteredPlot(plotId))
-                {
-                    failureKey = HdbfCommandFailures.PlotNotRegistered;
-                    return false;
-                }
-
-                if (!farm.TryExcludePlot(plotId))
-                {
-                    failureKey = HdbfCommandFailures.PlotMinimum;
-                    return false;
-                }
-
-                return true;
-            }
-            catch (Exception exception)
-            {
-                _log.Error(HdbfLogCategory.Error, LogKeyCommand,
-                    "plot exclusion failed", exception, entityId.ToString());
-                failureKey = HdbfCommandFailures.Unknown;
-                return false;
-            }
+            failureKey = HdbfCommandFailures.PlotNotRegistered;
+            return false;
         }
 
         /// <inheritdoc />
         public bool TryIncludePlot(Guid entityId, int plotId, out string? failureKey)
         {
-            failureKey = null;
-            if (!TryGetController(entityId, out var farm))
-            {
-                failureKey = HdbfCommandFailures.NotABoxFarm;
-                return false;
-            }
-
-            try
-            {
-                if (!farm.TryIncludePlot(plotId))
-                {
-                    failureKey = HdbfCommandFailures.PlotNotRegistered;
-                    return false;
-                }
-
-                return true;
-            }
-            catch (Exception exception)
-            {
-                _log.Error(HdbfLogCategory.Error, LogKeyCommand,
-                    "plot restore failed", exception, entityId.ToString());
-                failureKey = HdbfCommandFailures.Unknown;
-                return false;
-            }
+            failureKey = HdbfCommandFailures.PlotNotRegistered;
+            return false;
         }
 
         private bool TryGetController(Guid entityId, out HdbfBoxFarmController farm)
         {
             farm = null!;
-            if (entityId == Guid.Empty || _farms is null)
+            if (entityId == Guid.Empty)
             {
                 return false;
             }
@@ -278,114 +260,5 @@ namespace HDBF.Gameplay.Components
             farm = controller;
             return true;
         }
-
-        /// <summary>
-        /// Withdraws the chapter 6.5 upkeep material from the closest stockpile in the farm's own
-        /// district (falling back to any finished district) before the timer is reset. The
-        /// transaction is all-or-nothing: when no inventory has the full amount, nothing is
-        /// consumed and the caller reports a material shortage (REQ-BAL-11/12).
-        /// </summary>
-        private bool TryWithdrawMaintenanceMaterials(HdbfBoxFarmController farm, TierProfile profile,
-            out string? failureKey)
-        {
-            failureKey = null;
-            var goodId = MaintenanceGoodId(profile, farm);
-            var amount = MaintenanceMaterialAmount(profile, farm);
-            if (goodId is null || amount <= 0)
-            {
-                // On-grid top tier or material-free tier: nothing material to consume.
-                return true;
-            }
-
-            var goodAmount = new GoodAmount(goodId, amount);
-            var position = farm.Transform.position;
-            Inventory? best = null;
-            var bestDistance = float.MaxValue;
-
-            // Timberborn.Common.ReadOnlyList<T> is a readonly struct, never null: an empty list
-            // is the "no active district" state.
-            var centers = _districtCenters.FinishedDistrictCenters;
-            if (centers.Count == 0)
-            {
-                failureKey = HdbfCommandFailures.MissingMaterials;
-                _log.Write(HdbfLogCategory.Warn, LogKeyCommand,
-                    "maintenance needs " + amount + " " + goodId + " but no district registry is available");
-                return false;
-            }
-
-            for (var i = 0; i < centers.Count; i++)
-            {
-                var center = centers[i];
-                if (center is null)
-                {
-                    continue;
-                }
-
-                var registry = center.GetComponent<DistrictInventoryRegistry>();
-                var inventories = registry?.ActiveInventoriesWithStock(goodId);
-                if (inventories is null)
-                {
-                    continue;
-                }
-
-                foreach (var inventory in inventories)
-                {
-                    if (inventory is null || !inventory.Takes(goodId)
-                        || !inventory.HasUnreservedStock(goodAmount))
-                    {
-                        continue;
-                    }
-
-                    var distance = (inventory.Transform.position - position).sqrMagnitude;
-                    if (distance < bestDistance)
-                    {
-                        bestDistance = distance;
-                        best = inventory;
-                    }
-                }
-            }
-
-            if (best is null)
-            {
-                failureKey = HdbfCommandFailures.MissingMaterials;
-                _log.Write(HdbfLogCategory.Warn, LogKeyCommand,
-                    "maintenance needs " + amount + " " + goodId + " but no stockpile holds that unreserved amount");
-                return false;
-            }
-
-            best.TakeExisting(goodAmount);
-            return true;
-        }
-
-        private static string? MaintenanceGoodId(TierProfile profile, HdbfBoxFarmController farm)
-        {
-            switch (profile.MaintenanceKind)
-            {
-                case HdbfMaintenanceKind.Plank:
-                    return "Plank";
-                case HdbfMaintenanceKind.Metal:
-                    return "MetalBlock";
-                case HdbfMaintenanceKind.PowerOrOffGridMetal:
-                    // On-grid top tier is maintained by the mechanical network (chapter 6.5).
-                    return farm.PowerConnected ? null : "MetalBlock";
-                default:
-                    return null;
-            }
-        }
-
-        private static int MaintenanceMaterialAmount(TierProfile profile, HdbfBoxFarmController farm)
-        {
-            switch (profile.MaintenanceKind)
-            {
-                case HdbfMaintenanceKind.Plank:
-                case HdbfMaintenanceKind.Metal:
-                    return profile.MaintenanceMaterialCount;
-                case HdbfMaintenanceKind.PowerOrOffGridMetal:
-                    return farm.PowerConnected ? 0 : profile.OffGridMaintenanceMaterial;
-                default:
-                    return 0;
-            }
-        }
     }
 }
-

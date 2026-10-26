@@ -36,20 +36,52 @@
   </ItemGroup>
 
   <!--
-    Two game assemblies beyond the shared HDBF reference set (Directory.Build.targets):
-    * Timberborn.Navigation: GlobalReachabilityService/INavigationService provide the
-      entrance-to-plot reachability filter required by REQ-BLD-01 / REQ-IMPL-06;
-    * Timberborn.MechanicalSystem: MechanicalBuilding exposes the real powered state for the
-      top tier's on-grid / off-grid fallback (chapter 6.5, REQ-IMPL-21).
-    Both are Private=false: the game supplies them at runtime, nothing is copied to our output.
+    Game assemblies beyond the shared HDBF reference set (Directory.Build.targets). All are
+    Private=false: the game supplies them at runtime, nothing is copied to our output.
+    Timberborn.Navigation is referenced again by V2-GAMEPLAY-02, but only for the manual-refill
+    worker reachability check (Accessible access points + INavigationService.DestinationIsReachable,
+    REQ-V2-WATER-04 "the worker must really walk there"); v1 plot reachability stays deleted.
   -->
   <ItemGroup>
     <Reference Include="Timberborn.Navigation">
       <HintPath>$(TimberbornManagedDir)\Timberborn.Navigation.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <!-- Manual refill water sources (section 19.6), all API facts IL-verified on 1.1.2.8:
+         * IThreadSafeWaterMap: WaterDepth / ColumnContamination / IsWaterOnAnyHeight (water body);
+         * IWaterService.RemoveCleanWater: the vanilla "take water out of a body" operation;
+         * WaterGoodToWaterAmountConverter: WaterId = "Water", WaterAmountConversion = 0.2 m3/good
+           (used instead of hard-coding the good id/volume, see HdbfManualWaterSource). -->
+    <Reference Include="Timberborn.WaterSystem">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.WaterSystem.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="Timberborn.MechanicalSystem">
       <HintPath>$(TimberbornManagedDir)\Timberborn.MechanicalSystem.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <!-- v2 crop catalog: real FarmHouse plantables (PlantableSpec), grow time and cuttable yield;
+         active faction from GameFactionSystem and the shipped natural-resource template collection. -->
+    <Reference Include="Timberborn.Cutting">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.Cutting.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Timberborn.GameFactionSystem">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.GameFactionSystem.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Timberborn.FactionSystem">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.FactionSystem.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Timberborn.TemplateCollectionSystem">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.TemplateCollectionSystem.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <!-- TemplateCollectionService exposes ImmutableArray<Blueprint>; the game ships this BCL
+         assembly, so it is referenced Private=false like the game assemblies. -->
+    <Reference Include="System.Collections.Immutable">
+      <HintPath>$(TimberbornManagedDir)\System.Collections.Immutable.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <!-- Maintenance material transaction: DistrictCenterRegistry / DistrictInventoryRegistry

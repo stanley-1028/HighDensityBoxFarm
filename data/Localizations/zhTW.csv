@@ -1,100 +1,148 @@
-ID,Text,Comment
-HDBF.Building.BoxFarm.Basic.Name,High-Density Box Farm (Basic),chapter 14.4
-HDBF.Building.BoxFarm.Intermediate.Name,High-Density Box Farm (Intermediate),chapter 14.4
-HDBF.Building.BoxFarm.Advanced.Name,High-Density Box Farm (Advanced),chapter 14.4
-HDBF.Building.BoxFarm.Top.Name,High-Density Box Farm (Top),chapter 14.4
-HDBF.Building.BoxFarm.Basic.Description,A timber box farm; two farmers tend 60 dense plots with hand-fed irrigation,chapter 14.4
-HDBF.Building.BoxFarm.Intermediate.Description,"A plank-frame greenhouse; four farmers tend 150 plots, with periodic plank upkeep",chapter 14.4
-HDBF.Building.BoxFarm.Advanced.Description,"A metal-and-glass greenhouse; eight farmers tend 300 plots, demanding irrigation and metal upkeep",chapter 14.4
-HDBF.Building.BoxFarm.Top.Description,"An industrial farm complex: 16 farmers, 600 dense plots, constant power and upkeep",chapter 14.4
-HDBF.Panel.Workers,Workers {0}/{1},chapter 14.4
-HDBF.Panel.RegisteredPlots,已註冊格 {0}/{1},chapter 11.3 / chapter 14.4 naming
-HDBF.Panel.EffectivePlots,Effective Plots {0}/{1},chapter 14.4
-HDBF.Panel.TillablePlots,可開墾格 {0},chapter 11.3 / chapter 14.4 naming
-HDBF.Panel.Irrigation,Irrigation Coverage {0}%,chapter 14.4
-HDBF.Panel.IrrigationThreshold,Minimum {0}%,HDBF extension
-HDBF.Panel.Fatigue,Soil Fatigue {0}%,chapter 14.4
-HDBF.Panel.FatigueMax,Soil Fatigue Max {0}%,HDBF extension
-HDBF.Panel.MaintenanceDue,Maintenance Due in {0} d,chapter 14.4
-HDBF.Mode.Normal,Normal,chapter 14.4
-HDBF.Mode.Dense,Dense Planting,chapter 14.4
-HDBF.Mode.Fallow,Fallow,chapter 14.4
-HDBF.Port.Power,Power Port,chapter 14.4
-HDBF.Port.Pipe,Pipe Port,chapter 14.4
-HDBF.Port.Logistics,Logistics Port,chapter 14.4
-HDBF.Action.Maintenance,Perform Maintenance,chapter 14.4
-HDBF.Action.HighlightPlots,Show Managed Plots,chapter 14.4
-HDBF.Warning.IrrigationLow,Irrigation Low: {0}% below minimum {1}%,chapter 14.4
-HDBF.Warning.MaintenanceOverdue,Maintenance Overdue: {0} cycle(s),chapter 14.4
-HDBF.Warning.FatigueHigh,Soil Fatigue High: {0}%,chapter 14.4
-HDBF.Warning.NoPower,No Power: output reduced to {0}%,chapter 14.4
-HDBF.Warning.AdapterDisabled,Adapter Disabled: {0},chapter 14.4
-HDBF.Warning.AdapterFailed,Adapter Failed: {0},chapter 14.4
-HDBF.Compat.MissingMod,Compatible mod not detected: {0},chapter 14.4
-HDBF.Error.LoadFailed,Building data failed to load; safe defaults applied,chapter 14.4
-HDBF.Tooltip.MultiplierBreakdown,Irrigation {0} × Fatigue {1} × Maintenance {2} × Power {3} × Mode {4},chapter 14.4
-HDBF.Tooltip.EffectivePlots,"Effective plots = min({0}, {1} × {2})",HDBF extension
-HDBF.Tooltip.TillablePlots,最近一次掃描在 {0}×{1} 工作範圍（{2} 格）內可開墾的格數；不含玩家排除格與其他農場的格。,chapter 11.3 / chapter 14.1 (hover only)
-HDBF.Panel.TankWater,Tank Water {0} d,HDBF extension
-HDBF.Panel.MaintenanceNone,No material upkeep,HDBF extension
-HDBF.Panel.PowerConnected,Power Connected,HDBF extension
-HDBF.Panel.PowerOffGrid,Power Off-Grid,HDBF extension
-HDBF.Panel.PowerNotRequired,No Power Required,HDBF extension
-HDBF.Panel.WorkRange,Work Range {0}×{0},HDBF extension
-HDBF.Panel.Mode,Mode,HDBF extension
-HDBF.Panel.Ports,Ports,HDBF extension
-HDBF.Panel.Status,Status,HDBF extension
-HDBF.Panel.BalanceModified,Balance modified,HDBF extension
-HDBF.Panel.Unknown,—,HDBF extension
-HDBF.Warning.Shutdown,Farm Shutdown: maintenance overdue,HDBF extension
-HDBF.Warning.NoWater,Critical Water Shortage: {0}%,HDBF extension
-HDBF.Warning.TankLow,Tank Low: {0} d,HDBF extension
-HDBF.Warning.EntranceBlocked,Entrance Blocked,HDBF extension
-HDBF.Warning.MoreWarnings,{0} more warnings,HDBF extension
-HDBF.Warning.Generic,Warning: {0},HDBF extension
-HDBF.Port.Connected,Connected,HDBF extension
-HDBF.Port.NotConnected,Not Connected,HDBF extension
-HDBF.Port.Disabled,Disabled,HDBF extension
-HDBF.Port.NotApplicable,Not Applicable,HDBF extension
-HDBF.Mode.SwitchCooldown,Mode change on cooldown,HDBF extension
-HDBF.Action.Details,Details,HDBF extension
-HDBF.Error.MaterialsMissing,維護材料不足,Command failure (REQ-UI-07)
-HDBF.Compat.ShowDetails,Show Compatibility,HDBF extension
-HDBF.Compat.Adapter.ConveyorBeltsV2,Conveyor Belts V2 adapter,chapter 8.1
-HDBF.Compat.Adapter.HoomanStairs,Hooman Stairs adapter,chapter 8.1
-HDBF.Compat.Adapter.MoreMines,More Mines adapter,chapter 8.1
-HDBF.Compat.Adapter.PowerLines,Power Lines adapter,chapter 8.1
-HDBF.Compat.Adapter.TimberPipes,Timber Pipes adapter,chapter 8.1
-HDBF.Action.ConfirmDense,確認密植,REQ-UI-06
-HDBF.Action.DenseConfirmHint,再次點擊密植以確認,REQ-UI-06
-HDBF.Action.MaintenanceDone,維護完成,REQ-UI-07
-HDBF.Action.ModeChanged,模式已切換,REQ-UI-06
-HDBF.Action.PortUpdated,連接埠已更新,REQ-UI-07
-HDBF.Error.ActionFailed,操作未能完成,Command failure fallback
-HDBF.Error.DenseDisabled,模組設定已停用密植,Command failure
-HDBF.Error.MissingMod,未偵測到所需相容模組,Command failure
-HDBF.Error.NotBoxFarm,該建築不是高密度盒子農場,Command failure
-HDBF.Error.PlotMinimum,至少保留一個託管格,Command failure
-HDBF.Error.PlotNotRegistered,該託管格不屬於此農場,Command failure
-HDBF.Port.PowerManaged,動力接口由電網自動管理,Command failure
-HDBF.Tooltip.CurrentMode,目前模式,REQ-UI-06
-HDBF.Tooltip.Maintenance,消耗維護材料並重置維護倒數,REQ-UI-07
-HDBF.Tooltip.MaintenanceShutdown,農場已停擺，執行維護可恢復全部產出,REQ-UI-07
-HDBF.Tooltip.ModeDense,密植：產量 ×1.35，水耗 ×1.5，疲勞 ×1.5，再次點擊確認,REQ-UI-06
-HDBF.Tooltip.ModeFallow,休耕：停止產出，讓土壤恢復,REQ-UI-06
-HDBF.Tooltip.ModeNormal,常規種植：產量、水耗與疲勞不變,REQ-UI-06
-HDBF.Tooltip.PortPower,動力接口透過機械電網自動連接,REQ-UI-07
-HDBF.Tooltip.PortToggle,切換{0},REQ-UI-07
-HDBF.Panel.HighlightLegend,託管格圖例,REQ-UI-05 / chapter 14.3 legend header
-HDBF.Panel.HighlightIrrigated,已灌溉,REQ-UI-05 legend row (green)
-HDBF.Panel.HighlightDry,未灌溉,REQ-UI-05 legend row (yellow)
-HDBF.Panel.HighlightExcluded,已排除,REQ-UI-05 legend row (gray)
-HDBF.Panel.HighlightUnreachable,不可達,REQ-UI-05 legend row (red)
-HDBF.Tooltip.HighlightPlots,點擊託管格可排除或恢復；按住 Shift 拖曳框選；按 Esc 關閉高亮。,REQ-UI-05 inactive button tooltip
-HDBF.Tooltip.HighlightBoxSelect,按住 Shift 拖曳可一次排除或恢復多個託管格。,REQ-UI-05 box-select hint
-HDBF.Panel.WarningAggregate,另有 {0} 座建築：{1},REQ-UI-03 cross-building warning aggregation (chapter 14.2)
-HDBF.Panel.WarningAggregateHint,點擊列展開建築列表；點擊建築可選中並聚焦。,REQ-UI-03 on-screen aggregation only (chapter 14.6)
-HDBF.Panel.SettingWorldIcons,世界警告圖標,REQ-UI-10 config ui.worldIcons label
-HDBF.Panel.SettingWorldIconBlink,警告圖標閃爍,REQ-UI-10 config ui.worldIconBlink label
-HDBF.Panel.SettingWorldIconDistance,圖標可見距離（格）,REQ-UI-10 config ui.worldIconMaxDistance label
-HDBF.Tooltip.WorldIcon,{0}（P0/P1 世界圖標；超過 {1} 格隱藏）,REQ-UI-03 head-top warning icon tooltip (chapter 14.2)
+﻿ID,Text,Comment
+HDBF.Building.BoxFarm.Basic.Name,高密度盒子農場（基礎版）,v2 UI
+HDBF.Building.BoxFarm.Intermediate.Name,高密度盒子農場（中級版）,v2 UI
+HDBF.Building.BoxFarm.Advanced.Name,高密度盒子農場（高級版）,v2 UI
+HDBF.Building.BoxFarm.Top.Name,高密度盒子農場（頂級版）,v2 UI
+HDBF.Building.BoxFarm.Basic.Description,木棚農場：兩農民照料 60 個室內槽位，需人工補水。,v2 UI
+HDBF.Building.BoxFarm.Intermediate.Description,木板溫室：四農民照料 150 個室內槽位，需定期木板維護。,v2 UI
+HDBF.Building.BoxFarm.Advanced.Description,金屬玻璃溫室：八農民照料 300 個室內槽位，需金屬維護。,v2 UI
+HDBF.Building.BoxFarm.Top.Description,工業農場：十六農民照料 600 個室內槽位，需電網供電與金屬維護。,v2 UI
+HDBF.Panel.Tier,檔位：{0},v2 UI
+HDBF.Panel.Faction,陣營：{0},v2 UI
+HDBF.Panel.Workers,工人 {0}/{1},v2 UI
+HDBF.Panel.Mode,模式,v2 UI
+HDBF.Panel.ModeTransition,模式切換中，今日產出降低。,v2 UI
+HDBF.Panel.TierBasic,基礎,v2 UI
+HDBF.Panel.TierIntermediate,中級,v2 UI
+HDBF.Panel.TierAdvanced,高級,v2 UI
+HDBF.Panel.TierTop,頂級,v2 UI
+HDBF.Panel.FactionFolktails,葉尾,v2 UI
+HDBF.Panel.FactionIronTeeth,鐵牙,v2 UI
+HDBF.Panel.SectionSlots,槽位,v2 UI
+HDBF.Panel.SectionWater,水,v2 UI
+HDBF.Panel.SectionMaintenance,維護,v2 UI
+HDBF.Panel.SectionPower,動力,v2 UI
+HDBF.Panel.SectionCrops,作物策略,v2 UI
+HDBF.Panel.SectionOutput,輸出,v2 UI
+HDBF.Panel.Slots,槽位 {0}/{1},v2 UI
+HDBF.Panel.EffectiveSlots,有效槽位 {0},v2 UI
+HDBF.Panel.EmptySlots,空槽 {0},v2 UI
+HDBF.Panel.GrowingSlots,生長中 {0},v2 UI
+HDBF.Panel.MatureSlots,可收穫 {0},v2 UI
+HDBF.Panel.Backlog,積壓動作 {0},v2 UI
+HDBF.Panel.Tank,水罐 {0}/{1} 單位（約 {2} 天）,v2 UI
+HDBF.Panel.Coverage,覆蓋率 C {0}%,v2 UI
+HDBF.Panel.MinCoverage,下限 C_min {0}%,v2 UI
+HDBF.Panel.WaterSupply,補水來源：{0},v2 UI
+HDBF.Panel.WaterShortage,缺水：生長效率 {0}%,v2 UI
+HDBF.Panel.WaterPipe,管道,v2 UI
+HDBF.Panel.WaterManual,人工,v2 UI
+HDBF.Panel.WaterNone,無,v2 UI
+HDBF.Panel.MaintenanceDue,維護到期日 第 {0} 天,v2 UI
+HDBF.Panel.MaintenanceCycles,逾期週期 {0},v2 UI
+HDBF.Panel.MaintenanceMaterials,缺料：{0} ×{1},v2 UI
+HDBF.Panel.MaintenanceNone,無材料維護,v2 UI
+HDBF.Panel.MaterialPlank,木板,v2 UI
+HDBF.Panel.MaterialMetalBlock,金屬塊,v2 UI
+HDBF.Panel.Power,動力：{0},v2 UI
+HDBF.Panel.PowerGrid,接電,v2 UI
+HDBF.Panel.PowerOffGrid,離網,v2 UI
+HDBF.Panel.PowerNoPower,斷電,v2 UI
+HDBF.Panel.PowerNotRequired,無需供電,v2 UI
+HDBF.Panel.CropPolicy,作物策略：{0},v2 UI
+HDBF.Panel.FixedCrop,固定作物：{0},v2 UI
+HDBF.Panel.Rotation,輪作序列：{0},v2 UI
+HDBF.Panel.PolicyRotation,自動輪作,v2 UI
+HDBF.Panel.PolicyFixed,固定作物,v2 UI
+HDBF.Panel.CropCarrot,胡蘿蔔,v2 UI
+HDBF.Panel.CropPotato,馬鈴薯,v2 UI
+HDBF.Panel.CropWheat,小麥,v2 UI
+HDBF.Panel.CropSunflower,向日葵,v2 UI
+HDBF.Panel.CropCanola,油菜,v2 UI
+HDBF.Panel.CropCassava,木薯,v2 UI
+HDBF.Panel.CropCorn,玉米,v2 UI
+HDBF.Panel.CropEggplant,茄子,v2 UI
+HDBF.Panel.CropKohlrabi,苤藍,v2 UI
+HDBF.Panel.CropSoybean,大豆,v2 UI
+HDBF.Panel.OutputStock,輸出庫存佔用 {0},v2 UI
+HDBF.Panel.OutputPort,輸出端口：{0},v2 UI
+HDBF.Panel.Ports,端口,v2 UI
+HDBF.Panel.Status,狀態,v2 UI
+HDBF.Panel.Problems,問題,v2 UI
+HDBF.Panel.Unknown,—,v2 UI
+HDBF.Mode.Normal,常規,v2 UI
+HDBF.Mode.Dense,密植,v2 UI
+HDBF.Mode.Fallow,休耕,v2 UI
+HDBF.Mode.SwitchCooldown,模式切換冷卻中,v2 UI
+HDBF.Port.Power,動力接口,v2 UI
+HDBF.Port.Pipe,管道接口,v2 UI
+HDBF.Port.Logistics,物流接口,v2 UI
+HDBF.Port.Connected,已連接,v2 UI
+HDBF.Port.NotConnected,未連接,v2 UI
+HDBF.Port.Disabled,已停用,v2 UI
+HDBF.Port.NotApplicable,不適用,v2 UI
+HDBF.Action.Maintenance,執行維護,v2 UI
+HDBF.Action.MaintenanceDone,維護完成。,v2 UI
+HDBF.Action.Refill,補水,v2 UI
+HDBF.Action.RefillRequested,已請求補水。,v2 UI
+HDBF.Action.ModeChanged,模式已切換。,v2 UI
+HDBF.Action.CropPolicyChanged,作物策略已更新。,v2 UI
+HDBF.Warning.NoWater,缺水,v2 UI
+HDBF.Warning.IrrigationLow,水位偏低,v2 UI
+HDBF.Warning.MaintenanceOverdue,維護逾期,v2 UI
+HDBF.Warning.NoPower,斷電,v2 UI
+HDBF.Warning.EntranceBlocked,入口堵塞,v2 UI
+HDBF.Warning.Shutdown,維護逾期,v2 UI (world-icon slot for maintenance; frozen Core enum)
+HDBF.Warning.AdapterFailed,入口堵塞,v2 UI (world-icon slot for entrance blocking; frozen Core enum)
+HDBF.Warning.OutputFull,輸出庫存已滿,v2 UI
+HDBF.Warning.NoWorkers,無工人在崗,v2 UI
+HDBF.Warning.MissingMaterial,維護材料不足,v2 UI
+HDBF.Warning.InvalidCrop,固定作物無效,v2 UI
+HDBF.Warning.MoreWarnings,另有 {0} 條警告,v2 UI
+HDBF.Warning.Generic,警告,v2 UI
+HDBF.Panel.WarningAggregate,另有 {0} 座建築：{1},v2 UI (world-icon aggregation)
+HDBF.Panel.WarningAggregateHint,點擊列展開建築列表。,v2 UI
+HDBF.Panel.SettingWorldIcons,世界警告圖標,v2 UI
+HDBF.Panel.SettingWorldIconBlink,警告圖標閃爍,v2 UI
+HDBF.Panel.SettingWorldIconDistance,圖標可見距離（格）,v2 UI
+HDBF.Tooltip.WorldIcon,{0}（P0/P1 世界圖標；超過 {1} 格隱藏）,v2 UI
+HDBF.Compat.MissingMod,未偵測到相容模組：{0},v2 UI
+HDBF.Compat.ShowDetails,查看相容性,v2 UI
+HDBF.Compat.Adapter.ConveyorBeltsV2,傳送帶 V2 適配器,v2 UI
+HDBF.Compat.Adapter.HoomanStairs,Hooman 樓梯適配器,v2 UI
+HDBF.Compat.Adapter.MoreMines,更多礦場適配器,v2 UI
+HDBF.Compat.Adapter.PowerLines,電力線適配器,v2 UI
+HDBF.Compat.Adapter.TimberPipes,Timber Pipes 管道適配器,v2 UI
+HDBF.Error.ActionFailed,操作未能完成。,v2 UI
+HDBF.Error.MaterialsMissing,維護材料不足。,v2 UI
+HDBF.Error.DenseDisabled,模組設定已停用密植。,v2 UI
+HDBF.Error.NotBoxFarm,該建築不是高密度盒子農場。,v2 UI
+HDBF.Error.FarmNotActive,農場尚未啟用。,v2 UI
+HDBF.Error.RefillUnavailable,本版本尚未開放人工補水。,v2 UI
+HDBF.Error.CropNotAvailable,該作物不可用於此陣營。,v2 UI
+HDBF.Error.MaintenanceUnavailable,該檔位沒有材料維護。,v2 UI
+HDBF.Error.InvalidMode,模式無效。,v2 UI
+HDBF.Error.MissingMod,未偵測到所需相容模組。,v2 UI
+HDBF.Error.NoWorkers,無工人在崗，無法取水。,v2 UI (refill reason)
+HDBF.Error.EntranceBlocked,入口堵塞，工人無法外出取水。,v2 UI (refill reason)
+HDBF.Error.NoWaterSource,12 格內沒有可用水源。,v2 UI (refill reason)
+HDBF.Error.WaterSourceUnreachable,附近有水源，但沒有可通行的路徑。,v2 UI (refill reason)
+HDBF.Error.WaterContaminated,附近水源已被污染，無法注入水罐。,v2 UI (refill reason)
+HDBF.Error.NoActionsLeft,今日剩餘動作不足以完成補水。,v2 UI (refill reason)
+HDBF.Error.RefillPending,已有一次補水在佇列中。,v2 UI (refill reason)
+HDBF.Error.OutputFull,輸出庫存已滿，無法搬運產物。,v2 UI (action reason)
+HDBF.Tooltip.EffectiveSlots,"有效槽位 P_eff = min({0}, {1} × {2})。",v2 UI
+HDBF.Tooltip.Tank,水罐單位與可用天數；覆蓋率 C 需保持在 C_min 以上。,v2 UI
+HDBF.Tooltip.Coverage,C 為水罐覆蓋率；低於 C_min 會減產，低於其四分之一則停止生長。,v2 UI
+HDBF.Tooltip.Maintenance,消耗維護材料並重置維護倒數。,v2 UI
+HDBF.Tooltip.MaintenanceShutdown,農場已停擺，執行維護可恢復產出。,v2 UI
+HDBF.Tooltip.Power,頂級：接電時生長全速；離網或斷電會降低生長。,v2 UI
+HDBF.Tooltip.Rotation,輪作每輪更換作物；固定作物則始終補種所選作物。,v2 UI
+HDBF.Tooltip.Refill,請求一次人工補水。,v2 UI
+HDBF.Tooltip.PipeWater,管道接口會自動補水。,v2 UI
+HDBF.Tooltip.NoWaterSource,沒有補水來源，水罐只會消耗。,v2 UI
+HDBF.Tooltip.Output,輸出庫存與物流端口狀態。,v2 UI
+HDBF.Tooltip.CurrentMode,目前模式。,v2 UI
+HDBF.Tooltip.ModeNormal,常規：產量與水耗不變。,v2 UI
+HDBF.Tooltip.ModeDense,密植：產量 ×1.35，水耗 ×1.5。,v2 UI
+HDBF.Tooltip.ModeFallow,休耕：停止產出，讓土壤恢復。,v2 UI

@@ -1,27 +1,28 @@
 using System;
 using System.Globalization;
+using System.Linq;
 using HDBF.Core;
 using HDBF.Core.Abstractions;
 using HDBF.Core.Balance;
+using HDBF.Core.Indoor;
 using HDBF.Core.Save;
 
 namespace HDBF.Tests
 {
     /// <summary>
-    /// Offline contract tests for the data the UI layer consumes (chapter 14, REQ-UI-01..06) and
-    /// for the remaining labour-cap formulas (chapter 6.2, REQ-BAL-05/07).
+    /// Offline contract tests for the data the v2 UI layer consumes (chapter 19.11, REQ-V2-UI-01..04)
+    /// and for the remaining labour-cap formulas (chapter 6.2, REQ-BAL-05/07).
     ///
-    /// Scope note, kept honest: the actual warning sorter and the number formatter live in
-    /// HDBF.Gameplay (HdbWarningEvaluator) and HDBF.UI (HdbfFarmPanelDataFactory). Both reference
-    /// Timberborn assemblies and cannot be loaded by this net9.0 test runner (REQ-TEST-03 keeps
-    /// game-dependent cases out of L1). What IS testable here is the contract those layers rely on:
-    /// the numeric order of <see cref="FarmWarningSeverity"/>, the single-source yield product, and
-    /// the invariant number formatting of the save canonical form. The UI ordering/formatting
-    /// themselves are listed as game-run items in docs/VERIFICATION.md.
+    /// Scope note, kept honest: the warning evaluator and the panel mapper live in HDBF.Gameplay /
+    /// HDBF.UI and reference Timberborn assemblies, so L1 cannot load those assemblies directly
+    /// (REQ-V2-TEST-01). The v2 panel mapping is tested through the linked game-free HdbfIndoor*
+    /// sources in <see cref="V2PanelContractTests"/>; this class pins the Core contract the UI reads:
+    /// the snapshot DTO shape, the warning severity order, the single-source yield product and the
+    /// invariant number formatting of the save canonical form.
     ///
-    /// Mode-switch cooldown (REQ-BAL-20 / REQ-UI-06): the one-game-day cooldown lives in
+    /// Mode-switch cooldown (REQ-V2-UI-02): the one-game-day cooldown lives in
     /// HdbfBoxFarmController.TrySetMode and reads the game day counter, so it has no offline seam;
-    /// it is also documented as an in-game check rather than faked here.
+    /// it is listed as an in-game check rather than faked here.
     /// </summary>
     public static class UiContractTests
     {
@@ -226,6 +227,58 @@ namespace HDBF.Tests
                         "effective plots exceeded farmer coverage at " + capacity + "/" + workers);
                 }
             }
+        }
+
+        // ------------------------------------------------------- v2 panel snapshot contract
+
+        /// <summary>
+        /// REQ-V2-UI-01: every chapter-19.11 panel block is a field of the Core DTO the panel
+        /// renders. UI never reads a game object, so this DTO is the complete data contract.
+        /// </summary>
+        public static void TestIndoorSnapshotExposesEveryPanelBlock()
+        {
+            var fields = typeof(IndoorFarmSnapshot).GetProperties().Select(property => property.Name)
+                .ToArray();
+            foreach (var block in new[]
+                     {
+                         "Tier", "Faction", "Workers", "MaxWorkers", "Mode", "ModeTransitioning",
+                         "Capacity", "ConfiguredSlots", "EffectiveSlots", "EmptySlots", "GrowingSlots",
+                         "MatureSlots", "BacklogActions", "Tank", "TankCapacity", "TankDaysRemaining",
+                         "Coverage", "MinCoverage", "WaterSupply", "MaintenanceDueDay",
+                         "MaintenanceCyclesMissed", "MaintenanceMaterialMissing", "Power",
+                         "PowerConnected", "CropPolicy", "FixedCropId", "RotationSequence",
+                         "OutputOccupied", "OutputPortConnected", "PipePort", "LogisticsPort",
+                         "PowerPort", "Warnings", "OutputInventoryPortState",
+                     })
+            {
+                TestAssert.True(fields.Contains(block, StringComparer.Ordinal),
+                    "IndoorFarmSnapshot is missing the panel field " + block);
+            }
+        }
+
+        /// <summary>
+        /// REQ-V2-UI-02/03 (chapter 19.11): the four v2 warning categories exist as flags, and the
+        /// mode/crop enums keep their frozen numeric values the save schema depends on.
+        /// </summary>
+        public static void TestIndoorEnumsCoverTheFourV2WarningCategories()
+        {
+            TestAssert.Equal(1, (int)IndoorWarningFlags.NoWater);
+            TestAssert.Equal(2, (int)IndoorWarningFlags.LowWater);
+            TestAssert.Equal(4, (int)IndoorWarningFlags.MaintenanceDue);
+            TestAssert.Equal(8, (int)IndoorWarningFlags.MaintenanceStalled);
+            TestAssert.Equal(16, (int)IndoorWarningFlags.NoPower);
+            TestAssert.Equal(32, (int)IndoorWarningFlags.EntranceBlocked);
+            TestAssert.Equal(64, (int)IndoorWarningFlags.OutputFull);
+            TestAssert.Equal(128, (int)IndoorWarningFlags.NoWorkers);
+            TestAssert.Equal(256, (int)IndoorWarningFlags.MissingMaterial);
+
+            TestAssert.Equal(3, Enum.GetValues(typeof(IndoorMode)).Length, "normal/dense/fallow");
+            TestAssert.Equal(IndoorMode.Normal, (IndoorMode)0);
+            TestAssert.Equal(IndoorMode.Dense, (IndoorMode)1);
+            TestAssert.Equal(IndoorMode.Fallow, (IndoorMode)2);
+            TestAssert.Equal(2, Enum.GetValues(typeof(CropPolicy)).Length, "rotation/fixed");
+            TestAssert.Equal(CropPolicy.Rotation, (CropPolicy)0);
+            TestAssert.Equal(CropPolicy.Fixed, (CropPolicy)1);
         }
     }
 }

@@ -1,18 +1,24 @@
+// ============================================================================
+// HDBF v2 | Layer: Gameplay/Specs | Owner: V2-GAMEPLAY-01
+// Purpose: Blueprint data of every indoor box farm tier. JSON member names stay the v1
+//          names for save/blueprint compatibility; their v2 meaning is documented below
+//          (PlotCapacity = indoor slot capacity, WaterPerPlotPerDay = water per slot/day).
+// Requirements: REQ-V2-CORE-01, REQ-V2-BLD-06, REQ-V2-EXT-01
+// ============================================================================
 using Timberborn.BlueprintSystem;
 
 namespace HDBF.Gameplay.Specs
 {
     /// <summary>
-    /// Every per-tier difference of the four box farms, expressed as blueprint data
-    /// (chapter 11.1 / REQ-IMPL-01). One spec type and one controller serve all tiers
-    /// (REQ-ARCH-07): balancing a tier never changes code.
+    /// Every per-tier difference of the four box farms, expressed as blueprint data (section
+    /// 19.3). One spec type and one controller serve all tiers, so balancing a tier never changes
+    /// code.
     ///
-    /// <see cref="ComponentSpec"/> is a C# record in Timberborn 1.1.2.8, so a custom spec must
-    /// be declared as a record; serializable members are plain <c>get; set;</c> properties
-    /// marked with <see cref="Serialize"/> (verified against
-    /// <c>BlueprintDeserializer.GetSpecTypes</c> and the shipped specs, docs/API_FACTS.md §3).
-    ///
-    /// JSON keys are the member names, e.g. <c>"Tier": "Basic", "PlotCapacity": 60</c>.
+    /// v2 semantics: the building has no world plots. <see cref="PlotCapacity"/> is the number of
+    /// abstract indoor growing slots (60/150/300/600) and <see cref="WaterPerPlotPerDay"/> is the
+    /// tank demand per slot and day. The JSON member names are intentionally not renamed: existing
+    /// v1 blueprints and saves keep loading, and the four shipped v2 blueprints already carry these
+    /// keys. Renaming is deferred to the data migration card that can rewrite both together.
     /// </summary>
     public record HdbfBoxFarmSpec : ComponentSpec
     {
@@ -20,27 +26,33 @@ namespace HDBF.Gameplay.Specs
         [Serialize]
         public string Tier { get; set; } = "Basic";
 
-        /// <summary>Maximum number of managed plots (dense planting slots), 60/150/300/600.</summary>
+        /// <summary>
+        /// v2 indoor slot capacity (60/150/300/600). JSON name kept from v1; it no longer means
+        /// world plots and is never registered as a plot count.
+        /// </summary>
         [Serialize]
         public int PlotCapacity { get; set; } = 60;
 
-        /// <summary>Plots one on-duty farmer can tend (38 by default, chapter 6.2).</summary>
+        /// <summary>Slots one on-duty farmer can tend (38 by default, section 19.7).</summary>
         [Serialize]
         public int PlotsPerFarmer { get; set; } = 38;
 
-        /// <summary>Horizontal work-range edge on the X axis (11/15/19/27 cells).</summary>
+        /// <summary>【作废 in v2】Work range is no longer read; kept for v1 blueprint compatibility.</summary>
         [Serialize]
         public int WorkRangeX { get; set; } = 11;
 
-        /// <summary>Horizontal work-range edge on the Y axis (Timberborn's second horizontal axis).</summary>
+        /// <summary>【作废 in v2】Work range is no longer read; kept for v1 blueprint compatibility.</summary>
         [Serialize]
         public int WorkRangeZ { get; set; } = 11;
 
-        /// <summary>Minimum irrigation coverage C_min (0.50/0.60/0.75/0.80, chapter 6.3).</summary>
+        /// <summary>Minimum tank coverage C_min (0.50/0.60/0.75/0.80, section 19.6).</summary>
         [Serialize]
         public float MinIrrigationCoverage { get; set; } = 0.5f;
 
-        /// <summary>Water units consumed per plot per game day (chapter 6.3).</summary>
+        /// <summary>
+        /// v2 water demand per indoor slot and day (0.020/0.024/0.028/0.032). JSON name kept from
+        /// v1; it no longer refers to world plots.
+        /// </summary>
         [Serialize]
         public float WaterPerPlotPerDay { get; set; } = 0.02f;
 
@@ -72,15 +84,15 @@ namespace HDBF.Gameplay.Specs
         [Serialize]
         public int PowerDemand { get; set; }
 
-        /// <summary>True when the tier exposes a water pipe port (all tiers in v0.1).</summary>
+        /// <summary>True when the tier exposes a water pipe port (all tiers in v2).</summary>
         [Serialize]
         public bool HasPipePort { get; set; } = true;
 
-        /// <summary>True when the tier exposes a logistics output port.</summary>
+        /// <summary>True when the tier exposes a logistics output port (Intermediate and above).</summary>
         [Serialize]
         public bool HasLogisticsPort { get; set; }
 
-        /// <summary>True when the tier exposes a power port (top tier only).</summary>
+        /// <summary>True when the tier exposes a power port (Top only).</summary>
         [Serialize]
         public bool HasPowerPort { get; set; }
     }

@@ -1,69 +1,15 @@
 // ============================================================================
-// HDBF v2 | Layer: Core/Indoor | Owner: V2-CORE-01
+// HDBF v2 | Layer: Core/Indoor | Owner: V2-CORE-01 (day tick) / V2-GAMEPLAY-02 (wiring)
 // Purpose: The fixed-order daily orchestration of one indoor farm (ARCHITECTURE
-//          section 3) plus its context/result/action DTOs; no game objects.
+//          section 3). The DTOs live in IndoorDayContracts.cs; this file owns the
+//          order, the per-slot isolation and the day result.
 // Requirements: REQ-V2-MAINT-03, REQ-V2-CORE-05, REQ-V2-SAFE-01, REQ-V2-BAL-01,
-//               REQ-V2-PERF-02, REQ-V2-WATER-02, REQ-V2-LABOR-01
+//               REQ-V2-PERF-02, REQ-V2-WATER-02, REQ-V2-WATER-04, REQ-V2-LABOR-01
 // ============================================================================
 using HDBF.Core.Balance;
 
 namespace HDBF.Core.Indoor
 {
-    /// <summary>Inputs of one daily indoor farm tick (INTERFACES section 5).</summary>
-    public sealed class IndoorDayContext
-    {
-        /// <summary>On-duty workers of the building; source of the daily action budget.</summary>
-        public int ActiveWorkers { get; init; }
-        /// <summary>Current game day used by the maintenance cycle countdown.</summary>
-        public float CurrentDay { get; init; }
-        /// <summary>True when the front entrance is blocked; pauses farm actions only.</summary>
-        public bool EntranceBlocked { get; init; }
-        /// <summary>Output inventory sink; may be null when the port/inventory is missing.</summary>
-        public IInventorySink? Output { get; init; }
-        /// <summary>Real water source for pipe/manual refill; may be null (no source).</summary>
-        public IWaterSource? Water { get; init; }
-        /// <summary>Nearest maintenance material stockpile; may be null.</summary>
-        public IMaintenanceMaterialSource? Materials { get; init; }
-        /// <summary>True when the pipe port is connected and water is expected from it.</summary>
-        public bool HasPipeWater { get; init; }
-        /// <summary>True when the player requested a manual refill trip this day.</summary>
-        public bool ManualRefillRequested { get; init; }
-    }
-
-    /// <summary>Outcome of one daily indoor farm tick (INTERFACES section 5).</summary>
-    public readonly struct IndoorDayResult
-    {
-        /// <summary>Tank coverage C after the daily settlement.</summary>
-        public float Coverage { get; init; }
-        /// <summary>G_growth = G_irr x G_maint x G_power used by the growth step.</summary>
-        public float GrowthMultiplier { get; init; }
-        /// <summary>Panel yield multiplier: G_mode x average G_fat of the slots holding a crop.</summary>
-        public float YieldMultiplier { get; init; }
-        /// <summary>Farm actions performed this day.</summary>
-        public IndoorActionStats Actions { get; init; }
-        /// <summary>All problems detected this day.</summary>
-        public IndoorWarningFlags Warnings { get; init; }
-        /// <summary>True when the tick changed persisted state (the save should be marked dirty).</summary>
-        public bool Changed { get; init; }
-        /// <summary>True when maintenance stalls farm actions (crops keep growing).</summary>
-        public bool Stalled { get; init; }
-    }
-
-    /// <summary>Per-day action counters of <see cref="IndoorLaborMath.RunActions"/> (INTERFACES section 5).</summary>
-    public struct IndoorActionStats
-    {
-        /// <summary>Mature slots harvested this day.</summary>
-        public int Harvested;
-        /// <summary>Empty slots planted this day.</summary>
-        public int Planted;
-        /// <summary>Actions consumed from the daily budget.</summary>
-        public int ActionsUsed;
-        /// <summary>Mature slots that could not be harvested because the output was full.</summary>
-        public int BlockedByOutput;
-        /// <summary>True when output-full blocked at least one harvest (panel backlog).</summary>
-        public bool Backlog;
-    }
-
     /// <summary>
     /// The fixed-order daily tick of one indoor farm (ARCHITECTURE section 3): entrance gate,
     /// water settle/refill, growth, farm actions, fatigue/rotation, maintenance/power, warnings and
@@ -90,6 +36,9 @@ namespace HDBF.Core.Indoor
             var yieldMultiplier = 0f;
             var changed = false;
             var stalled = false;
+            var refillActions = 0;
+            var refillOutcome = ManualRefillOutcome.NotRequested;
+            var transitionScale = 1f;
 
             var capacity = tier.SlotCapacity;
             if (capacity < 0) capacity = 0;
@@ -106,15 +55,19 @@ namespace HDBF.Core.Indoor
             var entranceBlocked = context is not null && context.EntranceBlocked;
             var output = context is null ? null : context.Output;
             var water = context is null ? null : context.Water;
+            var manualWater = context is null ? null : context.ManualWater;
             var materials = context is null ? null : context.Materials;
             var hasPipeWater = context is not null && context.HasPipeWater;
             var manualRefillRequested = context is not null && context.ManualRefillRequested;
+            var reservedActions = context is null ? 0 : context.ReservedActions;
+            if (reservedActions < 0) reservedActions = 0;
             if (entranceBlocked) warnings |= IndoorWarningFlags.EntranceBlocked;
             if (activeWorkers <= 0) warnings |= IndoorWarningFlags.NoWorkers;
 
+            var tankStart = record.Tank;
             try
             {
-                // Phase 2: water settle + refill (REQ-V2-WATER-02); pipe tops up before the deduction.
+                // Phase 2: water settle + refill (REQ-V2-WATER-02); refills top up before the deduction.
                 var effectiveSlots = IndoorLaborMath.EffectiveSlots(tier, activeWorkers);
                 var demand = IndoorWaterMath.DemandPerDay(effectiveSlots, tier.WaterPerSlotPerDay, record.Mode);
                 if (hasPipeWater)
@@ -130,24 +83,44 @@ namespace HDBF.Core.Indoor
                         warnings |= IndoorWarningFlags.NoWater;
                     }
                 }
-                else if (manualRefillRequested)
+
+                // REQ-V2-WATER-04: a manual trip needs an on-duty worker, an open entrance, a real
+                // source and 2 free farm actions out of today's budget. It never moves water for free.
+                if (manualRefillRequested)
                 {
-                    // REQ-V2-WATER-02/WATER-04: refill only from a real source, never without workers.
-                    if (activeWorkers <= 0
-                        || !IndoorWaterMath.TryDrawSource(water,
-                            IndoorWaterMath.RefillAmount(tier.TankCapacity), out var drawn))
+                    var source = manualWater ?? water;
+                    var freeActions = IndoorLaborMath.RemainingActions(activeWorkers, reservedActions);
+                    if (activeWorkers <= 0)
                     {
-                        warnings |= IndoorWarningFlags.NoWater;
+                        refillOutcome = ManualRefillOutcome.NoWorkers;
+                    }
+                    else if (entranceBlocked)
+                    {
+                        refillOutcome = ManualRefillOutcome.EntranceBlocked;
+                    }
+                    else if (freeActions < IndoorConstants.ManualRefillActions)
+                    {
+                        refillOutcome = ManualRefillOutcome.NoBudget;
+                    }
+                    else if (IndoorWaterMath.TryDrawSource(source,
+                                 IndoorWaterMath.RefillAmount(tier.TankCapacity), out var drawn) && drawn > 0f)
+                    {
+                        IndoorWaterMath.TryRefill(record, drawn);
+                        refillActions = IndoorConstants.ManualRefillActions;
+                        refillOutcome = ManualRefillOutcome.Completed;
                     }
                     else
                     {
-                        IndoorWaterMath.TryRefill(record, drawn);
+                        refillOutcome = ManualRefillOutcome.NoSource;
+                    }
+
+                    if (refillOutcome != ManualRefillOutcome.Completed)
+                    {
+                        warnings |= IndoorWarningFlags.NoWater;
                     }
                 }
 
-                var tankBefore = record.Tank;
                 coverage = IndoorWaterMath.SettleDay(record, tier, effectiveSlots);
-                if (record.Tank != tankBefore) changed = true;
                 if (demand > 0f)
                 {
                     if (coverage <= 0f) warnings |= IndoorWarningFlags.NoWater;
@@ -199,8 +172,14 @@ namespace HDBF.Core.Indoor
                 }
 
                 // Phase 4: actions; entrance block and maintenance stall pause farm actions only.
+                // The manual refill trip is paid from the same daily budget (REQ-V2-LABOR-01); the
+                // transition day settles harvests at the lower of the old/new mode yield (section 19.8).
+                transitionScale = IndoorGrowthMath.ModeTransitionYieldScale(record.Mode,
+                    context is null ? null : context.PreviousMode);
                 var actionsAllowed = !entranceBlocked && !stalled && record.Mode != IndoorMode.Fallow;
-                actions = IndoorLaborMath.RunActions(record, tier, catalog, activeWorkers, output!, actionsAllowed);
+                var budgetReserved = reservedActions + refillActions;
+                actions = IndoorLaborMath.RunActions(record, tier, catalog, activeWorkers, output!,
+                    actionsAllowed, budgetReserved, transitionScale);
                 if (actions.Harvested > 0 || actions.Planted > 0) changed = true;
                 if (actions.Backlog) warnings |= IndoorWarningFlags.OutputFull;
 
@@ -258,13 +237,15 @@ namespace HDBF.Core.Indoor
                 }
 
                 // Phase 7: panel multipliers and dirty flag (Changed drives the save dirty bit).
-                yieldMultiplier = IndoorGrowthMath.PanelYieldMultiplier(record, slots, limit);
+                yieldMultiplier = IndoorGrowthMath.PanelYieldMultiplier(record, slots, limit, transitionScale);
             }
             catch
             {
                 // REQ-V2-SAFE-01: no exception may escape into the game loop; gameplay logs the
                 // throttled indoor.* warning, and the partial result keeps the farm alive.
             }
+
+            if (refillActions > 0 || record.Tank != tankStart) changed = true;
 
             return new IndoorDayResult
             {
@@ -275,6 +256,9 @@ namespace HDBF.Core.Indoor
                 Warnings = warnings,
                 Changed = changed,
                 Stalled = stalled,
+                RefillActionsUsed = refillActions,
+                ManualRefill = refillOutcome,
+                TransitionYieldScale = transitionScale,
             };
         }
     }

@@ -72,7 +72,7 @@ namespace HDBF.Gameplay.Components
             {
                 warnings.Add(new FarmWarning
                 {
-                    CodeKey = HdbfLocKeys.WarningShutdown,
+                    CodeKey = HdbfWarningKeys.Shutdown,
                     Severity = FarmWarningSeverity.Critical,
                 });
             }
@@ -81,7 +81,7 @@ namespace HDBF.Gameplay.Components
             {
                 warnings.Add(new FarmWarning
                 {
-                    CodeKey = HdbfLocKeys.WarningNoWater,
+                    CodeKey = HdbfWarningKeys.NoWater,
                     Severity = FarmWarningSeverity.Critical,
                     NumberArg0 = inputs.IrrigationCoverage * 100f,
                     NumberArg1 = inputs.MinIrrigationCoverage * 100f,
@@ -92,7 +92,7 @@ namespace HDBF.Gameplay.Components
             {
                 warnings.Add(new FarmWarning
                 {
-                    CodeKey = HdbfLocKeys.WarningIrrigationLow,
+                    CodeKey = HdbfWarningKeys.IrrigationLow,
                     Severity = FarmWarningSeverity.High,
                     NumberArg0 = inputs.IrrigationCoverage * 100f,
                     NumberArg1 = inputs.MinIrrigationCoverage * 100f,
@@ -103,7 +103,7 @@ namespace HDBF.Gameplay.Components
             {
                 warnings.Add(new FarmWarning
                 {
-                    CodeKey = HdbfLocKeys.WarningNoPower,
+                    CodeKey = HdbfWarningKeys.NoPower,
                     Severity = FarmWarningSeverity.High,
                     NumberArg0 = TierCatalog.OffGridEfficiency * 100f,
                 });
@@ -113,7 +113,7 @@ namespace HDBF.Gameplay.Components
             {
                 warnings.Add(new FarmWarning
                 {
-                    CodeKey = HdbfLocKeys.WarningAdapterFailed,
+                    CodeKey = HdbfWarningKeys.AdapterFailed,
                     Severity = FarmWarningSeverity.High,
                     NumberArg0 = inputs.AdapterFailedCount,
                 });
@@ -125,7 +125,7 @@ namespace HDBF.Gameplay.Components
             {
                 warnings.Add(new FarmWarning
                 {
-                    CodeKey = HdbfLocKeys.WarningMaintenanceOverdue,
+                    CodeKey = HdbfWarningKeys.MaintenanceOverdue,
                     Severity = FarmWarningSeverity.Medium,
                     NumberArg0 = inputs.CyclesMissed,
                 });
@@ -135,7 +135,7 @@ namespace HDBF.Gameplay.Components
             {
                 warnings.Add(new FarmWarning
                 {
-                    CodeKey = HdbfLocKeys.WarningFatigueHigh,
+                    CodeKey = HdbfWarningKeys.FatigueHigh,
                     Severity = FarmWarningSeverity.Medium,
                     NumberArg0 = inputs.FatigueMax * 100f,
                 });
@@ -145,7 +145,7 @@ namespace HDBF.Gameplay.Components
             {
                 warnings.Add(new FarmWarning
                 {
-                    CodeKey = HdbfLocKeys.WarningAdapterDisabled,
+                    CodeKey = HdbfWarningKeys.AdapterDisabled,
                     Severity = FarmWarningSeverity.Low,
                     NumberArg0 = inputs.AdapterDisabledCount,
                 });
@@ -155,7 +155,7 @@ namespace HDBF.Gameplay.Components
             {
                 warnings.Add(new FarmWarning
                 {
-                    CodeKey = HdbfLocKeys.WarningTankLow,
+                    CodeKey = HdbfWarningKeys.TankLow,
                     Severity = FarmWarningSeverity.Info,
                     NumberArg0 = inputs.TankDaysLeft,
                     NumberArg1 = inputs.TankCapacityDays,

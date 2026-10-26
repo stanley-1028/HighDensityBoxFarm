@@ -1,6 +1,14 @@
+// ============================================================================
+// HDBF v2 | Layer: Gameplay | Owner: V2-GAMEPLAY-01
+// Purpose: Game-context DI for the v2 indoor farm: controller, crop catalog, query/command
+//          services, retained warning/world-icon framework and the vanilla haul-out chain.
+//          The plot highlight/scan registrations are gone with the v1 world-plot pipeline.
+// Requirements: REQ-V2-BLD-06, REQ-V2-CORE-03, REQ-V2-SAFE-05, REQ-V2-MAINT-03
+// ============================================================================
 using Bindito.Core;
 using HDBF.Core.Abstractions;
 using HDBF.Core.Growth;
+using HDBF.Core.Indoor;
 using HDBF.Core.Logging;
 using HDBF.Gameplay.Components;
 using HDBF.Gameplay.Farming;
@@ -13,18 +21,12 @@ using Timberborn.TemplateInstantiation;
 namespace HDBF.Gameplay
 {
     /// <summary>
-    /// Game-context registrations for HDBF (docs/API_FACTS.md §2/§4):
-    /// * the controller is transient because every building entity gets its own instance;
-    /// * registrar, query service and the shared interfaces are session singletons, and the
-    ///   interface bindings use <c>ToExisting</c> so UI and gameplay observe the same instance
-    ///   (Bindito's singleton scope is per bound type, so two independent bindings would create
-    ///   two separate registries);
-    /// * the template module adds the controller to every entity that has
-    ///   <see cref="HdbfBoxFarmSpec"/>, which is the verified decorator pattern from
-    ///   <c>WaterBuildingsConfigurator</c> and <c>FieldsConfigurator</c>.
+    /// Game-context registrations for HDBF. The controller and workplace behavior are transient
+    /// because every building entity owns an instance; the services are session singletons bound
+    /// through interfaces with <c>ToExisting</c> so UI and gameplay observe the same instance.
     ///
-    /// No Harmony patch is registered by this assembly: ADR-009's single approved Postfix lives in
-    /// HDBF.Integration (it consumes <see cref="IGrowthMultiplierSource"/>, bound here).
+    /// <c>IIndoorAdapterHost</c> is deliberately not bound here: HDBF.Integration binds it and
+    /// Gameplay consumes only the Core interface, so no Integration type leaks into this assembly.
     /// </summary>
     [Context("Game")]
     public class HdbfGameConfigurator : Configurator
@@ -39,32 +41,24 @@ namespace HDBF.Gameplay
             Bind<HdbfFarmQueryService>().AsSingleton();
             Bind<IBoxFarmQuery>().ToExisting<HdbfFarmQueryService>();
             Bind<IHdbfFarmQueryService>().ToExisting<HdbfFarmQueryService>();
-            Bind<IHdbfFarmRegistry>().ToExisting<HdbfFarmQueryService>();
 
-            // ADR-009 growth-rate lookup: the one approved Harmony Postfix (HDBF.Integration)
-            // consumes the Core interface, so Integration never references this assembly. The
-            // implementation reads the live plot registry plus the farm's cached multipliers and
-            // performs no work while the patch is disabled or no farm exists.
-            Bind<HdbfGrowthRateProvider>().AsSingleton();
-            Bind<IGrowthMultiplierSource>().ToExisting<HdbfGrowthRateProvider>();
+            // Vanilla-spec crop catalogue with the built-in fallback table (REQ-V2-EXT-01).
+            Bind<GameCropCatalog>().AsSingleton();
+            Bind<ICropCatalog>().ToExisting<GameCropCatalog>();
 
-            // Write-side panel contract (chapter 14.3): the entity panel resolves the same
-            // IBoxFarmCommand instance as the command service that owns the material transaction.
+            // The v2 world has no plots, so the one approved v1 patch is permanently disabled.
+            // The binding stays until V2-GAMEPLAY-02 removes the patch itself.
+            Bind<ReadOnlyGrowthRateProvider>().AsSingleton();
+            Bind<IGrowthMultiplierSource>().ToExisting<ReadOnlyGrowthRateProvider>();
+
             Bind<HdbfFarmCommandService>().AsSingleton();
             Bind<IBoxFarmCommand>().ToExisting<HdbfFarmCommandService>();
 
-            // Managed-plot overlay (REQ-UI-05): the session state is read by every controller
-            // snapshot (authoritative toggle/failure read model) and the overlay service owns the
-            // world-space input + the instanced renderer. Both are game-context singletons; the
-            // controller and the command service inject the same state instance.
-            Bind<HdbfPlotHighlightSession>().AsSingleton();
-            Bind<HdbfPlotHighlightService>().AsSingleton();
+            // Manual refill probe (V2-GAMEPLAY-02): real water body / water-good inventories within
+            // 12 cells plus the worker walk-reachability check. Consumed by the controller only; a
+            // broken water/navigation API degrades to "no source" inside the probe itself.
+            Bind<HdbfManualWaterSource>().AsSingleton();
 
-            // World-space P0/P1 warning icons (chapter 14.2/14.6). The board is the 1 s
-            // cross-building aggregation cache consumed by the panel through a Core contract; the
-            // icon service is the 0.5 s, on-screen-only coordinator that registers vanilla status
-            // toggles on each farm. The locator is the panel's "click a member row" action, backed
-            // by the vanilla selection service.
             Bind<HdbfWarningBoard>().AsSingleton();
             Bind<IBoxFarmWarningQuery>().ToExisting<HdbfWarningBoard>();
             Bind<HdbfWorldIconService>().AsSingleton();
@@ -72,31 +66,23 @@ namespace HDBF.Gameplay
             Bind<IBoxFarmLocator>().ToExisting<HdbfFarmLocator>();
 
             Bind<HdbfBoxFarmController>().AsTransient();
-
-            // P1 crop loop: the work dispatcher is a workplace behaviour component of the building.
-            // It is transient because every entity gets its own instance, exactly like the
-            // controller and like vanilla farmhouse behaviours.
-            Bind<HdbfFarmWorkplaceBehavior>().AsTransient();
+            Bind<IndoorFarmWorkplaceBehavior>().AsTransient();
 
             MultiBind<TemplateModule>().ToProvider(ProvideTemplateModule).AsSingleton();
         }
 
         /// <summary>
         /// Declares the components every box farm gains on top of its blueprint data:
-        /// * the shared controller (REQ-ARCH-07);
-        /// * the P1 work dispatcher (zero-patch route B, see docs/workstreams/farm-loop.md);
-        /// * the vanilla output-hauling chain for the harvest inventory, so harvested crops are
-        ///   carried out by the normal hauler system instead of HDBF modifying global resources.
+        /// the indoor controller, the minimal workplace behavior (employment only) and the
+        /// vanilla output-hauling chain for the harvest inventory.
         /// </summary>
         private static TemplateModule ProvideTemplateModule()
         {
             var builder = new TemplateModule.Builder();
             builder.AddDecorator<HdbfBoxFarmSpec, HdbfBoxFarmController>();
-            builder.AddDecorator<HdbfBoxFarmSpec, HdbfFarmWorkplaceBehavior>();
+            builder.AddDecorator<HdbfBoxFarmSpec, IndoorFarmWorkplaceBehavior>();
 
-            // Vanilla haul-out chain. The receiving inventory itself comes from the blueprint's
-            // SimpleOutputInventorySpec (data requirement); these decorators make the stock
-            // emptyable/haulable, matching what vanilla does for farmhouses and workshops.
+            // Vanilla haul-out chain; the inventory itself comes from SimpleOutputInventorySpec.
             builder.AddDecorator<HdbfBoxFarmSpec, AutoEmptiable>();
             builder.AddDecorator<HdbfBoxFarmSpec, Emptiable>();
             builder.AddDecorator<HdbfBoxFarmSpec, HaulCandidate>();

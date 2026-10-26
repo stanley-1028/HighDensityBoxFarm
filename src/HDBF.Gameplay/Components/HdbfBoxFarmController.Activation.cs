@@ -1,20 +1,27 @@
+// ============================================================================
+// HDBF v2 | Layer: Gameplay/Components | Owner: V2-GAMEPLAY-01
+// Purpose: Finished-state activation, query/world-icon registration, tier/faction
+//          resolution and lifetime trigger creation for the indoor controller.
+// Requirements: REQ-V2-BLD-02, REQ-V2-LABOR-03, REQ-V2-SAFE-01/04, REQ-V2-MAINT-04
+// ============================================================================
 using System;
 using HDBF.Core;
+using HDBF.Core.Balance;
+using HDBF.Core.Indoor;
 using HDBF.Core.Logging;
 
 namespace HDBF.Gameplay.Components
 {
-    /// <summary>
-    /// Partial part: finished-state activation, registration with the query service and tier
-    /// resolution. Activation is the only place that starts the day trigger and the first scan.
-    /// </summary>
     public partial class HdbfBoxFarmController
     {
-        // ------------------------------------------------------------------ activation helpers
-
         private void Activate()
         {
-            if (_activated || !_awake || _blockObject is null || !_blockObject.IsFinished)
+            if (_activated || !_awake || _record is null)
+            {
+                return;
+            }
+
+            if (_blockObject is not null && !_blockObject.IsFinished)
             {
                 return;
             }
@@ -25,34 +32,54 @@ namespace HDBF.Gameplay.Components
                 SyncEntityIdentity();
                 if (!_saveLoaded)
                 {
-                    _record.EntityId = _saveEntityId;
+                    _record.EntityId = _saveEntityId.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 }
 
-                ClaimLoadedPlots();
-                _registry.RegisterSource(this);
+                EnsureMaintenanceDeadline();
+                // The persisted power/port flags are refreshed once at activation as well, so a
+                // freshly built or loaded building shows the real live state before its first day
+                // tick (REQ-V2-BAL-03 / REQ-V2-COMPAT-02). Both calls are isolated internally.
+                try
+                {
+                    UpdatePower();
+                    UpdatePorts();
+                    // A fresh/loaded farm gets its water-supply kind before the first day tick, so
+                    // the panel can enable the refill button immediately (REQ-V2-WATER-03/04).
+                    _ = ReadPipeWater(out var hasPipeWaterAtActivation);
+                    RefreshWaterSupply(hasPipeWaterAtActivation);
+                }
+                catch (Exception exception)
+                {
+                    _log.Error(HdbfLogCategory.Warn, LogKeyEntity,
+                        "initial power/port refresh failed; the first day tick retries", exception,
+                        _entityId.ToString());
+                }
+
+                _farms.RegisterSource(this);
                 EnableComponent();
-                _dayTrigger?.Resume();
-                StartScan();
+                if (_dayTrigger is null)
+                {
+                    // The day counter starts when the building is finished, not when its
+                    // construction entity was created (REQ-V2-MAINT-03: one tick per game day).
+                    _dayTrigger = _timeTriggerFactory.Create(OnDayTick, DayTriggerDelayDays);
+                }
+                else
+                {
+                    _dayTrigger.Reset();
+                }
 
-                // Chapter 14.2: register the vanilla floating-status pipeline so P0/P1 warnings can
-                // appear above the building. Icons are optional: a registration failure only logs
-                // and leaves the panel/simulation untouched.
+                _dayTrigger.Resume();
                 _worldIcons.Register(_entityId, this);
-
-                // BUILD-05: start hiding the models of the crops on this farm's managed plots
-                // (renderer-only; growth/yield/harvest stay vanilla).
-                StartCropVisibility();
-
                 _log.Write(HdbfLogCategory.Info, LogKeyEntity,
-                    "box farm active, entityId=" + _entityId + ", tier=" + _profile.Tier
-                    + ", blueprint=" + BlueprintId());
+                    "indoor farm active, entityId=" + _entityId + ", tier=" + _profile.Tier
+                    + ", faction=" + _faction + ", blueprint=" + (BlueprintId() ?? "<null>"));
             }
             catch (Exception exception)
             {
                 _activated = false;
-                DeactivateWorldIcons();
-                _log.Error(HdbfLogCategory.Error, LogKeyEntity, "box farm activation failed", exception,
-                    _entityId.ToString());
+                TryQuiesceAfterFailedActivation();
+                _log.Error(HdbfLogCategory.Error, LogKeyEntity,
+                    "indoor farm activation failed; component disabled", exception, _entityId.ToString());
             }
         }
 
@@ -64,9 +91,6 @@ namespace HDBF.Gameplay.Components
             }
 
             _activated = false;
-            _scanner?.Cancel();
-            InvalidateFarmPlan();
-
             try
             {
                 _dayTrigger?.Pause();
@@ -77,63 +101,102 @@ namespace HDBF.Gameplay.Components
                     _entityId.ToString());
             }
 
-            _registry.UnregisterSource(_entityId);
-            DeactivateWorldIcons();
+            try
+            {
+                _farms.UnregisterSource(_entityId);
+            }
+            catch (Exception exception)
+            {
+                _log.Error(HdbfLogCategory.Warn, LogKeyEntity, "farm source unregister failed", exception,
+                    _entityId.ToString());
+            }
 
-            // BUILD-05: the farm is no longer managing anything, so every crop model it hid must
-            // become visible again (vanilla visuals restored before the component disables).
-            RestoreAllCropVisuals("deactivate");
-
-            DisableComponent();
-        }
-
-        /// <summary>
-        /// Deactivates the farm's warning-icon toggles when it leaves the finished state. The
-        /// toggles stay registered for a later re-activation; <see cref="ForgetWorldIcons"/> drops
-        /// them entirely on demolition. Isolated because icon cleanup must never block the farm
-        /// from shutting down (REQ-SAFE-01).
-        /// </summary>
-        private void DeactivateWorldIcons()
-        {
             try
             {
                 _worldIcons.Deactivate(_entityId);
             }
             catch (Exception exception)
             {
-                _log.Error(HdbfLogCategory.Warn, LogKeyEntity,
-                    "world warning icon deactivation failed", exception, _entityId.ToString());
+                _log.Error(HdbfLogCategory.Warn, LogKeyEntity, "world icon deactivation failed", exception,
+                    _entityId.ToString());
             }
+
+            DisableComponent();
         }
 
-        /// <summary>Drops all icon state for a demolished/removed farm.</summary>
-        private void ForgetWorldIcons()
+        private void TryQuiesceAfterFailedActivation()
         {
             try
             {
-                _worldIcons.Forget(_entityId);
+                _farms.UnregisterSource(_entityId);
             }
-            catch (Exception exception)
+            catch (Exception)
             {
-                _log.Error(HdbfLogCategory.Warn, LogKeyEntity,
-                    "world warning icon cleanup failed during deletion", exception, _entityId.ToString());
+                // Activation is already failing; cleanup must not throw a second exception.
             }
+
+            try
+            {
+                _worldIcons.Deactivate(_entityId);
+            }
+            catch (Exception)
+            {
+                // Activation is already failing; cleanup must not throw a second exception.
+            }
+
+            DisableComponent();
         }
 
-        private void ClaimLoadedPlots()
+        /// <summary>
+        /// Fresh buildings get their first material-maintenance deadline from the activation day,
+        /// not from the (much earlier) construction-site day. A loaded record keeps its saved
+        /// deadline; only a missing/unusable deadline is resolved to one full cycle (REQ-V2-BAL-02).
+        /// </summary>
+        private void EnsureMaintenanceDeadline()
         {
-            if (_record.PlotIds.Length == 0)
+            if (_maintenanceInitialized || _record is null)
             {
                 return;
             }
 
-            var granted = _registry.ApplyPlotSelection(_entityId, _record.PlotIds);
-            if (granted.Length != _record.PlotIds.Length)
+            _maintenanceInitialized = true;
+            if (_profile.MaintenanceKind == HdbfMaintenanceKind.IrrigationOnly)
             {
-                ApplyPlotArrays(granted);
-                _log.Write(HdbfLogCategory.Warn, HdbfLogKeys.SaveDegraded,
-                    "some saved plots were already owned by another farm and were dropped, entityId="
-                    + _entityId);
+                return;
+            }
+
+            var today = ReadCurrentDay();
+            var cycleDays = MaintenanceDefaults.DefaultCycleDays(_profile);
+            if (cycleDays <= 0f)
+            {
+                return;
+            }
+
+            var dueDay = today + cycleDays;
+            if (float.IsNaN(dueDay) || float.IsInfinity(dueDay))
+            {
+                return;
+            }
+
+            _record.MaintenanceDueDay = dueDay;
+            _record.MaintenanceCyclesMissed = 0;
+            _saveDirty = true;
+        }
+
+        private void ResolveMaintenanceAfterLoad()
+        {
+            if (_record is null)
+            {
+                return;
+            }
+
+            _maintenanceInitialized = true;
+            var today = ReadCurrentDay();
+            var resolved = MaintenanceDefaults.ResolveDueDay(_profile, today, _record.MaintenanceDueDay);
+            if (resolved != _record.MaintenanceDueDay)
+            {
+                _record.MaintenanceDueDay = resolved;
+                _saveDirty = true;
             }
         }
 
@@ -141,33 +204,42 @@ namespace HDBF.Gameplay.Components
         {
             var blueprintId = BlueprintId();
             var fallbackTier = Enum.TryParse(_spec.Tier, true, out HdbfTier parsedTier)
+                               && Enum.IsDefined(typeof(HdbfTier), parsedTier)
                 ? parsedTier
                 : HdbfTier.Basic;
-
-            if (!_configProvider.TryGetTierProfile(blueprintId, fallbackTier, out var profile))
+            try
             {
-                _log.Write(HdbfLogCategory.Info, HdbfLogKeys.ConfigInvalid,
-                    "unknown box farm blueprint '" + (blueprintId ?? "<null>")
-                    + "'; falling back to tier " + fallbackTier);
+                if (!_configProvider.TryGetTierProfile(blueprintId, fallbackTier, out var profile)
+                    || profile is null)
+                {
+                    _log.Write(HdbfLogCategory.Warn, HdbfLogKeys.ConfigInvalid,
+                        "unknown box farm blueprint '" + (blueprintId ?? "<null>")
+                        + "'; using tier " + fallbackTier);
+                    _profile = TierCatalog.Get(fallbackTier);
+                    return;
+                }
+
+                _profile = profile;
             }
-
-            _profile = profile;
-
-            if (Math.Abs(_spec.PlotCapacity - profile.PlotCapacity) > 0.5f
-                || Math.Abs(_spec.WaterPerPlotPerDay - profile.WaterPerPlotPerDay) > 0.0001f)
+            catch (Exception exception)
             {
-                // Single source of truth: the config-resolved tier table wins, so a blueprint and
-                // a config override can never fight over the same balance number (REQ-IMPL-03).
-                _log.Write(HdbfLogCategory.Warn, HdbfLogKeys.ConfigInvalid,
-                    "box farm blueprint values differ from the resolved tier table; the tier table wins, blueprint="
-                    + (blueprintId ?? "<null>"));
+                _profile = TierCatalog.Get(fallbackTier);
+                _log.Error(HdbfLogCategory.Warn, HdbfLogKeys.ConfigInvalid,
+                    "tier table lookup failed; using the compiled default", exception);
             }
         }
 
         private string? BlueprintId()
         {
-            var blueprint = _spec.Blueprint;
-            return blueprint is not null ? blueprint.Name : null;
+            try
+            {
+                var blueprint = _spec.Blueprint;
+                return blueprint is not null ? blueprint.Name : null;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
         }
 
         private void SyncEntityIdentity()
@@ -182,7 +254,7 @@ namespace HDBF.Gameplay.Components
 
         /// <summary>
         /// Deterministic map from the runtime Guid entity id to the long save identity. Stable for
-        /// one entity for the whole save; only used as an opaque record field (chapter 12.2).
+        /// one entity for the whole save and only used as an opaque diagnostic field.
         /// </summary>
         private static long ToSaveEntityId(Guid entityId)
         {
@@ -196,4 +268,3 @@ namespace HDBF.Gameplay.Components
         }
     }
 }
-

@@ -485,9 +485,41 @@ namespace HDBF.Tests
             TestAssert.Equal(HdbfWarningKeys.NoPower, HdbfUiLocKeys.WarningNoPower);
             TestAssert.Equal(HdbfWarningKeys.AdapterFailed, HdbfUiLocKeys.WarningAdapterFailed);
             TestAssert.Equal(HdbfWarningKeys.MaintenanceOverdue, HdbfUiLocKeys.WarningMaintenanceOverdue);
-            TestAssert.Equal(HdbfWarningKeys.FatigueHigh, HdbfUiLocKeys.WarningFatigueHigh);
-            TestAssert.Equal(HdbfWarningKeys.AdapterDisabled, HdbfUiLocKeys.WarningAdapterDisabled);
-            TestAssert.Equal(HdbfWarningKeys.TankLow, HdbfUiLocKeys.WarningTankLow);
+            // Core has no entrance-blocked constant (the v1 framework never emitted one); the v2
+            // panel constant is pinned here so the UI cannot silently rename it.
+            TestAssert.Equal("HDBF.Warning.EntranceBlocked", HdbfUiLocKeys.WarningEntranceBlocked);
+        }
+
+        /// <summary>
+        /// REQ-V2-UI-02 / chapter 19.11: the world icons keep only four v2 categories. Because the
+        /// Core <c>FarmWarningIconKind</c> enum is frozen, the water category uses its two water
+        /// slots (critical shortage + low coverage), while maintenance and blocked entrance reuse
+        /// the v1 Shutdown / AdapterFailed slots. The user-visible texts are the v2 sentences.
+        /// </summary>
+        public static void TestV2WarningCategoriesMapToWorldIcons()
+        {
+            var categories = new[]
+            {
+                (HdbfWarningKeys.NoWater, FarmWarningSeverity.Critical, FarmWarningIconKind.NoWater),
+                (HdbfWarningKeys.IrrigationLow, FarmWarningSeverity.High, FarmWarningIconKind.IrrigationLow),
+                (HdbfWarningKeys.Shutdown, FarmWarningSeverity.High, FarmWarningIconKind.Shutdown),
+                (HdbfWarningKeys.NoPower, FarmWarningSeverity.High, FarmWarningIconKind.NoPower),
+                (HdbfWarningKeys.AdapterFailed, FarmWarningSeverity.High, FarmWarningIconKind.AdapterFailed),
+            };
+            var kinds = new HashSet<FarmWarningIconKind>();
+            foreach (var (key, severity, kind) in categories)
+            {
+                var summary = FarmWarningSummary.FromSubject(Subject(FarmA, HdbfTier.Top,
+                    Warning(key, severity)));
+                TestAssert.True(summary.HasWorldIcon, "v2 category must have a world icon: " + key);
+                TestAssert.Equal(kind, summary.IconKind, "frozen icon slot of " + key);
+                kinds.Add(summary.IconKind);
+            }
+
+            // Four v2 categories map onto the five frozen water/maintenance/power/entrance slots.
+            TestAssert.Equal(5, kinds.Count, "the water category owns the two water icon slots");
+            TestAssert.True(kinds.Contains(FarmWarningIconKind.Shutdown), "maintenance -> shutdown slot");
+            TestAssert.True(kinds.Contains(FarmWarningIconKind.AdapterFailed), "entrance -> unconnected slot");
         }
 
         public static void TestNewKeyConstantValues()

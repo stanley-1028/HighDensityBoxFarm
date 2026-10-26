@@ -54,8 +54,14 @@ namespace HDBF.Core.Indoor
             return powerConnected ? IndoorConstants.NormalModeMultiplier : IndoorConstants.PowerCutMaintenanceMultiplier;
         }
 
-        /// <summary>Material good id of the current maintenance path; null when no material is due.</summary>
-        internal static string? MaterialItemId(TierProfile tier, IndoorFarmRecord record)
+        /// <summary>
+        /// Material good id of the current maintenance path; null when no material is due (basic
+        /// tier, or a top tier whose grid connection maintains it automatically).
+        /// </summary>
+        /// <param name="tier">Tier profile of the building.</param>
+        /// <param name="record">Current record, needed for the power state of the top tier.</param>
+        /// <returns>Vanilla good id ("Plank"/"MetalBlock") or null.</returns>
+        public static string? MaterialItemId(TierProfile tier, IndoorFarmRecord record)
         {
             switch (tier.MaintenanceKind)
             {
@@ -72,8 +78,14 @@ namespace HDBF.Core.Indoor
             }
         }
 
-        /// <summary>Material count of one maintenance cycle, including the power-cut x2 penalty.</summary>
-        internal static int MaterialAmount(TierProfile tier, IndoorFarmRecord record)
+        /// <summary>
+        /// Material count of one maintenance cycle, including the power-cut x2 penalty of a
+        /// disconnected on-grid top tier (section 19.8).
+        /// </summary>
+        /// <param name="tier">Tier profile of the building.</param>
+        /// <param name="record">Current record, needed for the power state of the top tier.</param>
+        /// <returns>Item count of one cycle; 0 when no material is due.</returns>
+        public static int MaterialAmount(TierProfile tier, IndoorFarmRecord record)
         {
             switch (tier.MaintenanceKind)
             {
@@ -94,8 +106,43 @@ namespace HDBF.Core.Indoor
             }
         }
 
+        /// <summary>
+        /// One all-or-nothing maintenance bill: the good id and item count a "perform maintenance"
+        /// command must withdraw. Returns false for a tier with no material upkeep to pay.
+        /// </summary>
+        /// <param name="tier">Tier profile of the building; null returns false.</param>
+        /// <param name="record">Current record; null returns false.</param>
+        /// <param name="itemId">Vanilla good id to withdraw when true.</param>
+        /// <param name="amount">Item count to withdraw when true.</param>
+        /// <returns>True when the tier has a material bill for its current power state.</returns>
+        public static bool TryGetMaterialBill(TierProfile? tier, IndoorFarmRecord? record,
+            out string? itemId, out int amount)
+        {
+            itemId = null;
+            amount = 0;
+            if (tier is null || record is null)
+            {
+                return false;
+            }
+
+            var id = MaterialItemId(tier, record);
+            var count = MaterialAmount(tier, record);
+            if (id is null || count <= 0)
+            {
+                return false;
+            }
+
+            itemId = id;
+            amount = count;
+            return true;
+        }
+
         /// <summary>True when the tier requires material and the stockpile cannot pay it.</summary>
-        internal static bool IsMaterialMissing(IMaintenanceMaterialSource? materials, TierProfile tier,
+        /// <param name="materials">Nearest stockpile; null is treated as empty.</param>
+        /// <param name="tier">Tier profile of the building.</param>
+        /// <param name="record">Current record.</param>
+        /// <returns>True when the bill cannot be paid right now.</returns>
+        public static bool IsMaterialMissing(IMaintenanceMaterialSource? materials, TierProfile tier,
             IndoorFarmRecord record)
         {
             var itemId = MaterialItemId(tier, record);

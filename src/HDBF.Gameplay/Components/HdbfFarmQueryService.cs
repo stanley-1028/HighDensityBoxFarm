@@ -1,52 +1,51 @@
+﻿// ============================================================================
+// HDBF v2 | Layer: Gameplay/Components | Owner: V2-GAMEPLAY-01 / V2-UI-01
+// Purpose: Session singleton behind IBoxFarmQuery/IHdbfFarmQueryService. Looks up live
+//          v2 indoor controllers, exposes the Core IndoorFarmSnapshot read model, forwards the
+//          two v2 panel commands and rebuilds the retained warning framework as the four v2
+//          warning categories. No plot registry and no world-cell ownership.
+// Requirements: REQ-V2-UI-01/02/03, REQ-V2-BAL-03, REQ-V2-SAFE-01/07, REQ-V2-CORE-03
+// ============================================================================
 using System;
 using System.Collections.Generic;
 using HDBF.Core;
 using HDBF.Core.Abstractions;
+using HDBF.Core.Indoor;
 using HDBF.Core.Logging;
+using HDBF.Core.Warnings;
 using UnityEngine;
 
 namespace HDBF.Gameplay.Components
 {
     /// <summary>
-    /// Session singleton that answers UI/diagnostic queries and owns swappable session state:
-    /// the farm lookup by entity id (chapter 9.2 <c>IBoxFarmQuery</c>) and the plot claim table
-    /// (REQ-BLD-04: one managed plot belongs to exactly one box farm, first registration wins).
+    /// Session singleton that answers UI/diagnostic queries for live indoor farms. It keeps only
+    /// the entity → source table, one warning evaluator and one entrance-blocking gate per farm;
+    /// snapshots are rebuilt on demand and never stored in a save.
     ///
-    /// Contract:
-    /// * every public entry point is isolated: a broken farm can never stop UI or the other
-    ///   farms from rendering (chapter 10.1, REQ-SAFE-02);
-    /// * snapshots are built on demand and never stored in a save (chapter 9.2);
-    /// * all members are main-thread only, matching the game's simulation model, so the shared
-    ///   tables need no locking.
+    /// Contract: every public entry point isolates a broken farm so UI and the other farms keep
+    /// rendering (REQ-V2-SAFE-01/07). All calls are main-thread only, matching the game model.
     /// </summary>
-    public sealed class HdbfFarmQueryService : IBoxFarmQuery, IHdbfFarmQueryService, IHdbfFarmRegistry
+    public sealed class HdbfFarmQueryService : IBoxFarmQuery, IHdbfFarmQueryService
     {
-        private const string LogKeySnapshot = "gameplay.snapshot";
+        private const string LogKeySnapshot = "ui.snapshot";
 
-        /// <summary>Default value returned with a failed lookup; never null for UI consumers.</summary>
         private static readonly BoxFarmSnapshot EmptySnapshot = new BoxFarmSnapshot();
 
         private readonly IHdbfLog _log;
-
         private readonly Dictionary<Guid, IHdbfBoxFarmSnapshotSource> _sources =
             new Dictionary<Guid, IHdbfBoxFarmSnapshotSource>();
-
         private readonly Dictionary<Guid, HdbWarningEvaluator> _evaluators =
             new Dictionary<Guid, HdbWarningEvaluator>();
+        private readonly Dictionary<Guid, WarningHysteresis> _entranceGates =
+            new Dictionary<Guid, WarningHysteresis>();
 
-        /// <summary>plotId → owning farm entity id.</summary>
-        private readonly Dictionary<int, Guid> _plotOwners = new Dictionary<int, Guid>();
-
-        /// <summary>farm entity id → plots it currently owns (kept for O(1) release).</summary>
-        private readonly Dictionary<Guid, HashSet<int>> _plotsByFarm =
-            new Dictionary<Guid, HashSet<int>>();
-
+        /// <summary>Creates the query singleton with the shared throttled log.</summary>
         public HdbfFarmQueryService(IHdbfLog log)
         {
             _log = log ?? throw new ArgumentNullException(nameof(log));
         }
 
-        /// <inheritdoc />
+        /// <summary>Number of live indoor farms; diagnostics and reduced-mode policy.</summary>
         public int RegisteredFarmCount => _sources.Count;
 
         /// <inheritdoc />
@@ -62,7 +61,7 @@ namespace HDBF.Gameplay.Components
                 catch (Exception exception)
                 {
                     _log.Error(HdbfLogCategory.Error, LogKeySnapshot,
-                        "farm snapshot failed; using empty snapshot", exception, entityId.ToString());
+                        "indoor farm snapshot failed; using empty snapshot", exception, entityId.ToString());
                 }
             }
 
@@ -87,20 +86,37 @@ namespace HDBF.Gameplay.Components
                 }
                 catch (Exception exception)
                 {
-                    // One damaged farm must not hide the others (REQ-SAFE-08).
+                    // One damaged farm must not hide the others (REQ-V2-SAFE-01).
                     _log.Error(HdbfLogCategory.Error, LogKeySnapshot,
-                        "farm snapshot failed and was skipped", exception, pair.Key.ToString());
+                        "indoor farm snapshot failed and was skipped", exception, pair.Key.ToString());
                 }
             }
 
             return snapshots;
         }
 
-        /// <summary>
-        /// Resolves the live snapshot source for one farm. Used by the command service (the
-        /// write-side panel contract) which needs the concrete controller, not just a snapshot,
-        /// and by the ADR-009 growth-rate provider.
-        /// </summary>
+        /// <inheritdoc />
+        public IndoorFarmSnapshot? GetIndoorSnapshot(Guid entityId)
+        {
+            if (entityId == Guid.Empty || !_sources.TryGetValue(entityId, out var source))
+            {
+                return null;
+            }
+
+            try
+            {
+                return source.CreateIndoorSnapshot();
+            }
+            catch (Exception exception)
+            {
+                // Missing data renders as "not available" (the panel hides); never a thrown panel.
+                _log.Error(HdbfLogCategory.Error, LogKeySnapshot,
+                    "indoor panel snapshot failed; panel hides its rows", exception, entityId.ToString());
+                return null;
+            }
+        }
+
+        /// <inheritdoc />
         public bool TryGetSource(Guid entityId, out IHdbfBoxFarmSnapshotSource source)
         {
             if (entityId != Guid.Empty && _sources.TryGetValue(entityId, out var found))
@@ -113,14 +129,9 @@ namespace HDBF.Gameplay.Components
             return false;
         }
 
-        /// <inheritdoc />
-        public bool TryGetPlotOwner(int plotId, out Guid ownerEntityId)
-        {
-            return _plotOwners.TryGetValue(plotId, out ownerEntityId);
-        }
-
-        /// <inheritdoc />
-        public void RegisterSource(IHdbfBoxFarmSnapshotSource source)
+        /// <summary>Registers one finished indoor farm; replaces any earlier source for the entity.</summary>
+        /// <param name="source">Live controller source; null/empty id is ignored.</param>
+        public void RegisterSource(IHdbfBoxFarmSnapshotSource? source)
         {
             if (source is null || source.EntityId == Guid.Empty)
             {
@@ -132,9 +143,15 @@ namespace HDBF.Gameplay.Components
             {
                 _evaluators[source.EntityId] = new HdbWarningEvaluator();
             }
+
+            if (!_entranceGates.ContainsKey(source.EntityId))
+            {
+                _entranceGates[source.EntityId] = new WarningHysteresis(1);
+            }
         }
 
-        /// <inheritdoc />
+        /// <summary>Removes one farm (demolition/construction toggle); resets its warning gates.</summary>
+        /// <param name="entityId">Runtime entity id; empty is ignored.</param>
         public void UnregisterSource(Guid entityId)
         {
             if (entityId == Guid.Empty)
@@ -149,89 +166,11 @@ namespace HDBF.Gameplay.Components
                 _evaluators.Remove(entityId);
             }
 
-            ReleasePlots(entityId);
-        }
-
-        /// <inheritdoc />
-        public bool IsPlotClaimedByOther(int plotId, Guid ownerEntityId)
-        {
-            return _plotOwners.TryGetValue(plotId, out var owner) && owner != ownerEntityId;
-        }
-
-        /// <inheritdoc />
-        public int[] ApplyPlotSelection(Guid ownerEntityId, IReadOnlyList<int> desiredPlotIds)
-        {
-            if (ownerEntityId == Guid.Empty || desiredPlotIds is null || desiredPlotIds.Count == 0)
+            if (_entranceGates.TryGetValue(entityId, out var gate))
             {
-                ReleasePlots(ownerEntityId);
-                return Array.Empty<int>();
+                gate.Reset();
+                _entranceGates.Remove(entityId);
             }
-
-            if (!_plotsByFarm.TryGetValue(ownerEntityId, out var owned))
-            {
-                owned = new HashSet<int>();
-                _plotsByFarm[ownerEntityId] = owned;
-            }
-
-            var granted = new List<int>(desiredPlotIds.Count);
-            var grantedSet = new HashSet<int>();
-            for (var i = 0; i < desiredPlotIds.Count; i++)
-            {
-                var plotId = desiredPlotIds[i];
-                if (!_plotOwners.TryGetValue(plotId, out var currentOwner) || currentOwner == ownerEntityId)
-                {
-                    _plotOwners[plotId] = ownerEntityId;
-                    if (grantedSet.Add(plotId))
-                    {
-                        granted.Add(plotId);
-                    }
-                }
-            }
-
-            // Drop claims the farm no longer uses (rescan shrank the set, plot was excluded).
-            if (owned.Count > 0)
-            {
-                var stale = new List<int>();
-                foreach (var plotId in owned)
-                {
-                    if (!grantedSet.Contains(plotId))
-                    {
-                        stale.Add(plotId);
-                    }
-                }
-
-                for (var i = 0; i < stale.Count; i++)
-                {
-                    _plotOwners.Remove(stale[i]);
-                }
-            }
-
-            owned.Clear();
-            for (var i = 0; i < granted.Count; i++)
-            {
-                owned.Add(granted[i]);
-            }
-
-            return granted.ToArray();
-        }
-
-        /// <inheritdoc />
-        public void ReleasePlots(Guid ownerEntityId)
-        {
-            if (!_plotsByFarm.TryGetValue(ownerEntityId, out var owned))
-            {
-                return;
-            }
-
-            foreach (var plotId in owned)
-            {
-                if (_plotOwners.TryGetValue(plotId, out var currentOwner) && currentOwner == ownerEntityId)
-                {
-                    _plotOwners.Remove(plotId);
-                }
-            }
-
-            owned.Clear();
         }
 
         private BoxFarmSnapshot BuildSnapshot(IHdbfBoxFarmSnapshotSource source)
@@ -243,14 +182,33 @@ namespace HDBF.Gameplay.Components
                 _evaluators[source.EntityId] = evaluator;
             }
 
-            // Wall-clock gate: the panel (≤4 Hz) and the world-icon pass (2 Hz) can both build
-            // snapshots for the same farm, so the 2 s hysteresis must not depend on sample count
-            // (chapter 14.2 / 14.6).
-            var warnings = evaluator.Evaluate(source.CreateWarningInputs(snapshot),
-                Time.unscaledTime);
-            return warnings.Length == 0
-                ? snapshot
-                : snapshot with { Warnings = warnings };
+            // Wall-clock gate, shared by the panel (≤4 Hz) and the world-icon pass (2 Hz).
+            var evaluated = evaluator.Evaluate(source.CreateWarningInputs(snapshot), Time.unscaledTime);
+            var indoor = SnapshotOf(source);
+            if (!_entranceGates.TryGetValue(source.EntityId, out var gate))
+            {
+                gate = new WarningHysteresis(1);
+                _entranceGates[source.EntityId] = gate;
+            }
+
+            var warnings = HdbfIndoorWarningMapper.MapToV2(evaluated, indoor, gate,
+                HdbfWarningRules.HysteresisSeconds, Time.unscaledTime);
+            return warnings.Length == 0 ? snapshot : snapshot with { Warnings = warnings };
+        }
+
+        private IndoorFarmSnapshot? SnapshotOf(IHdbfBoxFarmSnapshotSource source)
+        {
+            try
+            {
+                return source.CreateIndoorSnapshot();
+            }
+            catch (Exception exception)
+            {
+                _log.Error(HdbfLogCategory.Warn, LogKeySnapshot,
+                    "indoor snapshot unavailable for the warning pass", exception, source.EntityId.ToString());
+                return null;
+            }
         }
     }
 }
+

@@ -1,100 +1,148 @@
-ID,Text,Comment
-HDBF.Building.BoxFarm.Basic.Name,High-Density Box Farm (Basic),chapter 14.4
-HDBF.Building.BoxFarm.Intermediate.Name,High-Density Box Farm (Intermediate),chapter 14.4
-HDBF.Building.BoxFarm.Advanced.Name,High-Density Box Farm (Advanced),chapter 14.4
-HDBF.Building.BoxFarm.Top.Name,High-Density Box Farm (Top),chapter 14.4
-HDBF.Building.BoxFarm.Basic.Description,A timber box farm; two farmers tend 60 dense plots with hand-fed irrigation,chapter 14.4
-HDBF.Building.BoxFarm.Intermediate.Description,"A plank-frame greenhouse; four farmers tend 150 plots, with periodic plank upkeep",chapter 14.4
-HDBF.Building.BoxFarm.Advanced.Description,"A metal-and-glass greenhouse; eight farmers tend 300 plots, demanding irrigation and metal upkeep",chapter 14.4
-HDBF.Building.BoxFarm.Top.Description,"An industrial farm complex: 16 farmers, 600 dense plots, constant power and upkeep",chapter 14.4
-HDBF.Panel.Workers,Workers {0}/{1},chapter 14.4
-HDBF.Panel.RegisteredPlots,Registered Plots {0}/{1},chapter 11.3 / chapter 14.4 naming
-HDBF.Panel.EffectivePlots,Effective Plots {0}/{1},chapter 14.4
-HDBF.Panel.TillablePlots,Tillable Plots {0},chapter 11.3 / chapter 14.4 naming
-HDBF.Panel.Irrigation,Irrigation Coverage {0}%,chapter 14.4
-HDBF.Panel.IrrigationThreshold,Minimum {0}%,HDBF extension
-HDBF.Panel.Fatigue,Soil Fatigue {0}%,chapter 14.4
-HDBF.Panel.FatigueMax,Soil Fatigue Max {0}%,HDBF extension
-HDBF.Panel.MaintenanceDue,Maintenance Due in {0} d,chapter 14.4
-HDBF.Mode.Normal,Normal,chapter 14.4
-HDBF.Mode.Dense,Dense Planting,chapter 14.4
-HDBF.Mode.Fallow,Fallow,chapter 14.4
-HDBF.Port.Power,Power Port,chapter 14.4
-HDBF.Port.Pipe,Pipe Port,chapter 14.4
-HDBF.Port.Logistics,Logistics Port,chapter 14.4
-HDBF.Action.Maintenance,Perform Maintenance,chapter 14.4
-HDBF.Action.HighlightPlots,Show Managed Plots,chapter 14.4
-HDBF.Warning.IrrigationLow,Irrigation Low: {0}% below minimum {1}%,chapter 14.4
-HDBF.Warning.MaintenanceOverdue,Maintenance Overdue: {0} cycle(s),chapter 14.4
-HDBF.Warning.FatigueHigh,Soil Fatigue High: {0}%,chapter 14.4
-HDBF.Warning.NoPower,No Power: output reduced to {0}%,chapter 14.4
-HDBF.Warning.AdapterDisabled,Adapter Disabled: {0},chapter 14.4
-HDBF.Warning.AdapterFailed,Adapter Failed: {0},chapter 14.4
-HDBF.Compat.MissingMod,Compatible mod not detected: {0},chapter 14.4
-HDBF.Error.LoadFailed,Building data failed to load; safe defaults applied,chapter 14.4
-HDBF.Tooltip.MultiplierBreakdown,Irrigation {0} × Fatigue {1} × Maintenance {2} × Power {3} × Mode {4},chapter 14.4
-HDBF.Tooltip.EffectivePlots,"Effective plots = min({0}, {1} × {2})",HDBF extension
-HDBF.Tooltip.TillablePlots,Tillable plots found by the last scan in the {0}×{1} work range ({2} cells); excluded and other farms' plots are not counted.,chapter 11.3 / chapter 14.1 (hover only)
-HDBF.Panel.TankWater,Tank Water {0} d,HDBF extension
-HDBF.Panel.MaintenanceNone,No material upkeep,HDBF extension
-HDBF.Panel.PowerConnected,Power Connected,HDBF extension
-HDBF.Panel.PowerOffGrid,Power Off-Grid,HDBF extension
-HDBF.Panel.PowerNotRequired,No Power Required,HDBF extension
-HDBF.Panel.WorkRange,Work Range {0}×{0},HDBF extension
-HDBF.Panel.Mode,Mode,HDBF extension
-HDBF.Panel.Ports,Ports,HDBF extension
-HDBF.Panel.Status,Status,HDBF extension
-HDBF.Panel.BalanceModified,Balance modified,HDBF extension
-HDBF.Panel.Unknown,—,HDBF extension
-HDBF.Warning.Shutdown,Farm Shutdown: maintenance overdue,HDBF extension
-HDBF.Warning.NoWater,Critical Water Shortage: {0}%,HDBF extension
-HDBF.Warning.TankLow,Tank Low: {0} d,HDBF extension
-HDBF.Warning.EntranceBlocked,Entrance Blocked,HDBF extension
-HDBF.Warning.MoreWarnings,{0} more warnings,HDBF extension
-HDBF.Warning.Generic,Warning: {0},HDBF extension
-HDBF.Port.Connected,Connected,HDBF extension
-HDBF.Port.NotConnected,Not Connected,HDBF extension
-HDBF.Port.Disabled,Disabled,HDBF extension
-HDBF.Port.NotApplicable,Not Applicable,HDBF extension
-HDBF.Mode.SwitchCooldown,Mode change on cooldown,HDBF extension
-HDBF.Action.Details,Details,HDBF extension
-HDBF.Error.MaterialsMissing,Not enough maintenance materials.,Command failure (REQ-UI-07)
-HDBF.Compat.ShowDetails,Show Compatibility,HDBF extension
-HDBF.Compat.Adapter.ConveyorBeltsV2,Conveyor Belts V2 adapter,chapter 8.1
-HDBF.Compat.Adapter.HoomanStairs,Hooman Stairs adapter,chapter 8.1
-HDBF.Compat.Adapter.MoreMines,More Mines adapter,chapter 8.1
-HDBF.Compat.Adapter.PowerLines,Power Lines adapter,chapter 8.1
-HDBF.Compat.Adapter.TimberPipes,Timber Pipes adapter,chapter 8.1
-HDBF.Action.ConfirmDense,Confirm Dense,REQ-UI-06
-HDBF.Action.DenseConfirmHint,Click Dense again to confirm,REQ-UI-06
-HDBF.Action.MaintenanceDone,Maintenance performed.,REQ-UI-07
-HDBF.Action.ModeChanged,Mode changed.,REQ-UI-06
-HDBF.Action.PortUpdated,Port updated.,REQ-UI-07
-HDBF.Error.ActionFailed,The action could not be completed.,Command failure fallback
-HDBF.Error.DenseDisabled,Dense planting is disabled by the mod configuration.,Command failure
-HDBF.Error.MissingMod,The required compatibility mod is not detected.,Command failure
-HDBF.Error.NotBoxFarm,This building is not a High-Density Box Farm.,Command failure
-HDBF.Error.PlotMinimum,At least one managed plot must remain.,Command failure
-HDBF.Error.PlotNotRegistered,That plot is not managed by this farm.,Command failure
-HDBF.Port.PowerManaged,The power port follows the mechanical power network.,Command failure
-HDBF.Tooltip.CurrentMode,This is the current mode.,REQ-UI-06
-HDBF.Tooltip.Maintenance,Consumes upkeep material and resets the maintenance timer.,REQ-UI-07
-HDBF.Tooltip.MaintenanceShutdown,The farm is shut down; maintenance restores full output.,REQ-UI-07
-HDBF.Tooltip.ModeDense,Dense planting: yield ×1.35; water ×1.5; fatigue ×1.5. Click again to confirm.,REQ-UI-06
-HDBF.Tooltip.ModeFallow,Fallow: production stops while the soil recovers.,REQ-UI-06
-HDBF.Tooltip.ModeNormal,"Normal planting: no yield, water or fatigue change.",REQ-UI-06
-HDBF.Tooltip.PortPower,The power port connects through the mechanical power network.,REQ-UI-07
-HDBF.Tooltip.PortToggle,Toggle {0}.,REQ-UI-07
-HDBF.Panel.HighlightLegend,Managed Plots,REQ-UI-05 / chapter 14.3 legend header
-HDBF.Panel.HighlightIrrigated,Irrigated,REQ-UI-05 legend row (green)
-HDBF.Panel.HighlightDry,Not Irrigated,REQ-UI-05 legend row (yellow)
-HDBF.Panel.HighlightExcluded,Excluded,REQ-UI-05 legend row (gray)
-HDBF.Panel.HighlightUnreachable,Unreachable,REQ-UI-05 legend row (red)
-HDBF.Tooltip.HighlightPlots,Click plots to exclude or restore them; Shift+drag to box-select; Esc closes the overlay.,REQ-UI-05 inactive button tooltip
-HDBF.Tooltip.HighlightBoxSelect,Shift+drag to exclude or restore several plots at once.,REQ-UI-05 box-select hint
-HDBF.Panel.WarningAggregate,Also {0} buildings: {1},REQ-UI-03 cross-building warning aggregation (chapter 14.2)
-HDBF.Panel.WarningAggregateHint,Click a row to expand its buildings; click a building to select and focus it.,REQ-UI-03 on-screen aggregation only (chapter 14.6)
-HDBF.Panel.SettingWorldIcons,World warning icons,REQ-UI-10 config ui.worldIcons label
-HDBF.Panel.SettingWorldIconBlink,Blink warning icons,REQ-UI-10 config ui.worldIconBlink label
-HDBF.Panel.SettingWorldIconDistance,Icon distance (cells),REQ-UI-10 config ui.worldIconMaxDistance label
-HDBF.Tooltip.WorldIcon,{0} (P0/P1 world icon; hidden beyond {1} cells),REQ-UI-03 head-top warning icon tooltip (chapter 14.2)
+﻿ID,Text,Comment
+HDBF.Building.BoxFarm.Basic.Name,High-Density Box Farm (Basic),v2 UI
+HDBF.Building.BoxFarm.Intermediate.Name,High-Density Box Farm (Intermediate),v2 UI
+HDBF.Building.BoxFarm.Advanced.Name,High-Density Box Farm (Advanced),v2 UI
+HDBF.Building.BoxFarm.Top.Name,High-Density Box Farm (Top),v2 UI
+HDBF.Building.BoxFarm.Basic.Description,A timber box farm: two farmers tend 60 indoor slots with hand-fed water.,v2 UI
+HDBF.Building.BoxFarm.Intermediate.Description,A plank-frame greenhouse: four farmers tend 150 indoor slots with periodic plank upkeep.,v2 UI
+HDBF.Building.BoxFarm.Advanced.Description,A metal-and-glass greenhouse: eight farmers tend 300 indoor slots with metal upkeep.,v2 UI
+HDBF.Building.BoxFarm.Top.Description,An industrial farm complex: 16 farmers and 600 indoor slots with grid power and metal upkeep.,v2 UI
+HDBF.Panel.Tier,Tier: {0},v2 UI
+HDBF.Panel.Faction,Faction: {0},v2 UI
+HDBF.Panel.Workers,Workers {0}/{1},v2 UI
+HDBF.Panel.Mode,Mode,v2 UI
+HDBF.Panel.ModeTransition,Mode changing; output is reduced today.,v2 UI
+HDBF.Panel.TierBasic,Basic,v2 UI
+HDBF.Panel.TierIntermediate,Intermediate,v2 UI
+HDBF.Panel.TierAdvanced,Advanced,v2 UI
+HDBF.Panel.TierTop,Top,v2 UI
+HDBF.Panel.FactionFolktails,Folktails,v2 UI
+HDBF.Panel.FactionIronTeeth,IronTeeth,v2 UI
+HDBF.Panel.SectionSlots,Slots,v2 UI
+HDBF.Panel.SectionWater,Water,v2 UI
+HDBF.Panel.SectionMaintenance,Maintenance,v2 UI
+HDBF.Panel.SectionPower,Power,v2 UI
+HDBF.Panel.SectionCrops,Crop strategy,v2 UI
+HDBF.Panel.SectionOutput,Output,v2 UI
+HDBF.Panel.Slots,Slots {0}/{1},v2 UI
+HDBF.Panel.EffectiveSlots,Effective slots {0},v2 UI
+HDBF.Panel.EmptySlots,Empty slots {0},v2 UI
+HDBF.Panel.GrowingSlots,Growing {0},v2 UI
+HDBF.Panel.MatureSlots,Ready to harvest {0},v2 UI
+HDBF.Panel.Backlog,Action backlog {0},v2 UI
+HDBF.Panel.Tank,Tank {0}/{1} units (about {2} days),v2 UI
+HDBF.Panel.Coverage,Coverage C {0}%,v2 UI
+HDBF.Panel.MinCoverage,Minimum C_min {0}%,v2 UI
+HDBF.Panel.WaterSupply,Water source: {0},v2 UI
+HDBF.Panel.WaterShortage,Water shortage: growth {0}%,v2 UI
+HDBF.Panel.WaterPipe,pipe,v2 UI
+HDBF.Panel.WaterManual,manual,v2 UI
+HDBF.Panel.WaterNone,none,v2 UI
+HDBF.Panel.MaintenanceDue,Maintenance due day {0},v2 UI
+HDBF.Panel.MaintenanceCycles,Overdue cycles {0},v2 UI
+HDBF.Panel.MaintenanceMaterials,Missing materials: {0} ×{1},v2 UI
+HDBF.Panel.MaintenanceNone,No material upkeep,v2 UI
+HDBF.Panel.MaterialPlank,Plank,v2 UI
+HDBF.Panel.MaterialMetalBlock,Metal block,v2 UI
+HDBF.Panel.Power,Power: {0},v2 UI
+HDBF.Panel.PowerGrid,grid,v2 UI
+HDBF.Panel.PowerOffGrid,off-grid,v2 UI
+HDBF.Panel.PowerNoPower,no power,v2 UI
+HDBF.Panel.PowerNotRequired,not required,v2 UI
+HDBF.Panel.CropPolicy,Crop policy: {0},v2 UI
+HDBF.Panel.FixedCrop,Fixed crop: {0},v2 UI
+HDBF.Panel.Rotation,Rotation: {0},v2 UI
+HDBF.Panel.PolicyRotation,auto rotation,v2 UI
+HDBF.Panel.PolicyFixed,fixed crop,v2 UI
+HDBF.Panel.CropCarrot,Carrot,v2 UI
+HDBF.Panel.CropPotato,Potato,v2 UI
+HDBF.Panel.CropWheat,Wheat,v2 UI
+HDBF.Panel.CropSunflower,Sunflower,v2 UI
+HDBF.Panel.CropCanola,Canola,v2 UI
+HDBF.Panel.CropCassava,Cassava,v2 UI
+HDBF.Panel.CropCorn,Corn,v2 UI
+HDBF.Panel.CropEggplant,Eggplant,v2 UI
+HDBF.Panel.CropKohlrabi,Kohlrabi,v2 UI
+HDBF.Panel.CropSoybean,Soybean,v2 UI
+HDBF.Panel.OutputStock,Output stock {0},v2 UI
+HDBF.Panel.OutputPort,Output port: {0},v2 UI
+HDBF.Panel.Ports,Ports,v2 UI
+HDBF.Panel.Status,Status,v2 UI
+HDBF.Panel.Problems,Problems,v2 UI
+HDBF.Panel.Unknown,—,v2 UI
+HDBF.Mode.Normal,Normal,v2 UI
+HDBF.Mode.Dense,Dense planting,v2 UI
+HDBF.Mode.Fallow,Fallow,v2 UI
+HDBF.Mode.SwitchCooldown,Mode change on cooldown,v2 UI
+HDBF.Port.Power,Power port,v2 UI
+HDBF.Port.Pipe,Pipe port,v2 UI
+HDBF.Port.Logistics,Logistics port,v2 UI
+HDBF.Port.Connected,Connected,v2 UI
+HDBF.Port.NotConnected,Not connected,v2 UI
+HDBF.Port.Disabled,Disabled,v2 UI
+HDBF.Port.NotApplicable,Not applicable,v2 UI
+HDBF.Action.Maintenance,Perform maintenance,v2 UI
+HDBF.Action.MaintenanceDone,Maintenance performed.,v2 UI
+HDBF.Action.Refill,Refill water,v2 UI
+HDBF.Action.RefillRequested,Refill requested.,v2 UI
+HDBF.Action.ModeChanged,Mode changed.,v2 UI
+HDBF.Action.CropPolicyChanged,Crop policy updated.,v2 UI
+HDBF.Warning.NoWater,Water shortage,v2 UI
+HDBF.Warning.IrrigationLow,Water low,v2 UI
+HDBF.Warning.MaintenanceOverdue,Maintenance overdue,v2 UI
+HDBF.Warning.NoPower,No power,v2 UI
+HDBF.Warning.EntranceBlocked,Entrance blocked,v2 UI
+HDBF.Warning.Shutdown,Maintenance overdue,v2 UI (world-icon slot for maintenance; frozen Core enum)
+HDBF.Warning.AdapterFailed,Entrance blocked,v2 UI (world-icon slot for entrance blocking; frozen Core enum)
+HDBF.Warning.OutputFull,Output inventory full,v2 UI
+HDBF.Warning.NoWorkers,No workers on duty,v2 UI
+HDBF.Warning.MissingMaterial,Maintenance material missing,v2 UI
+HDBF.Warning.InvalidCrop,Invalid fixed crop,v2 UI
+HDBF.Warning.MoreWarnings,{0} more warnings,v2 UI
+HDBF.Warning.Generic,Warning,v2 UI
+HDBF.Panel.WarningAggregate,Also {0} buildings: {1},v2 UI (world-icon aggregation)
+HDBF.Panel.WarningAggregateHint,Click a row to expand its buildings.,v2 UI
+HDBF.Panel.SettingWorldIcons,World warning icons,v2 UI
+HDBF.Panel.SettingWorldIconBlink,Blink warning icons,v2 UI
+HDBF.Panel.SettingWorldIconDistance,Icon distance (cells),v2 UI
+HDBF.Tooltip.WorldIcon,{0} (P0/P1 world icon; hidden beyond {1} cells),v2 UI
+HDBF.Compat.MissingMod,Compatible mod not detected: {0},v2 UI
+HDBF.Compat.ShowDetails,Show compatibility,v2 UI
+HDBF.Compat.Adapter.ConveyorBeltsV2,Conveyor Belts V2 adapter,v2 UI
+HDBF.Compat.Adapter.HoomanStairs,Hooman Stairs adapter,v2 UI
+HDBF.Compat.Adapter.MoreMines,More Mines adapter,v2 UI
+HDBF.Compat.Adapter.PowerLines,Power Lines adapter,v2 UI
+HDBF.Compat.Adapter.TimberPipes,Timber Pipes adapter,v2 UI
+HDBF.Error.ActionFailed,The action could not be completed.,v2 UI
+HDBF.Error.MaterialsMissing,Not enough maintenance materials.,v2 UI
+HDBF.Error.DenseDisabled,Dense planting is disabled by the mod configuration.,v2 UI
+HDBF.Error.NotBoxFarm,This building is not a High-Density Box Farm.,v2 UI
+HDBF.Error.FarmNotActive,The farm is not active yet.,v2 UI
+HDBF.Error.RefillUnavailable,Manual refill is not available in this build.,v2 UI
+HDBF.Error.CropNotAvailable,That crop is not available to this faction.,v2 UI
+HDBF.Error.MaintenanceUnavailable,This tier has no material maintenance.,v2 UI
+HDBF.Error.InvalidMode,Invalid mode.,v2 UI
+HDBF.Error.MissingMod,The required compatibility mod is not detected.,v2 UI
+HDBF.Error.NoWorkers,No worker is on duty to fetch water.,v2 UI (refill reason)
+HDBF.Error.EntranceBlocked,The entrance is blocked; a worker cannot leave for water.,v2 UI (refill reason)
+HDBF.Error.NoWaterSource,No reachable water source within 12 cells.,v2 UI (refill reason)
+HDBF.Error.WaterSourceUnreachable,A water source exists but no walk path reaches it.,v2 UI (refill reason)
+HDBF.Error.WaterContaminated,The nearby water is contaminated and cannot fill the tank.,v2 UI (refill reason)
+HDBF.Error.NoActionsLeft,Not enough actions are left today for a refill trip.,v2 UI (refill reason)
+HDBF.Error.RefillPending,A refill trip is already queued.,v2 UI (refill reason)
+HDBF.Error.OutputFull,The output inventory is full; nothing can be moved.,v2 UI (action reason)
+HDBF.Tooltip.EffectiveSlots,"Effective slots P_eff = min({0}, {1} × {2}).",v2 UI
+HDBF.Tooltip.Tank,Tank units and remaining days; coverage C must stay above C_min.,v2 UI
+HDBF.Tooltip.Coverage,C is the tank coverage; growth falls below C_min and stops under a quarter of it.,v2 UI
+HDBF.Tooltip.Maintenance,Consumes upkeep materials and resets the maintenance timer.,v2 UI
+HDBF.Tooltip.MaintenanceShutdown,The farm is stalled; performing maintenance restores output.,v2 UI
+HDBF.Tooltip.Power,Top tier: grid power gives full growth; off-grid or a power cut reduces it.,v2 UI
+HDBF.Tooltip.Rotation,Rotation plants a different crop each cycle; fixed crop always replants the selected crop.,v2 UI
+HDBF.Tooltip.Refill,Requests one manual refill trip.,v2 UI
+HDBF.Tooltip.PipeWater,The pipe port supplies water automatically.,v2 UI
+HDBF.Tooltip.NoWaterSource,No water source is connected; the tank only drains.,v2 UI
+HDBF.Tooltip.Output,Output inventory and logistics port state.,v2 UI
+HDBF.Tooltip.CurrentMode,This is the current mode.,v2 UI
+HDBF.Tooltip.ModeNormal,Normal: no yield or water change.,v2 UI
+HDBF.Tooltip.ModeDense,Dense: yield ×1.35 and water ×1.5.,v2 UI
+HDBF.Tooltip.ModeFallow,Fallow: production stops while the soil recovers.,v2 UI

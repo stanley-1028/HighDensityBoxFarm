@@ -1,8 +1,11 @@
 // ============================================================================
-// HDBF v2 | Layer: Core/Indoor | Owner: V2-CORE-01
+// HDBF v2 | Layer: Core/Indoor | Owner: V2-CORE-01 (scheduler) / V2-GAMEPLAY-02 (budget)
 // Purpose: Labour capacity, action budget, per-action work cost and the deterministic
 //          harvest-before-plant action scheduler (INTERFACES section 5, section 19.7).
-// Requirements: REQ-V2-LABOR-01, REQ-V2-LABOR-02, REQ-V2-CORE-01, REQ-V2-CORE-05
+//          The mode-transition yield scale and the reserved-action budget are the
+//          backward-compatible additions of V2-GAMEPLAY-02 (REQ-V2-WATER-04/LABOR-01).
+// Requirements: REQ-V2-LABOR-01, REQ-V2-LABOR-02, REQ-V2-CORE-01, REQ-V2-CORE-05,
+//               REQ-V2-WATER-04, REQ-V2-BAL-03
 // ============================================================================
 using System;
 using System.Collections.Generic;
@@ -14,7 +17,7 @@ namespace HDBF.Core.Indoor
     /// Indoor labour mathematics and the daily action scheduler (INTERFACES section 5).
     /// Deterministic by construction: ascending slot index, no randomness, no dictionary order.
     /// </summary>
-    public static class IndoorLaborMath
+    public static partial class IndoorLaborMath
     {
         /// <summary>
         /// P_eff = min(SlotCapacity, ActiveWorkers x 38); only these leading slots are scheduled
@@ -40,6 +43,36 @@ namespace HDBF.Core.Indoor
             if (activeWorkers <= 0) return 0;
             var total = (long)activeWorkers * IndoorConstants.ActionsPerFarmerDay;
             return total > int.MaxValue ? int.MaxValue : (int)total;
+        }
+
+        /// <summary>
+        /// Daily action budget minus actions reserved by another subsystem of the same day (for
+        /// example the 2 actions of a manual water refill, REQ-V2-WATER-04). This is the only place
+        /// that splits the daily budget, so a farm can never overspend it across subsystems.
+        /// </summary>
+        /// <param name="activeWorkers">On-duty workers of the building.</param>
+        /// <param name="reservedActions">Actions already reserved/consumed today; negative means 0.</param>
+        /// <returns>Remaining plant+harvest actions for this day, never negative.</returns>
+        public static int ActionBudget(int activeWorkers, int reservedActions)
+        {
+            var budget = ActionBudget(activeWorkers);
+            var reserved = reservedActions > 0 ? reservedActions : 0;
+            return budget <= reserved ? 0 : budget - reserved;
+        }
+
+        /// <summary>
+        /// Remaining actions of the current day after <paramref name="actionsUsed"/> were already
+        /// performed. Used by the command layer to validate a manual refill before reserving it
+        /// (REQ-V2-LABOR-01: no cross-day overspend).
+        /// </summary>
+        /// <param name="activeWorkers">On-duty workers of the building.</param>
+        /// <param name="actionsUsed">Actions already performed today; negative means 0.</param>
+        /// <returns>Actions still available today, never negative.</returns>
+        public static int RemainingActions(int activeWorkers, int actionsUsed)
+        {
+            var budget = ActionBudget(activeWorkers);
+            var used = actionsUsed > 0 ? actionsUsed : 0;
+            return budget <= used ? 0 : budget - used;
         }
 
         /// <summary>
@@ -79,11 +112,32 @@ namespace HDBF.Core.Indoor
         public static IndoorActionStats RunActions(IndoorFarmRecord record, TierProfile tier,
             ICropCatalog catalog, int activeWorkers, IInventorySink output, bool farmActionsAllowed)
         {
+            return RunActions(record, tier, catalog, activeWorkers, output, farmActionsAllowed, 0, 1f);
+        }
+
+        /// <summary>
+        /// Runs one day of farm actions with a reserved-action deduction and the optional one-day
+        /// mode-transition yield scale. Both additions are backward compatible: the original
+        /// six-argument overload forwards here with 0 reserved actions and scale 1.
+        /// </summary>
+        /// <param name="record">Farm record mutated in place.</param>
+        /// <param name="tier">Tier profile of the building.</param>
+        /// <param name="catalog">Crop catalog; the built-in fallback covers missing specs.</param>
+        /// <param name="activeWorkers">On-duty workers, source of the action budget.</param>
+        /// <param name="output">Output inventory sink; null means "nowhere to put produce".</param>
+        /// <param name="farmActionsAllowed">False for stalled/fallow/blocked-entrance days.</param>
+        /// <param name="reservedActions">Actions already reserved/consumed today (refill, jobs).</param>
+        /// <param name="yieldScale">Harvest yield scale in [0,1]; 1 means no mode transition.</param>
+        /// <returns>What happened today; never null and never throws.</returns>
+        public static IndoorActionStats RunActions(IndoorFarmRecord record, TierProfile tier,
+            ICropCatalog catalog, int activeWorkers, IInventorySink output, bool farmActionsAllowed,
+            int reservedActions, float yieldScale)
+        {
             var stats = new IndoorActionStats();
             if (record is null || tier is null || !farmActionsAllowed) return stats;
             var slots = record.Slots;
             if (slots is null) return stats;
-            var budget = ActionBudget(activeWorkers);
+            var budget = ActionBudget(activeWorkers, reservedActions);
             if (budget <= 0) return stats;
             var limit = EffectiveSlots(tier, activeWorkers);
             if (limit > slots.Length) limit = slots.Length;
@@ -95,7 +149,7 @@ namespace HDBF.Core.Indoor
                 if (slot is null || slot.Stage != SlotStage.Mature || string.IsNullOrEmpty(slot.CropId)) continue;
                 try
                 {
-                    if (TryHarvest(record, tier, slot, catalog, output, out var blocked))
+                    if (TryHarvest(record, tier, slot, catalog, output, yieldScale, out var blocked))
                     {
                         stats.Harvested++;
                         stats.ActionsUsed++;
@@ -132,137 +186,6 @@ namespace HDBF.Core.Indoor
             }
 
             return stats;
-        }
-
-        /// <summary>Harvests one mature slot; output-full and missing-spec cases are not fatal.</summary>
-        private static bool TryHarvest(IndoorFarmRecord record, TierProfile tier, IndoorSlot slot,
-            ICropCatalog catalog, IInventorySink output, out bool blocked)
-        {
-            blocked = false;
-            if (!FallbackCropCatalog.TryResolve(catalog, record.Faction, slot.CropId, out var crop))
-            {
-                // Missing spec in both catalogs: keep the mature slot; the validator/logs repair it.
-                return false;
-            }
-
-            var amount = IndoorGrowthMath.HarvestItems(crop.BaseYield, slot.Fatigue, record.Mode);
-            if (amount > 0)
-            {
-                if (output is null)
-                {
-                    blocked = true;
-                    return false;
-                }
-
-                try
-                {
-                    if (!output.TryAdd(crop.YieldItemId, amount))
-                    {
-                        // REQ-V2-CORE-01/section 19.5: output full -> do not harvest, keep it mature.
-                        blocked = true;
-                        return false;
-                    }
-                }
-                catch
-                {
-                    // A throwing sink means "not stored": keep the slot mature (never double add).
-                    blocked = true;
-                    return false;
-                }
-            }
-
-            // Harvest succeeded: apply fatigue/rotation bookkeeping and clear the slot.
-            var sameCrop = string.Equals(slot.CropId, slot.LastCropId, StringComparison.Ordinal);
-            ApplyHarvestFatigue(slot, tier.SoilFatigueFactor, record.Mode, sameCrop);
-            slot.LastCropId = slot.CropId;
-            slot.CropId = string.Empty;
-            slot.GrowthDays = 0f;
-            slot.Stage = SlotStage.Empty;
-            slot.Flags = 0;
-            return true;
-        }
-
-        /// <summary>Plants one empty slot with the policy-selected crop.</summary>
-        private static bool TryPlant(IndoorFarmRecord record, IndoorSlot slot, ICropCatalog catalog,
-            IReadOnlyList<CropDefinition> factionCrops)
-        {
-            if (!TryChooseCrop(record, slot.LastCropId, catalog, factionCrops, out var crop)) return false;
-            slot.CropId = crop.Id;
-            slot.GrowthDays = 0f;
-            slot.Stage = SlotStage.Growing;
-            slot.Flags = 0;
-            return true;
-        }
-
-        /// <summary>Policy-selected crop: fixed crop, or the next crop after the previous one.</summary>
-        private static bool TryChooseCrop(IndoorFarmRecord record, string lastCropId, ICropCatalog catalog,
-            IReadOnlyList<CropDefinition> factionCrops, out CropDefinition crop)
-        {
-            crop = null!;
-            if (record.CropPolicy == CropPolicy.Fixed)
-            {
-                // An empty/invalid fixed crop plants nothing until the player picks a valid one.
-                return FallbackCropCatalog.TryResolve(catalog, record.Faction, record.FixedCropId, out crop);
-            }
-
-            if (factionCrops is null || factionCrops.Count == 0) return false;
-            var lastIndex = -1;
-            for (var index = 0; index < factionCrops.Count; index++)
-            {
-                var candidate = factionCrops[index];
-                if (candidate is not null && string.Equals(candidate.Id, lastCropId, StringComparison.Ordinal))
-                {
-                    lastIndex = index;
-                    break;
-                }
-            }
-
-            // Rotation: the crop after the previous one in the faction table, wrapping around.
-            var start = lastIndex >= 0 ? (lastIndex + 1) % factionCrops.Count : 0;
-            for (var step = 0; step < factionCrops.Count; step++)
-            {
-                var candidate = factionCrops[(start + step) % factionCrops.Count];
-                if (candidate is null || string.IsNullOrEmpty(candidate.Id)) continue;
-                crop = candidate;
-                return true;
-            }
-
-            return false;
-        }
-
-        /// <summary>Applies one harvest worth of fatigue, rotated or repeated crop (section 19.5).</summary>
-        private static void ApplyHarvestFatigue(IndoorSlot slot, float tierFatigueFactor, IndoorMode mode,
-            bool sameCrop)
-        {
-            var tierFactor = IndoorMath.IsFinite(tierFatigueFactor) && tierFatigueFactor > 0f
-                ? tierFatigueFactor
-                : 0f;
-            var delta = IndoorConstants.FatiguePerHarvest * tierFactor;
-            if (mode == IndoorMode.Dense) delta *= IndoorConstants.DenseFatigueMultiplier;
-            if (!sameCrop) delta *= IndoorConstants.RotationFatigueFactor;
-
-            var fatigue = IndoorMath.Clamp01(slot.Fatigue) + delta;
-            if (!sameCrop) fatigue -= IndoorConstants.RotationRecovery;
-            slot.Fatigue = IndoorMath.Clamp01(fatigue);
-        }
-
-        /// <summary>Reads the faction crop list once per day; a broken catalog degrades to the fallback.</summary>
-        private static IReadOnlyList<CropDefinition> ResolveFactionCrops(ICropCatalog catalog, HdbfFaction faction)
-        {
-            if (catalog is not null)
-            {
-                try
-                {
-                    var crops = catalog.ForFaction(faction);
-                    if (crops is not null && crops.Count > 0) return crops;
-                }
-                catch
-                {
-                    // Missing/broken catalog: fall through to the built-in table (REQ-V2-CORE-05).
-                }
-            }
-
-            return FallbackCropCatalog.Default.ForFaction(faction);
         }
     }
 }

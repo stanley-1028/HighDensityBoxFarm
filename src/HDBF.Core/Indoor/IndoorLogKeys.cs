@@ -33,6 +33,27 @@ namespace HDBF.Core.Indoor
         /// <summary>The daily action budget is exhausted while mature slots wait (backlog).</summary>
         public const string ActionBacklog = "indoor.action-backlog";
 
+        /// <summary>One material maintenance cycle was performed (v2 wiring card).</summary>
+        public const string Maintenance = "indoor.maintenance";
+
+        /// <summary>The upkeep material is missing; nothing was deducted (section 19.8).</summary>
+        public const string MaintenanceMissing = "indoor.maintenance-missing";
+
+        /// <summary>The top tier lost grid power; G_power 0.60 and x2 upkeep apply.</summary>
+        public const string PowerCut = "indoor.power-cut";
+
+        /// <summary>The persisted power mode/connection of the top tier was refreshed.</summary>
+        public const string Power = "indoor.power";
+
+        /// <summary>A port state degraded (adapter missing/failed); the farm itself keeps running.</summary>
+        public const string Port = "indoor.port";
+
+        /// <summary>The front entrance is blocked; farm actions pause until it clears.</summary>
+        public const string EntranceBlocked = "indoor.entrance-blocked";
+
+        /// <summary>The crop policy (rotation/fixed) was accepted or rejected.</summary>
+        public const string CropPolicy = "indoor.crop-policy";
+
         // ---------------------------------------------------------------- water.*
 
         /// <summary>Daily tank settlement: demand, deducted amount, coverage C and G_irr.</summary>
@@ -40,6 +61,9 @@ namespace HDBF.Core.Indoor
 
         /// <summary>A pipe or manual refill failed (no source, source unavailable, draw refused).</summary>
         public const string RefillFailed = "water.refill-failed";
+
+        /// <summary>A manual refill trip was requested/performed (2 farm actions, 1/3 tank).</summary>
+        public const string ManualRefill = "water.manual-refill";
 
         /// <summary>Coverage C is below the tier minimum C_min (yield is derated).</summary>
         public const string Low = "water.low";

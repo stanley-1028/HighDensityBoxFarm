@@ -31,40 +31,69 @@
   </ItemGroup>
 
   <!--
-    P1 farming rules + BUG-04 plot-id ownership: these src/HDBF.Gameplay files are pure C#
-    (System + HDBF.Core only) except for the UnityEngine.Vector3Int cell shell. Compiling that
-    production source into this game-free test assembly (with the structural stub under Stubs/)
-    lets L1 assert the real ordering/work-cost/labour-cap source *and* the real scanner candidate
-    construction without referencing any Timberborn or Unity assembly (REQ-TEST-03). No game
-    assembly is loaded at compile or run time; if the files start using real Unity types this
-    project fails to compile on purpose.
+    The UI localization key table is pure C# (a static class of string constants) even though it
+    lives in HDBF.UI. Linking it lets L1 prove that the keys the panel formats exist in all three
+    shipped CSVs without referencing the game-facing HDBF.UI assembly (REQ-TEST-03).
   -->
   <ItemGroup>
-    <Compile Include="..\..\src\HDBF.Gameplay\Farming\FarmWorkPlanner.cs" Link="Linked\FarmWorkPlanner.cs" />
-    <Compile Include="..\..\src\HDBF.Gameplay\Components\HdbfPlotScanner.cs" Link="Linked\HdbfPlotScanner.cs" />
-    <Compile Include="..\..\src\HDBF.Gameplay\Components\HdbfPlotCellCodec.cs" Link="Linked\HdbfPlotCellCodec.cs" />
-    <!--
-      The UI localization key table is pure C# (a static class of string constants) even though it
-      lives in HDBF.UI. Linking it lets L1 prove that the keys the panel formats exist in all three
-      shipped CSVs without referencing the game-facing HDBF.UI assembly (REQ-TEST-03).
-    -->
     <Compile Include="..\..\src\HDBF.UI\Localization\HdbfUiLocKeys.cs" Link="Linked\HdbfUiLocKeys.cs" />
   </ItemGroup>
 
   <!--
-    BUG-05 anti-revert source contract: the controller partial that owns the retained-plot path
-    cannot be compiled into this game-free assembly (it references Timberborn types), so the two
-    production files of the fix are embedded as text and a test pins the ordering markers
-    (retained branch before CanPlant, RecordSelection before ApplyPlotArrays) and the scan-end
-    diagnostics field names. This fails if the fix is deleted even though every other L1 test and
-    build stays green.
+    V2-UI-01 panel read model: the HdbfIndoor*.cs files are the game-free half of the indoor panel
+    (localized read model + pure formatting/mapping + the duck-typed query bridge). They reference
+    HDBF.Core and HdbfUiLocKeys only, so linking them lets V2PanelContractTests drive the REAL
+    panel mapping (every snapshot field, failure reason, "—" rule) without loading Timberborn.
+    The game-dependent fragment partials stay out of this assembly (REQ-V2-TEST-01).
   -->
   <ItemGroup>
-    <EmbeddedResource Include="..\..\src\HDBF.Gameplay\Components\HdbfBoxFarmController.Scan.cs">
-      <LogicalName>HDBF.Tests.Source.Scan.cs</LogicalName>
+    <Compile Include="..\..\src\HDBF.UI\Panels\HdbfIndoor*.cs" Link="Linked\%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <!--
+    V2-GAMEPLAY-01 source contract: the controller and its persistence/crop/workplace support
+    reference Timberborn types and cannot be compiled into this game-free L1 assembly, so they are
+    embedded as text. V2GameplayContractTests pins the v2 Core calls and the absence of the removed
+    v1 world-plot/planting chain (REQ-V2-CORE-03, REQ-V2-MAINT-02/03, REQ-V2-SAFE-01).
+  -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\src\HDBF.Gameplay\Components\HdbfBoxFarmController*.cs"
+                      Exclude="..\..\src\HDBF.Gameplay\Components\HdbfBoxFarmController.Diagnostics.cs">
+      <LogicalName>HDBF.Tests.Source.Controller.%(Filename)%(Extension)</LogicalName>
     </EmbeddedResource>
+    <!-- Release-gate G-08 keeps its stable resource name for the compile-time diagnostics source. -->
     <EmbeddedResource Include="..\..\src\HDBF.Gameplay\Components\HdbfBoxFarmController.Diagnostics.cs">
       <LogicalName>HDBF.Tests.Source.Diagnostics.cs</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\src\HDBF.Gameplay\Components\GameCropCatalog*.cs">
+      <LogicalName>HDBF.Tests.Source.Catalog.%(Filename)%(Extension)</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\src\HDBF.Gameplay\Persistence\IndoorEntitySaveBridge*.cs">
+      <LogicalName>HDBF.Tests.Source.Bridge.%(Filename)%(Extension)</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\src\HDBF.Gameplay\Farming\IndoorFarmWorkplaceBehavior.cs">
+      <LogicalName>HDBF.Tests.Source.IndoorFarmWorkplaceBehavior.cs</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\src\HDBF.Gameplay\Components\IndoorInventorySink.cs">
+      <LogicalName>HDBF.Tests.Source.IndoorInventorySink.cs</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\src\HDBF.Gameplay\Components\IndoorMaintenanceMaterialSource.cs">
+      <LogicalName>HDBF.Tests.Source.IndoorMaintenanceMaterialSource.cs</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\src\HDBF.Gameplay\Components\ReadOnlyGrowthRateProvider.cs">
+      <LogicalName>HDBF.Tests.Source.ReadOnlyGrowthRateProvider.cs</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\src\HDBF.Gameplay\HdbfGameConfigurator.cs">
+      <LogicalName>HDBF.Tests.Source.HdbfGameConfigurator.cs</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\src\HDBF.Gameplay\Components\HdbfFarmCommandService.cs">
+      <LogicalName>HDBF.Tests.Source.HdbfFarmCommandService.cs</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\src\HDBF.Gameplay\Components\HdbfFarmQueryService.cs">
+      <LogicalName>HDBF.Tests.Source.HdbfFarmQueryService.cs</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\src\HDBF.Gameplay\Components\HdbfGameplayContracts.cs">
+      <LogicalName>HDBF.Tests.Source.HdbfGameplayContracts.cs</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
 

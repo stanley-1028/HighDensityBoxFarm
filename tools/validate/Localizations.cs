@@ -14,13 +14,16 @@ internal sealed class Localizations
         "const\\s+string\\s+\\w+\\s*=\\s*\"(HDBF\\.[^\"]+)\"", RegexOptions.Compiled);
 
     /// <summary>
-    /// The 30 keys mandated by chapter 14.4, plus the plot-count keys added by the panel-plots card
-    /// (chapter 11.3: 已注册格 / 有效格 / 可开垦格 must be visible simultaneously) and the managed-plot
-    /// overlay keys added by the highlight card (REQ-UI-05, chapter 14.3). Extras are allowed, but
-    /// every key in this list must exist in enUS and zhCN.
+    /// The v2 keys mandated by requirement section 19.11 (indoor slot / tank / maintenance /
+    /// power / crop-policy / output / command panel plus the four world-warning reasons and the
+    /// concrete failure reasons of REQ-V2-UI-02). The v1 chapter-14.4 plot/highlight keys are
+    /// deliberately NOT required any more: section 19.11 deletes managed plots, plot highlighting,
+    /// box selection and the "registered / tillable" counters (REQ-V2-UI-04).
+    /// Extras are allowed, but every key in this list must exist in enUS and zhCN.
     /// </summary>
     private static readonly string[] CanonicalKeys =
     {
+        // Building names / descriptions (eight blueprints).
         "HDBF.Building.BoxFarm.Basic.Name",
         "HDBF.Building.BoxFarm.Intermediate.Name",
         "HDBF.Building.BoxFarm.Advanced.Name",
@@ -29,45 +32,90 @@ internal sealed class Localizations
         "HDBF.Building.BoxFarm.Intermediate.Description",
         "HDBF.Building.BoxFarm.Advanced.Description",
         "HDBF.Building.BoxFarm.Top.Description",
+        // Panel: header + slots + water + maintenance + power + crop policy + output (section 19.11).
         "HDBF.Panel.Workers",
-        "HDBF.Panel.RegisteredPlots",
-        "HDBF.Panel.EffectivePlots",
-        "HDBF.Panel.TillablePlots",
-        "HDBF.Panel.HighlightLegend",
-        "HDBF.Panel.HighlightIrrigated",
-        "HDBF.Panel.HighlightDry",
-        "HDBF.Panel.HighlightExcluded",
-        "HDBF.Panel.HighlightUnreachable",
-        "HDBF.Panel.Irrigation",
-        "HDBF.Panel.Fatigue",
+        "HDBF.Panel.Slots",
+        "HDBF.Panel.EffectiveSlots",
+        "HDBF.Panel.EmptySlots",
+        "HDBF.Panel.GrowingSlots",
+        "HDBF.Panel.MatureSlots",
+        "HDBF.Panel.Backlog",
+        "HDBF.Panel.Tank",
+        "HDBF.Panel.Coverage",
+        "HDBF.Panel.MinCoverage",
+        "HDBF.Panel.WaterSupply",
+        "HDBF.Panel.WaterPipe",
+        "HDBF.Panel.WaterManual",
+        "HDBF.Panel.WaterNone",
         "HDBF.Panel.MaintenanceDue",
+        "HDBF.Panel.MaintenanceCycles",
+        "HDBF.Panel.MaintenanceMaterials",
+        "HDBF.Panel.Power",
+        "HDBF.Panel.CropPolicy",
+        "HDBF.Panel.Rotation",
+        "HDBF.Panel.FixedCrop",
+        "HDBF.Panel.OutputStock",
+        "HDBF.Panel.OutputPort",
+        "HDBF.Panel.Ports",
+        "HDBF.Panel.Tier",
+        "HDBF.Panel.Faction",
+        "HDBF.Panel.Mode",
+        // Modes and ports.
         "HDBF.Mode.Normal",
         "HDBF.Mode.Dense",
         "HDBF.Mode.Fallow",
+        "HDBF.Mode.SwitchCooldown",
         "HDBF.Port.Power",
         "HDBF.Port.Pipe",
         "HDBF.Port.Logistics",
+        "HDBF.Port.Connected",
+        "HDBF.Port.NotConnected",
+        // Commands (section 19.11 operation block).
+        "HDBF.Action.Refill",
         "HDBF.Action.Maintenance",
-        "HDBF.Action.HighlightPlots",
+        "HDBF.Action.ModeChanged",
+        "HDBF.Action.CropPolicyChanged",
+        // Warnings: only water shortage, maintenance overdue/stalled, power loss and a blocked
+        // entrance are world-space icons (section 19.11); the rest are panel reasons.
+        "HDBF.Warning.NoWater",
         "HDBF.Warning.IrrigationLow",
         "HDBF.Warning.MaintenanceOverdue",
-        "HDBF.Warning.FatigueHigh",
+        "HDBF.Warning.Shutdown",
         "HDBF.Warning.NoPower",
-        "HDBF.Warning.AdapterDisabled",
-        "HDBF.Warning.AdapterFailed",
+        "HDBF.Warning.EntranceBlocked",
+        "HDBF.Warning.OutputFull",
+        "HDBF.Warning.NoWorkers",
+        "HDBF.Warning.MissingMaterial",
+        "HDBF.Warning.InvalidCrop",
+        // Concrete failure reasons (REQ-V2-UI-02).
+        "HDBF.Error.NoWaterSource",
+        "HDBF.Error.WaterSourceUnreachable",
+        "HDBF.Error.MaterialsMissing",
+        "HDBF.Error.NoWorkers",
+        "HDBF.Error.EntranceBlocked",
+        "HDBF.Error.OutputFull",
+        "HDBF.Error.CropNotAvailable",
+        "HDBF.Error.ActionFailed",
+        "HDBF.Error.RefillUnavailable",
+        // Compatibility degradation (REQ-V2-COMPAT-02: no "missing mod" error, only a hint).
         "HDBF.Compat.MissingMod",
-        "HDBF.Error.LoadFailed",
-        "HDBF.Tooltip.MultiplierBreakdown",
-        "HDBF.Tooltip.TillablePlots",
-        "HDBF.Tooltip.HighlightPlots",
-        "HDBF.Tooltip.HighlightBoxSelect",
-        // BUILD-04 world P0/P1 warning icons + cross-building aggregation (chapter 14.2/14.6).
+        "HDBF.Compat.ShowDetails",
+        // Tooltips (single-source terminology, REQ-V2-UI-03/04).
+        "HDBF.Tooltip.Tank",
+        "HDBF.Tooltip.Coverage",
+        "HDBF.Tooltip.Maintenance",
+        "HDBF.Tooltip.Refill",
+        "HDBF.Tooltip.Rotation",
+        "HDBF.Tooltip.EffectiveSlots",
+        "HDBF.Tooltip.Output",
+        "HDBF.Tooltip.Power",
+        "HDBF.Tooltip.WorldIcon",
+        // World-warning icon settings + aggregation (kept from v1 BUILD-04).
         "HDBF.Panel.WarningAggregate",
         "HDBF.Panel.WarningAggregateHint",
         "HDBF.Panel.SettingWorldIcons",
         "HDBF.Panel.SettingWorldIconBlink",
         "HDBF.Panel.SettingWorldIconDistance",
-        "HDBF.Tooltip.WorldIcon",
     };
 
     private static readonly HashSet<string> Categories =
@@ -129,12 +177,12 @@ internal sealed class Localizations
         {
             if (!english.ContainsKey(key))
             {
-                _report.Error("localization", $"chapter 14.4 key '{key}' is missing from enUS.csv");
+                _report.Error("localization", $"v2 panel key '{key}' is missing from enUS.csv");
             }
 
             if (!chinese.ContainsKey(key))
             {
-                _report.Error("localization", $"chapter 14.4 key '{key}' is missing from zhCN.csv");
+                _report.Error("localization", $"v2 panel key '{key}' is missing from zhCN.csv");
             }
         }
 
