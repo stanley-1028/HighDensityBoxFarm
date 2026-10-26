@@ -1,0 +1,129 @@
+# member dump for ^Timberborn\.TemplateInstantiation\.TemplateModule\+\.Builder, ^Timberborn\.TemplateInstantiation\.IDedicatedDecoratorInitializer, Timberborn\.(Planting|WorkSystem|Buildings|Fields|BlockSystem|BlockObjectModelSystem|BuildingsUI)\.?.*Configurator\+TemplateModuleProvider$, ^Timberborn\.BaseComponentSystem\.(BaseInstantiator|ComponentCache|IAwakableComponent)$, ^Timberborn\.BlueprintSystem\.(SpecAliasAttribute|SpecService|NestedBlueprintSpec)$
+
+=== Timberborn.BaseComponentSystem.BaseInstantiator   [Timberborn.BaseComponentSystem]
+  kind: class   base: System.Object
+  field Bindito.Unity.IInstantiator _instantiator
+  field Bindito.Core.IContainer _container
+  field Timberborn.BaseComponentSystem.ComponentCacheService _componentCacheService
+  field Dictionary<System.String, Timberborn.BaseComponentSystem.TypeIndexMap> _typeMaps
+  method System.Void .ctor(Bindito.Unity.IInstantiator instantiator, Bindito.Core.IContainer container, Timberborn.BaseComponentSystem.ComponentCacheService componentCacheService)
+  method public UnityEngine.GameObject InstantiateInactive(UnityEngine.GameObject prefab, UnityEngine.Transform parent, Timberborn.BlueprintSystem.Blueprint blueprint, ImmutableArray<System.Type> decoratedComponents, IReadOnlyList<System.Object> initializingComponents, ref List<System.Object> instantiatedComponents)
+  method private List<System.Object> InstantiateComponents(Timberborn.BlueprintSystem.Blueprint blueprint, System.String name, IReadOnlyList<System.Object> initializingComponents, ImmutableArray<System.Type> decoratedComponents)
+  method private System.Object InstantiateComponent(Timberborn.BlueprintSystem.Blueprint blueprint, System.Type type)
+  method private static System.Boolean TryGetComponentsHash(IReadOnlyList<System.Object> initializingComponents, ref UnityEngine.Hash128 hash)
+
+=== Timberborn.BaseComponentSystem.ComponentCache   [Timberborn.BaseComponentSystem]
+  kind: class   base: UnityEngine.MonoBehaviour
+  field UnityEngine.GameObject <CachedGameObject>k__BackingField
+  field UnityEngine.Transform <CachedTransform>k__BackingField
+  field Timberborn.BaseComponentSystem.ComponentCacheService _componentCacheService
+  field Timberborn.BaseComponentSystem.TypeBlacklist _typeBlacklist
+  field Timberborn.BaseComponentSystem.TypeIndexMap _typeIndexMap
+  field List<System.Object> _components
+  field Timberborn.BaseComponentSystem.BaseComponentUpdateUnityAdapter _updateAdapter
+  field Timberborn.BaseComponentSystem.BaseComponentLateUpdateUnityAdapter _lateUpdateAdapter
+  field System.String _name
+  prop UnityEngine.GameObject CachedGameObject {get/set}
+  prop UnityEngine.Transform CachedTransform {get/set}
+  prop ReadOnlyList<System.Object> AllComponents {get}
+  method public UnityEngine.GameObject get_CachedGameObject()
+  method private System.Void set_CachedGameObject(UnityEngine.GameObject value)
+  method public UnityEngine.Transform get_CachedTransform()
+  method private System.Void set_CachedTransform(UnityEngine.Transform value)
+  method public System.Void InjectDependencies(Timberborn.BaseComponentSystem.ComponentCacheService componentCacheService, Timberborn.BaseComponentSystem.TypeBlacklist typeBlacklist)
+  method public ReadOnlyList<System.Object> get_AllComponents()
+  method public System.Void Initialize(List<System.Object> instantiatedComponents, System.String blueprintName, Timberborn.BaseComponentSystem.TypeIndexMap typeIndexMap)
+  method public System.Void SetActive()
+  method public System.Void AddEnabledComponent(Timberborn.BaseComponentSystem.BaseComponent baseComponent)
+  method public System.Void RemoveDisabledComponent(Timberborn.BaseComponentSystem.BaseComponent baseComponent)
+  method public T GetCachedComponent()
+  method public T GetCachedEnabledComponent()
+  method public System.Void GetCachedComponents(List<T> results)
+  method public System.Boolean TryGetCachedComponent(ref T returnedComponent)
+  method private System.Void OnDestroy()
+  method private System.Object GetIndex()
+  method private static System.Boolean IsEnabled(System.Object obj)
+  method private System.String GetMoreThenOneErrorMessage(System.Boolean enabledComponent)
+  method public System.Void .ctor()
+
+=== Timberborn.BaseComponentSystem.IAwakableComponent   [Timberborn.BaseComponentSystem]
+  kind: interface   base: -
+  method public System.Void Awake()
+
+=== Timberborn.BlueprintSystem.NestedBlueprintSpec   [Timberborn.BlueprintSystem]
+  kind: class   base: Timberborn.BlueprintSystem.ComponentSpec
+  interfaces: IEquatable<Timberborn.BlueprintSystem.NestedBlueprintSpec>
+  field static System.String BlueprintPathKey
+  field static System.String ModificationKey
+  field System.String <BlueprintPath>k__BackingField
+  field System.String <Modification>k__BackingField
+  prop System.Type EqualityContract {get}
+  prop System.String BlueprintPath {get/set}
+  prop System.String Modification {get/set}
+  method System.Type get_EqualityContract()
+  method public System.String get_BlueprintPath()
+  method public System.Void modreq(System.Runtime.CompilerServices.IsExternalInit) set_BlueprintPath(System.String value)
+  method public System.String get_Modification()
+  method public System.Void modreq(System.Runtime.CompilerServices.IsExternalInit) set_Modification(System.String value)
+  method public System.String ToString()
+  method System.Boolean PrintMembers(System.Text.StringBuilder builder)
+  method public static System.Boolean op_Inequality(Timberborn.BlueprintSystem.NestedBlueprintSpec left, Timberborn.BlueprintSystem.NestedBlueprintSpec right)
+  method public static System.Boolean op_Equality(Timberborn.BlueprintSystem.NestedBlueprintSpec left, Timberborn.BlueprintSystem.NestedBlueprintSpec right)
+  method public System.Int32 GetHashCode()
+  method public System.Boolean Equals(System.Object obj)
+  method public System.Boolean Equals(Timberborn.BlueprintSystem.ComponentSpec other)
+  method public System.Boolean Equals(Timberborn.BlueprintSystem.NestedBlueprintSpec other)
+  method public Timberborn.BlueprintSystem.ComponentSpec <Clone>$()
+  method System.Void .ctor(Timberborn.BlueprintSystem.NestedBlueprintSpec original)
+  method public System.Void .ctor()
+  method private static System.Void .cctor()
+
+=== Timberborn.BlueprintSystem.SpecAliasAttribute   [Timberborn.BlueprintSystem]
+  kind: class   base: System.Attribute
+  [type attr] System.AttributeUsageAttribute
+  field ImmutableArray<System.String> <Aliases>k__BackingField
+  prop ImmutableArray<System.String> Aliases {get}
+  method public ImmutableArray<System.String> get_Aliases()
+  method public System.Void .ctor(System.String[] aliases)
+
+=== Timberborn.BlueprintSystem.SpecService   [Timberborn.BlueprintSystem]
+  kind: class   base: System.Object
+  interfaces: Timberborn.BlueprintSystem.ISpecService, Timberborn.SingletonSystem.ILoadableSingleton
+  field static System.String BlueprintListAssetPath
+  field Timberborn.SerializationSystem.SerializedObjectReaderWriter _serializedObjectReaderWriter
+  field Timberborn.BlueprintSystem.BlueprintDeserializer _blueprintDeserializer
+  field Timberborn.BlueprintSystem.BlueprintFileBundleLoader _blueprintFileBundleLoader
+  field Timberborn.BlueprintSystem.BlueprintSourceService _blueprintSourceService
+  field Timberborn.AssetSystem.IAssetLoader _assetLoader
+  field ImmutableArray<Timberborn.BlueprintSystem.IBlueprintModifierProvider> _blueprintModifierProviders
+  field Dictionary<System.String, Lazy<Timberborn.BlueprintSystem.Blueprint>> _cachedBlueprintsByPath
+  field Dictionary<System.Type, List<Lazy<Timberborn.BlueprintSystem.Blueprint>>> _cachedBlueprintsBySpecs
+  method public System.Void .ctor(Timberborn.SerializationSystem.SerializedObjectReaderWriter serializedObjectReaderWriter, Timberborn.BlueprintSystem.BlueprintDeserializer blueprintDeserializer, Timberborn.BlueprintSystem.BlueprintFileBundleLoader blueprintFileBundleLoader, Timberborn.BlueprintSystem.BlueprintSourceService blueprintSourceService, Timberborn.AssetSystem.IAssetLoader assetLoader, IEnumerable<Timberborn.BlueprintSystem.IBlueprintModifierProvider> blueprintModifierProviders)
+  method public System.Void Load()
+  method public Timberborn.BlueprintSystem.Blueprint GetBlueprint(System.String blueprintPath)
+  method public T GetSingleSpec()
+  method public IEnumerable<T> GetSpecs()
+  method private Timberborn.BlueprintSystem.Blueprint Deserialize(Timberborn.BlueprintSystem.BlueprintFileBundle blueprintFileBundle)
+  method private static System.Void .cctor()
+  nested Timberborn.BlueprintSystem.SpecService+.<>c__DisplayClass10_0
+  nested Timberborn.BlueprintSystem.SpecService+.<GetSpecs>d__13`1
+
+=== Timberborn.TemplateInstantiation.IDedicatedDecoratorInitializer`2   [Timberborn.TemplateInstantiation]
+  kind: interface   base: -
+  method public System.Void Initialize(TSubject subject, TDecorator decorator)
+
+=== Timberborn.TemplateInstantiation.TemplateModule+.Builder   [Timberborn.TemplateInstantiation]
+  kind: class   base: System.Object
+  field Dictionary<System.Type, List<Timberborn.TemplateInstantiation.DecoratorDefinition>> _decorators
+  method public System.Void AddDecorator()
+  method public System.Void AddDedicatedDecorator(IDedicatedDecoratorInitializer<TSubject, TDecorator> initializer)
+  method public Timberborn.TemplateInstantiation.TemplateModule Build()
+  method public System.Void .ctor()
+  nested Timberborn.TemplateInstantiation.TemplateModule+.Builder+.<>c__DisplayClass2_0`2
+
+=== Timberborn.TemplateInstantiation.TemplateModule+.Builder+.<>c__DisplayClass2_0`2   [Timberborn.TemplateInstantiation]
+  kind: class   base: System.Object
+  [type attr] System.Runtime.CompilerServices.CompilerGeneratedAttribute
+  field IDedicatedDecoratorInitializer<TSubject, TDecorator> initializer
+  method public System.Void .ctor()
+  method System.Void <AddDedicatedDecorator>b__0(System.Object subject, System.Object decorator)

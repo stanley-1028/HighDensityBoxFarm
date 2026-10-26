@@ -1,0 +1,11 @@
+﻿[HDBF/Info] start HDBF version=0.1.0 modPath=C:\Users\user\Documents\Timberborn\Mods\HDBF
+HDBF/Compat: compat.missing:HDBF.Adapter.TimberPipes: HDBF.Adapter.TimberPipes not detected (not-installed); capability unavailable
+HDBF/Compat: compat.missing:HDBF.Adapter.PowerLines: HDBF.Adapter.PowerLines not detected (not-installed); capability unavailable
+HDBF/Compat: compat.missing:HDBF.Adapter.ConveyorBeltsV2: HDBF.Adapter.ConveyorBeltsV2 not detected (not-installed); capability unavailable
+HDBF/Compat: compat.missing:HDBF.Adapter.MoreMines: HDBF.Adapter.MoreMines not detected (not-installed); capability unavailable
+HDBF/Compat: compat.missing:HDBF.Adapter.HoomanStairs: HDBF.Adapter.HoomanStairs not detected (not-installed); capability unavailable
+Loading saved game HDBFTest - 2026-10-24 18h28m, Day 1-1.autosave at 2026-10-24 23:52:22Z
+Opening file: C:\Users\user\Documents\Timberborn\Saves\HDBFTest\2026-10-24 18h28m, Day 1-1.autosave.timber
+[HDBF/Info] startup: HDBF 0.1.0 ready; tiers=4; modPath=C:\Users\user\Documents\Timberborn\Mods\HDBF; config=C:\Users\user\Documents\Timberborn\Mods\HDBF\HDBF_Config.json
+[HDBF/Info] gameplay.entity: box farm active, entityId=1b80dc6e-3415-44f0-9244-fb60d62d62e6, tier=Basic, blueprint=BoxFarm.Basic.Folktails
+Load time: 21767ms (scene index: 2)

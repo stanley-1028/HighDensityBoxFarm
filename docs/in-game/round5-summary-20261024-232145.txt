@@ -1,0 +1,6 @@
+﻿Modded: true, official
+- High-Density Box Farm (v0.1.0)
+[HDBF/Info] start HDBF version=0.1.0 modPath=C:\Users\user\Documents\Timberborn\Mods\HDBF
+Opening file: C:\Users\user\Documents\Timberborn\Saves\HDBFTest\2026-10-24 18h28m, Day 1-1.autosave.timber
+[HDBF/Info] startup: HDBF 0.1.0 ready; tiers=4; modPath=C:\Users\user\Documents\Timberborn\Mods\HDBF; config=C:\Users\user\Documents\Timberborn\Mods\HDBF\HDBF_Config.json
+[HDBF/Info] gameplay.entity: box farm active, entityId=17d41a80-fbea-4b37-a803-f378a6945315, tier=Basic, blueprint=BoxFarm.Basic.Folktails

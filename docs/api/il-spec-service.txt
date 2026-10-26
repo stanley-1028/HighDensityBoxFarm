@@ -1,0 +1,145 @@
+
+=== Timberborn.BlueprintSystem.SpecService::Load   [Timberborn.BlueprintSystem]
+  IL_0000: ldarg.0
+  IL_0001: ldfld Timberborn.AssetSystem.IAssetLoader Timberborn.BlueprintSystem.SpecService::_assetLoader
+  IL_0006: ldsfld System.String Timberborn.BlueprintSystem.SpecService::BlueprintListAssetPath
+  IL_000b: callvirt !!0 Timberborn.AssetSystem.IAssetLoader::Load<UnityEngine.TextAsset>(System.String)
+  IL_0010: stloc.0
+  IL_0011: ldarg.0
+  IL_0012: ldfld Timberborn.SerializationSystem.SerializedObjectReaderWriter Timberborn.BlueprintSystem.SpecService::_serializedObjectReaderWriter
+  IL_0017: ldloc.0
+  IL_0018: callvirt System.String UnityEngine.TextAsset::get_text()
+  IL_001d: callvirt Timberborn.SerializationSystem.SerializedObject Timberborn.SerializationSystem.SerializedObjectReaderWriter::ReadJson(System.String)
+  IL_0022: ldstr "Blueprints"
+  IL_0027: callvirt !!0[] Timberborn.SerializationSystem.SerializedObject::GetArray<System.String>(System.String)
+  IL_002c: stloc.1
+  IL_002d: ldarg.0
+  IL_002e: ldfld Timberborn.BlueprintSystem.BlueprintFileBundleLoader Timberborn.BlueprintSystem.SpecService::_blueprintFileBundleLoader
+  IL_0033: ldsfld System.String System.String::Empty
+  IL_0038: ldloc.1
+  IL_0039: callvirt System.Collections.Generic.IEnumerable`1<Timberborn.BlueprintSystem.BlueprintFileBundle> Timberborn.BlueprintSystem.BlueprintFileBundleLoader::GetBundles(System.String,System.Collections.Generic.IEnumerable`1<System.String>)
+  IL_003e: callvirt System.Collections.Generic.IEnumerator`1<!0> System.Collections.Generic.IEnumerable`1<Timberborn.BlueprintSystem.BlueprintFileBundle>::GetEnumerator()
+  IL_0043: stloc.2
+  IL_0044: br IL_00f4
+  IL_0049: newobj System.Void Timberborn.BlueprintSystem.SpecService/<>c__DisplayClass10_0::.ctor()
+  IL_004e: stloc.3
+  IL_004f: ldloc.3
+  IL_0050: ldarg.0
+  IL_0051: stfld Timberborn.BlueprintSystem.SpecService Timberborn.BlueprintSystem.SpecService/<>c__DisplayClass10_0::<>4__this
+  IL_0056: ldloc.3
+  IL_0057: ldloc.2
+  IL_0058: callvirt !0 System.Collections.Generic.IEnumerator`1<Timberborn.BlueprintSystem.BlueprintFileBundle>::get_Current()
+  IL_005d: stfld Timberborn.BlueprintSystem.BlueprintFileBundle Timberborn.BlueprintSystem.SpecService/<>c__DisplayClass10_0::blueprintBundle
+  IL_0062: ldloc.3
+  IL_0063: ldftn Timberborn.BlueprintSystem.Blueprint Timberborn.BlueprintSystem.SpecService/<>c__DisplayClass10_0::<Load>b__0()
+  IL_0069: newobj System.Void System.Func`1<Timberborn.BlueprintSystem.Blueprint>::.ctor(System.Object,System.IntPtr)
+  IL_006e: newobj System.Void System.Lazy`1<Timberborn.BlueprintSystem.Blueprint>::.ctor(System.Func`1<!0>)
+  IL_0073: stloc.s V_4
+  IL_0075: ldarg.0
+  IL_0076: ldfld System.Collections.Generic.Dictionary`2<System.String,System.Lazy`1<Timberborn.BlueprintSystem.Blueprint>> Timberborn.BlueprintSystem.SpecService::_cachedBlueprintsByPath
+  IL_007b: ldloc.3
+  IL_007c: ldfld Timberborn.BlueprintSystem.BlueprintFileBundle Timberborn.BlueprintSystem.SpecService/<>c__DisplayClass10_0::blueprintBundle
+  IL_0081: callvirt System.String Timberborn.BlueprintSystem.BlueprintFileBundle::get_Path()
+  IL_0086: ldloc.s V_4
+  IL_0088: callvirt System.Void System.Collections.Generic.Dictionary`2<System.String,System.Lazy`1<Timberborn.BlueprintSystem.Blueprint>>::Add(!0,!1)
+  IL_008d: ldarg.0
+  IL_008e: ldfld Timberborn.SerializationSystem.SerializedObjectReaderWriter Timberborn.BlueprintSystem.SpecService::_serializedObjectReaderWriter
+  IL_0093: ldloc.3
+  IL_0094: ldfld Timberborn.BlueprintSystem.BlueprintFileBundle Timberborn.BlueprintSystem.SpecService/<>c__DisplayClass10_0::blueprintBundle
+  IL_0099: callvirt System.Collections.Immutable.ImmutableArray`1<System.String> Timberborn.BlueprintSystem.BlueprintFileBundle::get_Jsons()
+  IL_009e: box System.Collections.Immutable.ImmutableArray`1<System.String>
+  IL_00a3: callvirt Timberborn.SerializationSystem.SerializedObject Timberborn.SerializationSystem.SerializedObjectReaderWriter::ReadJsons(System.Collections.Generic.IEnumerable`1<System.String>)
+  IL_00a8: stloc.s V_5
+  IL_00aa: ldarg.0
+  IL_00ab: ldfld Timberborn.BlueprintSystem.BlueprintDeserializer Timberborn.BlueprintSystem.SpecService::_blueprintDeserializer
+  IL_00b0: ldloc.s V_5
+  IL_00b2: callvirt System.Collections.Generic.IEnumerable`1<System.Type> Timberborn.BlueprintSystem.BlueprintDeserializer::GetSpecTypes(Timberborn.SerializationSystem.SerializedObject)
+  IL_00b7: callvirt System.Collections.Generic.IEnumerator`1<!0> System.Collections.Generic.IEnumerable`1<System.Type>::GetEnumerator()
+  IL_00bc: stloc.s V_6
+  IL_00be: br.s IL_00dd
+  IL_00c0: ldloc.s V_6
+  IL_00c2: callvirt !0 System.Collections.Generic.IEnumerator`1<System.Type>::get_Current()
+  IL_00c7: stloc.s V_7
+  IL_00c9: ldarg.0
+  IL_00ca: ldfld System.Collections.Generic.Dictionary`2<System.Type,System.Collections.Generic.List`1<System.Lazy`1<Timberborn.BlueprintSystem.Blueprint>>> Timberborn.BlueprintSystem.SpecService::_cachedBlueprintsBySpecs
+  IL_00cf: ldloc.s V_7
+  IL_00d1: call !!1 Timberborn.Common.DictionaryExtensions::GetOrAdd<System.Type,System.Collections.Generic.List`1<System.Lazy`1<Timberborn.BlueprintSystem.Blueprint>>>(System.Collections.Generic.IDictionary`2<!!0,!!1>,!!0)
+  IL_00d6: ldloc.s V_4
+  IL_00d8: callvirt System.Void System.Collections.Generic.List`1<System.Lazy`1<Timberborn.BlueprintSystem.Blueprint>>::Add(!0)
+  IL_00dd: ldloc.s V_6
+  IL_00df: callvirt System.Boolean System.Collections.IEnumerator::MoveNext()
+  IL_00e4: brtrue.s IL_00c0
+  IL_00e6: leave.s IL_00f4
+  IL_00e8: ldloc.s V_6
+  IL_00ea: brfalse.s IL_00f3
+  IL_00ec: ldloc.s V_6
+  IL_00ee: callvirt System.Void System.IDisposable::Dispose()
+  IL_00f3: endfinally
+  IL_00f4: ldloc.2
+  IL_00f5: callvirt System.Boolean System.Collections.IEnumerator::MoveNext()
+  IL_00fa: brtrue IL_0049
+  IL_00ff: leave.s IL_010b
+  IL_0101: ldloc.2
+  IL_0102: brfalse.s IL_010a
+  IL_0104: ldloc.2
+  IL_0105: callvirt System.Void System.IDisposable::Dispose()
+  IL_010a: endfinally
+  IL_010b: ret
+
+=== Timberborn.BlueprintSystem.SpecService::Deserialize   [Timberborn.BlueprintSystem]
+  IL_0000: ldarg.0
+  IL_0001: ldflda System.Collections.Immutable.ImmutableArray`1<Timberborn.BlueprintSystem.IBlueprintModifierProvider> Timberborn.BlueprintSystem.SpecService::_blueprintModifierProviders
+  IL_0006: call System.Collections.Immutable.ImmutableArray`1/Enumerator<!0> System.Collections.Immutable.ImmutableArray`1<Timberborn.BlueprintSystem.IBlueprintModifierProvider>::GetEnumerator()
+  IL_000b: stloc.1
+  IL_000c: br.s IL_0056
+  IL_000e: ldloca.s V_1
+  IL_0010: call !0 System.Collections.Immutable.ImmutableArray`1/Enumerator<Timberborn.BlueprintSystem.IBlueprintModifierProvider>::get_Current()
+  IL_0015: stloc.2
+  IL_0016: ldloc.2
+  IL_0017: ldarg.1
+  IL_0018: callvirt System.String Timberborn.BlueprintSystem.BlueprintFileBundle::get_Path()
+  IL_001d: callvirt System.Collections.Generic.IEnumerable`1<System.String> Timberborn.BlueprintSystem.IBlueprintModifierProvider::GetModifiers(System.String)
+  IL_0022: callvirt System.Collections.Generic.IEnumerator`1<!0> System.Collections.Generic.IEnumerable`1<System.String>::GetEnumerator()
+  IL_0027: stloc.3
+  IL_0028: br.s IL_0042
+  IL_002a: ldloc.3
+  IL_002b: callvirt !0 System.Collections.Generic.IEnumerator`1<System.String>::get_Current()
+  IL_0030: stloc.s V_4
+  IL_0032: ldarg.1
+  IL_0033: ldloc.s V_4
+  IL_0035: ldloc.2
+  IL_0036: callvirt System.String Timberborn.BlueprintSystem.IBlueprintModifierProvider::get_ModifierName()
+  IL_003b: callvirt Timberborn.BlueprintSystem.BlueprintFileBundle Timberborn.BlueprintSystem.BlueprintFileBundle::AddJson(System.String,System.String)
+  IL_0040: starg.s blueprintFileBundle
+  IL_0042: ldloc.3
+  IL_0043: callvirt System.Boolean System.Collections.IEnumerator::MoveNext()
+  IL_0048: brtrue.s IL_002a
+  IL_004a: leave.s IL_0056
+  IL_004c: ldloc.3
+  IL_004d: brfalse.s IL_0055
+  IL_004f: ldloc.3
+  IL_0050: callvirt System.Void System.IDisposable::Dispose()
+  IL_0055: endfinally
+  IL_0056: ldloca.s V_1
+  IL_0058: call System.Boolean System.Collections.Immutable.ImmutableArray`1/Enumerator<Timberborn.BlueprintSystem.IBlueprintModifierProvider>::MoveNext()
+  IL_005d: brtrue.s IL_000e
+  IL_005f: ldarg.0
+  IL_0060: ldfld Timberborn.BlueprintSystem.BlueprintDeserializer Timberborn.BlueprintSystem.SpecService::_blueprintDeserializer
+  IL_0065: ldarg.1
+  IL_0066: callvirt Timberborn.BlueprintSystem.Blueprint Timberborn.BlueprintSystem.BlueprintDeserializer::DeserializeUnsafe(Timberborn.BlueprintSystem.BlueprintFileBundle)
+  IL_006b: stloc.0
+  IL_006c: ldarg.0
+  IL_006d: ldfld Timberborn.BlueprintSystem.BlueprintSourceService Timberborn.BlueprintSystem.SpecService::_blueprintSourceService
+  IL_0072: ldloc.0
+  IL_0073: ldarg.1
+  IL_0074: callvirt System.Void Timberborn.BlueprintSystem.BlueprintSourceService::Add(Timberborn.BlueprintSystem.Blueprint,Timberborn.BlueprintSystem.BlueprintFileBundle)
+  IL_0079: ldloc.0
+  IL_007a: ret
+
+=== Timberborn.BlueprintSystem.SpecService+.<>c__DisplayClass10_0::<Load>b__0   [Timberborn.BlueprintSystem]
+  IL_0000: ldarg.0
+  IL_0001: ldfld Timberborn.BlueprintSystem.SpecService Timberborn.BlueprintSystem.SpecService/<>c__DisplayClass10_0::<>4__this
+  IL_0006: ldarg.0
+  IL_0007: ldfld Timberborn.BlueprintSystem.BlueprintFileBundle Timberborn.BlueprintSystem.SpecService/<>c__DisplayClass10_0::blueprintBundle
+  IL_000c: call Timberborn.BlueprintSystem.Blueprint Timberborn.BlueprintSystem.SpecService::Deserialize(Timberborn.BlueprintSystem.BlueprintFileBundle)
+  IL_0011: ret

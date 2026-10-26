@@ -1,0 +1,14 @@
+﻿round        : round17
+finished     : 2026-10-25T14:06:50
+save         : 2026-10-24 18h28m, Day 1-1.autosave
+settlement   : HDBFTest
+log          : C:\Users\user\Documents\Timberborn\Mods\HighDensityBoxFarm\docs\in-game\round17-Player.log
+
+[HDBF/Info] start HDBF version=0.1.0 modPath=C:\Users\user\Documents\Timberborn\Mods\HDBF
+First uncaught exception at 2026-10-25 14:03:45Z
+MissingMethodException: Method not found: Timberborn.BaseComponentSystem.BaseComponent Timberborn.ConstructionSites.ConstructionFactory.CreateAsFinished(Timberborn.Buildings.BuildingSpec,Timberborn.Coordinates.Placement)
+Rethrow as HarmonyException: Patching exception in method System.Void Opolame.MoreTunnels.Scripts.ImprovedTunnel::OnDeleted(System.Object sender, System.EventArgs e)
+HarmonyLib.PatchClassProcessor.ReportException (System.Exception exception, System.Reflection.MethodBase original) (at <c885cb095a2f4b47beab934d510aafd0>:0)
+MissingMethodException: Method not found: Timberborn.BaseComponentSystem.BaseComponent Timberborn.ConstructionSites.ConstructionFactory.CreateAsFinished(Timberborn.Buildings.BuildingSpec,Timberborn.Coordinates.Placement)
+Rethrow as HarmonyException: Patching exception in method System.Void Opolame.MoreTunnels.Scripts.ImprovedTunnel::OnDeleted(System.Object sender, System.EventArgs e)
+  at HarmonyLib.PatchClassProcessor.ReportException (System.Exception exception, System.Reflection.MethodBase original) [0x0013c] in <c885cb095a2f4b47beab934d510aafd0>:0 

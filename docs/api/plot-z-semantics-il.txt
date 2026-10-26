@@ -1,0 +1,679 @@
+﻿# Plot-registration z semantics - raw IL evidence
+#
+# Generated 2026-10-25 (HDBF P0 BUG-01 card) from the locally installed game assemblies:
+#   C:\Program Files (x86)\Steam\steamapps\common\Timberborn\Timberborn_Data\Managed
+# Tool: tools/ApiIndex (Mono.Cecil metadata reader), mode 'il' / 'referrers':
+#   dotnet ApiIndex.dll il <Managed> <out.il> <typePattern> [methodPattern]
+# Blocks are copied verbatim from the dumps; assembly tags are on each '===' header.
+# Question answered: which cell z does PlantingAreaValidator.CanPlant expect, and which
+# coordinates.z does ISoilMoistureService.SoilIsMoist expect?  Answer: both take the
+# terrain column ceiling (first air cell above the column, topSolidZ + 1), i.e. the
+# plant cell the Fields tool paints. There is no +-1 conversion between them.
+
+
+##############################################################################
+# 1. Terrain height = terrain column ceiling (topSolidZ + 1)
+# source: C:\Users\user\.hdbf\api\terrain.il
+##############################################################################
+=== Timberborn.TerrainSystem.TerrainService::GetTerrainHeight   [Timberborn.TerrainSystem]
+  IL_0000: ldarg.0
+  IL_0001: ldarg.1
+  IL_0002: ldloca.s V_0
+  IL_0004: call System.Boolean Timberborn.TerrainSystem.TerrainService::TryGetRelativeHeight(UnityEngine.Vector3Int,System.Int32&)
+  IL_0009: brfalse.s IL_0015
+  IL_000b: ldarga.s coordinates
+  IL_000d: call System.Int32 UnityEngine.Vector3Int::get_z()
+  IL_0012: ldloc.0
+  IL_0013: add
+  IL_0014: ret
+  IL_0015: ldc.i4.0
+  IL_0016: ret
+
+=== Timberborn.TerrainSystem.TerrainService::OnGround   [Timberborn.TerrainSystem]
+  IL_0000: ldarg.0
+  IL_0001: ldfld Timberborn.TerrainSystem.TerrainMap Timberborn.TerrainSystem.TerrainService::_terrainMap
+  IL_0006: ldarg.1
+  IL_0007: call UnityEngine.Vector3Int Timberborn.Common.VectorExtensions::Below(UnityEngine.Vector3Int)
+  IL_000c: callvirt System.Boolean Timberborn.TerrainSystem.TerrainMap::IsTerrainVoxel(UnityEngine.Vector3Int)
+  IL_0011: brfalse.s IL_0023
+  IL_0013: ldarg.0
+  IL_0014: ldfld Timberborn.TerrainSystem.TerrainMap Timberborn.TerrainSystem.TerrainService::_terrainMap
+  IL_0019: ldarg.1
+  IL_001a: callvirt System.Boolean Timberborn.TerrainSystem.TerrainMap::IsTerrainVoxel(UnityEngine.Vector3Int)
+  IL_001f: ldc.i4.0
+  IL_0020: ceq
+  IL_0022: ret
+  IL_0023: ldc.i4.0
+  IL_0024: ret
+
+=== Timberborn.TerrainSystem.TerrainService::GetColumnCeiling   [Timberborn.TerrainSystem]
+  IL_0000: ldarg.0
+  IL_0001: ldfld Timberborn.TerrainSystem.ColumnTerrainMap Timberborn.TerrainSystem.TerrainService::_columnTerrainMap
+  IL_0006: ldarg.1
+  IL_0007: callvirt Timberborn.TerrainSystem.TerrainColumn& Timberborn.TerrainSystem.ColumnTerrainMap::GetColumn(System.Int32)
+  IL_000c: ldfld System.Int32 Timberborn.TerrainSystem.TerrainColumn::Ceiling
+  IL_0011: ret
+
+
+##############################################################################
+# 1b. TerrainMap.TryGetRelativeHeight + distances (why z=0 probe yields topSolidZ+1)
+# source: C:\Users\user\AppData\Local\Temp\dsh-XfwQbO\hdbf-card-work\il\terrainmap.il
+##############################################################################
+=== Timberborn.TerrainSystem.TerrainMap::TryGetRelativeHeight   [Timberborn.TerrainSystem]
+  IL_0000: ldarg.1
+  IL_0001: call UnityEngine.Vector2Int Timberborn.Common.VectorExtensions::XY(UnityEngine.Vector3Int)
+  IL_0006: stloc.0
+  IL_0007: ldarg.0
+  IL_0008: ldloc.0
+  IL_0009: call System.Boolean Timberborn.TerrainSystem.TerrainMap::Contains(UnityEngine.Vector2Int)
+  IL_000e: brfalse.s IL_006d
+  IL_0010: ldarg.0
+  IL_0011: ldarg.1
+  IL_0012: call UnityEngine.Vector3Int Timberborn.TerrainSystem.TerrainMap::ClampToTerrain(UnityEngine.Vector3Int)
+  IL_0017: stloc.1
+  IL_0018: ldarg.0
+  IL_0019: ldfld Timberborn.MapIndexSystem.MapIndexService Timberborn.TerrainSystem.TerrainMap::_mapIndexService
+  IL_001e: ldloc.1
+  IL_001f: callvirt System.Int32 Timberborn.MapIndexSystem.MapIndexService::CoordinatesToIndex3D(UnityEngine.Vector3Int)
+  IL_0024: stloc.2
+  IL_0025: ldarg.0
+  IL_0026: ldfld System.Boolean[] Timberborn.TerrainSystem.TerrainMap::_terrainVoxels
+  IL_002b: ldloc.2
+  IL_002c: ldelem.u1
+  IL_002d: brfalse.s IL_003b
+  IL_002f: ldarg.2
+  IL_0030: ldarg.0
+  IL_0031: ldloc.2
+  IL_0032: ldloc.1
+  IL_0033: call System.Int32 Timberborn.TerrainSystem.TerrainMap::GetDistanceToTerrainTop(System.Int32,UnityEngine.Vector3Int)
+  IL_0038: stind.i4
+  IL_0039: ldc.i4.1
+  IL_003a: ret
+  IL_003b: ldc.i4.0
+  IL_003c: ldarga.s coordinates
+  IL_003e: call System.Int32 UnityEngine.Vector3Int::get_z()
+  IL_0043: ldarg.0
+  IL_0044: ldfld Timberborn.MapStateSystem.MapSize Timberborn.TerrainSystem.TerrainMap::_mapSize
+  IL_0049: callvirt UnityEngine.Vector3Int Timberborn.MapStateSystem.MapSize::get_TerrainSize()
+  IL_004e: stloc.s V_4
+  IL_0050: ldloca.s V_4
+  IL_0052: call System.Int32 UnityEngine.Vector3Int::get_z()
+  IL_0057: sub
+  IL_0058: call System.Int32 System.Math::Max(System.Int32,System.Int32)
+  IL_005d: stloc.3
+  IL_005e: ldarg.2
+  IL_005f: ldarg.0
+  IL_0060: ldloc.2
+  IL_0061: ldloc.1
+  IL_0062: call System.Int32 Timberborn.TerrainSystem.TerrainMap::GetDistanceToTerrainBelow(System.Int32,UnityEngine.Vector3Int)
+  IL_0067: neg
+  IL_0068: ldloc.3
+  IL_0069: sub
+  IL_006a: stind.i4
+  IL_006b: ldc.i4.1
+  IL_006c: ret
+  IL_006d: ldarg.2
+  IL_006e: ldsfld System.Int32 Timberborn.TerrainSystem.TerrainMap::DefaultHeight
+  IL_0073: stind.i4
+  IL_0074: ldc.i4.0
+  IL_0075: ret
+
+
+##############################################################################
+# 1c. TerrainMap distance helpers used by TryGetRelativeHeight
+# source: C:\Users\user\AppData\Local\Temp\dsh-XfwQbO\hdbf-card-work\il\terrainmap2.il
+##############################################################################
+=== Timberborn.TerrainSystem.TerrainMap::GetDistanceToTerrainTop   [Timberborn.TerrainSystem]
+  IL_0000: ldc.i4.0
+  IL_0001: stloc.0
+  IL_0002: ldc.i4.0
+  IL_0003: stloc.1
+  IL_0004: br.s IL_002a
+  IL_0006: ldarg.0
+  IL_0007: ldfld System.Boolean[] Timberborn.TerrainSystem.TerrainMap::_terrainVoxels
+  IL_000c: ldarg.1
+  IL_000d: ldarg.0
+  IL_000e: ldfld Timberborn.MapIndexSystem.MapIndexService Timberborn.TerrainSystem.TerrainMap::_mapIndexService
+  IL_0013: callvirt System.Int32 Timberborn.MapIndexSystem.MapIndexService::get_VerticalStride()
+  IL_0018: ldloc.1
+  IL_0019: mul
+  IL_001a: add
+  IL_001b: ldelem.u1
+  IL_001c: brfalse.s IL_0024
+  IL_001e: ldloc.0
+  IL_001f: ldc.i4.1
+  IL_0020: add
+  IL_0021: stloc.0
+  IL_0022: br.s IL_0026
+  IL_0024: ldloc.0
+  IL_0025: ret
+  IL_0026: ldloc.1
+  IL_0027: ldc.i4.1
+  IL_0028: add
+  IL_0029: stloc.1
+  IL_002a: ldloc.1
+  IL_002b: ldarg.0
+  IL_002c: ldfld Timberborn.MapStateSystem.MapSize Timberborn.TerrainSystem.TerrainMap::_mapSize
+  IL_0031: callvirt UnityEngine.Vector3Int Timberborn.MapStateSystem.MapSize::get_TerrainSize()
+  IL_0036: stloc.2
+  IL_0037: ldloca.s V_2
+  IL_0039: call System.Int32 UnityEngine.Vector3Int::get_z()
+  IL_003e: ldarga.s coordinates
+  IL_0040: call System.Int32 UnityEngine.Vector3Int::get_z()
+  IL_0045: sub
+  IL_0046: blt.s IL_0006
+  IL_0048: ldloc.0
+  IL_0049: ret
+
+=== Timberborn.TerrainSystem.TerrainMap::GetDistanceToTerrainBelow   [Timberborn.TerrainSystem]
+  IL_0000: ldc.i4.0
+  IL_0001: stloc.0
+  IL_0002: ldc.i4.1
+  IL_0003: stloc.1
+  IL_0004: br.s IL_002a
+  IL_0006: ldarg.0
+  IL_0007: ldfld System.Boolean[] Timberborn.TerrainSystem.TerrainMap::_terrainVoxels
+  IL_000c: ldarg.1
+  IL_000d: ldarg.0
+  IL_000e: ldfld Timberborn.MapIndexSystem.MapIndexService Timberborn.TerrainSystem.TerrainMap::_mapIndexService
+  IL_0013: callvirt System.Int32 Timberborn.MapIndexSystem.MapIndexService::get_VerticalStride()
+  IL_0018: ldloc.1
+  IL_0019: mul
+  IL_001a: sub
+  IL_001b: ldelem.u1
+  IL_001c: brtrue.s IL_0024
+  IL_001e: ldloc.0
+  IL_001f: ldc.i4.1
+  IL_0020: add
+  IL_0021: stloc.0
+  IL_0022: br.s IL_0026
+  IL_0024: ldloc.0
+  IL_0025: ret
+  IL_0026: ldloc.1
+  IL_0027: ldc.i4.1
+  IL_0028: add
+  IL_0029: stloc.1
+  IL_002a: ldloc.1
+  IL_002b: ldarga.s coordinates
+  IL_002d: call System.Int32 UnityEngine.Vector3Int::get_z()
+  IL_0032: ble.s IL_0006
+  IL_0034: ldloc.0
+  IL_0035: ret
+
+=== Timberborn.TerrainSystem.TerrainMap::ClampToTerrain   [Timberborn.TerrainSystem]
+  IL_0000: ldarga.s position
+  IL_0002: call System.Int32 UnityEngine.Vector3Int::get_x()
+  IL_0007: ldarga.s position
+  IL_0009: call System.Int32 UnityEngine.Vector3Int::get_y()
+  IL_000e: ldarga.s position
+  IL_0010: call System.Int32 UnityEngine.Vector3Int::get_z()
+  IL_0015: ldc.i4.0
+  IL_0016: ldarg.0
+  IL_0017: ldfld Timberborn.MapStateSystem.MapSize Timberborn.TerrainSystem.TerrainMap::_mapSize
+  IL_001c: callvirt UnityEngine.Vector3Int Timberborn.MapStateSystem.MapSize::get_TerrainSize()
+  IL_0021: stloc.0
+  IL_0022: ldloca.s V_0
+  IL_0024: call System.Int32 UnityEngine.Vector3Int::get_z()
+  IL_0029: ldc.i4.1
+  IL_002a: sub
+  IL_002b: call System.Int32 System.Math::Clamp(System.Int32,System.Int32,System.Int32)
+  IL_0030: newobj System.Void UnityEngine.Vector3Int::.ctor(System.Int32,System.Int32,System.Int32)
+  IL_0035: ret
+
+##############################################################################
+# 1d. ColumnTerrainMap: Ceiling is exclusive (solid voxels are Floor..Ceiling-1)
+# source: C:\Users\user\AppData\Local\Temp\dsh-XfwQbO\hdbf-card-work\il\columnmap.il
+##############################################################################
+=== Timberborn.TerrainSystem.ColumnTerrainMap::GetColumn   [Timberborn.TerrainSystem]
+  IL_0000: ldarg.0
+  IL_0001: ldfld Timberborn.TerrainSystem.TerrainColumn[] Timberborn.TerrainSystem.ColumnTerrainMap::_terrainColumns
+  IL_0006: ldarg.1
+  IL_0007: ldelema Timberborn.TerrainSystem.TerrainColumn
+  IL_000c: ret
+
+=== Timberborn.TerrainSystem.ColumnTerrainMap::GetColumn   [Timberborn.TerrainSystem]
+  IL_0000: ldarg.0
+  IL_0001: call System.Byte[] Timberborn.TerrainSystem.ColumnTerrainMap::get_ColumnCount()
+  IL_0006: ldarg.1
+  IL_0007: ldelem.u1
+  IL_0008: stloc.0
+  IL_0009: ldc.i4.0
+  IL_000a: stloc.1
+  IL_000b: br.s IL_003b
+  IL_000d: ldarg.0
+  IL_000e: ldfld Timberborn.TerrainSystem.TerrainColumn[] Timberborn.TerrainSystem.ColumnTerrainMap::_terrainColumns
+  IL_0013: ldloc.1
+  IL_0014: ldarg.0
+  IL_0015: ldfld System.Int32 Timberborn.TerrainSystem.ColumnTerrainMap::_verticalStride
+  IL_001a: mul
+  IL_001b: ldarg.1
+  IL_001c: add
+  IL_001d: ldelema Timberborn.TerrainSystem.TerrainColumn
+  IL_0022: stloc.2
+  IL_0023: ldarg.2
+  IL_0024: ldloc.2
+  IL_0025: ldfld System.Int32 Timberborn.TerrainSystem.TerrainColumn::Floor
+  IL_002a: blt.s IL_003f
+  IL_002c: ldarg.2
+  IL_002d: ldloc.2
+  IL_002e: ldfld System.Int32 Timberborn.TerrainSystem.TerrainColumn::Ceiling
+  IL_0033: bge.s IL_0037
+  IL_0035: ldloc.2
+  IL_0036: ret
+  IL_0037: ldloc.1
+  IL_0038: ldc.i4.1
+  IL_0039: add
+  IL_003a: stloc.1
+  IL_003b: ldloc.1
+  IL_003c: ldloc.0
+  IL_003d: blt.s IL_000d
+  IL_003f: ldstr "Column for index {0} and height {1} not found"
+  IL_0044: ldarg.1
+  IL_0045: box System.Int32
+  IL_004a: ldarg.2
+  IL_004b: box System.Int32
+  IL_0050: call System.String System.String::Format(System.String,System.Object,System.Object)
+  IL_0055: newobj System.Void System.InvalidOperationException::.ctor(System.String)
+  IL_005a: throw
+
+
+##############################################################################
+# 1e. ThreadSafeColumnTerrainMap: TryGetIndexAtCeiling matches ReadOnlyTerrainColumn.Ceiling
+# source: C:\Users\user\AppData\Local\Temp\dsh-XfwQbO\hdbf-card-work\il\columnmap.il
+##############################################################################
+=== Timberborn.TerrainSystem.ThreadSafeColumnTerrainMap::GetColumnCeiling   [Timberborn.TerrainSystem]
+  IL_0000: ldarg.0
+  IL_0001: ldfld Timberborn.TerrainSystem.ReadOnlyTerrainColumn[] Timberborn.TerrainSystem.ThreadSafeColumnTerrainMap::_terrainColumns
+  IL_0006: ldarg.1
+  IL_0007: ldelema Timberborn.TerrainSystem.ReadOnlyTerrainColumn
+  IL_000c: call System.Int32 Timberborn.TerrainSystem.ReadOnlyTerrainColumn::get_Ceiling()
+  IL_0011: ret
+
+=== Timberborn.TerrainSystem.ThreadSafeColumnTerrainMap::TryGetIndexAtCeiling   [Timberborn.TerrainSystem]
+  IL_0000: ldarg.0
+  IL_0001: ldfld System.Byte[] Timberborn.TerrainSystem.ThreadSafeColumnTerrainMap::_columnCounts
+  IL_0006: ldarg.1
+  IL_0007: ldelem.u1
+  IL_0008: stloc.0
+  IL_0009: ldc.i4.0
+  IL_000a: stloc.1
+  IL_000b: br.s IL_0034
+  IL_000d: ldarg.3
+  IL_000e: ldloc.1
+  IL_000f: ldarg.0
+  IL_0010: ldfld System.Int32 Timberborn.TerrainSystem.ThreadSafeColumnTerrainMap::_verticalStride
+  IL_0015: mul
+  IL_0016: ldarg.1
+  IL_0017: add
+  IL_0018: stind.i4
+  IL_0019: ldarg.0
+  IL_001a: ldfld Timberborn.TerrainSystem.ReadOnlyTerrainColumn[] Timberborn.TerrainSystem.ThreadSafeColumnTerrainMap::_terrainColumns
+  IL_001f: ldarg.3
+  IL_0020: ldind.i4
+  IL_0021: ldelema Timberborn.TerrainSystem.ReadOnlyTerrainColumn
+  IL_0026: call System.Int32 Timberborn.TerrainSystem.ReadOnlyTerrainColumn::get_Ceiling()
+  IL_002b: ldarg.2
+  IL_002c: bne.un.s IL_0030
+  IL_002e: ldc.i4.1
+  IL_002f: ret
+  IL_0030: ldloc.1
+  IL_0031: ldc.i4.1
+  IL_0032: add
+  IL_0033: stloc.1
+  IL_0034: ldloc.1
+  IL_0035: ldloc.0
+  IL_0036: blt.s IL_000d
+  IL_0038: ldarg.3
+  IL_0039: ldc.i4.0
+  IL_003a: stind.i4
+  IL_003b: ldc.i4.0
+  IL_003c: ret
+
+##############################################################################
+# 2. Fields tool coordinate source: (x, y, pickedTerrainVoxel.z + 1), OnGround required
+# source: C:\Users\user\AppData\Local\Temp\dsh-XfwQbO\hdbf-card-work\il\terrainarea2.il
+##############################################################################
+=== Timberborn.TerrainQueryingSystem.TerrainAreaService+.<InMapLeveledCoordinates>d__4::MoveNext   [Timberborn.TerrainQueryingSystem]
+  IL_0000: ldarg.0
+  IL_0001: ldfld System.Int32 Timberborn.TerrainQueryingSystem.TerrainAreaService/<InMapLeveledCoordinates>d__4::<>1__state
+  IL_0006: stloc.1
+  IL_0007: ldarg.0
+  IL_0008: ldfld Timberborn.TerrainQueryingSystem.TerrainAreaService Timberborn.TerrainQueryingSystem.TerrainAreaService/<InMapLeveledCoordinates>d__4::<>4__this
+  IL_000d: stloc.2
+  IL_000e: ldloc.1
+  IL_000f: brfalse.s IL_001f
+  IL_0011: ldloc.1
+  IL_0012: ldc.i4.1
+  IL_0013: beq IL_00cb
+  IL_0018: ldc.i4.0
+  IL_0019: stloc.0
+  IL_001a: leave IL_00f8
+  IL_001f: ldarg.0
+  IL_0020: ldc.i4.m1
+  IL_0021: stfld System.Int32 Timberborn.TerrainQueryingSystem.TerrainAreaService/<InMapLeveledCoordinates>d__4::<>1__state
+  IL_0026: ldloc.2
+  IL_0027: ldfld Timberborn.TerrainQueryingSystem.TerrainPicker Timberborn.TerrainQueryingSystem.TerrainAreaService::_terrainPicker
+  IL_002c: ldarg.0
+  IL_002d: ldfld UnityEngine.Ray Timberborn.TerrainQueryingSystem.TerrainAreaService/<InMapLeveledCoordinates>d__4::ray
+  IL_0032: callvirt System.Nullable`1<Timberborn.GridTraversing.TraversedCoordinates> Timberborn.TerrainQueryingSystem.TerrainPicker::PickTerrainCoordinates(UnityEngine.Ray)
+  IL_0037: stloc.3
+  IL_0038: ldarg.0
+  IL_0039: ldloca.s V_3
+  IL_003b: call System.Boolean System.Nullable`1<Timberborn.GridTraversing.TraversedCoordinates>::get_HasValue()
+  IL_0040: brtrue.s IL_0045
+  IL_0042: ldc.i4.0
+  IL_0043: br.s IL_0060
+  IL_0045: ldloca.s V_3
+  IL_0047: call !0 System.Nullable`1<Timberborn.GridTraversing.TraversedCoordinates>::GetValueOrDefault()
+  IL_004c: stloc.s V_4
+  IL_004e: ldloca.s V_4
+  IL_0050: call UnityEngine.Vector3Int Timberborn.GridTraversing.TraversedCoordinates::get_Coordinates()
+  IL_0055: stloc.s V_5
+  IL_0057: ldloca.s V_5
+  IL_0059: call System.Int32 UnityEngine.Vector3Int::get_z()
+  IL_005e: ldc.i4.1
+  IL_005f: add
+  IL_0060: stfld System.Int32 Timberborn.TerrainQueryingSystem.TerrainAreaService/<InMapLeveledCoordinates>d__4::<startHeight>5__2
+  IL_0065: ldarg.0
+  IL_0066: ldarg.0
+  IL_0067: ldfld System.Collections.Generic.IEnumerable`1<UnityEngine.Vector3Int> Timberborn.TerrainQueryingSystem.TerrainAreaService/<InMapLeveledCoordinates>d__4::inputBlocks
+  IL_006c: callvirt System.Collections.Generic.IEnumerator`1<!0> System.Collections.Generic.IEnumerable`1<UnityEngine.Vector3Int>::GetEnumerator()
+  IL_0071: stfld System.Collections.Generic.IEnumerator`1<UnityEngine.Vector3Int> Timberborn.TerrainQueryingSystem.TerrainAreaService/<InMapLeveledCoordinates>d__4::<>7__wrap2
+  IL_0076: ldarg.0
+  IL_0077: ldc.i4.s -3
+  IL_0079: stfld System.Int32 Timberborn.TerrainQueryingSystem.TerrainAreaService/<InMapLeveledCoordinates>d__4::<>1__state
+  IL_007e: br.s IL_00d3
+  IL_0080: ldarg.0
+  IL_0081: ldfld System.Collections.Generic.IEnumerator`1<UnityEngine.Vector3Int> Timberborn.TerrainQueryingSystem.TerrainAreaService/<InMapLeveledCoordinates>d__4::<>7__wrap2
+  IL_0086: callvirt !0 System.Collections.Generic.IEnumerator`1<UnityEngine.Vector3Int>::get_Current()
+  IL_008b: stloc.s V_6
+  IL_008d: ldloc.2
+  IL_008e: ldfld Timberborn.TerrainSystem.ITerrainService Timberborn.TerrainQueryingSystem.TerrainAreaService::_terrainService
+  IL_0093: ldloc.s V_6
+  IL_0095: call UnityEngine.Vector3Int Timberborn.Common.VectorExtensions::Above(UnityEngine.Vector3Int)
+  IL_009a: callvirt System.Boolean Timberborn.TerrainSystem.ITerrainService::OnGround(UnityEngine.Vector3Int)
+  IL_009f: brfalse.s IL_00d3
+  IL_00a1: ldarg.0
+  IL_00a2: ldloca.s V_6
+  IL_00a4: call System.Int32 UnityEngine.Vector3Int::get_x()
+  IL_00a9: ldloca.s V_6
+  IL_00ab: call System.Int32 UnityEngine.Vector3Int::get_y()
+  IL_00b0: ldarg.0
+  IL_00b1: ldfld System.Int32 Timberborn.TerrainQueryingSystem.TerrainAreaService/<InMapLeveledCoordinates>d__4::<startHeight>5__2
+  IL_00b6: newobj System.Void UnityEngine.Vector3Int::.ctor(System.Int32,System.Int32,System.Int32)
+  IL_00bb: stfld UnityEngine.Vector3Int Timberborn.TerrainQueryingSystem.TerrainAreaService/<InMapLeveledCoordinates>d__4::<>2__current
+  IL_00c0: ldarg.0
+  IL_00c1: ldc.i4.1
+  IL_00c2: stfld System.Int32 Timberborn.TerrainQueryingSystem.TerrainAreaService/<InMapLeveledCoordinates>d__4::<>1__state
+  IL_00c7: ldc.i4.1
+  IL_00c8: stloc.0
+  IL_00c9: leave.s IL_00f8
+  IL_00cb: ldarg.0
+  IL_00cc: ldc.i4.s -3
+  IL_00ce: stfld System.Int32 Timberborn.TerrainQueryingSystem.TerrainAreaService/<InMapLeveledCoordinates>d__4::<>1__state
+  IL_00d3: ldarg.0
+  IL_00d4: ldfld System.Collections.Generic.IEnumerator`1<UnityEngine.Vector3Int> Timberborn.TerrainQueryingSystem.TerrainAreaService/<InMapLeveledCoordinates>d__4::<>7__wrap2
+  IL_00d9: callvirt System.Boolean System.Collections.IEnumerator::MoveNext()
+  IL_00de: brtrue.s IL_0080
+  IL_00e0: ldarg.0
+  IL_00e1: call System.Void Timberborn.TerrainQueryingSystem.TerrainAreaService/<InMapLeveledCoordinates>d__4::<>m__Finally1()
+  IL_00e6: ldarg.0
+  IL_00e7: ldnull
+  IL_00e8: stfld System.Collections.Generic.IEnumerator`1<UnityEngine.Vector3Int> Timberborn.TerrainQueryingSystem.TerrainAreaService/<InMapLeveledCoordinates>d__4::<>7__wrap2
+  IL_00ed: ldc.i4.0
+  IL_00ee: stloc.0
+  IL_00ef: leave.s IL_00f8
+  IL_00f1: ldarg.0
+  IL_00f2: call System.Void Timberborn.TerrainQueryingSystem.TerrainAreaService/<InMapLeveledCoordinates>d__4::System.IDisposable.Dispose()
+  IL_00f7: endfinally
+  IL_00f8: ldloc.0
+  IL_00f9: ret
+
+##############################################################################
+# 3. The same cell is passed to PlantingAreaValidator.CanPlant and SetPlantingCoordinates
+# source: C:\Users\user\AppData\Local\Temp\dsh-XfwQbO\hdbf-card-work\il\plantingselection.il
+##############################################################################
+=== Timberborn.PlantingUI.PlantingSelectionService::HighlightMarkableArea   [Timberborn.PlantingUI]
+  IL_0000: ldarg.0
+  IL_0001: ldfld Timberborn.TerrainQueryingSystem.TerrainAreaService Timberborn.PlantingUI.PlantingSelectionService::_terrainAreaService
+  IL_0006: ldarg.1
+  IL_0007: ldarg.2
+  IL_0008: callvirt System.Collections.Generic.IEnumerable`1<UnityEngine.Vector3Int> Timberborn.TerrainQueryingSystem.TerrainAreaService::InMapLeveledCoordinates(System.Collections.Generic.IEnumerable`1<UnityEngine.Vector3Int>,UnityEngine.Ray)
+  IL_000d: callvirt System.Collections.Generic.IEnumerator`1<!0> System.Collections.Generic.IEnumerable`1<UnityEngine.Vector3Int>::GetEnumerator()
+  IL_0012: stloc.0
+  IL_0013: br.s IL_004e
+  IL_0015: ldloc.0
+  IL_0016: callvirt !0 System.Collections.Generic.IEnumerator`1<UnityEngine.Vector3Int>::get_Current()
+  IL_001b: stloc.1
+  IL_001c: ldarg.0
+  IL_001d: ldfld Timberborn.Planting.PlantingAreaValidator Timberborn.PlantingUI.PlantingSelectionService::_plantingAreaValidator
+  IL_0022: ldloc.1
+  IL_0023: ldarg.3
+  IL_0024: callvirt System.Boolean Timberborn.Planting.PlantingAreaValidator::CanPlant(UnityEngine.Vector3Int,System.String)
+  IL_0029: brfalse.s IL_004e
+  IL_002b: ldarg.0
+  IL_002c: ldfld Timberborn.SelectionSystem.AreaHighlightingService Timberborn.PlantingUI.PlantingSelectionService::_areaHighlightingService
+  IL_0031: ldloc.1
+  IL_0032: ldarg.0
+  IL_0033: ldfld Timberborn.PlantingUI.PlantingSelectionServiceSpec Timberborn.PlantingUI.PlantingSelectionService::_plantingSelectionServiceSpec
+  IL_0038: callvirt UnityEngine.Color Timberborn.PlantingUI.PlantingSelectionServiceSpec::get_PlantingToolTile()
+  IL_003d: callvirt System.Void Timberborn.SelectionSystem.AreaHighlightingService::DrawTile(UnityEngine.Vector3Int,UnityEngine.Color)
+  IL_0042: ldarg.0
+  IL_0043: ldfld Timberborn.AreaSelectionSystemUI.MeasurableAreaDrawer Timberborn.PlantingUI.PlantingSelectionService::_measurableAreaDrawer
+  IL_0048: ldloc.1
+  IL_0049: callvirt System.Void Timberborn.AreaSelectionSystemUI.MeasurableAreaDrawer::AddMeasurableCoordinates(UnityEngine.Vector3Int)
+  IL_004e: ldloc.0
+  IL_004f: callvirt System.Boolean System.Collections.IEnumerator::MoveNext()
+  IL_0054: brtrue.s IL_0015
+  IL_0056: leave.s IL_0062
+  IL_0058: ldloc.0
+  IL_0059: brfalse.s IL_0061
+  IL_005b: ldloc.0
+  IL_005c: callvirt System.Void System.IDisposable::Dispose()
+  IL_0061: endfinally
+  IL_0062: ret
+
+=== Timberborn.PlantingUI.PlantingSelectionService+.<>c__DisplayClass14_0::<MarkArea>b__0   [Timberborn.PlantingUI]
+  IL_0000: ldarg.0
+  IL_0001: ldfld Timberborn.PlantingUI.PlantingSelectionService Timberborn.PlantingUI.PlantingSelectionService/<>c__DisplayClass14_0::<>4__this
+  IL_0006: ldfld Timberborn.Planting.PlantingAreaValidator Timberborn.PlantingUI.PlantingSelectionService::_plantingAreaValidator
+  IL_000b: ldarg.1
+  IL_000c: ldarg.0
+  IL_000d: ldfld System.String Timberborn.PlantingUI.PlantingSelectionService/<>c__DisplayClass14_0::templateName
+  IL_0012: callvirt System.Boolean Timberborn.Planting.PlantingAreaValidator::CanPlant(UnityEngine.Vector3Int,System.String)
+  IL_0017: ret
+
+=== Timberborn.PlantingUI.PlantingSelectionService+.<>c__DisplayClass14_0::<MarkArea>b__1   [Timberborn.PlantingUI]
+  IL_0000: ldarg.0
+  IL_0001: ldfld Timberborn.PlantingUI.PlantingSelectionService Timberborn.PlantingUI.PlantingSelectionService/<>c__DisplayClass14_0::<>4__this
+  IL_0006: ldfld Timberborn.Planting.PlantingService Timberborn.PlantingUI.PlantingSelectionService::_plantingService
+  IL_000b: ldarg.1
+  IL_000c: ldarg.0
+  IL_000d: ldfld System.String Timberborn.PlantingUI.PlantingSelectionService/<>c__DisplayClass14_0::templateName
+  IL_0012: callvirt System.Void Timberborn.Planting.PlantingService::SetPlantingCoordinates(UnityEngine.Vector3Int,System.String)
+  IL_0017: ret
+
+
+##############################################################################
+# 4. PlantingAreaValidator.CanPlant -> IsUnobstructed -> BlockValidator.BlocksValid
+# source: C:\Users\user\AppData\Local\Temp\dsh-XfwQbO\hdbf-card-work\il\plantingarea.il
+##############################################################################
+=== Timberborn.Planting.PlantingAreaValidator::CanPlant   [Timberborn.Planting]
+  IL_0000: ldarg.0
+  IL_0001: ldarg.1
+  IL_0002: ldarg.2
+  IL_0003: call System.Boolean Timberborn.Planting.PlantingAreaValidator::IsSamePlantable(UnityEngine.Vector3Int,System.String)
+  IL_0008: brtrue.s IL_0018
+  IL_000a: ldarg.0
+  IL_000b: ldfld Timberborn.NaturalResources.SpawnValidationService Timberborn.Planting.PlantingAreaValidator::_spawnValidationService
+  IL_0010: ldarg.1
+  IL_0011: ldarg.2
+  IL_0012: callvirt System.Boolean Timberborn.NaturalResources.SpawnValidationService::IsUnobstructed(UnityEngine.Vector3Int,System.String)
+  IL_0017: ret
+  IL_0018: ldc.i4.1
+  IL_0019: ret
+
+=== Timberborn.Planting.PlantingAreaValidator::IsSamePlantable   [Timberborn.Planting]
+  IL_0000: ldarg.0
+  IL_0001: ldfld Timberborn.BlockSystem.IBlockService Timberborn.Planting.PlantingAreaValidator::_blockService
+  IL_0006: ldarg.1
+  IL_0007: callvirt !!0 Timberborn.BlockSystem.IBlockService::GetBottomObjectComponentAt<Timberborn.Planting.PlantableSpec>(UnityEngine.Vector3Int)
+  IL_000c: stloc.0
+  IL_000d: ldloc.0
+  IL_000e: brfalse.s IL_001d
+  IL_0010: ldloc.0
+  IL_0011: callvirt System.String Timberborn.Planting.PlantableSpec::get_TemplateName()
+  IL_0016: ldarg.2
+  IL_0017: call System.Boolean System.String::op_Equality(System.String,System.String)
+  IL_001c: ret
+  IL_001d: ldc.i4.0
+  IL_001e: ret
+
+##############################################################################
+# 4b. SpawnValidationService.IsUnobstructed wraps the crop BlockObjectSpec in a Placement
+# source: C:\Users\user\AppData\Local\Temp\dsh-XfwQbO\hdbf-card-work\il\spawnvalidation.il
+##############################################################################
+=== Timberborn.NaturalResources.SpawnValidationService::IsUnobstructed   [Timberborn.NaturalResources]
+  IL_0000: ldarg.0
+  IL_0001: ldfld Timberborn.TemplateSystem.TemplateNameMapper Timberborn.NaturalResources.SpawnValidationService::_templateNameMapper
+  IL_0006: ldarg.2
+  IL_0007: callvirt Timberborn.TemplateSystem.TemplateSpec Timberborn.TemplateSystem.TemplateNameMapper::GetTemplate(System.String)
+  IL_000c: callvirt !!0 Timberborn.BlueprintSystem.ComponentSpec::GetSpec<Timberborn.BlockSystem.BlockObjectSpec>()
+  IL_0011: stloc.0
+  IL_0012: ldarg.0
+  IL_0013: ldarg.1
+  IL_0014: ldloc.0
+  IL_0015: call System.Boolean Timberborn.NaturalResources.SpawnValidationService::IsUnobstructed(UnityEngine.Vector3Int,Timberborn.BlockSystem.BlockObjectSpec)
+  IL_001a: ret
+
+=== Timberborn.NaturalResources.SpawnValidationService::IsUnobstructed   [Timberborn.NaturalResources]
+  IL_0000: ldarg.0
+  IL_0001: ldfld Timberborn.BlockSystem.BlockValidator Timberborn.NaturalResources.SpawnValidationService::_blockValidator
+  IL_0006: ldarg.2
+  IL_0007: ldarg.1
+  IL_0008: newobj System.Void Timberborn.Coordinates.Placement::.ctor(UnityEngine.Vector3Int)
+  IL_000d: callvirt System.Boolean Timberborn.BlockSystem.BlockValidator::BlocksValid(Timberborn.BlockSystem.BlockObjectSpec,Timberborn.Coordinates.Placement)
+  IL_0012: ret
+
+##############################################################################
+# 4c. BlockValidator.BlocksValid rejects terrain-cell blocks and requires MatterBelow
+# source: C:\Users\user\AppData\Local\Temp\dsh-XfwQbO\hdbf-card-work\il\blockvalidator.il
+##############################################################################
+=== Timberborn.BlockSystem.BlockValidator::BlocksValid   [Timberborn.BlockSystem]
+  IL_0000: ldarg.1
+  IL_0001: callvirt System.Collections.Immutable.ImmutableArray`1<Timberborn.BlockSystem.Block> Timberborn.BlockSystem.PositionedBlocks::GetAllBlocks()
+  IL_0006: ldarg.0
+  IL_0007: ldftn System.Boolean Timberborn.BlockSystem.BlockValidator::<BlocksValid>b__5_0(Timberborn.BlockSystem.Block)
+  IL_000d: newobj System.Void System.Func`2<Timberborn.BlockSystem.Block,System.Boolean>::.ctor(System.Object,System.IntPtr)
+  IL_0012: call System.Boolean System.Linq.ImmutableArrayExtensions::All<Timberborn.BlockSystem.Block>(System.Collections.Immutable.ImmutableArray`1<!!0>,System.Func`2<!!0,System.Boolean>)
+  IL_0017: ret
+
+=== Timberborn.BlockSystem.BlockValidator::BlocksValid   [Timberborn.BlockSystem]
+  IL_0000: ldarg.1
+  IL_0001: ldarg.2
+  IL_0002: callvirt System.Collections.Generic.IEnumerable`1<Timberborn.BlockSystem.Block> Timberborn.BlockSystem.BlockObjectSpec::GetBlocks(Timberborn.Coordinates.Placement)
+  IL_0007: ldarg.0
+  IL_0008: ldftn System.Boolean Timberborn.BlockSystem.BlockValidator::<BlocksValid>b__6_0(Timberborn.BlockSystem.Block)
+  IL_000e: newobj System.Void System.Func`2<Timberborn.BlockSystem.Block,System.Boolean>::.ctor(System.Object,System.IntPtr)
+  IL_0013: call System.Boolean System.Linq.Enumerable::All<Timberborn.BlockSystem.Block>(System.Collections.Generic.IEnumerable`1<!!0>,System.Func`2<!!0,System.Boolean>)
+  IL_0018: ret
+
+=== Timberborn.BlockSystem.BlockValidator::BlockConflictsWithTerrain   [Timberborn.BlockSystem]
+  IL_0000: ldarga.s block
+  IL_0002: call System.Boolean Timberborn.BlockSystem.Block::get_IsOccupied()
+  IL_0007: brfalse.s IL_002e
+  IL_0009: ldarga.s block
+  IL_000b: call System.Boolean Timberborn.BlockSystem.Block::get_OptionallyUnderground()
+  IL_0010: brtrue.s IL_002e
+  IL_0012: ldarga.s block
+  IL_0014: call System.Boolean Timberborn.BlockSystem.Block::get_Underground()
+  IL_0019: brtrue.s IL_002e
+  IL_001b: ldarg.0
+  IL_001c: ldfld Timberborn.TerrainSystem.ITerrainService Timberborn.BlockSystem.BlockValidator::_terrainService
+  IL_0021: ldarga.s block
+  IL_0023: call UnityEngine.Vector3Int Timberborn.BlockSystem.Block::get_Coordinates()
+  IL_0028: callvirt System.Boolean Timberborn.TerrainSystem.ITerrainService::Underground(UnityEngine.Vector3Int)
+  IL_002d: ret
+  IL_002e: ldc.i4.0
+  IL_002f: ret
+
+
+##############################################################################
+# 5. PlantingSoilValidator passes the planting coordinate to SoilIsMoist
+# source: C:\Users\user\AppData\Local\Temp\dsh-XfwQbO\hdbf-card-work\il\soilvalidator.il
+##############################################################################
+=== Timberborn.Planting.PlantingSoilValidator::Validate   [Timberborn.Planting]
+  IL_0000: ldarga.s plantingSpot
+  IL_0002: call UnityEngine.Vector3Int Timberborn.Planting.PlantingSpot::get_Coordinates()
+  IL_0007: stloc.0
+  IL_0008: ldarg.0
+  IL_0009: ldfld Timberborn.NaturalResourcesMoisture.AridNaturalResourceService Timberborn.Planting.PlantingSoilValidator::_aridNaturalResourceService
+  IL_000e: ldarga.s plantingSpot
+  IL_0010: call System.String Timberborn.Planting.PlantingSpot::get_ResourceToPlant()
+  IL_0015: callvirt System.Boolean Timberborn.NaturalResourcesMoisture.AridNaturalResourceService::IsAridResource(System.String)
+  IL_001a: stloc.1
+  IL_001b: ldarg.0
+  IL_001c: ldfld Timberborn.SoilMoistureSystem.ISoilMoistureService Timberborn.Planting.PlantingSoilValidator::_soilMoistureService
+  IL_0021: ldloc.0
+  IL_0022: callvirt System.Boolean Timberborn.SoilMoistureSystem.ISoilMoistureService::SoilIsMoist(UnityEngine.Vector3Int)
+  IL_0027: ldloc.1
+  IL_0028: bne.un.s IL_002c
+  IL_002a: ldc.i4.0
+  IL_002b: ret
+  IL_002c: ldarg.0
+  IL_002d: ldfld Timberborn.SoilContaminationSystem.ISoilContaminationService Timberborn.Planting.PlantingSoilValidator::_soilContaminationService
+  IL_0032: ldloc.0
+  IL_0033: callvirt System.Boolean Timberborn.SoilContaminationSystem.ISoilContaminationService::SoilIsContaminated(UnityEngine.Vector3Int)
+  IL_0038: ldc.i4.0
+  IL_0039: ceq
+  IL_003b: ret
+
+##############################################################################
+# 6. SoilIsMoist matches coordinates.z against the column ceiling, false => dry
+# source: C:\Users\user\.hdbf\api\soilmoist.il
+##############################################################################
+=== Timberborn.SoilMoistureSystem.SoilMoistureService::SoilIsMoist   [Timberborn.SoilMoistureSystem]
+  IL_0000: ldarg.0
+  IL_0001: ldfld Timberborn.MapIndexSystem.MapIndexService Timberborn.SoilMoistureSystem.SoilMoistureService::_mapIndexService
+  IL_0006: ldarg.1
+  IL_0007: call UnityEngine.Vector2Int Timberborn.Common.VectorExtensions::XY(UnityEngine.Vector3Int)
+  IL_000c: callvirt System.Int32 Timberborn.MapIndexSystem.MapIndexService::CellToIndex(UnityEngine.Vector2Int)
+  IL_0011: stloc.0
+  IL_0012: ldarg.0
+  IL_0013: ldfld Timberborn.TerrainSystem.IThreadSafeColumnTerrainMap Timberborn.SoilMoistureSystem.SoilMoistureService::_threadSafeColumnTerrainMap
+  IL_0018: ldloc.0
+  IL_0019: ldarga.s coordinates
+  IL_001b: call System.Int32 UnityEngine.Vector3Int::get_z()
+  IL_0020: ldloca.s V_1
+  IL_0022: callvirt System.Boolean Timberborn.TerrainSystem.IThreadSafeColumnTerrainMap::TryGetIndexAtCeiling(System.Int32,System.Int32,System.Int32&)
+  IL_0027: brfalse.s IL_0039
+  IL_0029: ldarg.0
+  IL_002a: ldfld System.Single[] Timberborn.SoilMoistureSystem.SoilMoistureService::_threadSafeMoistureLevels
+  IL_002f: ldloc.1
+  IL_0030: ldelem.r4
+  IL_0031: ldc.r4 0
+  IL_0036: cgt
+  IL_0038: ret
+  IL_0039: ldc.i4.0
+  IL_003a: ret
+
+
+##############################################################################
+# 6b. MapIndexService.CellToIndex (XY only; z carried separately by SoilIsMoist)
+# source: C:\Users\user\AppData\Local\Temp\dsh-XfwQbO\hdbf-card-work\il\mapindex.il
+##############################################################################
+=== Timberborn.MapIndexSystem.MapIndexService::CellToIndex   [Timberborn.MapIndexSystem]
+  IL_0000: ldarga.s coordinates
+  IL_0002: call System.Int32 UnityEngine.Vector2Int::get_y()
+  IL_0007: ldc.i4.1
+  IL_0008: add
+  IL_0009: ldarg.0
+  IL_000a: call System.Int32 Timberborn.MapIndexSystem.MapIndexService::get_Stride()
+  IL_000f: mul
+  IL_0010: ldarga.s coordinates
+  IL_0012: call System.Int32 UnityEngine.Vector2Int::get_x()
+  IL_0017: add
+  IL_0018: ldc.i4.1
+  IL_0019: add
+  IL_001a: ret
+

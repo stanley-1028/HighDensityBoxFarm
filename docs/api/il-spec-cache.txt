@@ -1,0 +1,53 @@
+
+=== Timberborn.BlueprintSystem.SpecTypeCache::Create   [Timberborn.BlueprintSystem]
+  IL_0000: call System.AppDomain System.AppDomain::get_CurrentDomain()
+  IL_0005: callvirt System.Reflection.Assembly[] System.AppDomain::GetAssemblies()
+  IL_000a: ldsfld System.Func`2<System.Reflection.Assembly,System.Collections.Generic.IEnumerable`1<System.Type>> Timberborn.BlueprintSystem.SpecTypeCache/<>c::<>9__5_0
+  IL_000f: dup
+  IL_0010: brtrue.s IL_0029
+  IL_0012: pop
+  IL_0013: ldsfld Timberborn.BlueprintSystem.SpecTypeCache/<>c Timberborn.BlueprintSystem.SpecTypeCache/<>c::<>9
+  IL_0018: ldftn System.Collections.Generic.IEnumerable`1<System.Type> Timberborn.BlueprintSystem.SpecTypeCache/<>c::<Create>b__5_0(System.Reflection.Assembly)
+  IL_001e: newobj System.Void System.Func`2<System.Reflection.Assembly,System.Collections.Generic.IEnumerable`1<System.Type>>::.ctor(System.Object,System.IntPtr)
+  IL_0023: dup
+  IL_0024: stsfld System.Func`2<System.Reflection.Assembly,System.Collections.Generic.IEnumerable`1<System.Type>> Timberborn.BlueprintSystem.SpecTypeCache/<>c::<>9__5_0
+  IL_0029: call System.Collections.Generic.IEnumerable`1<!!1> System.Linq.Enumerable::SelectMany<System.Reflection.Assembly,System.Type>(System.Collections.Generic.IEnumerable`1<!!0>,System.Func`2<!!0,System.Collections.Generic.IEnumerable`1<!!1>>)
+  IL_002e: ldnull
+  IL_002f: ldftn System.Boolean Timberborn.BlueprintSystem.SpecTypeCache::IsSpecClass(System.Type)
+  IL_0035: newobj System.Void System.Func`2<System.Type,System.Boolean>::.ctor(System.Object,System.IntPtr)
+  IL_003a: call System.Collections.Generic.IEnumerable`1<!!0> System.Linq.Enumerable::Where<System.Type>(System.Collections.Generic.IEnumerable`1<!!0>,System.Func`2<!!0,System.Boolean>)
+  IL_003f: ldnull
+  IL_0040: ldftn System.Collections.Generic.IEnumerable`1<System.Collections.Generic.KeyValuePair`2<System.String,System.Type>> Timberborn.BlueprintSystem.SpecTypeCache::GetSpecEntries(System.Type)
+  IL_0046: newobj System.Void System.Func`2<System.Type,System.Collections.Generic.IEnumerable`1<System.Collections.Generic.KeyValuePair`2<System.String,System.Type>>>::.ctor(System.Object,System.IntPtr)
+  IL_004b: call System.Collections.Generic.IEnumerable`1<!!1> System.Linq.Enumerable::SelectMany<System.Type,System.Collections.Generic.KeyValuePair`2<System.String,System.Type>>(System.Collections.Generic.IEnumerable`1<!!0>,System.Func`2<!!0,System.Collections.Generic.IEnumerable`1<!!1>>)
+  IL_0050: ldnull
+  IL_0051: call System.Collections.Frozen.FrozenDictionary`2<!!0,!!1> System.Collections.Frozen.FrozenDictionary::ToFrozenDictionary<System.String,System.Type>(System.Collections.Generic.IEnumerable`1<System.Collections.Generic.KeyValuePair`2<!!0,!!1>>,System.Collections.Generic.IEqualityComparer`1<!!0>)
+  IL_0056: newobj System.Void Timberborn.BlueprintSystem.SpecTypeCache::.ctor(System.Collections.Frozen.FrozenDictionary`2<System.String,System.Type>)
+  IL_005b: ret
+
+=== Timberborn.BlueprintSystem.SpecTypeCache::IsSpecClass   [Timberborn.BlueprintSystem]
+  IL_0000: ldarg.0
+  IL_0001: callvirt System.Boolean System.Type::get_IsClass()
+  IL_0006: brfalse.s IL_001c
+  IL_0008: ldarg.0
+  IL_0009: callvirt System.Boolean System.Type::get_IsAbstract()
+  IL_000e: brtrue.s IL_001c
+  IL_0010: ldsfld System.Type Timberborn.BlueprintSystem.SpecTypeCache::SpecType
+  IL_0015: ldarg.0
+  IL_0016: callvirt System.Boolean System.Type::IsAssignableFrom(System.Type)
+  IL_001b: ret
+  IL_001c: ldc.i4.0
+  IL_001d: ret
+
+=== Timberborn.BlueprintSystem.SpecTypeCache::GetSpecEntries   [Timberborn.BlueprintSystem]
+  IL_0000: ldc.i4.s -2
+  IL_0002: newobj System.Void Timberborn.BlueprintSystem.SpecTypeCache/<GetSpecEntries>d__8::.ctor(System.Int32)
+  IL_0007: dup
+  IL_0008: ldarg.0
+  IL_0009: stfld System.Type Timberborn.BlueprintSystem.SpecTypeCache/<GetSpecEntries>d__8::<>3__type
+  IL_000e: ret
+
+=== Timberborn.BlueprintSystem.SpecTypeCache+.<>c::<Create>b__5_0   [Timberborn.BlueprintSystem]
+  IL_0000: ldarg.1
+  IL_0001: callvirt System.Type[] System.Reflection.Assembly::GetTypes()
+  IL_0006: ret

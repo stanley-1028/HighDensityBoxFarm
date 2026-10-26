@@ -1,0 +1,63 @@
+
+=== Timberborn.Buildings.Building::get_Spec   [Timberborn.Buildings]
+  IL_0000: ldarg.0
+  IL_0001: ldfld Timberborn.Buildings.BuildingSpec Timberborn.Buildings.Building::<Spec>k__BackingField
+  IL_0006: ret
+
+=== Timberborn.Buildings.Building::Awake   [Timberborn.Buildings]
+  IL_0000: ldarg.0
+  IL_0001: ldarg.0
+  IL_0002: call !!0 Timberborn.BaseComponentSystem.BaseComponent::GetComponent<Timberborn.Buildings.BuildingSpec>()
+  IL_0007: call System.Void Timberborn.Buildings.Building::set_Spec(Timberborn.Buildings.BuildingSpec)
+  IL_000c: ret
+
+=== Timberborn.Growing.Growable::Awake   [Timberborn.Growing]
+  IL_0000: ldarg.0
+  IL_0001: ldarg.0
+  IL_0002: call !!0 Timberborn.BaseComponentSystem.BaseComponent::GetComponent<Timberborn.NaturalResourcesLifecycle.LivingNaturalResource>()
+  IL_0007: stfld Timberborn.NaturalResourcesLifecycle.LivingNaturalResource Timberborn.Growing.Growable::_livingNaturalResource
+  IL_000c: ldarg.0
+  IL_000d: ldarg.0
+  IL_000e: call !!0 Timberborn.BaseComponentSystem.BaseComponent::GetComponent<Timberborn.NaturalResourcesLifecycle.DyingNaturalResource>()
+  IL_0013: stfld Timberborn.NaturalResourcesLifecycle.DyingNaturalResource Timberborn.Growing.Growable::_dyingNaturalResource
+  IL_0018: ldarg.0
+  IL_0019: ldarg.0
+  IL_001a: call !!0 Timberborn.BaseComponentSystem.BaseComponent::GetComponent<Timberborn.NaturalResourcesReproduction.Reproducible>()
+  IL_001f: stfld Timberborn.NaturalResourcesReproduction.Reproducible Timberborn.Growing.Growable::_reproducible
+  IL_0024: ldarg.0
+  IL_0025: ldarg.0
+  IL_0026: call !!0 Timberborn.BaseComponentSystem.BaseComponent::GetComponent<Timberborn.Growing.GrowableSpec>()
+  IL_002b: stfld Timberborn.Growing.GrowableSpec Timberborn.Growing.Growable::_growableSpec
+  IL_0030: ldarg.0
+  IL_0031: ldarg.0
+  IL_0032: ldfld Timberborn.TimeSystem.ITimeTriggerFactory Timberborn.Growing.Growable::_timeTriggerFactory
+  IL_0037: ldarg.0
+  IL_0038: ldftn System.Void Timberborn.Growing.Growable::Grow()
+  IL_003e: newobj System.Void System.Action::.ctor(System.Object,System.IntPtr)
+  IL_0043: ldarg.0
+  IL_0044: call System.Single Timberborn.Growing.Growable::get_GrowthTimeInDays()
+  IL_0049: callvirt Timberborn.TimeSystem.ITimeTrigger Timberborn.TimeSystem.ITimeTriggerFactory::Create(System.Action,System.Single)
+  IL_004e: stfld Timberborn.TimeSystem.ITimeTrigger Timberborn.Growing.Growable::_timeTrigger
+  IL_0053: ret
+
+=== Timberborn.WorkSystem.Workplace::Awake   [Timberborn.WorkSystem]
+  IL_0000: ldarg.0
+  IL_0001: ldarg.0
+  IL_0002: call !!0 Timberborn.BaseComponentSystem.BaseComponent::GetComponent<Timberborn.WorkSystem.WorkplaceSpec>()
+  IL_0007: stfld Timberborn.WorkSystem.WorkplaceSpec Timberborn.WorkSystem.Workplace::_workplaceSpec
+  IL_000c: ldarg.0
+  IL_000d: ldarg.0
+  IL_000e: call !!0 Timberborn.BaseComponentSystem.BaseComponent::GetComponent<Timberborn.BlockingSystem.BlockableObject>()
+  IL_0013: stfld Timberborn.BlockingSystem.BlockableObject Timberborn.WorkSystem.Workplace::_blockableObject
+  IL_0018: ldarg.0
+  IL_0019: ldarg.0
+  IL_001a: call !!0 Timberborn.BaseComponentSystem.BaseComponent::GetComponent<Timberborn.WorkSystem.WorkplaceWorkerType>()
+  IL_001f: stfld Timberborn.WorkSystem.WorkplaceWorkerType Timberborn.WorkSystem.Workplace::_workplaceWorkerType
+  IL_0024: ldarg.0
+  IL_0025: ldarg.0
+  IL_0026: ldfld Timberborn.WorkSystem.WorkplaceSpec Timberborn.WorkSystem.Workplace::_workplaceSpec
+  IL_002b: callvirt System.Int32 Timberborn.WorkSystem.WorkplaceSpec::get_DefaultWorkers()
+  IL_0030: call System.Void Timberborn.WorkSystem.Workplace::set_DesiredWorkers(System.Int32)
+  IL_0035: ldarg.0
+  IL_0036: call System.Void Timberborn.BaseComponentSystem.BaseComponent::DisableComponent()
+  IL_003b: ret

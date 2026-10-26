@@ -1,0 +1,50 @@
+{
+  "configSchemaVersion": 1,
+  "features": {
+    "densePlanting": true,
+    "rotation": true,
+    "maintenance": true,
+    "powerConnection": true,
+    "pipeConnection": true,
+    "logisticsOutput": false,
+    "soilFatigue": true,
+    "growthMultiplierPatch": true
+  },
+  "perf": {
+    "scanBudgetPerFrame": 128,
+    "scanIntervalSeconds": 2.0,
+    "irrigationSampleInterval": 0.5,
+    "uiRefreshHz": 4,
+    "reducedBuildingThreshold": 100,
+    "steadyFrameBudgetMs": 0.5,
+    "warnFrameMs": 2.0,
+    "pauseFrameMs": 5.0,
+    "cropVisibilityIntervalSeconds": 2.0,
+    "cropVisibilityCellsPerFrame": 64
+  },
+  "ui": {
+    "worldIcons": true,
+    "worldIconBlink": true,
+    "worldIconMaxDistance": 40,
+    "worldIconIntervalSeconds": 0.5,
+    "worldIconFarmsPerTick": 24,
+    "warningAggregateTtlSeconds": 3.0,
+    "hideManagedCrops": true
+  },
+  "balance": {
+    "tier": [
+      {},
+      {},
+      {},
+      {}
+    ],
+    "denseYieldMultiplier": 1.35,
+    "denseWaterMultiplier": 1.5,
+    "denseFatigueMultiplier": 1.5,
+    "denseWorkMultiplier": 1.2,
+    "fallowRecoveryPerDay": 0.03,
+    "fatiguePenalty": 0.6,
+    "rotationFactor": 0.4,
+    "rotationRecovery": 0.05
+  }
+}

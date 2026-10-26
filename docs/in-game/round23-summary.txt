@@ -1,0 +1,48 @@
+﻿round        : round23
+finished     : 2026-10-25T14:47:26
+save         : 2026-10-24 18h28m, Day 1-1.autosave
+settlement   : HDBFTest
+log          : C:\Users\user\Documents\Timberborn\Mods\HighDensityBoxFarm\docs\in-game\round23-Player.log
+
+[HDBF/Info] start HDBF version=0.1.0 modPath=C:\Users\user\Documents\Timberborn\Mods\HDBF
+HDBF/Compat: compat.missing:HDBF.Adapter.TimberPipes: HDBF.Adapter.TimberPipes not detected (not-installed); capability unavailable
+HDBF/Compat: compat.missing:HDBF.Adapter.PowerLines: HDBF.Adapter.PowerLines not detected (not-installed); capability unavailable
+HDBF/Compat: compat.missing:HDBF.Adapter.ConveyorBeltsV2: HDBF.Adapter.ConveyorBeltsV2 not detected (not-installed); capability unavailable
+HDBF/Compat: compat.missing:HDBF.Adapter.MoreMines: HDBF.Adapter.MoreMines not detected (not-installed); capability unavailable
+HDBF/Compat: compat.missing:HDBF.Adapter.HoomanStairs: HDBF.Adapter.HoomanStairs not detected (not-installed); capability unavailable
+Opening file: C:\Users\user\Documents\Timberborn\Saves\HDBFTest\2026-10-24 18h28m, Day 1-1.autosave.timber
+[HDBF/Info] startup: HDBF 0.1.0 ready; tiers=4; modPath=C:\Users\user\Documents\Timberborn\Mods\HDBF; config=C:\Users\user\Documents\Timberborn\Mods\HDBF\HDBF_Config.json
+[HDBF/Compat] compat.harmony-patch-installed: installed HDBF.Patches.BoxFarmGrowthPatch (Postfix, priority=400) target=Timberborn.Growing.Growable.ResumeGrowing harmonyInstance=hdbf.highdensityboxfarm; managed crops grow at G_irr*G_fat*G_maint*G_power speed
+[HDBF/Info] diag.scan.begin.7416d405-1d24-4d98-b930-f72aeb3c3996: scan.begin entityId=7416d405-1d24-4d98-b930-f72aeb3c3996 origin=(130, 139, 3) side=11 entrance=True cell=(130, 139, 3) contains=True surface=3 field[surface-1]=False field[surface]=False field[surface+1]=False blockAtSurface=True
+[HDBF/Info] gameplay.entity: box farm active, entityId=7416d405-1d24-4d98-b930-f72aeb3c3996, tier=Basic, blueprint=BoxFarm.Basic.Folktails
+Load time: 77056ms (scene index: 2)
+[HDBF/Info] diag.farm.plan.7416d405-1d24-4d98-b930-f72aeb3c3996: farm.plan entityId=7416d405-1d24-4d98-b930-f72aeb3c3996 candidates=0 queued=0 accessible=1 entrance=(130, 139, 3) reachSelf=1 pathSelf=throw:InvalidOperationException
+[HDBF/Info] diag.scan.end.7416d405-1d24-4d98-b930-f72aeb3c3996: scan.end entityId=7416d405-1d24-4d98-b930-f72aeb3c3996 scanned=121 accepted=103 candidates=103 selected=60 granted=60 registeredNow=60 kept=0 added=60 dropped=0 coverageAfterScan=0.450 rejects[terrain=0,field=18,block=0,blocker=0,reach=0,excluded=0,claimed=0]
+[HDBF/Info] diag.scan.probe.7416d405-1d24-4d98-b930-f72aeb3c3996: scan.probe entityId=7416d405-1d24-4d98-b930-f72aeb3c3996 origin=(130, 139, 3) side=11 crop=Carrot contains=121 canPlant=103 samples=(125,134,h=3) (126,134,h=3) (127,134,h=3) (128,134,h=3) (129,134,h=3) (130,134,h=3)
+[HDBF/Info] compat.harmony-patch-applied.1: HDBF.Patches.BoxFarmGrowthPatch rescaled managed crop: cell=(129,139,3) growthRate=0.867 vanillaDays=10.00 scaledDays=11.54
+[HDBF/Info] compat.harmony-patch-applied.2: HDBF.Patches.BoxFarmGrowthPatch rescaled managed crop: cell=(128,139,3) growthRate=0.867 vanillaDays=10.00 scaledDays=11.54
+[HDBF/Info] compat.harmony-patch-applied.3: HDBF.Patches.BoxFarmGrowthPatch rescaled managed crop: cell=(127,139,3) growthRate=0.867 vanillaDays=10.00 scaledDays=11.54
+[HDBF/Info] compat.harmony-patch-applied.4: HDBF.Patches.BoxFarmGrowthPatch rescaled managed crop: cell=(128,138,3) growthRate=0.867 vanillaDays=10.00 scaledDays=11.54
+[HDBF/Info] compat.harmony-patch-applied.5: HDBF.Patches.BoxFarmGrowthPatch rescaled managed crop: cell=(128,140,3) growthRate=0.867 vanillaDays=10.00 scaledDays=11.54
+[HDBF/Info] compat.harmony-patch-applied.6: HDBF.Patches.BoxFarmGrowthPatch rescaled managed crop: cell=(132,138,3) growthRate=0.867 vanillaDays=10.00 scaledDays=11.54
+[HDBF/Info] compat.harmony-patch-applied.7: HDBF.Patches.BoxFarmGrowthPatch rescaled managed crop: cell=(132,140,3) growthRate=0.867 vanillaDays=10.00 scaledDays=11.54
+[HDBF/Info] compat.harmony-patch-applied.8: HDBF.Patches.BoxFarmGrowthPatch rescaled managed crop: cell=(126,139,3) growthRate=0.867 vanillaDays=10.00 scaledDays=11.54
+[HDBF/Info] compat.harmony-patch-applied.9: HDBF.Patches.BoxFarmGrowthPatch rescaled managed crop: cell=(127,138,3) growthRate=0.867 vanillaDays=10.00 scaledDays=11.54
+[HDBF/Info] compat.harmony-patch-applied.10: HDBF.Patches.BoxFarmGrowthPatch rescaled managed crop: cell=(127,140,3) growthRate=0.867 vanillaDays=10.00 scaledDays=11.54
+[HDBF/Info] compat.harmony-patch-applied.11: HDBF.Patches.BoxFarmGrowthPatch rescaled managed crop: cell=(128,137,3) growthRate=0.867 vanillaDays=10.00 scaledDays=11.54
+[HDBF/Info] compat.harmony-patch-applied.12: HDBF.Patches.BoxFarmGrowthPatch rescaled managed crop: cell=(128,141,3) growthRate=0.867 vanillaDays=10.00 scaledDays=11.54
+[HDBF/Info] diag.farm.plan.7416d405-1d24-4d98-b930-f72aeb3c3996: farm.plan entityId=7416d405-1d24-4d98-b930-f72aeb3c3996 candidates=39 queued=39 accessible=1 entrance=(130, 139, 3) reachSelf=1 pathSelf=throw:InvalidOperationException suppressed=1
+[HDBF/Info] diag.day.7416d405-1d24-4d98-b930-f72aeb3c3996: day.tick entityId=7416d405-1d24-4d98-b930-f72aeb3c3996 day=2.18 registered=60 moist=40 dry=20 tankFed=0 tank=0.00 coverage=0.667 workers=2 shutdown=False dryCells=(132,138,z=3,h=3,onGround=1) (128,137,z=3,h=3,onGround=1) (132,137,z=3,h=3,onGround=1) (127,137,z=3,h=3,onGround=1) (128,136,z=3,h=3,onGround=1) (132,136,z=3,h=3,onGround=1)
+[HDBF/Info] diag.scan.begin.7416d405-1d24-4d98-b930-f72aeb3c3996: scan.begin entityId=7416d405-1d24-4d98-b930-f72aeb3c3996 origin=(130, 139, 3) side=11 entrance=True cell=(130, 139, 3) contains=True surface=3 field[surface-1]=False field[surface]=False field[surface+1]=False blockAtSurface=True
+[HDBF/Info] diag.scan.end.7416d405-1d24-4d98-b930-f72aeb3c3996: scan.end entityId=7416d405-1d24-4d98-b930-f72aeb3c3996 scanned=121 accepted=103 candidates=103 selected=60 granted=60 registeredNow=60 kept=60 added=0 dropped=0 coverageAfterScan=0.667 rejects[terrain=0,field=18,block=0,blocker=0,reach=0,excluded=0,claimed=0]
+[HDBF/Info] diag.scan.probe.7416d405-1d24-4d98-b930-f72aeb3c3996: scan.probe entityId=7416d405-1d24-4d98-b930-f72aeb3c3996 origin=(130, 139, 3) side=11 crop=Carrot contains=121 canPlant=66 samples=(125,134,h=3) (126,134,h=3) (127,134,h=3) (128,134,h=3) (129,134,h=3) (130,134,h=3)
+[HDBF/Info] diag.farm.plan.7416d405-1d24-4d98-b930-f72aeb3c3996: farm.plan entityId=7416d405-1d24-4d98-b930-f72aeb3c3996 candidates=0 queued=0 accessible=1 entrance=(130, 139, 3) reachSelf=1 pathSelf=throw:InvalidOperationException suppressed=1
+[HDBF/Info] diag.day.7416d405-1d24-4d98-b930-f72aeb3c3996: day.tick entityId=7416d405-1d24-4d98-b930-f72aeb3c3996 day=3.18 registered=60 moist=40 dry=20 tankFed=0 tank=0.00 coverage=0.667 workers=2 shutdown=False dryCells=(132,138,z=3,h=3,onGround=1) (128,137,z=3,h=3,onGround=1) (132,137,z=3,h=3,onGround=1) (127,137,z=3,h=3,onGround=1) (128,136,z=3,h=3,onGround=1) (132,136,z=3,h=3,onGround=1)
+[HDBF/Info] diag.scan.begin.7416d405-1d24-4d98-b930-f72aeb3c3996: scan.begin entityId=7416d405-1d24-4d98-b930-f72aeb3c3996 origin=(130, 139, 3) side=11 entrance=True cell=(130, 139, 3) contains=True surface=3 field[surface-1]=False field[surface]=False field[surface+1]=False blockAtSurface=True
+[HDBF/Info] diag.scan.end.7416d405-1d24-4d98-b930-f72aeb3c3996: scan.end entityId=7416d405-1d24-4d98-b930-f72aeb3c3996 scanned=121 accepted=103 candidates=103 selected=60 granted=60 registeredNow=60 kept=60 added=0 dropped=0 coverageAfterScan=0.667 rejects[terrain=0,field=18,block=0,blocker=0,reach=0,excluded=0,claimed=0]
+[HDBF/Info] diag.scan.probe.7416d405-1d24-4d98-b930-f72aeb3c3996: scan.probe entityId=7416d405-1d24-4d98-b930-f72aeb3c3996 origin=(130, 139, 3) side=11 crop=Carrot contains=121 canPlant=63 samples=(125,134,h=3) (126,134,h=3) (127,134,h=3) (128,134,h=3) (129,134,h=3) (130,134,h=3)
+[HDBF/Info] diag.farm.plan.7416d405-1d24-4d98-b930-f72aeb3c3996: farm.plan entityId=7416d405-1d24-4d98-b930-f72aeb3c3996 candidates=0 queued=0 accessible=1 entrance=(130, 139, 3) reachSelf=1 pathSelf=throw:InvalidOperationException suppressed=1
+[HDBF/Info] diag.day.7416d405-1d24-4d98-b930-f72aeb3c3996: day.tick entityId=7416d405-1d24-4d98-b930-f72aeb3c3996 day=4.18 registered=60 moist=40 dry=20 tankFed=0 tank=0.00 coverage=0.667 workers=2 shutdown=False dryCells=(132,138,z=3,h=3,onGround=1) (128,137,z=3,h=3,onGround=1) (132,137,z=3,h=3,onGround=1) (127,137,z=3,h=3,onGround=1) (128,136,z=3,h=3,onGround=1) (132,136,z=3,h=3,onGround=1)
+[HDBF/Info] diag.scan.begin.7416d405-1d24-4d98-b930-f72aeb3c3996: scan.begin entityId=7416d405-1d24-4d98-b930-f72aeb3c3996 origin=(130, 139, 3) side=11 entrance=True cell=(130, 139, 3) contains=True surface=3 field[surface-1]=False field[surface]=False field[surface+1]=False blockAtSurface=True
+[HDBF/Info] diag.scan.end.7416d405-1d24-4d98-b930-f72aeb3c3996: scan.end entityId=7416d405-1d24-4d98-b930-f72aeb3c3996 scanned=121 accepted=103 candidates=103 selected=60 granted=60 registeredNow=60 kept=60 added=0 dropped=0 coverageAfterScan=0.667 rejects[terrain=0,field=18,block=0,blocker=0,reach=0,excluded=0,claimed=0]
+[HDBF/Info] diag.scan.probe.7416d405-1d24-4d98-b930-f72aeb3c3996: scan.probe entityId=7416d405-1d24-4d98-b930-f72aeb3c3996 origin=(130, 139, 3) side=11 crop=Carrot contains=121 canPlant=63 samples=(125,134,h=3) (126,134,h=3) (127,134,h=3) (128,134,h=3) (129,134,h=3) (130,134,h=3)

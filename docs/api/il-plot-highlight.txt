@@ -1,0 +1,209 @@
+# Curated IL evidence — managed-plot highlight (BUILD-02 / REQ-UI-05)
+
+Generated 2026-10-25 from the installed Timberborn 1.1.2.8 managed assemblies with
+`tools/ApiIndex` (Mono.Cecil, offline). This file keeps the excerpts that justify the rendering and
+input decisions of `docs/workstreams/build-02-plot-highlight.md`; the full dumps were produced in
+the session temp directory and are not shipped.
+
+## How the dumps were produced
+
+```powershell
+$w = Join-Path $env:TEMP 'hdbf-card-work'
+dotnet build tools\ApiIndex\ApiIndex.csproj -c Release -m:1 -p:HdbfWorkRoot=$w
+$m = 'C:\Program Files (x86)\Steam\steamapps\common\Timberborn\Timberborn_Data\Managed'
+$tool = "$w\bin\ApiIndex\Release\net9.0\ApiIndex.dll"
+dotnet $tool dump $m "$w\il\highlight-api.txt" '^Timberborn\.SelectionSystem\.' '^Timberborn\.InputSystem\.' '^Timberborn\.Rendering\.' ...
+dotnet $tool il   $m "$w\il\highlight-il.txt" 'AreaHighlightingService' '.*'
+dotnet $tool il   $m "$w\il\meshdrawer-il.txt" '^Timberborn\.Rendering\.(MeshDrawer|MarkerDrawerFactory|MeshDrawerFactory)$' '.*'
+dotnet $tool il   $m "$w\il\input-il.txt" '^Timberborn\.InputSystem\.InputService$' '.*'
+dotnet $tool il   $m "$w\il\cursor-tool-il.txt" '^Timberborn\.CursorToolSystem\.CursorTool$' '.*'
+dotnet $tool il   $m "$w\il\areatile-il.txt" '^Timberborn\.Rendering\.(AreaTileDrawerFactory|AreaTileDrawer)$' '.*'
+dotnet $tool il   $m "$w\il\assetref-il.txt" 'AssetRefDeserializer' '.*'
+```
+
+Type visibility references below are from `docs/api/game-type-index.txt`.
+
+## 1. Vanilla per-cell highlighter — public, but immediately submits one draw per tile
+
+`Timberborn.SelectionSystem.AreaHighlightingService` (`game-type-index.txt:22512`, public,
+`ILoadableSingleton`):
+
+```text
+=== Timberborn.SelectionSystem.AreaHighlightingService::DrawTile   [Timberborn.SelectionSystem]
+  IL_0000: ldarg.0
+  IL_0001: ldfld Timberborn.Rendering.MeshDrawer Timberborn.SelectionSystem.AreaHighlightingService::_meshDrawer
+  IL_0006: ldarg.1
+  IL_0007: ldc.r4 0.02
+  IL_000c: ldarg.2
+  IL_000d: callvirt System.Void Timberborn.Rendering.MeshDrawer::DrawAtCoordinates(UnityEngine.Vector3Int,System.Single,UnityEngine.Color)
+  IL_0012: ret
+
+=== Timberborn.Rendering.MeshDrawer::DrawAtPosition   [Timberborn.Rendering]
+  IL_0000: ldarg.0
+  IL_0001: ldfld UnityEngine.Mesh Timberborn.Rendering.MeshDrawer::_mesh
+  IL_0006: ldarg.1
+  IL_0007: ldarg.2
+  IL_0008: ldarg.0
+  IL_0009: ldfld UnityEngine.Material Timberborn.Rendering.MeshDrawer::_material
+  IL_000e: ldsfld System.Int32 Timberborn.Rendering.Layers::UILayer
+  IL_0013: ldnull
+  IL_0014: ldc.i4.0
+  IL_0015: ldarg.3
+  IL_0019: call UnityEngine.Graphics::DrawMesh(UnityEngine.Mesh,UnityEngine.Vector3,UnityEngine.Quaternion,UnityEngine.Material,System.Int32,UnityEngine.Camera,System.Int32,UnityEngine.MaterialPropertyBlock,System.Boolean,System.Boolean,System.Boolean)
+```
+
+Consequence: 600 managed cells would cost 600 draw calls/frame; chapter 14.6 allows ≤4 for the
+overlay. Visual/mesh/material/layer/offset are reused, the submit is replaced by instancing.
+
+## 2. Vanilla instancing exists but drops the colour property block
+
+```text
+=== Timberborn.Rendering.MeshDrawer::DrawMultipleInstanced   [Timberborn.Rendering]
+  IL_0000: ldarg.0
+  IL_0001: ldfld UnityEngine.Mesh Timberborn.Rendering.MeshDrawer::_mesh
+  IL_0006: ldc.i4.0
+  IL_0007: ldarg.0
+  IL_0008: ldfld UnityEngine.Material Timberborn.Rendering.MeshDrawer::_material
+  IL_000d: ldarg.1
+  IL_000e: call System.Void UnityEngine.Graphics::DrawMeshInstanced(UnityEngine.Mesh,System.Int32,UnityEngine.Material,System.Collections.Generic.List`1<UnityEngine.Matrix4x4>)
+```
+
+The colour of the vanilla marker is applied through a `MaterialPropertyBlock`:
+
+```text
+=== Timberborn.Rendering.MeshDrawer::DrawAtPosition   [Timberborn.Rendering]
+  IL_0000: ldarg.0
+  IL_0001: ldfld UnityEngine.MaterialPropertyBlock Timberborn.Rendering.MeshDrawer::_modifiableMaterialPropertyBlock
+  IL_0006: ldsfld System.Int32 Timberborn.Rendering.MeshDrawer::ColorProperty
+  IL_000b: ldarg.3
+  IL_000c: callvirt System.Void UnityEngine.MaterialPropertyBlock::SetColor(System.Int32,UnityEngine.Color)
+```
+
+`DrawMultipleInstanced` does not pass that block, so the mod submits its own
+`Graphics.DrawMeshInstanced` with one colour block per state (same API the game itself uses).
+
+## 3. Vanilla asset paths and how they are loaded
+
+`Timberborn.Rendering.MarkerDrawerFactory` is public (`game-type-index.txt:22330`) and exposes
+`CreateTileDrawer(Color)` / `CreateTileDrawer()`; its backing spec is internal
+(`game-type-index.txt:22331` — `BeforeFieldInit` without `Public`), and the mesh/material live in
+private `MeshDrawer` fields. The shipped vanilla blueprint names the same two assets:
+
+`%USERPROFILE%\.hdbf\ref\Blueprints\Configurations\MarkerDrawerFactory.blueprint.json`:
+
+```json
+{
+  "MarkerDrawerFactorySpec": {
+    "TileMesh": "Markers/TileMarker",
+    "TileMaterial": "Markers/TileMarkerSmall",
+    ...
+  }
+}
+```
+
+`AssetRef` loading passes that path string to the public asset loader:
+
+```text
+=== Timberborn.BlueprintSystem.AssetRefDeserializer+GenericDeserializer`1<T>::LoadAsset   [Timberborn.BlueprintSystem]
+  IL_0009: ldfld Timberborn.AssetSystem.IAssetLoader Timberborn.BlueprintSystem.AssetRefDeserializer/GenericDeserializer`1<T>::_assetLoader
+  IL_000f: callvirt !!0 Timberborn.AssetSystem.IAssetLoader::Load<T>(System.String)
+  IL_0016: ldfld Timberborn.AssetSystem.IAssetLoader ...::_assetLoader
+  IL_001c: callvirt !!0 Timberborn.AssetSystem.IAssetLoader::LoadSafe<T>(System.String)
+```
+
+`IAssetLoader` is public (`game-type-index.txt:17784`), so the renderer can load the same two
+vanilla assets without reflection or internal types.
+
+## 4. Tile geometry, colour property and layer (vanilla reference)
+
+```text
+=== Timberborn.Rendering.AreaTileDrawerFactory::Create   [Timberborn.Rendering]
+  IL_0027: ldfld ...::_areaTileDrawerFactorySpec
+  IL_002d: callvirt AssetRef`1<UnityEngine.Material> ...::get_TileMaterial()
+  IL_0032: callvirt UnityEngine.Material AssetRef`1<UnityEngine.Material>::get_Asset()
+  IL_0037: newobj System.Void UnityEngine.Material::.ctor(UnityEngine.Material)
+  IL_003e: ldsfld System.Int32 Timberborn.Rendering.AreaTileDrawerFactory::ColorProperty
+  IL_0043: ldarg.1
+  IL_0044: callvirt System.Void UnityEngine.Material::SetColor(System.Int32,UnityEngine.Color)
+  IL_007b: callvirt AssetRef`1<UnityEngine.Mesh> ...::get_TileMesh()
+  IL_0080: callvirt UnityEngine.Mesh AssetRef`1<UnityEngine.Mesh>::get_Asset()
+
+=== Timberborn.Rendering.AreaTileDrawer::.cctor   [Timberborn.Rendering]
+  IL_0000: ldc.r4 0.02
+  IL_0005: stsfld System.Single Timberborn.Rendering.AreaTileDrawer::YOffset
+
+=== Timberborn.Rendering.AreaTileDrawer::UpdateArea   [Timberborn.Rendering]
+  IL_0001: call System.Void Timberborn.Rendering.AreaTileDrawer::Clear()
+  IL_0008: call System.Void Timberborn.Rendering.AreaTileDrawer::UpdateMeshBuilders(System.Collections.Generic.IEnumerable`1<UnityEngine.Vector3Int>)
+  IL_000e: call System.Void Timberborn.Rendering.AreaTileDrawer::UpdateTiles()
+```
+
+`AreaTileDrawer.UpdateArea` rebuilds the whole area mesh, which is why the selected renderer keeps
+its own cached matrices and repaints only changed cells.
+
+## 5. Input dispatch and building-selection mutual exclusion
+
+```text
+=== Timberborn.InputSystem.InputService::CallInputProcessors   [Timberborn.InputSystem]
+  ... copy _inputProcessors ...
+  IL_0015: ldfld List<IPriorityInputProcessor> InputService::_priorityInputProcessors
+  ... call IPriorityInputProcessor::ProcessInput() for every priority processor (no return value) ...
+  IL_0039: ldfld List<IInputProcessor> InputService::_inputProcessorsCopy
+  IL_0043: ldc.i4.1
+  IL_0044: sub                       // iterate from the end of the registration list
+  IL_004f: callvirt IInputProcessor::get_Item(Int32)
+  IL_0054: callvirt System.Boolean Timberborn.InputSystem.IInputProcessor::ProcessInput()
+  IL_0059: brfalse.s ...
+  IL_005b: leave.s                   // the first true consumes the input
+
+=== Timberborn.InputSystem.InputService::AddInputProcessor   [Timberborn.InputSystem]
+  IL_0001: ldfld List<IInputProcessor> InputService::_inputProcessors
+  IL_0007: callvirt System.Void System.Collections.Generic.List`1<Timberborn.InputSystem.IInputProcessor>::Add(!0)
+
+=== Timberborn.CursorToolSystem.CursorTool::Enter   [Timberborn.CursorToolSystem]
+  IL_0007: callvirt System.Void Timberborn.InputSystem.InputService::AddInputProcessor(Timberborn.InputSystem.IInputProcessor)
+
+=== Timberborn.CursorToolSystem.CursorTool::ProcessSelectObject   [Timberborn.CursorToolSystem]
+  IL_0006: callvirt System.Boolean Timberborn.InputSystem.InputService::get_MainMouseButtonDown()
+  IL_0013: callvirt System.Boolean Timberborn.InputSystem.InputService::get_MouseOverUI()
+  IL_0022: callvirt System.Boolean Timberborn.SelectionSystem.SelectableObjectRaycaster::TryHitSelectableObjectIncludeTerrainStump(...)
+  IL_0030: callvirt System.Void Timberborn.SelectionSystem.EntitySelectionService::Select(Timberborn.BaseComponentSystem.BaseComponent)
+```
+
+The overlay is an ordinary `IInputProcessor` added when it opens (after the cursor tool), so the
+reverse-order walk reaches it first; returning `true` hides the click from the cursor tool and the
+selected farm stays selected.
+
+## 6. Cell under the cursor (vanilla picking path)
+
+```text
+=== Timberborn.CameraSystem.CameraService   [Timberborn.CameraSystem]
+  method public UnityEngine.Ray ScreenPointToRayInGridSpace(UnityEngine.Vector2 screenPoint)
+
+=== Timberborn.TerrainQueryingSystem.TerrainPicker   [Timberborn.TerrainQueryingSystem]
+  method public Nullable<Timberborn.GridTraversing.TraversedCoordinates> PickTerrainCoordinates(UnityEngine.Ray ray)
+
+=== Timberborn.GridTraversing.TraversedCoordinates   [Timberborn.GridTraversing]
+  prop UnityEngine.Vector3Int Coordinates {get}
+
+=== Timberborn.Coordinates.CoordinateSystem   [Timberborn.Coordinates]
+  method public static UnityEngine.Vector3 GridToWorldCentered(UnityEngine.Vector3Int coordinates)
+```
+
+`ResolvePlotCell` in gameplay then maps the horizontal column to the plant-cell z with the BUG-04
+rule already used by the scan (`PlotCellHeights.ResolvePlantCellZ`).
+
+## 7. Singleton auto-discovery (why binding the overlay singleton is enough)
+
+```text
+=== Timberborn.InputSystem.InputSystemConfigurator::Configure   [Timberborn.InputSystem]
+  IL_0002: Bind<Timberborn.InputSystem.CursorService>()
+  IL_0006: AsSingleton()
+  IL_000c: Bind<Timberborn.InputSystem.InputService>()
+  IL_0012: AsSingleton()
+```
+
+`InputService` implements `IUpdatableSingleton`, and the game constructs/updates it without any
+explicit `MultiBind`; the game-context `HDBF.Gameplay` bindings of
+`HdbfPlotHighlightSession`/`HdbfPlotHighlightService` as singletons follow the same convention
+(verified in-game for `ILoadableSingleton` by earlier rounds' `HDBF` startup log line).

@@ -1,0 +1,100 @@
+ID,Text,Comment
+HDBF.Building.BoxFarm.Basic.Name,High-Density Box Farm (Basic),chapter 14.4
+HDBF.Building.BoxFarm.Intermediate.Name,High-Density Box Farm (Intermediate),chapter 14.4
+HDBF.Building.BoxFarm.Advanced.Name,High-Density Box Farm (Advanced),chapter 14.4
+HDBF.Building.BoxFarm.Top.Name,High-Density Box Farm (Top),chapter 14.4
+HDBF.Building.BoxFarm.Basic.Description,A timber box farm; two farmers tend 60 dense plots with hand-fed irrigation,chapter 14.4
+HDBF.Building.BoxFarm.Intermediate.Description,"A plank-frame greenhouse; four farmers tend 150 plots, with periodic plank upkeep",chapter 14.4
+HDBF.Building.BoxFarm.Advanced.Description,"A metal-and-glass greenhouse; eight farmers tend 300 plots, demanding irrigation and metal upkeep",chapter 14.4
+HDBF.Building.BoxFarm.Top.Description,"An industrial farm complex: 16 farmers, 600 dense plots, constant power and upkeep",chapter 14.4
+HDBF.Panel.Workers,Workers {0}/{1},chapter 14.4
+HDBF.Panel.RegisteredPlots,已註冊格 {0}/{1},chapter 11.3 / chapter 14.4 naming
+HDBF.Panel.EffectivePlots,Effective Plots {0}/{1},chapter 14.4
+HDBF.Panel.TillablePlots,可開墾格 {0},chapter 11.3 / chapter 14.4 naming
+HDBF.Panel.Irrigation,Irrigation Coverage {0}%,chapter 14.4
+HDBF.Panel.IrrigationThreshold,Minimum {0}%,HDBF extension
+HDBF.Panel.Fatigue,Soil Fatigue {0}%,chapter 14.4
+HDBF.Panel.FatigueMax,Soil Fatigue Max {0}%,HDBF extension
+HDBF.Panel.MaintenanceDue,Maintenance Due in {0} d,chapter 14.4
+HDBF.Mode.Normal,Normal,chapter 14.4
+HDBF.Mode.Dense,Dense Planting,chapter 14.4
+HDBF.Mode.Fallow,Fallow,chapter 14.4
+HDBF.Port.Power,Power Port,chapter 14.4
+HDBF.Port.Pipe,Pipe Port,chapter 14.4
+HDBF.Port.Logistics,Logistics Port,chapter 14.4
+HDBF.Action.Maintenance,Perform Maintenance,chapter 14.4
+HDBF.Action.HighlightPlots,Show Managed Plots,chapter 14.4
+HDBF.Warning.IrrigationLow,Irrigation Low: {0}% below minimum {1}%,chapter 14.4
+HDBF.Warning.MaintenanceOverdue,Maintenance Overdue: {0} cycle(s),chapter 14.4
+HDBF.Warning.FatigueHigh,Soil Fatigue High: {0}%,chapter 14.4
+HDBF.Warning.NoPower,No Power: output reduced to {0}%,chapter 14.4
+HDBF.Warning.AdapterDisabled,Adapter Disabled: {0},chapter 14.4
+HDBF.Warning.AdapterFailed,Adapter Failed: {0},chapter 14.4
+HDBF.Compat.MissingMod,Compatible mod not detected: {0},chapter 14.4
+HDBF.Error.LoadFailed,Building data failed to load; safe defaults applied,chapter 14.4
+HDBF.Tooltip.MultiplierBreakdown,Irrigation {0} × Fatigue {1} × Maintenance {2} × Power {3} × Mode {4},chapter 14.4
+HDBF.Tooltip.EffectivePlots,"Effective plots = min({0}, {1} × {2})",HDBF extension
+HDBF.Tooltip.TillablePlots,最近一次掃描在 {0}×{1} 工作範圍（{2} 格）內可開墾的格數；不含玩家排除格與其他農場的格。,chapter 11.3 / chapter 14.1 (hover only)
+HDBF.Panel.TankWater,Tank Water {0} d,HDBF extension
+HDBF.Panel.MaintenanceNone,No material upkeep,HDBF extension
+HDBF.Panel.PowerConnected,Power Connected,HDBF extension
+HDBF.Panel.PowerOffGrid,Power Off-Grid,HDBF extension
+HDBF.Panel.PowerNotRequired,No Power Required,HDBF extension
+HDBF.Panel.WorkRange,Work Range {0}×{0},HDBF extension
+HDBF.Panel.Mode,Mode,HDBF extension
+HDBF.Panel.Ports,Ports,HDBF extension
+HDBF.Panel.Status,Status,HDBF extension
+HDBF.Panel.BalanceModified,Balance modified,HDBF extension
+HDBF.Panel.Unknown,—,HDBF extension
+HDBF.Warning.Shutdown,Farm Shutdown: maintenance overdue,HDBF extension
+HDBF.Warning.NoWater,Critical Water Shortage: {0}%,HDBF extension
+HDBF.Warning.TankLow,Tank Low: {0} d,HDBF extension
+HDBF.Warning.EntranceBlocked,Entrance Blocked,HDBF extension
+HDBF.Warning.MoreWarnings,{0} more warnings,HDBF extension
+HDBF.Warning.Generic,Warning: {0},HDBF extension
+HDBF.Port.Connected,Connected,HDBF extension
+HDBF.Port.NotConnected,Not Connected,HDBF extension
+HDBF.Port.Disabled,Disabled,HDBF extension
+HDBF.Port.NotApplicable,Not Applicable,HDBF extension
+HDBF.Mode.SwitchCooldown,Mode change on cooldown,HDBF extension
+HDBF.Action.Details,Details,HDBF extension
+HDBF.Error.MaterialsMissing,維護材料不足,Command failure (REQ-UI-07)
+HDBF.Compat.ShowDetails,Show Compatibility,HDBF extension
+HDBF.Compat.Adapter.ConveyorBeltsV2,Conveyor Belts V2 adapter,chapter 8.1
+HDBF.Compat.Adapter.HoomanStairs,Hooman Stairs adapter,chapter 8.1
+HDBF.Compat.Adapter.MoreMines,More Mines adapter,chapter 8.1
+HDBF.Compat.Adapter.PowerLines,Power Lines adapter,chapter 8.1
+HDBF.Compat.Adapter.TimberPipes,Timber Pipes adapter,chapter 8.1
+HDBF.Action.ConfirmDense,確認密植,REQ-UI-06
+HDBF.Action.DenseConfirmHint,再次點擊密植以確認,REQ-UI-06
+HDBF.Action.MaintenanceDone,維護完成,REQ-UI-07
+HDBF.Action.ModeChanged,模式已切換,REQ-UI-06
+HDBF.Action.PortUpdated,連接埠已更新,REQ-UI-07
+HDBF.Error.ActionFailed,操作未能完成,Command failure fallback
+HDBF.Error.DenseDisabled,模組設定已停用密植,Command failure
+HDBF.Error.MissingMod,未偵測到所需相容模組,Command failure
+HDBF.Error.NotBoxFarm,該建築不是高密度盒子農場,Command failure
+HDBF.Error.PlotMinimum,至少保留一個託管格,Command failure
+HDBF.Error.PlotNotRegistered,該託管格不屬於此農場,Command failure
+HDBF.Port.PowerManaged,動力接口由電網自動管理,Command failure
+HDBF.Tooltip.CurrentMode,目前模式,REQ-UI-06
+HDBF.Tooltip.Maintenance,消耗維護材料並重置維護倒數,REQ-UI-07
+HDBF.Tooltip.MaintenanceShutdown,農場已停擺，執行維護可恢復全部產出,REQ-UI-07
+HDBF.Tooltip.ModeDense,密植：產量 ×1.35，水耗 ×1.5，疲勞 ×1.5，再次點擊確認,REQ-UI-06
+HDBF.Tooltip.ModeFallow,休耕：停止產出，讓土壤恢復,REQ-UI-06
+HDBF.Tooltip.ModeNormal,常規種植：產量、水耗與疲勞不變,REQ-UI-06
+HDBF.Tooltip.PortPower,動力接口透過機械電網自動連接,REQ-UI-07
+HDBF.Tooltip.PortToggle,切換{0},REQ-UI-07
+HDBF.Panel.HighlightLegend,託管格圖例,REQ-UI-05 / chapter 14.3 legend header
+HDBF.Panel.HighlightIrrigated,已灌溉,REQ-UI-05 legend row (green)
+HDBF.Panel.HighlightDry,未灌溉,REQ-UI-05 legend row (yellow)
+HDBF.Panel.HighlightExcluded,已排除,REQ-UI-05 legend row (gray)
+HDBF.Panel.HighlightUnreachable,不可達,REQ-UI-05 legend row (red)
+HDBF.Tooltip.HighlightPlots,點擊託管格可排除或恢復；按住 Shift 拖曳框選；按 Esc 關閉高亮。,REQ-UI-05 inactive button tooltip
+HDBF.Tooltip.HighlightBoxSelect,按住 Shift 拖曳可一次排除或恢復多個託管格。,REQ-UI-05 box-select hint
+HDBF.Panel.WarningAggregate,另有 {0} 座建築：{1},REQ-UI-03 cross-building warning aggregation (chapter 14.2)
+HDBF.Panel.WarningAggregateHint,點擊列展開建築列表；點擊建築可選中並聚焦。,REQ-UI-03 on-screen aggregation only (chapter 14.6)
+HDBF.Panel.SettingWorldIcons,世界警告圖標,REQ-UI-10 config ui.worldIcons label
+HDBF.Panel.SettingWorldIconBlink,警告圖標閃爍,REQ-UI-10 config ui.worldIconBlink label
+HDBF.Panel.SettingWorldIconDistance,圖標可見距離（格）,REQ-UI-10 config ui.worldIconMaxDistance label
+HDBF.Tooltip.WorldIcon,{0}（P0/P1 世界圖標；超過 {1} 格隱藏）,REQ-UI-03 head-top warning icon tooltip (chapter 14.2)

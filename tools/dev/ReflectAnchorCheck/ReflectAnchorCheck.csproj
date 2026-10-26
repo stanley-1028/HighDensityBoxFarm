@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Dev-only runtime-path probe for the verified compatible-mod anchors.
+
+    Unlike tools/dev/ModAnchorCheck (metadata only), this tool loads the installed game assemblies
+    and the five Workshop mod assemblies into a normal .NET process and then calls the *production*
+    HDBF.Integration reflection layer (ExternalProxy.FindType / FindMethodBySignature). That proves
+    the exact code path the game will run, without launching Timberborn.
+
+    It is intentionally NOT part of build.ps1 (it needs the installed game + Workshop mods).
+    Build/run instructions live in docs/workstreams/compat-01-adapters.md.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <AssemblyName>ReflectAnchorCheck</AssemblyName>
+    <RootNamespace>HDBF.Tools.ReflectAnchorCheck</RootNamespace>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\HDBF.Integration\HDBF.Integration.csproj" />
+  </ItemGroup>
+
+</Project>

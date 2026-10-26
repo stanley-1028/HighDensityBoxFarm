@@ -1,0 +1,11 @@
+{
+  "TemplateCollectionSpec": {
+    "CollectionId": "Buildings.Folktails",
+    "Blueprints#append": [
+      "Buildings/Food/BoxFarm/BoxFarm.Basic.Folktails.blueprint",
+      "Buildings/Food/BoxFarm/BoxFarm.Intermediate.Folktails.blueprint",
+      "Buildings/Food/BoxFarm/BoxFarm.Advanced.Folktails.blueprint",
+      "Buildings/Food/BoxFarm/BoxFarm.Top.Folktails.blueprint"
+    ]
+  }
+}

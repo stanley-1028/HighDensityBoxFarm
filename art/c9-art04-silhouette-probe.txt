@@ -1,0 +1,319 @@
+﻿HDBF ART-04 - C9 50% silhouette distinguishability probe (offline, one-off)
+
+Context: the ART-01 metric (art/validate_models.py: silhouette_views / outline_profiles /
+OUTLINE_MEAN_MIN=0.04, OUTLINE_MAX_MIN=0.12, SIL_IOU_MAX=0.85, 50% downsample) re-run on the
+NEW ART-04 source models art/models/<Tier>.<Faction>/LOD{0,2}.glb. The probe imports the
+UNCHANGED ART-01 functions/thresholds; it does NOT modify or re-run the full ART-01 validator
+(whose C4 trough checks are stale for ART-04). Run command:
+
+    python .tmp-art04\c9_probe.py
+
+Result: LOD2 (strict in ART-01) 12/12 tier pairs PASS; LOD0 (report level) 12/12 tier pairs
+PASS; both factions; deciding views front+side. This is OFFLINE geometry evidence at 50% camera
+scale - NOT an in-game check.
+{
+ "lod2": {
+  "pass": 12,
+  "fail": 0,
+  "pairs": [
+   {
+    "faction": "Folktails",
+    "a": "Basic",
+    "b": "Intermediate",
+    "ok": true,
+    "deciding": [
+     "front",
+     "side"
+    ],
+    "evidence": "front m=0.021 x=0.188 iou=0.964 *; side m=0.031 x=0.188 iou=0.965 *; top m=0.000 x=0.000 iou=1.000"
+   },
+   {
+    "faction": "Folktails",
+    "a": "Basic",
+    "b": "Advanced",
+    "ok": true,
+    "deciding": [
+     "front",
+     "side"
+    ],
+    "evidence": "front m=0.048 x=0.188 iou=0.946 *; side m=0.055 x=0.188 iou=0.931 *; top m=0.000 x=0.000 iou=1.000"
+   },
+   {
+    "faction": "Folktails",
+    "a": "Basic",
+    "b": "Top",
+    "ok": true,
+    "deciding": [
+     "front",
+     "side"
+    ],
+    "evidence": "front m=0.071 x=0.844 iou=0.938 *; side m=0.077 x=0.844 iou=0.919 *; top m=0.000 x=0.000 iou=1.000"
+   },
+   {
+    "faction": "Folktails",
+    "a": "Intermediate",
+    "b": "Advanced",
+    "ok": true,
+    "deciding": [
+     "front",
+     "side"
+    ],
+    "evidence": "front m=0.027 x=0.188 iou=0.949 *; side m=0.023 x=0.188 iou=0.958 *; top m=0.000 x=0.000 iou=1.000"
+   },
+   {
+    "faction": "Folktails",
+    "a": "Intermediate",
+    "b": "Top",
+    "ok": true,
+    "deciding": [
+     "front",
+     "side"
+    ],
+    "evidence": "front m=0.049 x=0.844 iou=0.942 *; side m=0.050 x=0.844 iou=0.944 *; top m=0.000 x=0.000 iou=1.000"
+   },
+   {
+    "faction": "Folktails",
+    "a": "Advanced",
+    "b": "Top",
+    "ok": true,
+    "deciding": [
+     "front",
+     "side"
+    ],
+    "evidence": "front m=0.023 x=0.844 iou=0.992 *; side m=0.026 x=0.844 iou=0.983 *; top m=0.000 x=0.000 iou=1.000"
+   },
+   {
+    "faction": "IronTeeth",
+    "a": "Basic",
+    "b": "Intermediate",
+    "ok": true,
+    "deciding": [
+     "front",
+     "side"
+    ],
+    "evidence": "front m=0.021 x=0.188 iou=0.964 *; side m=0.031 x=0.188 iou=0.965 *; top m=0.000 x=0.000 iou=1.000"
+   },
+   {
+    "faction": "IronTeeth",
+    "a": "Basic",
+    "b": "Advanced",
+    "ok": true,
+    "deciding": [
+     "front",
+     "side"
+    ],
+    "evidence": "front m=0.048 x=0.188 iou=0.946 *; side m=0.055 x=0.188 iou=0.931 *; top m=0.000 x=0.000 iou=1.000"
+   },
+   {
+    "faction": "IronTeeth",
+    "a": "Basic",
+    "b": "Top",
+    "ok": true,
+    "deciding": [
+     "front",
+     "side"
+    ],
+    "evidence": "front m=0.071 x=0.844 iou=0.938 *; side m=0.077 x=0.844 iou=0.919 *; top m=0.000 x=0.000 iou=1.000"
+   },
+   {
+    "faction": "IronTeeth",
+    "a": "Intermediate",
+    "b": "Advanced",
+    "ok": true,
+    "deciding": [
+     "front",
+     "side"
+    ],
+    "evidence": "front m=0.027 x=0.188 iou=0.949 *; side m=0.023 x=0.188 iou=0.958 *; top m=0.000 x=0.000 iou=1.000"
+   },
+   {
+    "faction": "IronTeeth",
+    "a": "Intermediate",
+    "b": "Top",
+    "ok": true,
+    "deciding": [
+     "front",
+     "side"
+    ],
+    "evidence": "front m=0.049 x=0.844 iou=0.942 *; side m=0.050 x=0.844 iou=0.944 *; top m=0.000 x=0.000 iou=1.000"
+   },
+   {
+    "faction": "IronTeeth",
+    "a": "Advanced",
+    "b": "Top",
+    "ok": true,
+    "deciding": [
+     "front",
+     "side"
+    ],
+    "evidence": "front m=0.023 x=0.844 iou=0.992 *; side m=0.026 x=0.844 iou=0.983 *; top m=0.000 x=0.000 iou=1.000"
+   }
+  ]
+ },
+ "lod0": {
+  "pass": 12,
+  "fail": 0,
+  "pairs": [
+   {
+    "faction": "Folktails",
+    "a": "Basic",
+    "b": "Intermediate",
+    "ok": true,
+    "deciding": [
+     "front",
+     "side"
+    ],
+    "evidence": "front m=0.025 x=0.188 iou=0.963 *; side m=0.026 x=0.188 iou=0.959 *; top m=0.000 x=0.000 iou=1.000"
+   },
+   {
+    "faction": "Folktails",
+    "a": "Basic",
+    "b": "Advanced",
+    "ok": true,
+    "deciding": [
+     "front",
+     "side"
+    ],
+    "evidence": "front m=0.048 x=0.188 iou=0.946 *; side m=0.054 x=0.219 iou=0.932 *; top m=0.000 x=0.000 iou=1.000"
+   },
+   {
+    "faction": "Folktails",
+    "a": "Basic",
+    "b": "Top",
+    "ok": true,
+    "deciding": [
+     "front",
+     "side"
+    ],
+    "evidence": "front m=0.067 x=0.844 iou=0.939 *; side m=0.072 x=0.844 iou=0.923 *; top m=0.000 x=0.000 iou=1.000"
+   },
+   {
+    "faction": "Folktails",
+    "a": "Intermediate",
+    "b": "Advanced",
+    "ok": true,
+    "deciding": [
+     "front",
+     "side"
+    ],
+    "evidence": "front m=0.023 x=0.188 iou=0.954 *; side m=0.030 x=0.219 iou=0.956 *; top m=0.000 x=0.000 iou=1.000"
+   },
+   {
+    "faction": "Folktails",
+    "a": "Intermediate",
+    "b": "Top",
+    "ok": true,
+    "deciding": [
+     "front",
+     "side"
+    ],
+    "evidence": "front m=0.043 x=0.844 iou=0.946 *; side m=0.050 x=0.844 iou=0.943 *; top m=0.000 x=0.000 iou=1.000"
+   },
+   {
+    "faction": "Folktails",
+    "a": "Advanced",
+    "b": "Top",
+    "ok": true,
+    "deciding": [
+     "front",
+     "side"
+    ],
+    "evidence": "front m=0.019 x=0.844 iou=0.992 *; side m=0.020 x=0.844 iou=0.985 *; top m=0.000 x=0.000 iou=1.000"
+   },
+   {
+    "faction": "IronTeeth",
+    "a": "Basic",
+    "b": "Intermediate",
+    "ok": true,
+    "deciding": [
+     "front",
+     "side"
+    ],
+    "evidence": "front m=0.025 x=0.188 iou=0.963 *; side m=0.026 x=0.188 iou=0.959 *; top m=0.000 x=0.000 iou=1.000"
+   },
+   {
+    "faction": "IronTeeth",
+    "a": "Basic",
+    "b": "Advanced",
+    "ok": true,
+    "deciding": [
+     "front",
+     "side"
+    ],
+    "evidence": "front m=0.048 x=0.188 iou=0.946 *; side m=0.054 x=0.219 iou=0.932 *; top m=0.000 x=0.000 iou=1.000"
+   },
+   {
+    "faction": "IronTeeth",
+    "a": "Basic",
+    "b": "Top",
+    "ok": true,
+    "deciding": [
+     "front",
+     "side"
+    ],
+    "evidence": "front m=0.067 x=0.844 iou=0.939 *; side m=0.072 x=0.844 iou=0.923 *; top m=0.000 x=0.000 iou=1.000"
+   },
+   {
+    "faction": "IronTeeth",
+    "a": "Intermediate",
+    "b": "Advanced",
+    "ok": true,
+    "deciding": [
+     "front",
+     "side"
+    ],
+    "evidence": "front m=0.023 x=0.188 iou=0.954 *; side m=0.030 x=0.219 iou=0.956 *; top m=0.000 x=0.000 iou=1.000"
+   },
+   {
+    "faction": "IronTeeth",
+    "a": "Intermediate",
+    "b": "Top",
+    "ok": true,
+    "deciding": [
+     "front",
+     "side"
+    ],
+    "evidence": "front m=0.043 x=0.844 iou=0.946 *; side m=0.050 x=0.844 iou=0.943 *; top m=0.000 x=0.000 iou=1.000"
+   },
+   {
+    "faction": "IronTeeth",
+    "a": "Advanced",
+    "b": "Top",
+    "ok": true,
+    "deciding": [
+     "front",
+     "side"
+    ],
+    "evidence": "front m=0.019 x=0.844 iou=0.992 *; side m=0.020 x=0.844 iou=0.985 *; top m=0.000 x=0.000 iou=1.000"
+   }
+  ]
+ }
+}
+
+lod2: 12/12 pairs pass (mean|dh|>=0.04 or max|dh|>=0.12 or IoU<=0.85)
+  Folktails  Basic        vs Intermediate PASS via front,side
+  Folktails  Basic        vs Advanced     PASS via front,side
+  Folktails  Basic        vs Top          PASS via front,side
+  Folktails  Intermediate vs Advanced     PASS via front,side
+  Folktails  Intermediate vs Top          PASS via front,side
+  Folktails  Advanced     vs Top          PASS via front,side
+  IronTeeth  Basic        vs Intermediate PASS via front,side
+  IronTeeth  Basic        vs Advanced     PASS via front,side
+  IronTeeth  Basic        vs Top          PASS via front,side
+  IronTeeth  Intermediate vs Advanced     PASS via front,side
+  IronTeeth  Intermediate vs Top          PASS via front,side
+  IronTeeth  Advanced     vs Top          PASS via front,side
+
+lod0: 12/12 pairs pass (mean|dh|>=0.04 or max|dh|>=0.12 or IoU<=0.85)
+  Folktails  Basic        vs Intermediate PASS via front,side
+  Folktails  Basic        vs Advanced     PASS via front,side
+  Folktails  Basic        vs Top          PASS via front,side
+  Folktails  Intermediate vs Advanced     PASS via front,side
+  Folktails  Intermediate vs Top          PASS via front,side
+  Folktails  Advanced     vs Top          PASS via front,side
+  IronTeeth  Basic        vs Intermediate PASS via front,side
+  IronTeeth  Basic        vs Advanced     PASS via front,side
+  IronTeeth  Basic        vs Top          PASS via front,side
+  IronTeeth  Intermediate vs Advanced     PASS via front,side
+  IronTeeth  Intermediate vs Top          PASS via front,side
+  IronTeeth  Advanced     vs Top          PASS via front,side

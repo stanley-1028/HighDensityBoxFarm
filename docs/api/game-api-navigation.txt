@@ -1,0 +1,95 @@
+# member dump for ^Timberborn\.Navigation\.(INavigationService|INavigationRangeService|Accessible|IDistrictService)$
+
+=== Timberborn.Navigation.Accessible   [Timberborn.Navigation]
+  kind: class   base: Timberborn.BaseComponentSystem.BaseComponent
+  interfaces: Timberborn.BaseComponentSystem.IAwakableComponent, Timberborn.WorldPersistence.INamedComponent
+  field System.String <ComponentName>k__BackingField
+  field Timberborn.Navigation.INavigationService _navigationService
+  field Timberborn.Navigation.IPathToAccessibleModifier _pathModifier
+  field List<Timberborn.Navigation.IAccessibleValidator> _accessibleValidators
+  field Timberborn.Navigation.IBlockedAccessible _blockedAccessible
+  field List<UnityEngine.Vector3> _accesses
+  field List<Timberborn.Navigation.PathCorner> _tempPathCorners
+  field Nullable<UnityEngine.Vector3> _finalAccess
+  prop System.String ComponentName {get/set}
+  prop ReadOnlyList<UnityEngine.Vector3> Accesses {get}
+  prop System.Boolean ValidAccessible {get}
+  prop Nullable<UnityEngine.Vector3> UnblockedSingleAccess {get}
+  prop Nullable<UnityEngine.Vector3> UnblockedSingleAccessInstant {get}
+  prop System.Boolean HasSingleAccess {get}
+  prop System.Boolean IsBlocked {get}
+  prop System.Boolean IsBlockedInstant {get}
+  method public System.String get_ComponentName()
+  method private System.Void set_ComponentName(System.String value)
+  method public System.Void .ctor(Timberborn.Navigation.INavigationService navigationService)
+  method public ReadOnlyList<UnityEngine.Vector3> get_Accesses()
+  method public System.Boolean get_ValidAccessible()
+  method public Nullable<UnityEngine.Vector3> get_UnblockedSingleAccess()
+  method public Nullable<UnityEngine.Vector3> get_UnblockedSingleAccessInstant()
+  method public System.Boolean get_HasSingleAccess()
+  method public System.Void Awake()
+  method public System.Void Initialize(System.String componentName)
+  method public System.Void SetAccesses(IEnumerable<UnityEngine.Vector3> accesses, Nullable<UnityEngine.Vector3> finalAccess)
+  method public System.Void ClearAccesses()
+  method public System.Boolean IsReachableByRoad(Timberborn.Navigation.Accessible end)
+  method public System.Boolean FindRoadPath(UnityEngine.Vector3 end, ref System.Single distance)
+  method public System.Boolean FindRoadPath(Timberborn.Navigation.Accessible end, ref System.Single distance)
+  method public System.Boolean FindInstantRoadPath(UnityEngine.Vector3 end, ref System.Single distance)
+  method public System.Boolean FindInstantRoadPath(Timberborn.Navigation.Accessible end, ref System.Single distance)
+  method public System.Boolean IsReachableByTerrain(UnityEngine.Vector3 end)
+  method public System.Boolean IsReachableByRoadToTerrain(Timberborn.Navigation.Accessible end)
+  method public System.Boolean FindTerrainPath(UnityEngine.Vector3 end, ref System.Single distance)
+  method public System.Boolean FindTerrainPath(Timberborn.Navigation.Accessible end, ref System.Single distance)
+  method public System.Boolean FindRoadToTerrainPath(Timberborn.Navigation.Accessible end, ref UnityEngine.Vector3 endOfRoad, ref System.Single totalDistance)
+  method public System.Boolean FindRoadToTerrainPath(UnityEngine.Vector3 end, ref System.Single totalDistance)
+  method public System.Boolean FindPathUnlimitedRange(UnityEngine.Vector3 start, List<Timberborn.Navigation.PathCorner> pathCorners, ref System.Single distance)
+  method public UnityEngine.Vector3 FindExitPath(UnityEngine.Vector3 start, List<Timberborn.Navigation.PathCorner> pathCorners)
+  method public System.Boolean IsReachableUnlimitedRange(UnityEngine.Vector3 start)
+  method private System.Boolean get_IsBlocked()
+  method private System.Boolean get_IsBlockedInstant()
+  method private System.Boolean IsValid()
+
+=== Timberborn.Navigation.IDistrictService   [Timberborn.Navigation]
+  kind: interface   base: -
+  method public Timberborn.Navigation.District AddDistrict(UnityEngine.Vector3Int centerCoordinates)
+  method public System.Void RemoveDistrict(Timberborn.Navigation.District district)
+  method public Timberborn.Navigation.District AddPreviewDistrict(UnityEngine.Vector3Int centerCoordinates)
+  method public System.Void RemovePreviewDistrict(Timberborn.Navigation.District district)
+  method public System.Void SetObstacle(UnityEngine.Vector3Int coordinates)
+  method public System.Void UnsetObstacle(UnityEngine.Vector3Int coordinates)
+  method public System.Void SetPreviewObstacle(UnityEngine.Vector3Int coordinates)
+  method public System.Void UnsetPreviewObstacle(UnityEngine.Vector3Int coordinates)
+  method public System.Boolean IsPreviewDistrictInConflict(Nullable<UnityEngine.Vector3Int> previewDistrictCenter)
+  method public System.Boolean DistrictIsGloballyReachable(Timberborn.Navigation.District district, UnityEngine.Vector3 start)
+  method public System.Boolean IsOnDistrictRoad(Timberborn.Navigation.District district, UnityEngine.Vector3 road)
+  method public System.Boolean IsOnInstantDistrictRoad(Timberborn.Navigation.District district, UnityEngine.Vector3 road)
+  method public System.Boolean IsOnPreviewDistrictRoad(Timberborn.Navigation.District district, UnityEngine.Vector3 road)
+  method public System.Boolean IsOnInstantDistrictRoadSpill(Timberborn.Navigation.Accessible accessible)
+  method public System.Boolean IsOnInstantDistrictRoadSpill(UnityEngine.Vector3 position)
+  method public UnityEngine.Vector3 GetRandomDestinationInDistrict(Timberborn.Navigation.District district, UnityEngine.Vector3 coordinates)
+
+=== Timberborn.Navigation.INavigationRangeService   [Timberborn.Navigation]
+  kind: interface   base: -
+  method public IEnumerable<Timberborn.Navigation.WeightedCoordinates> GetRoadNodesInRange(UnityEngine.Vector3 position)
+  method public IEnumerable<Timberborn.Navigation.WeightedCoordinates> GetRoadPreviewNodesInRange(UnityEngine.Vector3 position)
+  method public IEnumerable<UnityEngine.Vector3Int> GetTerrainNodesInRange(UnityEngine.Vector3 position)
+  method public IEnumerable<UnityEngine.Vector3Int> GetTerrainPreviewNodesInRange(UnityEngine.Vector3 position)
+  method public IEnumerable<UnityEngine.Vector3Int> GetRoadSpillNodesInRange(UnityEngine.Vector3 position)
+  method public IEnumerable<UnityEngine.Vector3Int> GetRoadSpillPreviewNodesInRange(UnityEngine.Vector3 position)
+
+=== Timberborn.Navigation.INavigationService   [Timberborn.Navigation]
+  kind: interface   base: -
+  method public System.Single HeuristicDistance(UnityEngine.Vector3 start, UnityEngine.Vector3 end)
+  method public System.Boolean DestinationIsReachable(UnityEngine.Vector3 start, UnityEngine.Vector3 end)
+  method public System.Boolean DestinationIsReachableUnlimitedRange(UnityEngine.Vector3 start, UnityEngine.Vector3 end)
+  method public System.Boolean FindRoadPath(UnityEngine.Vector3 start, UnityEngine.Vector3 end, ref System.Single distance)
+  method public System.Boolean FindInstantRoadPath(UnityEngine.Vector3 access, UnityEngine.Vector3 end, ref System.Single distance)
+  method public System.Boolean FindTerrainPath(UnityEngine.Vector3 start, UnityEngine.Vector3 end, ref System.Single distance)
+  method public System.Boolean FindPath(UnityEngine.Vector3 start, UnityEngine.Vector3 end, List<Timberborn.Navigation.PathCorner> pathCorners)
+  method public System.Boolean FindPathUnlimitedRange(UnityEngine.Vector3 start, UnityEngine.Vector3 end, List<Timberborn.Navigation.PathCorner> pathCorners, ref System.Single distance)
+  method public System.Boolean FindPathUnlimitedRange(UnityEngine.Vector3 start, IReadOnlyList<UnityEngine.Vector3> ends, List<Timberborn.Navigation.PathCorner> pathCorners, ref System.Single distance)
+  method public System.Boolean FindRoadSpillOrTerrainPathUnlimitedRange(UnityEngine.Vector3 start, IReadOnlyList<UnityEngine.Vector3> ends, List<Timberborn.Navigation.PathCorner> pathCorners, ref System.Single distance)
+  method public System.Boolean FindRoadToTerrainPath(UnityEngine.Vector3 roadStart, UnityEngine.Vector3 terrainEnd, ref UnityEngine.Vector3 endOfRoad, ref System.Single distanceFromClosestRoad, ref System.Single totalDistance)
+  method public System.Boolean InStoppingProximity(UnityEngine.Vector3 a, UnityEngine.Vector3 b)
+  method public System.Boolean IsOnNavMesh(UnityEngine.Vector3 position)
+  method public Nullable<UnityEngine.Vector3> ClosestPositionOnNavMesh(UnityEngine.Vector3 position, System.Single maxDistance)

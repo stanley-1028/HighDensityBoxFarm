@@ -1,0 +1,272 @@
+# Curated IL evidence — world-space P0/P1 warning icons (BUILD-04 / chapter 14.2 + 14.6)
+
+Generated 2026-10-25 from the installed Timberborn **1.1.2.8** managed assemblies with
+`tools/ApiIndex` (Mono.Cecil, offline). It keeps the excerpts that justify
+`docs/workstreams/build-04-warning-icons.md`. Full dumps were produced in the session temp
+directory and are not shipped.
+
+## How the dumps were produced
+
+```powershell
+$w = Join-Path $env:TEMP 'hdbf-card-work'
+dotnet build tools\ApiIndex\ApiIndex.csproj -c Release -m:1 -p:HdbfWorkRoot=$w
+$m = 'C:\Program Files (x86)\Steam\steamapps\common\Timberborn\Timberborn_Data\Managed'
+$tool = "$w\bin\ApiIndex\Release\net9.0\ApiIndex.dll"
+dotnet $tool dump $m "$w\il\status-api.txt" '^Timberborn\.StatusSystem\.' '^Timberborn\.BuildingStatuses\.'
+dotnet $tool il   $m "$w\il\status-icon-cycler.txt" 'StatusSystem\.StatusIconCycler' '.*'
+dotnet $tool il   $m "$w\il\status-icon-updater.txt" 'StatusSystem\.(StatusIconCyclerUpdater|StatusIconCyclerFactory|StatusIconMaterials)' '.*'
+dotnet $tool il   $m "$w\il\status-subject.txt" 'StatusSystem\.(StatusSubject|StatusInstance|StatusToggle)' '.*'
+dotnet $tool il   $m "$w\il\status-configurator.txt" '(StatusSystemConfigurator|BuildingStatusesConfigurator)' '.*'
+dotnet $tool il   $m "$w\il\building-status-icon.txt" 'BuildingStatusIcon(Offsetter|Updater)' '.*'
+dotnet $tool il   $m "$w\il\status-initializers.txt" '(NoPowerStatus|NeedsWaterBuildingStatus|NoRecipeStatus|UnconnectedBuildingStatus|...)' '.*'
+dotnet $tool il   $m "$w\il\camera-service-il.txt" '^Timberborn\.CameraSystem\.CameraService$' '(get_Transform|get_Target|IsInFront|Load)'
+dotnet $tool dump $m "$w\il\selection-api.txt" '^Timberborn\.SelectionSystem\.'
+dotnet $tool dump $m "$w\il\singleton-api.txt" '^Timberborn\.SingletonSystem\.'
+```
+
+Type visibility below was read from `docs/api/game-type-index.txt` (660 assemblies).
+
+## 1. Every vanilla building already owns the floating-status pipeline
+
+`Timberborn.BuildingStatuses.BuildingStatusesConfigurator::ProvideTemplateModule` (public type,
+`[Context]`-installed by the game) decorates every `BuildingSpec` entity:
+
+```text
+  IL_0006: callvirt ... TemplateModule/Builder::AddDecorator<Timberborn.Buildings.BuildingSpec,Timberborn.BuildingStatuses.BuildingStatusIconOffsetter>()
+  IL_000c: callvirt ... Builder::AddDecorator<Timberborn.Buildings.BuildingSpec,Timberborn.StatusSystem.StatusSubject>()
+  IL_0012: callvirt ... Builder::AddDecorator<Timberborn.Buildings.BuildingSpec,Timberborn.StatusSystem.StatusIconCycler>()
+  IL_0017: callvirt Timberborn.TemplateInstantiation.TemplateModule TemplateModule/Builder::Build()
+```
+
+`Timberborn.StatusSystem.StatusSystemConfigurator::ProvideTemplateModule` adds the camera and slot
+components that make the icon render correctly without any mod-side work:
+
+```text
+  IL_0006: callvirt ... Builder::AddDecorator<Timberborn.StatusSystem.StatusIconCycler,Timberborn.CameraSystem.FacingCamera>()
+  IL_000c: callvirt ... Builder::AddDecorator<Timberborn.BlockSystem.BlockObject,Timberborn.StatusSystem.StatusSlotOccupier>()
+```
+
+The HDBF blueprints ship `BuildingSpec`, so every box farm automatically gets `StatusSubject`,
+`StatusIconCycler`, `FacingCamera`, `StatusSlotOccupier` and `BuildingStatusIconOffsetter`. The mod
+never instantiates a sprite/prefab/renderer of its own.
+
+`BuildingStatusIconOffsetter` creates the icon root and owns vanilla stacking/visibility:
+
+```text
+=== Timberborn.BuildingStatuses.BuildingStatusIconOffsetter::PreInitializeEntity
+  IL_0001: ldfld Timberborn.StatusSystem.StatusIconCycler ...::_statusIconCycler
+  IL_0007: call UnityEngine.Transform Timberborn.BaseComponentSystem.BaseComponent::get_Transform()
+  IL_000c: ldc.r4 0.5
+  IL_0011: callvirt System.Void Timberborn.StatusSystem.StatusIconCycler::InitializeIcon(UnityEngine.Transform,System.Single)
+```
+
+```text
+=== ...BuildingStatusIconOffsetter::Awake   (excerpt)
+  IL_003d: call !!0 BaseComponent::GetComponent<Timberborn.StatusSystem.StatusIconCycler>()
+  IL_004e: callvirt Timberborn.StatusSystem.StatusVisibilityToggle StatusIconCycler::GetStatusVisibilityToggle()
+  IL_0053: stfld ...::_statusVisibilityToggle
+
+=== ...BuildingStatusIconOffsetter::SetIconPosition   (excerpt)
+  IL_000f: callvirt System.Single IStatusIconOffsetService::CalculateVerticalPosition(IStatusIconOffsetter)
+  IL_0037: callvirt System.Void StatusIconCycler::SetIconLocalPosition(UnityEngine.Vector3)
+```
+
+`GetStatusVisibilityToggle()` is public, so the mod can hide/show the floating icon without
+deactivating the underlying status (distance culling and the ≤1 Hz blink use it).
+
+## 2. Registering a status → the vanilla icon cycler shows it
+
+`StatusSubject` is public (`Timberborn.StatusSystem.StatusSubject : BaseComponent`):
+
+```text
+=== Timberborn.StatusSystem.StatusSubject::RegisterStatus
+  IL_0008: callvirt Timberborn.StatusSystem.StatusInstance StatusInstanceFactory::CreateStatus(StatusSubject,StatusToggle)
+  IL_000e: ldfld Timberborn.StatusSystem.StatusAggregator ...::_statusAggregator
+  IL_0015: callvirt System.Void StatusAggregator::AddStatus(StatusInstance)
+  IL_001d: call System.Void StatusSubject::UpdateStatus(StatusToggle,StatusInstance)
+```
+
+`StatusToggle` factories are public and do not need a blueprint:
+
+```text
+=== StatusToggle::CreatePriorityStatusWithFloatingIcon(String spriteName, String description, Single delayInHours)
+  IL_0003: call StatusSpecification::CreateWithIcon(System.String,System.String,System.Single)
+  IL_0008: ldc.i4.1
+  IL_0009: newobj StatusToggle::.ctor(StatusSpecification,Boolean)
+
+=== StatusToggle::CreateNormalStatusWithFloatingIcon(String spriteName, String description, Single delayInHours)
+  IL_0003: call StatusSpecification::CreateWithIcon(System.String,System.String,System.Single)
+  IL_0008: ldc.i4.0
+  IL_0009: newobj StatusToggle::.ctor(StatusSpecification,Boolean)
+```
+
+`StatusIconCycler` only shows statuses whose `StatusInstance.ShowFloatingIcon` is set, and it shows
+**one** camera-facing icon at a time:
+
+```text
+=== StatusIconCycler::CheckActiveStatuses   (excerpt)
+  IL_0011: callvirt ReadOnlyList<StatusInstance> StatusSubject::get_ActiveStatuses()
+  IL_003f: call Boolean FastCollectionExtensions::FastAny<StatusInstance>(..., Predicate<StatusInstance>)
+  IL_0055: call System.Void StatusIconCycler::UpdateIcon()
+
+=== StatusIconCycler::UpdateIcon   (excerpt)
+  IL_001d: callvirt System.Boolean StatusInstance::get_ShowFloatingIcon()
+  IL_0025: callvirt System.Boolean StatusInstance::IsVisible()
+  IL_002e: call System.Void StatusIconCycler::ShowIcon(StatusInstance)
+
+=== StatusIconCycler::ShowIcon   (excerpt)
+  IL_001d: callvirt UnityEngine.Sprite StatusInstance::get_IconLarge()
+  IL_0022: callvirt System.Void StatusIconMaterials::SetMaterial(MeshRenderer,Sprite)
+  IL_0029: call System.Void StatusIconCycler::ToggleStatusIcon(Boolean)
+```
+
+`ToggleStatusIcon` calls the vanilla `FacingCamera.Enable(transform)`; `UpdateScale` divides the
+icon scale by the building's local scale, i.e. the sprite size, camera facing and scaling are
+vanilla:
+
+```text
+=== StatusIconCycler::ToggleStatusIcon   (excerpt)
+  IL_0033: ldfld Timberborn.CameraSystem.FacingCamera ...::_facingCamera
+  IL_0043: callvirt System.Void FacingCamera::Enable(UnityEngine.Transform)
+
+=== StatusIconCycler::UpdateScale   (excerpt)
+  IL_000e: ldfld System.Single StatusIconCycler::_radius
+  IL_0015: ldfld System.Single UnityEngine.Vector3::x
+  IL_001a: div
+  IL_003a: ldfld UnityEngine.GameObject StatusIconCycler::_statusIcon
+  IL_0046: callvirt System.Void UnityEngine.Transform::set_localScale(UnityEngine.Vector3)
+```
+
+Icon material: `StatusIconMaterials` clones the renderer material and writes the sprite texture into
+`_BaseMap` — no new material/shader is authored by the mod:
+
+```text
+=== StatusIconMaterials::SetMaterial   (excerpt)
+  IL_0014: newobj System.Void UnityEngine.Material::.ctor(UnityEngine.Material)
+  IL_001b: ldsfld System.Int32 StatusIconMaterials::BaseMapProperty
+  IL_0021: callvirt UnityEngine.Texture2D UnityEngine.Sprite::get_texture()
+  IL_0026: callvirt System.Void UnityEngine.Material::SetTexture(System.Int32,UnityEngine.Texture)
+
+=== StatusIconMaterials::.cctor
+  IL_0000: ldstr "_BaseMap"
+  IL_0005: call System.Int32 UnityEngine.Shader::PropertyToID(System.String)
+```
+
+## 3. Sprite names and the icon update cadence
+
+`StatusSpriteLoader` loads `<SpriteName>` below a fixed vanilla directory:
+
+```text
+=== StatusSpriteLoader::LoadSprite
+  IL_0000: ldsfld System.String StatusSpriteLoader::StatusSpriteDirectory
+  IL_0006: call System.String System.IO.Path::Combine(System.String,System.String)
+  IL_0013: callvirt !!0 IAssetLoader::Load<UnityEngine.Sprite>(System.String)
+
+=== StatusSpriteLoader::.cctor
+  IL_0000: ldstr "Sprites/StatusIcons"
+```
+
+Vanilla sprite-name literals reused by BUILD-04 (read from the status classes' IL):
+
+| Sprite name | Evidence |
+|---|---|
+| `NoPower` | `Timberborn.MechanicalSystemUI.NoPowerStatus::.cctor` → `ldstr "NoPower"` |
+| `BuildingNeedsWater` | `Timberborn.WaterBuildingsUI.NeedsWaterBuildingStatus::Awake` → `ldstr "BuildingNeedsWater"` |
+| `UnspecifiedRecipe` | `Timberborn.Workshops.NoRecipeStatus::Awake` → `ldstr "UnspecifiedRecipe"` |
+| `UnconnectedBuilding` | `Timberborn.BuildingsReachability.UnconnectedBuildingStatus::Awake` → `ldstr "UnconnectedBuilding"` |
+
+The cycler is driven by a singleton updater; its interval is 1.25 s and the per-frame part only
+hides a status whose `IsVisible()` became false:
+
+```text
+=== StatusIconCyclerUpdater::UpdateSingleton   (excerpt)
+  IL_001c: callvirt System.Void StatusIconCycler::UpdateStatusVisibility()   // every frame
+  IL_002f: callfloat System.Single UnityEngine.Time::get_unscaledTime()
+  IL_0054: callvirt System.Void StatusIconCycler::IntervalUpdate()           // every UpdateInterval
+
+=== StatusIconCyclerUpdater::.cctor
+  IL_0000: ldc.r4 1.25
+  IL_0005: stsfld System.Single StatusIconCyclerUpdater::UpdateInterval
+```
+
+Consequence for BUILD-04: the mod's own 0.5 s pass decides *which* P0/P1 status is active; the
+vanilla cycler renders it and updates visibility/scale itself. The mod does not render or animate
+sprites, and it avoids the vanilla rotation by keeping at most one relevant toggle active (all
+other HDBF toggles are deactivated), so the icon does not flicker between two mod statuses.
+
+`StatusVisibilityToggle` is public and `StatusIconCycler::UpdateVisibility` reacts to its events:
+
+```text
+=== StatusVisibilityToggle (public API)
+  method public System.Void Hide()
+  method public System.Void Show()
+  prop System.Boolean Hidden {get/set}
+  event System.EventHandler StateChanged
+
+=== StatusIconCycler::UpdateVisibility   (excerpt)
+  IL_0025: call Boolean FastCollectionExtensions::FastAny<StatusVisibilityToggle>(... get_Hidden)
+  IL_003a: stfld System.Boolean StatusIconCycler::_visible
+  IL_0040: call System.Void StatusIconCycler::ToggleRoot(Boolean)
+  IL_0046: call System.Void StatusIconCycler::CheckActiveStatuses()
+```
+
+## 4. Camera and selection APIs used by the coordinator
+
+`CameraService` is a public singleton; `Transform` is the camera transform and `Target` the camera
+focus (used as the "distance in cells" origin):
+
+```text
+=== Timberborn.CameraSystem.CameraService::get_Transform
+  IL_0001: ldfld UnityEngine.Camera CameraService::_camera
+  IL_0006: callvirt UnityEngine.Transform UnityEngine.Component::get_transform()
+
+=== Timberborn.CameraSystem.CameraService::get_Target
+  IL_0001: ldfld UnityEngine.Vector3 CameraService::<Target>k__BackingField
+  IL_0006: ret
+
+=== Timberborn.CameraSystem.CameraService::Load   (excerpt)
+  IL_001d: callvirt UnityEngine.Camera CameraFactory::Create(System.String)
+  IL_0022: stfld UnityEngine.Camera CameraService::_camera
+```
+
+The camera GameObject is resolved once (`Transform.GetComponent<Camera>()`) and cached in the
+coordinator; the per-frame path then only calls `WorldToViewportPoint`. The distance is measured to
+`CameraService.Target`, not to the camera, because the camera's own distance is a zoom function
+(`CameraServiceSpec.BaseDistance = 32`, blueprint `Configurations/CameraService.blueprint.json`), so
+a 40-cell camera-distance budget would hide every icon when zoomed out.
+
+Locating a farm from the aggregation row uses the vanilla selection service:
+
+```text
+=== Timberborn.SelectionSystem.EntitySelectionService (public API)
+  method public System.Void Select(Timberborn.BaseComponentSystem.BaseComponent target)
+  method public System.Void SelectAndFocusOn(Timberborn.BaseComponentSystem.BaseComponent target)
+  prop Timberborn.SelectionSystem.SelectableObject SelectedObject {get/set}
+
+=== EntitySelectionService::SelectAndFocusOn
+  IL_0001: call System.Boolean EntitySelectionService::IsSelectable(BaseComponent)
+  IL_000f: callvirt SelectableObject SelectableObjectRetriever::GetSelectableObject(BaseComponent)
+  IL_0017: call System.Void EntitySelectionService::UpdateVisibleLayer(SelectableObject)
+  IL_001e: call System.Void EntitySelectionService::SelectSelectable(SelectableObject)
+  IL_0025: call System.Void EntitySelectionService::FocusOnSelectable(SelectableObject)
+
+=== EntitySelectionService::IsSelectable   (excerpt)
+  IL_0009: callvirt System.Boolean BaseComponent::HasComponent<Timberborn.EntitySystem.EntityComponent>()
+  IL_0016: callvirt System.Boolean EntityComponent::get_Deleted()
+```
+
+`IsSelectable` only requires a live `EntityComponent`, so passing any component of the farm entity
+(the HDBF controller is a `BaseComponent`) is the same path the alert panel uses to jump to a
+building. BUILD-04 does not move the camera itself.
+
+## 5. Lifecycle interfaces the new singletons implement
+
+```text
+=== Timberborn.SingletonSystem.ILoadableSingleton      method public System.Void Load()
+=== Timberborn.SingletonSystem.IUpdatableSingleton     method public System.Void UpdateSingleton()
+=== Timberborn.SingletonSystem.IUnloadableSingleton    method public System.Void Unload()
+```
+
+`Bindito` configurators bind custom singletons with `Bind<X>().AsSingleton()`, and the game's
+`SingletonLifecycleService` drives these methods (same mechanism already used by
+`HdbfPlotHighlightService`, which is bound the same way).

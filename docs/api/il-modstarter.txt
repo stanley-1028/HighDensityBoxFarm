@@ -1,0 +1,120 @@
+
+=== Timberborn.ModManagerScene.IModStarter::StartMod   [Timberborn.ModManagerScene]
+  (no body)
+
+=== Timberborn.ModManagerScene.ModCodeStarter::LoadAssemblies   [Timberborn.ModManagerScene]
+  IL_0000: ldarg.0
+  IL_0001: ldfld Timberborn.Modding.ModRepository Timberborn.ModManagerScene.ModCodeStarter::_modRepository
+  IL_0006: callvirt System.Collections.Generic.IEnumerable`1<Timberborn.Modding.Mod> Timberborn.Modding.ModRepository::get_EnabledMods()
+  IL_000b: callvirt System.Collections.Generic.IEnumerator`1<!0> System.Collections.Generic.IEnumerable`1<Timberborn.Modding.Mod>::GetEnumerator()
+  IL_0010: stloc.0
+  IL_0011: br.s IL_0021
+  IL_0013: ldloc.0
+  IL_0014: callvirt !0 System.Collections.Generic.IEnumerator`1<Timberborn.Modding.Mod>::get_Current()
+  IL_0019: stloc.1
+  IL_001a: ldarg.0
+  IL_001b: ldloc.1
+  IL_001c: call System.Void Timberborn.ModManagerScene.ModCodeStarter::LoadAssemblies(Timberborn.Modding.Mod)
+  IL_0021: ldloc.0
+  IL_0022: callvirt System.Boolean System.Collections.IEnumerator::MoveNext()
+  IL_0027: brtrue.s IL_0013
+  IL_0029: leave.s IL_0035
+  IL_002b: ldloc.0
+  IL_002c: brfalse.s IL_0034
+  IL_002e: ldloc.0
+  IL_002f: callvirt System.Void System.IDisposable::Dispose()
+  IL_0034: endfinally
+  IL_0035: ret
+
+=== Timberborn.ModManagerScene.ModCodeStarter::LoadAssemblies   [Timberborn.ModManagerScene]
+  IL_0000: ldarg.0
+  IL_0001: ldfld System.Collections.Generic.Dictionary`2<Timberborn.Modding.Mod,System.Collections.Generic.List`1<System.Reflection.Assembly>> Timberborn.ModManagerScene.ModCodeStarter::_loadedAssemblies
+  IL_0006: ldarg.1
+  IL_0007: newobj System.Void System.Collections.Generic.List`1<System.Reflection.Assembly>::.ctor()
+  IL_000c: callvirt System.Void System.Collections.Generic.Dictionary`2<Timberborn.Modding.Mod,System.Collections.Generic.List`1<System.Reflection.Assembly>>::set_Item(!0,!1)
+  IL_0011: ldarg.1
+  IL_0012: callvirt Timberborn.Modding.ModDirectory Timberborn.Modding.Mod::get_ModDirectory()
+  IL_0017: stloc.2
+  IL_0018: ldloca.s V_2
+  IL_001a: call System.IO.DirectoryInfo Timberborn.Modding.ModDirectory::get_Directory()
+  IL_001f: ldstr "*.dll"
+  IL_0024: ldc.i4.1
+  IL_0025: callvirt System.IO.FileInfo[] System.IO.DirectoryInfo::GetFiles(System.String,System.IO.SearchOption)
+  IL_002a: stloc.0
+  IL_002b: ldc.i4.0
+  IL_002c: stloc.1
+  IL_002d: br.s IL_0058
+  IL_002f: ldloc.0
+  IL_0030: ldloc.1
+  IL_0031: ldelem.ref
+  IL_0032: callvirt System.String System.IO.FileSystemInfo::get_FullName()
+  IL_0037: call System.Byte[] System.IO.File::ReadAllBytes(System.String)
+  IL_003c: call System.Reflection.Assembly System.Reflection.Assembly::Load(System.Byte[])
+  IL_0041: stloc.3
+  IL_0042: ldarg.0
+  IL_0043: ldfld System.Collections.Generic.Dictionary`2<Timberborn.Modding.Mod,System.Collections.Generic.List`1<System.Reflection.Assembly>> Timberborn.ModManagerScene.ModCodeStarter::_loadedAssemblies
+  IL_0048: ldarg.1
+  IL_0049: callvirt !1 System.Collections.Generic.Dictionary`2<Timberborn.Modding.Mod,System.Collections.Generic.List`1<System.Reflection.Assembly>>::get_Item(!0)
+  IL_004e: ldloc.3
+  IL_004f: callvirt System.Void System.Collections.Generic.List`1<System.Reflection.Assembly>::Add(!0)
+  IL_0054: ldloc.1
+  IL_0055: ldc.i4.1
+  IL_0056: add
+  IL_0057: stloc.1
+  IL_0058: ldloc.1
+  IL_0059: ldloc.0
+  IL_005a: ldlen
+  IL_005b: conv.i4
+  IL_005c: blt.s IL_002f
+  IL_005e: ret
+
+=== Timberborn.ModManagerScene.ModCodeStarter::StartMods   [Timberborn.ModManagerScene]
+  IL_0000: ldarg.0
+  IL_0001: ldfld Timberborn.Modding.ModRepository Timberborn.ModManagerScene.ModCodeStarter::_modRepository
+  IL_0006: callvirt System.Collections.Generic.IEnumerable`1<Timberborn.Modding.Mod> Timberborn.Modding.ModRepository::get_EnabledMods()
+  IL_000b: callvirt System.Collections.Generic.IEnumerator`1<!0> System.Collections.Generic.IEnumerable`1<Timberborn.Modding.Mod>::GetEnumerator()
+  IL_0010: stloc.0
+  IL_0011: br.s IL_0021
+  IL_0013: ldloc.0
+  IL_0014: callvirt !0 System.Collections.Generic.IEnumerator`1<Timberborn.Modding.Mod>::get_Current()
+  IL_0019: stloc.1
+  IL_001a: ldarg.0
+  IL_001b: ldloc.1
+  IL_001c: call System.Void Timberborn.ModManagerScene.ModCodeStarter::StartMod(Timberborn.Modding.Mod)
+  IL_0021: ldloc.0
+  IL_0022: callvirt System.Boolean System.Collections.IEnumerator::MoveNext()
+  IL_0027: brtrue.s IL_0013
+  IL_0029: leave.s IL_0035
+  IL_002b: ldloc.0
+  IL_002c: brfalse.s IL_0034
+  IL_002e: ldloc.0
+  IL_002f: callvirt System.Void System.IDisposable::Dispose()
+  IL_0034: endfinally
+  IL_0035: ret
+
+=== Timberborn.ModManagerScene.ModCodeStarter::StartMod   [Timberborn.ModManagerScene]
+  IL_0000: ldarg.1
+  IL_0001: call Timberborn.ModManagerScene.ModEnvironment Timberborn.ModManagerScene.ModEnvironment::Create(Timberborn.Modding.Mod)
+  IL_0006: stloc.0
+  IL_0007: ldarg.0
+  IL_0008: ldarg.1
+  IL_0009: call System.Collections.Generic.IEnumerable`1<System.Type> Timberborn.ModManagerScene.ModCodeStarter::GetModStarters(Timberborn.Modding.Mod)
+  IL_000e: callvirt System.Collections.Generic.IEnumerator`1<!0> System.Collections.Generic.IEnumerable`1<System.Type>::GetEnumerator()
+  IL_0013: stloc.1
+  IL_0014: br.s IL_002c
+  IL_0016: ldloc.1
+  IL_0017: callvirt !0 System.Collections.Generic.IEnumerator`1<System.Type>::get_Current()
+  IL_001c: call System.Object System.Activator::CreateInstance(System.Type)
+  IL_0021: castclass Timberborn.ModManagerScene.IModStarter
+  IL_0026: ldloc.0
+  IL_0027: callvirt System.Void Timberborn.ModManagerScene.IModStarter::StartMod(Timberborn.ModManagerScene.IModEnvironment)
+  IL_002c: ldloc.1
+  IL_002d: callvirt System.Boolean System.Collections.IEnumerator::MoveNext()
+  IL_0032: brtrue.s IL_0016
+  IL_0034: leave.s IL_0040
+  IL_0036: ldloc.1
+  IL_0037: brfalse.s IL_003f
+  IL_0039: ldloc.1
+  IL_003a: callvirt System.Void System.IDisposable::Dispose()
+  IL_003f: endfinally
+  IL_0040: ret

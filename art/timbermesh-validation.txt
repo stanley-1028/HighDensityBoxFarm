@@ -1,0 +1,443 @@
+========================================================================================================
+HDBF ART-02 - .timbermesh validation report
+========================================================================================================
+generated:  2026-10-25T21:39:28+0800
+mode:       pure-python / Blender-free (zlib + the vendored official plugin's
+            protobuf schema model_pb2; no bpy, no Blender, no Unity)
+contract:   art/timbermesh_common.py (single source of truth: tiers, factions,
+            file naming, vanilla material whitelists, export-space coordinates)
+schema:     art/tools/timbermesh_blender_plugin/model_pb2.py
+python:     CPython 3.14.7 on Windows
+workspace:  C:\Users\user\Documents\Timberborn\Mods\HighDensityBoxFarm
+output dir: art\timbermesh
+files:      16 expected (8 finished LOD0 + 8 ConstructionStage0), 16 present
+tolerances: bounds +-0.050, min corner +-0.050, empty positions +-0.020, uv0 [0,1] +-0.001
+tri budget: <= 6000 per file (timbermesh_common.TRI_BUDGET_LOD0 = LOD0 tier budget)
+elapsed:    0.71 s
+
+--------------------------------------------------------------------------------------------------------
+CHECKS (per file; all eight must PASS for the file to PASS)
+  C1  zlib.decompress(file) then model_pb2.Model().ParseFromString(data), no exception
+  C2  Model.name == file stem (e.g. 'BoxFarm.Basic.Folktails.Model'), Model.version == 0
+  C3  mesh bounds: size == (3.0, 1.0, 2.0) and min == (0, 0, 0), each +-0.05 (game model space is block-corner origin, NOT centred)
+  C4  triangles = sum(len(mesh.indices)//3) over all nodes; must be <= 6000 (timbermesh_common.TRI_BUDGET_LOD0; index counts must be multiples of 3)
+  C5  1 <= distinct mesh.material count <= 4, and every material name is in the faction-specific vanilla whitelist from timbermesh_common.MATERIAL_WHITELIST
+  C6  exactly the 3 nodes #Port#Power/#Port#Pipe/#Port#Logistics (vertexCount == 0, no meshes, position within +-0.02 of the contract), NO #Slot# node at all, and the roof is ONE empty flat platform: no vertex above platform_top+0.06 inside the platform plan, platform face present at platform_top+-0.01
+  C7  vertex property names subset of {position, normal, tangent, color, uv0, uv1, uv2}; 'position','normal','tangent' present on every node with vertexCount > 0; no NaN/Inf; scalarType FLOAT(4); dim 3/3/4/4/2/2/2; data length == vertexCount*dim*4
+  C8  all mesh indices in [0, vertexCount); every node parent is -1 or < its own index; exactly one root node (parent == -1) and its name == file stem; uv0 values in [0, 1] +-0.001
+
+PER-FILE RESULTS
+
+--------------------------------------------------------------------------------------------------------
+[ 1/16] BoxFarm.Basic.Folktails.Model
+  tier=Basic        faction=Folktails  kind=finished (LOD0)
+  file: art\timbermesh\BoxFarm.Basic.Folktails.Model.timbermesh
+  bytes: 148,999 bytes (zlib) -> 956,376 bytes (protobuf)
+  C1  parses (zlib + protobuf)          PASS    zlib ok: 148,999 bytes compressed -> 956,376 bytes protobuf; Model parsed; nodes=4
+  C2  model identity (name/version)     PASS    Model.name='BoxFarm.Basic.Folktails.Model' version=0; root node name='BoxFarm.Basic.Folktails.Model'
+  C3  mesh bounds (3x1x2 @ corner)      PASS    size=(3.0000, 1.0000, 2.0000) min=(-0.0000, -0.0000, -0.0000) max=(3.0000, 1.0000, 2.0000); size_dev=0.0000 min_dev=0.0000 (tolerance 0.050, 14380 vertices)
+  C4  triangles <= budget               PASS    5944 triangles (budget 6000, +56 spare); total index count 17,832
+        - per-node triangles: BoxFarm.Basic.Folktails.Model=5944
+  C5  materials (whitelist + count)     PASS    2 distinct material(s) across 2 mesh(es): ['BaseWood_Brown.Folktails', 'ThatchedRoof.Folktails']; whitelist=Folktails whitelist
+        - INFO (not scored): MATERIAL_MAP[('Basic', 'Folktails', construction=False)] expects ['BaseWood_Brown.Folktails', 'ThatchedRoof.Folktails']; extra=[] missing=[]
+  C6  #Port# empties + empty roof platform PASS    ports 3/3 present exactly once (vertexCount=0, no meshes, max position dev=0.0000, tolerance 0.020); no #Slot# nodes; empty roof platform: face=281 above=0
+        - #Port#Power position=(2.5000, 0.8500, 2.0000) dev=0.0000
+        - #Port#Pipe position=(0.0000, 0.4000, 1.0000) dev=0.0000
+        - #Port#Logistics position=(0.5000, 0.3500, 2.0000) dev=0.0000
+  C7  vertex properties                 PASS    property names ['color', 'normal', 'position', 'tangent', 'uv0']; position/normal/tangent present on 1 vertex node(s); 0 NaN/Inf value(s) in 920,320 bytes of float32 data; scalarType/dimension/length checked
+        - node 'BoxFarm.Basic.Folktails.Model' vertexCount=14380 properties=[('position', 3), ('normal', 3), ('tangent', 4), ('color', 4), ('uv0', 2)] meshes=2
+        - node '#Port#Power' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
+        - node '#Port#Pipe' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
+        - node '#Port#Logistics' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
+  C8  topology (indices/parents/uv0)    PASS    all 17,832 indices in [0, vertexCount); parent links valid; exactly 1 root node ('BoxFarm.Basic.Folktails.Model'); uv0 range u[0.0488, 0.9746] v[0.2212, 0.8262] over 14380 values (tolerance 0.001)
+        - total index count: 17,832; uv0 values checked: 14,380
+  RESULT: PASS
+--------------------------------------------------------------------------------------------------------
+[ 2/16] BoxFarm.Basic.IronTeeth.Model
+  tier=Basic        faction=IronTeeth  kind=finished (LOD0)
+  file: art\timbermesh\BoxFarm.Basic.IronTeeth.Model.timbermesh
+  bytes: 148,660 bytes (zlib) -> 955,866 bytes (protobuf)
+  C1  parses (zlib + protobuf)          PASS    zlib ok: 148,660 bytes compressed -> 955,866 bytes protobuf; Model parsed; nodes=4
+  C2  model identity (name/version)     PASS    Model.name='BoxFarm.Basic.IronTeeth.Model' version=0; root node name='BoxFarm.Basic.IronTeeth.Model'
+  C3  mesh bounds (3x1x2 @ corner)      PASS    size=(3.0000, 1.0000, 2.0000) min=(-0.0000, -0.0000, -0.0000) max=(3.0000, 1.0000, 2.0000); size_dev=0.0000 min_dev=0.0000 (tolerance 0.050, 14372 vertices)
+  C4  triangles <= budget               PASS    5944 triangles (budget 6000, +56 spare); total index count 17,832
+        - per-node triangles: BoxFarm.Basic.IronTeeth.Model=5944
+  C5  materials (whitelist + count)     PASS    2 distinct material(s) across 2 mesh(es): ['BaseWood_DarkBrown.IronTeeth', 'RoofPlanks.IronTeeth']; whitelist=IronTeeth whitelist
+        - INFO (not scored): MATERIAL_MAP[('Basic', 'IronTeeth', construction=False)] expects ['BaseWood_DarkBrown.IronTeeth', 'RoofPlanks.IronTeeth']; extra=[] missing=[]
+  C6  #Port# empties + empty roof platform PASS    ports 3/3 present exactly once (vertexCount=0, no meshes, max position dev=0.0000, tolerance 0.020); no #Slot# nodes; empty roof platform: face=324 above=0
+        - #Port#Power position=(2.5000, 0.8500, 2.0000) dev=0.0000
+        - #Port#Pipe position=(0.0000, 0.4000, 1.0000) dev=0.0000
+        - #Port#Logistics position=(0.5000, 0.3500, 2.0000) dev=0.0000
+  C7  vertex properties                 PASS    property names ['color', 'normal', 'position', 'tangent', 'uv0']; position/normal/tangent present on 1 vertex node(s); 0 NaN/Inf value(s) in 919,808 bytes of float32 data; scalarType/dimension/length checked
+        - node 'BoxFarm.Basic.IronTeeth.Model' vertexCount=14372 properties=[('position', 3), ('normal', 3), ('tangent', 4), ('color', 4), ('uv0', 2)] meshes=2
+        - node '#Port#Power' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
+        - node '#Port#Pipe' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
+        - node '#Port#Logistics' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
+  C8  topology (indices/parents/uv0)    PASS    all 17,832 indices in [0, vertexCount); parent links valid; exactly 1 root node ('BoxFarm.Basic.IronTeeth.Model'); uv0 range u[0.0488, 0.9746] v[0.2217, 0.8262] over 14372 values (tolerance 0.001)
+        - total index count: 17,832; uv0 values checked: 14,372
+  RESULT: PASS
+--------------------------------------------------------------------------------------------------------
+[ 3/16] BoxFarm.Intermediate.Folktails.Model
+  tier=Intermediate faction=Folktails  kind=finished (LOD0)
+  file: art\timbermesh\BoxFarm.Intermediate.Folktails.Model.timbermesh
+  bytes: 147,832 bytes (zlib) -> 952,977 bytes (protobuf)
+  C1  parses (zlib + protobuf)          PASS    zlib ok: 147,832 bytes compressed -> 952,977 bytes protobuf; Model parsed; nodes=4
+  C2  model identity (name/version)     PASS    Model.name='BoxFarm.Intermediate.Folktails.Model' version=0; root node name='BoxFarm.Intermediate.Folktails.Model'
+  C3  mesh bounds (3x1x2 @ corner)      PASS    size=(3.0000, 1.0000, 2.0000) min=(-0.0000, -0.0000, -0.0000) max=(3.0000, 1.0000, 2.0000); size_dev=0.0000 min_dev=0.0000 (tolerance 0.050, 14326 vertices)
+  C4  triangles <= budget               PASS    5944 triangles (budget 6000, +56 spare); total index count 17,832
+        - per-node triangles: BoxFarm.Intermediate.Folktails.Model=5944
+  C5  materials (whitelist + count)     PASS    3 distinct material(s) across 3 mesh(es): ['IrregularPlanks_LightBrown.Folktails', 'WindowsAtlas.Folktails', 'Plaster_White.Folktails']; whitelist=Folktails whitelist
+        - INFO (not scored): MATERIAL_MAP[('Intermediate', 'Folktails', construction=False)] expects ['IrregularPlanks_LightBrown.Folktails', 'Plaster_White.Folktails', 'WindowsAtlas.Folktails']; extra=[] missing=[]
+  C6  #Port# empties + empty roof platform PASS    ports 3/3 present exactly once (vertexCount=0, no meshes, max position dev=0.0000, tolerance 0.020); no #Slot# nodes; empty roof platform: face=293 above=0
+        - #Port#Power position=(2.5000, 0.8500, 2.0000) dev=0.0000
+        - #Port#Pipe position=(0.0000, 0.4000, 1.0000) dev=0.0000
+        - #Port#Logistics position=(0.5000, 0.3500, 2.0000) dev=0.0000
+  C7  vertex properties                 PASS    property names ['color', 'normal', 'position', 'tangent', 'uv0']; position/normal/tangent present on 1 vertex node(s); 0 NaN/Inf value(s) in 916,864 bytes of float32 data; scalarType/dimension/length checked
+        - node 'BoxFarm.Intermediate.Folktails.Model' vertexCount=14326 properties=[('position', 3), ('normal', 3), ('tangent', 4), ('color', 4), ('uv0', 2)] meshes=3
+        - node '#Port#Power' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
+        - node '#Port#Pipe' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
+        - node '#Port#Logistics' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
+  C8  topology (indices/parents/uv0)    PASS    all 17,832 indices in [0, vertexCount); parent links valid; exactly 1 root node ('BoxFarm.Intermediate.Folktails.Model'); uv0 range u[0.0488, 0.9746] v[0.0493, 0.8574] over 14326 values (tolerance 0.001)
+        - total index count: 17,832; uv0 values checked: 14,326
+  RESULT: PASS
+--------------------------------------------------------------------------------------------------------
+[ 4/16] BoxFarm.Intermediate.IronTeeth.Model
+  tier=Intermediate faction=IronTeeth  kind=finished (LOD0)
+  file: art\timbermesh\BoxFarm.Intermediate.IronTeeth.Model.timbermesh
+  bytes: 146,779 bytes (zlib) -> 948,369 bytes (protobuf)
+  C1  parses (zlib + protobuf)          PASS    zlib ok: 146,779 bytes compressed -> 948,369 bytes protobuf; Model parsed; nodes=4
+  C2  model identity (name/version)     PASS    Model.name='BoxFarm.Intermediate.IronTeeth.Model' version=0; root node name='BoxFarm.Intermediate.IronTeeth.Model'
+  C3  mesh bounds (3x1x2 @ corner)      PASS    size=(3.0000, 1.0000, 2.0000) min=(-0.0000, -0.0000, -0.0000) max=(3.0000, 1.0000, 2.0000); size_dev=0.0000 min_dev=0.0000 (tolerance 0.050, 14254 vertices)
+  C4  triangles <= budget               PASS    5944 triangles (budget 6000, +56 spare); total index count 17,832
+        - per-node triangles: BoxFarm.Intermediate.IronTeeth.Model=5944
+  C5  materials (whitelist + count)     PASS    3 distinct material(s) across 3 mesh(es): ['IrregularPlanks_DarkBrown.IronTeeth', 'WindowsAtlas.IronTeeth', 'Plaster_Orange.IronTeeth']; whitelist=IronTeeth whitelist
+        - INFO (not scored): MATERIAL_MAP[('Intermediate', 'IronTeeth', construction=False)] expects ['IrregularPlanks_DarkBrown.IronTeeth', 'Plaster_Orange.IronTeeth', 'WindowsAtlas.IronTeeth']; extra=[] missing=[]
+  C6  #Port# empties + empty roof platform PASS    ports 3/3 present exactly once (vertexCount=0, no meshes, max position dev=0.0000, tolerance 0.020); no #Slot# nodes; empty roof platform: face=332 above=0
+        - #Port#Power position=(2.5000, 0.8500, 2.0000) dev=0.0000
+        - #Port#Pipe position=(0.0000, 0.4000, 1.0000) dev=0.0000
+        - #Port#Logistics position=(0.5000, 0.3500, 2.0000) dev=0.0000
+  C7  vertex properties                 PASS    property names ['color', 'normal', 'position', 'tangent', 'uv0']; position/normal/tangent present on 1 vertex node(s); 0 NaN/Inf value(s) in 912,256 bytes of float32 data; scalarType/dimension/length checked
+        - node 'BoxFarm.Intermediate.IronTeeth.Model' vertexCount=14254 properties=[('position', 3), ('normal', 3), ('tangent', 4), ('color', 4), ('uv0', 2)] meshes=3
+        - node '#Port#Power' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
+        - node '#Port#Pipe' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
+        - node '#Port#Logistics' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
+  C8  topology (indices/parents/uv0)    PASS    all 17,832 indices in [0, vertexCount); parent links valid; exactly 1 root node ('BoxFarm.Intermediate.IronTeeth.Model'); uv0 range u[0.0488, 0.9746] v[0.0493, 0.8574] over 14254 values (tolerance 0.001)
+        - total index count: 17,832; uv0 values checked: 14,254
+  RESULT: PASS
+--------------------------------------------------------------------------------------------------------
+[ 5/16] BoxFarm.Advanced.Folktails.Model
+  tier=Advanced     faction=Folktails  kind=finished (LOD0)
+  file: art\timbermesh\BoxFarm.Advanced.Folktails.Model.timbermesh
+  bytes: 150,326 bytes (zlib) -> 954,818 bytes (protobuf)
+  C1  parses (zlib + protobuf)          PASS    zlib ok: 150,326 bytes compressed -> 954,818 bytes protobuf; Model parsed; nodes=4
+  C2  model identity (name/version)     PASS    Model.name='BoxFarm.Advanced.Folktails.Model' version=0; root node name='BoxFarm.Advanced.Folktails.Model'
+  C3  mesh bounds (3x1x2 @ corner)      PASS    size=(3.0000, 1.0000, 2.0000) min=(-0.0000, -0.0000, -0.0000) max=(3.0000, 1.0000, 2.0000); size_dev=0.0000 min_dev=0.0000 (tolerance 0.050, 14355 vertices)
+  C4  triangles <= budget               PASS    5944 triangles (budget 6000, +56 spare); total index count 17,832
+        - per-node triangles: BoxFarm.Advanced.Folktails.Model=5944
+  C5  materials (whitelist + count)     PASS    4 distinct material(s) across 4 mesh(es): ['BaseWood_White.Folktails', 'PaintedMetal.Folktails', 'WindowsAtlas.Folktails', 'Details.Folktails']; whitelist=Folktails whitelist
+        - INFO (not scored): MATERIAL_MAP[('Advanced', 'Folktails', construction=False)] expects ['BaseWood_White.Folktails', 'Details.Folktails', 'PaintedMetal.Folktails', 'WindowsAtlas.Folktails']; extra=[] missing=[]
+  C6  #Port# empties + empty roof platform PASS    ports 3/3 present exactly once (vertexCount=0, no meshes, max position dev=0.0000, tolerance 0.020); no #Slot# nodes; empty roof platform: face=504 above=0
+        - #Port#Power position=(2.5000, 0.8500, 2.0000) dev=0.0000
+        - #Port#Pipe position=(0.0000, 0.4000, 1.0000) dev=0.0000
+        - #Port#Logistics position=(0.5000, 0.3500, 2.0000) dev=0.0000
+  C7  vertex properties                 PASS    property names ['color', 'normal', 'position', 'tangent', 'uv0']; position/normal/tangent present on 1 vertex node(s); 0 NaN/Inf value(s) in 918,720 bytes of float32 data; scalarType/dimension/length checked
+        - node 'BoxFarm.Advanced.Folktails.Model' vertexCount=14355 properties=[('position', 3), ('normal', 3), ('tangent', 4), ('color', 4), ('uv0', 2)] meshes=4
+        - node '#Port#Power' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
+        - node '#Port#Pipe' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
+        - node '#Port#Logistics' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
+  C8  topology (indices/parents/uv0)    PASS    all 17,832 indices in [0, vertexCount); parent links valid; exactly 1 root node ('BoxFarm.Advanced.Folktails.Model'); uv0 range u[0.0488, 0.8906] v[0.1177, 0.6543] over 14355 values (tolerance 0.001)
+        - total index count: 17,832; uv0 values checked: 14,355
+  RESULT: PASS
+--------------------------------------------------------------------------------------------------------
+[ 6/16] BoxFarm.Advanced.IronTeeth.Model
+  tier=Advanced     faction=IronTeeth  kind=finished (LOD0)
+  file: art\timbermesh\BoxFarm.Advanced.IronTeeth.Model.timbermesh
+  bytes: 149,746 bytes (zlib) -> 953,409 bytes (protobuf)
+  C1  parses (zlib + protobuf)          PASS    zlib ok: 149,746 bytes compressed -> 953,409 bytes protobuf; Model parsed; nodes=4
+  C2  model identity (name/version)     PASS    Model.name='BoxFarm.Advanced.IronTeeth.Model' version=0; root node name='BoxFarm.Advanced.IronTeeth.Model'
+  C3  mesh bounds (3x1x2 @ corner)      PASS    size=(3.0000, 1.0000, 2.0000) min=(-0.0000, -0.0000, -0.0000) max=(3.0000, 1.0000, 2.0000); size_dev=0.0000 min_dev=0.0000 (tolerance 0.050, 14333 vertices)
+  C4  triangles <= budget               PASS    5944 triangles (budget 6000, +56 spare); total index count 17,832
+        - per-node triangles: BoxFarm.Advanced.IronTeeth.Model=5944
+  C5  materials (whitelist + count)     PASS    4 distinct material(s) across 4 mesh(es): ['BaseWood_Grey.IronTeeth', 'PaintedMetal.IronTeeth', 'WindowsAtlas.IronTeeth', 'Details.IronTeeth']; whitelist=IronTeeth whitelist
+        - INFO (not scored): MATERIAL_MAP[('Advanced', 'IronTeeth', construction=False)] expects ['BaseWood_Grey.IronTeeth', 'Details.IronTeeth', 'PaintedMetal.IronTeeth', 'WindowsAtlas.IronTeeth']; extra=[] missing=[]
+  C6  #Port# empties + empty roof platform PASS    ports 3/3 present exactly once (vertexCount=0, no meshes, max position dev=0.0000, tolerance 0.020); no #Slot# nodes; empty roof platform: face=544 above=0
+        - #Port#Power position=(2.5000, 0.8500, 2.0000) dev=0.0000
+        - #Port#Pipe position=(0.0000, 0.4000, 1.0000) dev=0.0000
+        - #Port#Logistics position=(0.5000, 0.3500, 2.0000) dev=0.0000
+  C7  vertex properties                 PASS    property names ['color', 'normal', 'position', 'tangent', 'uv0']; position/normal/tangent present on 1 vertex node(s); 0 NaN/Inf value(s) in 917,312 bytes of float32 data; scalarType/dimension/length checked
+        - node 'BoxFarm.Advanced.IronTeeth.Model' vertexCount=14333 properties=[('position', 3), ('normal', 3), ('tangent', 4), ('color', 4), ('uv0', 2)] meshes=4
+        - node '#Port#Power' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
+        - node '#Port#Pipe' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
+        - node '#Port#Logistics' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
+  C8  topology (indices/parents/uv0)    PASS    all 17,832 indices in [0, vertexCount); parent links valid; exactly 1 root node ('BoxFarm.Advanced.IronTeeth.Model'); uv0 range u[0.0488, 0.8906] v[0.1177, 0.6543] over 14333 values (tolerance 0.001)
+        - total index count: 17,832; uv0 values checked: 14,333
+  RESULT: PASS
+--------------------------------------------------------------------------------------------------------
+[ 7/16] BoxFarm.Top.Folktails.Model
+  tier=Top          faction=Folktails  kind=finished (LOD0)
+  file: art\timbermesh\BoxFarm.Top.Folktails.Model.timbermesh
+  bytes: 150,934 bytes (zlib) -> 954,006 bytes (protobuf)
+  C1  parses (zlib + protobuf)          PASS    zlib ok: 150,934 bytes compressed -> 954,006 bytes protobuf; Model parsed; nodes=4
+  C2  model identity (name/version)     PASS    Model.name='BoxFarm.Top.Folktails.Model' version=0; root node name='BoxFarm.Top.Folktails.Model'
+  C3  mesh bounds (3x1x2 @ corner)      PASS    size=(3.0000, 1.0000, 2.0000) min=(-0.0000, -0.0000, -0.0000) max=(3.0000, 1.0000, 2.0000); size_dev=0.0000 min_dev=0.0000 (tolerance 0.050, 14342 vertices)
+  C4  triangles <= budget               PASS    5948 triangles (budget 6000, +52 spare); total index count 17,844
+        - per-node triangles: BoxFarm.Top.Folktails.Model=5948
+  C5  materials (whitelist + count)     PASS    4 distinct material(s) across 4 mesh(es): ['BaseMetal.Folktails', 'IrregularPlanks_Brown.Folktails', 'Details.Folktails', 'WindowsAtlas.Folktails']; whitelist=Folktails whitelist
+        - INFO (not scored): MATERIAL_MAP[('Top', 'Folktails', construction=False)] expects ['BaseMetal.Folktails', 'Details.Folktails', 'IrregularPlanks_Brown.Folktails', 'WindowsAtlas.Folktails']; extra=[] missing=[]
+  C6  #Port# empties + empty roof platform PASS    ports 3/3 present exactly once (vertexCount=0, no meshes, max position dev=0.0000, tolerance 0.020); no #Slot# nodes; empty roof platform: face=443 above=0
+        - #Port#Power position=(2.5000, 0.8500, 2.0000) dev=0.0000
+        - #Port#Pipe position=(0.0000, 0.4000, 1.0000) dev=0.0000
+        - #Port#Logistics position=(0.5000, 0.3500, 2.0000) dev=0.0000
+  C7  vertex properties                 PASS    property names ['color', 'normal', 'position', 'tangent', 'uv0']; position/normal/tangent present on 1 vertex node(s); 0 NaN/Inf value(s) in 917,888 bytes of float32 data; scalarType/dimension/length checked
+        - node 'BoxFarm.Top.Folktails.Model' vertexCount=14342 properties=[('position', 3), ('normal', 3), ('tangent', 4), ('color', 4), ('uv0', 2)] meshes=4
+        - node '#Port#Power' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
+        - node '#Port#Pipe' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
+        - node '#Port#Logistics' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
+  C8  topology (indices/parents/uv0)    PASS    all 17,844 indices in [0, vertexCount); parent links valid; exactly 1 root node ('BoxFarm.Top.Folktails.Model'); uv0 range u[0.2598, 0.8916] v[0.1128, 0.8257] over 14342 values (tolerance 0.001)
+        - total index count: 17,844; uv0 values checked: 14,342
+  RESULT: PASS
+--------------------------------------------------------------------------------------------------------
+[ 8/16] BoxFarm.Top.IronTeeth.Model
+  tier=Top          faction=IronTeeth  kind=finished (LOD0)
+  file: art\timbermesh\BoxFarm.Top.IronTeeth.Model.timbermesh
+  bytes: 150,306 bytes (zlib) -> 953,383 bytes (protobuf)
+  C1  parses (zlib + protobuf)          PASS    zlib ok: 150,306 bytes compressed -> 953,383 bytes protobuf; Model parsed; nodes=4
+  C2  model identity (name/version)     PASS    Model.name='BoxFarm.Top.IronTeeth.Model' version=0; root node name='BoxFarm.Top.IronTeeth.Model'
+  C3  mesh bounds (3x1x2 @ corner)      PASS    size=(3.0000, 1.0000, 2.0000) min=(-0.0000, -0.0000, -0.0000) max=(3.0000, 1.0000, 2.0000); size_dev=0.0000 min_dev=0.0000 (tolerance 0.050, 14332 vertices)
+  C4  triangles <= budget               PASS    5948 triangles (budget 6000, +52 spare); total index count 17,844
+        - per-node triangles: BoxFarm.Top.IronTeeth.Model=5948
+  C5  materials (whitelist + count)     PASS    4 distinct material(s) across 4 mesh(es): ['BaseMetal.IronTeeth', 'BaseWood_DarkBrown.IronTeeth', 'IrregularPlanks_MetalForged.IronTeeth', 'WindowsAtlas.IronTeeth']; whitelist=IronTeeth whitelist
+        - INFO (not scored): MATERIAL_MAP[('Top', 'IronTeeth', construction=False)] expects ['BaseMetal.IronTeeth', 'BaseWood_DarkBrown.IronTeeth', 'IrregularPlanks_MetalForged.IronTeeth', 'WindowsAtlas.IronTeeth']; extra=[] missing=[]
+  C6  #Port# empties + empty roof platform PASS    ports 3/3 present exactly once (vertexCount=0, no meshes, max position dev=0.0000, tolerance 0.020); no #Slot# nodes; empty roof platform: face=483 above=0
+        - #Port#Power position=(2.5000, 0.8500, 2.0000) dev=0.0000
+        - #Port#Pipe position=(0.0000, 0.4000, 1.0000) dev=0.0000
+        - #Port#Logistics position=(0.5000, 0.3500, 2.0000) dev=0.0000
+  C7  vertex properties                 PASS    property names ['color', 'normal', 'position', 'tangent', 'uv0']; position/normal/tangent present on 1 vertex node(s); 0 NaN/Inf value(s) in 917,248 bytes of float32 data; scalarType/dimension/length checked
+        - node 'BoxFarm.Top.IronTeeth.Model' vertexCount=14332 properties=[('position', 3), ('normal', 3), ('tangent', 4), ('color', 4), ('uv0', 2)] meshes=4
+        - node '#Port#Power' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
+        - node '#Port#Pipe' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
+        - node '#Port#Logistics' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
+  C8  topology (indices/parents/uv0)    PASS    all 17,844 indices in [0, vertexCount); parent links valid; exactly 1 root node ('BoxFarm.Top.IronTeeth.Model'); uv0 range u[0.0537, 0.8916] v[0.1143, 0.8208] over 14332 values (tolerance 0.001)
+        - total index count: 17,844; uv0 values checked: 14,332
+  RESULT: PASS
+--------------------------------------------------------------------------------------------------------
+[ 9/16] BoxFarm.Basic.Folktails.ConstructionStage0.Model
+  tier=Basic        faction=Folktails  kind=construction-stage0
+  file: art\timbermesh\BoxFarm.Basic.Folktails.ConstructionStage0.Model.timbermesh
+  bytes: 9,142 bytes (zlib) -> 55,891 bytes (protobuf)
+  C1  parses (zlib + protobuf)          PASS    zlib ok: 9,142 bytes compressed -> 55,891 bytes protobuf; Model parsed; nodes=4
+  C2  model identity (name/version)     PASS    Model.name='BoxFarm.Basic.Folktails.ConstructionStage0.Model' version=0; root node name='BoxFarm.Basic.Folktails.ConstructionStage0.Model'
+  C3  mesh bounds (3x1x2 @ corner)      PASS    size=(3.0000, 1.0000, 2.0000) min=(-0.0000, -0.0000, -0.0000) max=(3.0000, 1.0000, 2.0000); size_dev=0.0000 min_dev=0.0000 (tolerance 0.050, 834 vertices)
+  C4  triangles <= budget               PASS    348 triangles (budget 6000, +5652 spare); total index count 1,044
+        - per-node triangles: BoxFarm.Basic.Folktails.ConstructionStage0.Model=348
+  C5  materials (whitelist + count)     PASS    2 distinct material(s) across 2 mesh(es): ['BaseWood_Brown.Folktails', 'BaseMetal.Folktails']; whitelist=Folktails whitelist
+        - INFO (not scored): MATERIAL_MAP[('Basic', 'Folktails', construction=True)] expects ['BaseMetal.Folktails', 'BaseWood_Brown.Folktails']; extra=[] missing=[]
+  C6  #Port# empties + empty roof platform PASS    ports 3/3 present exactly once (vertexCount=0, no meshes, max position dev=0.0000, tolerance 0.020); no #Slot# nodes; empty roof platform: face=73 above=0
+        - #Port#Power position=(2.5000, 0.8500, 2.0000) dev=0.0000
+        - #Port#Pipe position=(0.0000, 0.4000, 1.0000) dev=0.0000
+        - #Port#Logistics position=(0.5000, 0.3500, 2.0000) dev=0.0000
+  C7  vertex properties                 PASS    property names ['color', 'normal', 'position', 'tangent', 'uv0']; position/normal/tangent present on 1 vertex node(s); 0 NaN/Inf value(s) in 53,376 bytes of float32 data; scalarType/dimension/length checked
+        - node 'BoxFarm.Basic.Folktails.ConstructionStage0.Model' vertexCount=834 properties=[('position', 3), ('normal', 3), ('tangent', 4), ('color', 4), ('uv0', 2)] meshes=2
+        - node '#Port#Power' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
+        - node '#Port#Pipe' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
+        - node '#Port#Logistics' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
+  C8  topology (indices/parents/uv0)    PASS    all 1,044 indices in [0, vertexCount); parent links valid; exactly 1 root node ('BoxFarm.Basic.Folktails.ConstructionStage0.Model'); uv0 range u[0.0498, 0.6987] v[0.6274, 0.8257] over 834 values (tolerance 0.001)
+        - total index count: 1,044; uv0 values checked: 834
+  RESULT: PASS
+--------------------------------------------------------------------------------------------------------
+[10/16] BoxFarm.Basic.IronTeeth.ConstructionStage0.Model
+  tier=Basic        faction=IronTeeth  kind=construction-stage0
+  file: art\timbermesh\BoxFarm.Basic.IronTeeth.ConstructionStage0.Model.timbermesh
+  bytes: 9,146 bytes (zlib) -> 55,895 bytes (protobuf)
+  C1  parses (zlib + protobuf)          PASS    zlib ok: 9,146 bytes compressed -> 55,895 bytes protobuf; Model parsed; nodes=4
+  C2  model identity (name/version)     PASS    Model.name='BoxFarm.Basic.IronTeeth.ConstructionStage0.Model' version=0; root node name='BoxFarm.Basic.IronTeeth.ConstructionStage0.Model'
+  C3  mesh bounds (3x1x2 @ corner)      PASS    size=(3.0000, 1.0000, 2.0000) min=(-0.0000, -0.0000, -0.0000) max=(3.0000, 1.0000, 2.0000); size_dev=0.0000 min_dev=0.0000 (tolerance 0.050, 834 vertices)
+  C4  triangles <= budget               PASS    348 triangles (budget 6000, +5652 spare); total index count 1,044
+        - per-node triangles: BoxFarm.Basic.IronTeeth.ConstructionStage0.Model=348
+  C5  materials (whitelist + count)     PASS    2 distinct material(s) across 2 mesh(es): ['BaseWood_DarkBrown.IronTeeth', 'BaseMetal.IronTeeth']; whitelist=IronTeeth whitelist
+        - INFO (not scored): MATERIAL_MAP[('Basic', 'IronTeeth', construction=True)] expects ['BaseMetal.IronTeeth', 'BaseWood_DarkBrown.IronTeeth']; extra=[] missing=[]
+  C6  #Port# empties + empty roof platform PASS    ports 3/3 present exactly once (vertexCount=0, no meshes, max position dev=0.0000, tolerance 0.020); no #Slot# nodes; empty roof platform: face=73 above=0
+        - #Port#Power position=(2.5000, 0.8500, 2.0000) dev=0.0000
+        - #Port#Pipe position=(0.0000, 0.4000, 1.0000) dev=0.0000
+        - #Port#Logistics position=(0.5000, 0.3500, 2.0000) dev=0.0000
+  C7  vertex properties                 PASS    property names ['color', 'normal', 'position', 'tangent', 'uv0']; position/normal/tangent present on 1 vertex node(s); 0 NaN/Inf value(s) in 53,376 bytes of float32 data; scalarType/dimension/length checked
+        - node 'BoxFarm.Basic.IronTeeth.ConstructionStage0.Model' vertexCount=834 properties=[('position', 3), ('normal', 3), ('tangent', 4), ('color', 4), ('uv0', 2)] meshes=2
+        - node '#Port#Power' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
+        - node '#Port#Pipe' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
+        - node '#Port#Logistics' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
+  C8  topology (indices/parents/uv0)    PASS    all 1,044 indices in [0, vertexCount); parent links valid; exactly 1 root node ('BoxFarm.Basic.IronTeeth.ConstructionStage0.Model'); uv0 range u[0.0498, 0.6987] v[0.6274, 0.8257] over 834 values (tolerance 0.001)
+        - total index count: 1,044; uv0 values checked: 834
+  RESULT: PASS
+--------------------------------------------------------------------------------------------------------
+[11/16] BoxFarm.Intermediate.Folktails.ConstructionStage0.Model
+  tier=Intermediate faction=Folktails  kind=construction-stage0
+  file: art\timbermesh\BoxFarm.Intermediate.Folktails.ConstructionStage0.Model.timbermesh
+  bytes: 9,151 bytes (zlib) -> 55,905 bytes (protobuf)
+  C1  parses (zlib + protobuf)          PASS    zlib ok: 9,151 bytes compressed -> 55,905 bytes protobuf; Model parsed; nodes=4
+  C2  model identity (name/version)     PASS    Model.name='BoxFarm.Intermediate.Folktails.ConstructionStage0.Model' version=0; root node name='BoxFarm.Intermediate.Folktails.ConstructionStage0.Model'
+  C3  mesh bounds (3x1x2 @ corner)      PASS    size=(3.0000, 1.0000, 2.0000) min=(-0.0000, -0.0000, -0.0000) max=(3.0000, 1.0000, 2.0000); size_dev=0.0000 min_dev=0.0000 (tolerance 0.050, 834 vertices)
+  C4  triangles <= budget               PASS    348 triangles (budget 6000, +5652 spare); total index count 1,044
+        - per-node triangles: BoxFarm.Intermediate.Folktails.ConstructionStage0.Model=348
+  C5  materials (whitelist + count)     PASS    2 distinct material(s) across 2 mesh(es): ['BaseWood_Brown.Folktails', 'BaseMetal.Folktails']; whitelist=Folktails whitelist
+        - INFO (not scored): MATERIAL_MAP[('Intermediate', 'Folktails', construction=True)] expects ['BaseMetal.Folktails', 'BaseWood_Brown.Folktails']; extra=[] missing=[]
+  C6  #Port# empties + empty roof platform PASS    ports 3/3 present exactly once (vertexCount=0, no meshes, max position dev=0.0000, tolerance 0.020); no #Slot# nodes; empty roof platform: face=73 above=0
+        - #Port#Power position=(2.5000, 0.8500, 2.0000) dev=0.0000
+        - #Port#Pipe position=(0.0000, 0.4000, 1.0000) dev=0.0000
+        - #Port#Logistics position=(0.5000, 0.3500, 2.0000) dev=0.0000
+  C7  vertex properties                 PASS    property names ['color', 'normal', 'position', 'tangent', 'uv0']; position/normal/tangent present on 1 vertex node(s); 0 NaN/Inf value(s) in 53,376 bytes of float32 data; scalarType/dimension/length checked
+        - node 'BoxFarm.Intermediate.Folktails.ConstructionStage0.Model' vertexCount=834 properties=[('position', 3), ('normal', 3), ('tangent', 4), ('color', 4), ('uv0', 2)] meshes=2
+        - node '#Port#Power' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
+        - node '#Port#Pipe' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
+        - node '#Port#Logistics' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
+  C8  topology (indices/parents/uv0)    PASS    all 1,044 indices in [0, vertexCount); parent links valid; exactly 1 root node ('BoxFarm.Intermediate.Folktails.ConstructionStage0.Model'); uv0 range u[0.0498, 0.6987] v[0.6274, 0.8257] over 834 values (tolerance 0.001)
+        - total index count: 1,044; uv0 values checked: 834
+  RESULT: PASS
+--------------------------------------------------------------------------------------------------------
+[12/16] BoxFarm.Intermediate.IronTeeth.ConstructionStage0.Model
+  tier=Intermediate faction=IronTeeth  kind=construction-stage0
+  file: art\timbermesh\BoxFarm.Intermediate.IronTeeth.ConstructionStage0.Model.timbermesh
+  bytes: 9,156 bytes (zlib) -> 55,909 bytes (protobuf)
+  C1  parses (zlib + protobuf)          PASS    zlib ok: 9,156 bytes compressed -> 55,909 bytes protobuf; Model parsed; nodes=4
+  C2  model identity (name/version)     PASS    Model.name='BoxFarm.Intermediate.IronTeeth.ConstructionStage0.Model' version=0; root node name='BoxFarm.Intermediate.IronTeeth.ConstructionStage0.Model'
+  C3  mesh bounds (3x1x2 @ corner)      PASS    size=(3.0000, 1.0000, 2.0000) min=(-0.0000, -0.0000, -0.0000) max=(3.0000, 1.0000, 2.0000); size_dev=0.0000 min_dev=0.0000 (tolerance 0.050, 834 vertices)
+  C4  triangles <= budget               PASS    348 triangles (budget 6000, +5652 spare); total index count 1,044
+        - per-node triangles: BoxFarm.Intermediate.IronTeeth.ConstructionStage0.Model=348
+  C5  materials (whitelist + count)     PASS    2 distinct material(s) across 2 mesh(es): ['BaseWood_DarkBrown.IronTeeth', 'BaseMetal.IronTeeth']; whitelist=IronTeeth whitelist
+        - INFO (not scored): MATERIAL_MAP[('Intermediate', 'IronTeeth', construction=True)] expects ['BaseMetal.IronTeeth', 'BaseWood_DarkBrown.IronTeeth']; extra=[] missing=[]
+  C6  #Port# empties + empty roof platform PASS    ports 3/3 present exactly once (vertexCount=0, no meshes, max position dev=0.0000, tolerance 0.020); no #Slot# nodes; empty roof platform: face=73 above=0
+        - #Port#Power position=(2.5000, 0.8500, 2.0000) dev=0.0000
+        - #Port#Pipe position=(0.0000, 0.4000, 1.0000) dev=0.0000
+        - #Port#Logistics position=(0.5000, 0.3500, 2.0000) dev=0.0000
+  C7  vertex properties                 PASS    property names ['color', 'normal', 'position', 'tangent', 'uv0']; position/normal/tangent present on 1 vertex node(s); 0 NaN/Inf value(s) in 53,376 bytes of float32 data; scalarType/dimension/length checked
+        - node 'BoxFarm.Intermediate.IronTeeth.ConstructionStage0.Model' vertexCount=834 properties=[('position', 3), ('normal', 3), ('tangent', 4), ('color', 4), ('uv0', 2)] meshes=2
+        - node '#Port#Power' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
+        - node '#Port#Pipe' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
+        - node '#Port#Logistics' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
+  C8  topology (indices/parents/uv0)    PASS    all 1,044 indices in [0, vertexCount); parent links valid; exactly 1 root node ('BoxFarm.Intermediate.IronTeeth.ConstructionStage0.Model'); uv0 range u[0.0498, 0.6987] v[0.6274, 0.8257] over 834 values (tolerance 0.001)
+        - total index count: 1,044; uv0 values checked: 834
+  RESULT: PASS
+--------------------------------------------------------------------------------------------------------
+[13/16] BoxFarm.Advanced.Folktails.ConstructionStage0.Model
+  tier=Advanced     faction=Folktails  kind=construction-stage0
+  file: art\timbermesh\BoxFarm.Advanced.Folktails.ConstructionStage0.Model.timbermesh
+  bytes: 9,147 bytes (zlib) -> 55,897 bytes (protobuf)
+  C1  parses (zlib + protobuf)          PASS    zlib ok: 9,147 bytes compressed -> 55,897 bytes protobuf; Model parsed; nodes=4
+  C2  model identity (name/version)     PASS    Model.name='BoxFarm.Advanced.Folktails.ConstructionStage0.Model' version=0; root node name='BoxFarm.Advanced.Folktails.ConstructionStage0.Model'
+  C3  mesh bounds (3x1x2 @ corner)      PASS    size=(3.0000, 1.0000, 2.0000) min=(-0.0000, -0.0000, -0.0000) max=(3.0000, 1.0000, 2.0000); size_dev=0.0000 min_dev=0.0000 (tolerance 0.050, 834 vertices)
+  C4  triangles <= budget               PASS    348 triangles (budget 6000, +5652 spare); total index count 1,044
+        - per-node triangles: BoxFarm.Advanced.Folktails.ConstructionStage0.Model=348
+  C5  materials (whitelist + count)     PASS    2 distinct material(s) across 2 mesh(es): ['BaseWood_Brown.Folktails', 'BaseMetal.Folktails']; whitelist=Folktails whitelist
+        - INFO (not scored): MATERIAL_MAP[('Advanced', 'Folktails', construction=True)] expects ['BaseMetal.Folktails', 'BaseWood_Brown.Folktails']; extra=[] missing=[]
+  C6  #Port# empties + empty roof platform PASS    ports 3/3 present exactly once (vertexCount=0, no meshes, max position dev=0.0000, tolerance 0.020); no #Slot# nodes; empty roof platform: face=73 above=0
+        - #Port#Power position=(2.5000, 0.8500, 2.0000) dev=0.0000
+        - #Port#Pipe position=(0.0000, 0.4000, 1.0000) dev=0.0000
+        - #Port#Logistics position=(0.5000, 0.3500, 2.0000) dev=0.0000
+  C7  vertex properties                 PASS    property names ['color', 'normal', 'position', 'tangent', 'uv0']; position/normal/tangent present on 1 vertex node(s); 0 NaN/Inf value(s) in 53,376 bytes of float32 data; scalarType/dimension/length checked
+        - node 'BoxFarm.Advanced.Folktails.ConstructionStage0.Model' vertexCount=834 properties=[('position', 3), ('normal', 3), ('tangent', 4), ('color', 4), ('uv0', 2)] meshes=2
+        - node '#Port#Power' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
+        - node '#Port#Pipe' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
+        - node '#Port#Logistics' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
+  C8  topology (indices/parents/uv0)    PASS    all 1,044 indices in [0, vertexCount); parent links valid; exactly 1 root node ('BoxFarm.Advanced.Folktails.ConstructionStage0.Model'); uv0 range u[0.0498, 0.6987] v[0.6274, 0.8257] over 834 values (tolerance 0.001)
+        - total index count: 1,044; uv0 values checked: 834
+  RESULT: PASS
+--------------------------------------------------------------------------------------------------------
+[14/16] BoxFarm.Advanced.IronTeeth.ConstructionStage0.Model
+  tier=Advanced     faction=IronTeeth  kind=construction-stage0
+  file: art\timbermesh\BoxFarm.Advanced.IronTeeth.ConstructionStage0.Model.timbermesh
+  bytes: 9,151 bytes (zlib) -> 55,901 bytes (protobuf)
+  C1  parses (zlib + protobuf)          PASS    zlib ok: 9,151 bytes compressed -> 55,901 bytes protobuf; Model parsed; nodes=4
+  C2  model identity (name/version)     PASS    Model.name='BoxFarm.Advanced.IronTeeth.ConstructionStage0.Model' version=0; root node name='BoxFarm.Advanced.IronTeeth.ConstructionStage0.Model'
+  C3  mesh bounds (3x1x2 @ corner)      PASS    size=(3.0000, 1.0000, 2.0000) min=(-0.0000, -0.0000, -0.0000) max=(3.0000, 1.0000, 2.0000); size_dev=0.0000 min_dev=0.0000 (tolerance 0.050, 834 vertices)
+  C4  triangles <= budget               PASS    348 triangles (budget 6000, +5652 spare); total index count 1,044
+        - per-node triangles: BoxFarm.Advanced.IronTeeth.ConstructionStage0.Model=348
+  C5  materials (whitelist + count)     PASS    2 distinct material(s) across 2 mesh(es): ['BaseWood_DarkBrown.IronTeeth', 'BaseMetal.IronTeeth']; whitelist=IronTeeth whitelist
+        - INFO (not scored): MATERIAL_MAP[('Advanced', 'IronTeeth', construction=True)] expects ['BaseMetal.IronTeeth', 'BaseWood_DarkBrown.IronTeeth']; extra=[] missing=[]
+  C6  #Port# empties + empty roof platform PASS    ports 3/3 present exactly once (vertexCount=0, no meshes, max position dev=0.0000, tolerance 0.020); no #Slot# nodes; empty roof platform: face=73 above=0
+        - #Port#Power position=(2.5000, 0.8500, 2.0000) dev=0.0000
+        - #Port#Pipe position=(0.0000, 0.4000, 1.0000) dev=0.0000
+        - #Port#Logistics position=(0.5000, 0.3500, 2.0000) dev=0.0000
+  C7  vertex properties                 PASS    property names ['color', 'normal', 'position', 'tangent', 'uv0']; position/normal/tangent present on 1 vertex node(s); 0 NaN/Inf value(s) in 53,376 bytes of float32 data; scalarType/dimension/length checked
+        - node 'BoxFarm.Advanced.IronTeeth.ConstructionStage0.Model' vertexCount=834 properties=[('position', 3), ('normal', 3), ('tangent', 4), ('color', 4), ('uv0', 2)] meshes=2
+        - node '#Port#Power' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
+        - node '#Port#Pipe' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
+        - node '#Port#Logistics' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
+  C8  topology (indices/parents/uv0)    PASS    all 1,044 indices in [0, vertexCount); parent links valid; exactly 1 root node ('BoxFarm.Advanced.IronTeeth.ConstructionStage0.Model'); uv0 range u[0.0498, 0.6987] v[0.6274, 0.8257] over 834 values (tolerance 0.001)
+        - total index count: 1,044; uv0 values checked: 834
+  RESULT: PASS
+--------------------------------------------------------------------------------------------------------
+[15/16] BoxFarm.Top.Folktails.ConstructionStage0.Model
+  tier=Top          faction=Folktails  kind=construction-stage0
+  file: art\timbermesh\BoxFarm.Top.Folktails.ConstructionStage0.Model.timbermesh
+  bytes: 9,141 bytes (zlib) -> 55,887 bytes (protobuf)
+  C1  parses (zlib + protobuf)          PASS    zlib ok: 9,141 bytes compressed -> 55,887 bytes protobuf; Model parsed; nodes=4
+  C2  model identity (name/version)     PASS    Model.name='BoxFarm.Top.Folktails.ConstructionStage0.Model' version=0; root node name='BoxFarm.Top.Folktails.ConstructionStage0.Model'
+  C3  mesh bounds (3x1x2 @ corner)      PASS    size=(3.0000, 1.0000, 2.0000) min=(-0.0000, -0.0000, -0.0000) max=(3.0000, 1.0000, 2.0000); size_dev=0.0000 min_dev=0.0000 (tolerance 0.050, 834 vertices)
+  C4  triangles <= budget               PASS    348 triangles (budget 6000, +5652 spare); total index count 1,044
+        - per-node triangles: BoxFarm.Top.Folktails.ConstructionStage0.Model=348
+  C5  materials (whitelist + count)     PASS    2 distinct material(s) across 2 mesh(es): ['BaseWood_Brown.Folktails', 'BaseMetal.Folktails']; whitelist=Folktails whitelist
+        - INFO (not scored): MATERIAL_MAP[('Top', 'Folktails', construction=True)] expects ['BaseMetal.Folktails', 'BaseWood_Brown.Folktails']; extra=[] missing=[]
+  C6  #Port# empties + empty roof platform PASS    ports 3/3 present exactly once (vertexCount=0, no meshes, max position dev=0.0000, tolerance 0.020); no #Slot# nodes; empty roof platform: face=73 above=0
+        - #Port#Power position=(2.5000, 0.8500, 2.0000) dev=0.0000
+        - #Port#Pipe position=(0.0000, 0.4000, 1.0000) dev=0.0000
+        - #Port#Logistics position=(0.5000, 0.3500, 2.0000) dev=0.0000
+  C7  vertex properties                 PASS    property names ['color', 'normal', 'position', 'tangent', 'uv0']; position/normal/tangent present on 1 vertex node(s); 0 NaN/Inf value(s) in 53,376 bytes of float32 data; scalarType/dimension/length checked
+        - node 'BoxFarm.Top.Folktails.ConstructionStage0.Model' vertexCount=834 properties=[('position', 3), ('normal', 3), ('tangent', 4), ('color', 4), ('uv0', 2)] meshes=2
+        - node '#Port#Power' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
+        - node '#Port#Pipe' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
+        - node '#Port#Logistics' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
+  C8  topology (indices/parents/uv0)    PASS    all 1,044 indices in [0, vertexCount); parent links valid; exactly 1 root node ('BoxFarm.Top.Folktails.ConstructionStage0.Model'); uv0 range u[0.0498, 0.6987] v[0.6274, 0.8257] over 834 values (tolerance 0.001)
+        - total index count: 1,044; uv0 values checked: 834
+  RESULT: PASS
+--------------------------------------------------------------------------------------------------------
+[16/16] BoxFarm.Top.IronTeeth.ConstructionStage0.Model
+  tier=Top          faction=IronTeeth  kind=construction-stage0
+  file: art\timbermesh\BoxFarm.Top.IronTeeth.ConstructionStage0.Model.timbermesh
+  bytes: 9,144 bytes (zlib) -> 55,891 bytes (protobuf)
+  C1  parses (zlib + protobuf)          PASS    zlib ok: 9,144 bytes compressed -> 55,891 bytes protobuf; Model parsed; nodes=4
+  C2  model identity (name/version)     PASS    Model.name='BoxFarm.Top.IronTeeth.ConstructionStage0.Model' version=0; root node name='BoxFarm.Top.IronTeeth.ConstructionStage0.Model'
+  C3  mesh bounds (3x1x2 @ corner)      PASS    size=(3.0000, 1.0000, 2.0000) min=(-0.0000, -0.0000, -0.0000) max=(3.0000, 1.0000, 2.0000); size_dev=0.0000 min_dev=0.0000 (tolerance 0.050, 834 vertices)
+  C4  triangles <= budget               PASS    348 triangles (budget 6000, +5652 spare); total index count 1,044
+        - per-node triangles: BoxFarm.Top.IronTeeth.ConstructionStage0.Model=348
+  C5  materials (whitelist + count)     PASS    2 distinct material(s) across 2 mesh(es): ['BaseWood_DarkBrown.IronTeeth', 'BaseMetal.IronTeeth']; whitelist=IronTeeth whitelist
+        - INFO (not scored): MATERIAL_MAP[('Top', 'IronTeeth', construction=True)] expects ['BaseMetal.IronTeeth', 'BaseWood_DarkBrown.IronTeeth']; extra=[] missing=[]
+  C6  #Port# empties + empty roof platform PASS    ports 3/3 present exactly once (vertexCount=0, no meshes, max position dev=0.0000, tolerance 0.020); no #Slot# nodes; empty roof platform: face=73 above=0
+        - #Port#Power position=(2.5000, 0.8500, 2.0000) dev=0.0000
+        - #Port#Pipe position=(0.0000, 0.4000, 1.0000) dev=0.0000
+        - #Port#Logistics position=(0.5000, 0.3500, 2.0000) dev=0.0000
+  C7  vertex properties                 PASS    property names ['color', 'normal', 'position', 'tangent', 'uv0']; position/normal/tangent present on 1 vertex node(s); 0 NaN/Inf value(s) in 53,376 bytes of float32 data; scalarType/dimension/length checked
+        - node 'BoxFarm.Top.IronTeeth.ConstructionStage0.Model' vertexCount=834 properties=[('position', 3), ('normal', 3), ('tangent', 4), ('color', 4), ('uv0', 2)] meshes=2
+        - node '#Port#Power' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
+        - node '#Port#Pipe' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
+        - node '#Port#Logistics' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
+  C8  topology (indices/parents/uv0)    PASS    all 1,044 indices in [0, vertexCount); parent links valid; exactly 1 root node ('BoxFarm.Top.IronTeeth.ConstructionStage0.Model'); uv0 range u[0.0498, 0.6987] v[0.6274, 0.8257] over 834 values (tolerance 0.001)
+        - total index count: 1,044; uv0 values checked: 834
+  RESULT: PASS
+
+========================================================================================================
+SUMMARY TABLE
+========================================================================================================
+FILE                                           RESULT C1 C2 C3 C4 C5 C6 C7 C8    TRIS MAT PLATFORM  PORT  SIZE X/Y/Z        MIN X/Y/Z        
+BoxFarm.Basic.Folktails.Model                  PASS    P  P  P  P  P  P  P  P    5944   2       ok   3/3  3.000/1.000/2.000 -0.000/-0.000/-0.000
+BoxFarm.Basic.IronTeeth.Model                  PASS    P  P  P  P  P  P  P  P    5944   2       ok   3/3  3.000/1.000/2.000 -0.000/-0.000/-0.000
+BoxFarm.Intermediate.Folktails.Model           PASS    P  P  P  P  P  P  P  P    5944   3       ok   3/3  3.000/1.000/2.000 -0.000/-0.000/-0.000
+BoxFarm.Intermediate.IronTeeth.Model           PASS    P  P  P  P  P  P  P  P    5944   3       ok   3/3  3.000/1.000/2.000 -0.000/-0.000/-0.000
+BoxFarm.Advanced.Folktails.Model               PASS    P  P  P  P  P  P  P  P    5944   4       ok   3/3  3.000/1.000/2.000 -0.000/-0.000/-0.000
+BoxFarm.Advanced.IronTeeth.Model               PASS    P  P  P  P  P  P  P  P    5944   4       ok   3/3  3.000/1.000/2.000 -0.000/-0.000/-0.000
+BoxFarm.Top.Folktails.Model                    PASS    P  P  P  P  P  P  P  P    5948   4       ok   3/3  3.000/1.000/2.000 -0.000/-0.000/-0.000
+BoxFarm.Top.IronTeeth.Model                    PASS    P  P  P  P  P  P  P  P    5948   4       ok   3/3  3.000/1.000/2.000 -0.000/-0.000/-0.000
+BoxFarm.Basic.Folktails.ConstructionStage0.Model PASS    P  P  P  P  P  P  P  P     348   2       ok   3/3  3.000/1.000/2.000 -0.000/-0.000/-0.000
+BoxFarm.Basic.IronTeeth.ConstructionStage0.Model PASS    P  P  P  P  P  P  P  P     348   2       ok   3/3  3.000/1.000/2.000 -0.000/-0.000/-0.000
+BoxFarm.Intermediate.Folktails.ConstructionStage0.Model PASS    P  P  P  P  P  P  P  P     348   2       ok   3/3  3.000/1.000/2.000 -0.000/-0.000/-0.000
+BoxFarm.Intermediate.IronTeeth.ConstructionStage0.Model PASS    P  P  P  P  P  P  P  P     348   2       ok   3/3  3.000/1.000/2.000 -0.000/-0.000/-0.000
+BoxFarm.Advanced.Folktails.ConstructionStage0.Model PASS    P  P  P  P  P  P  P  P     348   2       ok   3/3  3.000/1.000/2.000 -0.000/-0.000/-0.000
+BoxFarm.Advanced.IronTeeth.ConstructionStage0.Model PASS    P  P  P  P  P  P  P  P     348   2       ok   3/3  3.000/1.000/2.000 -0.000/-0.000/-0.000
+BoxFarm.Top.Folktails.ConstructionStage0.Model PASS    P  P  P  P  P  P  P  P     348   2       ok   3/3  3.000/1.000/2.000 -0.000/-0.000/-0.000
+BoxFarm.Top.IronTeeth.ConstructionStage0.Model PASS    P  P  P  P  P  P  P  P     348   2       ok   3/3  3.000/1.000/2.000 -0.000/-0.000/-0.000
+
+========================================================================================================
+RESULT
+========================================================================================================
+FILES:  16/16 present; 16 PASS, 0 FAIL
+CHECKS: 128 PASS, 0 FAIL, 0 NOT RUN (of 128 = 16 files x 8 checks)
+OVERALL VERDICT: PASS
+report: art\timbermesh-validation.txt

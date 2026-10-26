@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>ApiIndex</AssemblyName>
+    <RootNamespace>HDBF.Tools.ApiIndex</RootNamespace>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <!-- Mono.Cecil is referenced from the local NuGet cache on purpose: this machine has no
+       network access to nuget.org, and the API index tool must stay reproducible offline. -->
+  <ItemGroup>
+    <Reference Include="Mono.Cecil">
+      <HintPath>$(UserProfile)\.nuget\packages\mono.cecil\0.11.5\lib\netstandard2.0\Mono.Cecil.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+  </ItemGroup>
+
+</Project>

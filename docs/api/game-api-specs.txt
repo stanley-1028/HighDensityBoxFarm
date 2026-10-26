@@ -1,0 +1,629 @@
+# member dump for ^Timberborn\.BlueprintSystem\.(SpecTypeCache|BlueprintSourceService|BlueprintFileBundleLoader|AdvancedDeserializer|SerializableTypeExtensions)$, ^Timberborn\.TemplateSystem\.(TemplateSpec|TemplateService)$, ^Timberborn\.TemplateInstantiation\.TemplateInstantiator$, ^Timberborn\.BlockObjectModelSystem\.[A-Za-z]+$, ^Timberborn\.BlockSystem\.(BlockObject|BlockSpec|EntranceBlockSpec|BlockObjectLayout|ToolShapes|BlockOccupations)$, ^Timberborn\.BlockObjectTools\.(PlaceableBlockObjectSpecService|BlockObjectToolGroupSpec|BlockObjectToolSpec)$, ^Timberborn\.Goods\.GoodAmountSpec$, ^Timberborn\.WorldPersistence\.(ComponentKey|SingletonKey|PropertyKey|ListKey|IEntitySaver|IEntityLoader)$, ^Timberborn\.Versioning\.Version$
+
+=== Timberborn.BlockObjectModelSystem.BlockObjectModel   [Timberborn.BlockObjectModelSystem]
+  kind: class   base: Timberborn.BaseComponentSystem.BaseComponent
+  interfaces: Timberborn.BaseComponentSystem.IAwakableComponent, Timberborn.BlockObjectModelSystem.IBlockObjectModel, Timberborn.BlockSystem.IInitializablePreview
+  field UnityEngine.GameObject <FullModel>k__BackingField
+  field System.Int32 <UndergroundModelDepth>k__BackingField
+  field Timberborn.BlockObjectModelSystem.BlockObjectModelController _blockObjectModelController
+  field UnityEngine.GameObject _uncoveredModel
+  field UnityEngine.GameObject _undergroundModel
+  field System.Boolean _fullModelPermanentlyHidden
+  prop UnityEngine.GameObject FullModel {get/set}
+  prop System.Int32 UndergroundModelDepth {get/set}
+  prop System.Boolean HasUndergroundModel {get}
+  prop System.Boolean HasUncoveredModel {get}
+  prop System.Boolean UnfinishedConstructionModeModel {get}
+  method public UnityEngine.GameObject get_FullModel()
+  method private System.Void set_FullModel(UnityEngine.GameObject value)
+  method public System.Int32 get_UndergroundModelDepth()
+  method private System.Void set_UndergroundModelDepth(System.Int32 value)
+  method public System.Boolean get_HasUndergroundModel()
+  method public System.Boolean get_HasUncoveredModel()
+  method public System.Boolean get_UnfinishedConstructionModeModel()
+  method public System.Void Awake()
+  method public System.Void InitializePreview()
+  method public System.Void UpdateModelVisibility()
+  method public System.Void HideFullModelPermanently()
+  method public System.Void UnhideFullModelPermanently()
+  method public System.Void .ctor()
+
+=== Timberborn.BlockObjectModelSystem.BlockObjectModelController   [Timberborn.BlockObjectModelSystem]
+  kind: class   base: Timberborn.BaseComponentSystem.BaseComponent
+  interfaces: Timberborn.BaseComponentSystem.IAwakableComponent, Timberborn.EntitySystem.IPostInitializableEntity
+  field System.EventHandler ModelsUpdated
+  field System.Boolean <IsAnyModelShown>k__BackingField
+  field System.Boolean <IsFinishedModelShown>k__BackingField
+  field System.Boolean <IsUncoveredModelShown>k__BackingField
+  field System.Boolean <ShouldShowUncoveredModel>k__BackingField
+  field System.Boolean <ShouldShowUndergroundModel>k__BackingField
+  field Timberborn.BlockSystem.BlockObject <BlockObject>k__BackingField
+  field System.Int32 <UndergroundModelZOffset>k__BackingField
+  field Timberborn.BlockObjectModelSystem.IBlockObjectModel _blockObjectModel
+  field Timberborn.BlockObjectModelSystem.IInfiniteUndergroundModel _infiniteUndergroundModel
+  field List<Timberborn.BlockObjectModelSystem.IModelUpdater> _modelUpdaters
+  field System.Boolean _modelBlocked
+  field System.Boolean _modelBlockageIgnored
+  prop System.Boolean IsAnyModelShown {get/set}
+  prop System.Boolean IsFinishedModelShown {get/set}
+  prop System.Boolean IsUncoveredModelShown {get/set}
+  prop System.Boolean ShouldShowUncoveredModel {get/set}
+  prop System.Boolean ShouldShowUndergroundModel {get/set}
+  prop Timberborn.BlockSystem.BlockObject BlockObject {get/set}
+  prop System.Int32 UndergroundModelZOffset {get/set}
+  prop System.Boolean HasUndergroundModel {get}
+  prop System.Boolean ModelBlocked {get}
+  prop System.Boolean HasUncoveredModel {get}
+  prop System.Int32 UndergroundBaseZ {get}
+  event System.EventHandler ModelsUpdated
+  method public System.Void add_ModelsUpdated(System.EventHandler value)
+  method public System.Void remove_ModelsUpdated(System.EventHandler value)
+  method public System.Boolean get_IsAnyModelShown()
+  method private System.Void set_IsAnyModelShown(System.Boolean value)
+  method public System.Boolean get_IsFinishedModelShown()
+  method private System.Void set_IsFinishedModelShown(System.Boolean value)
+  method public System.Boolean get_IsUncoveredModelShown()
+  method private System.Void set_IsUncoveredModelShown(System.Boolean value)
+  method public System.Boolean get_ShouldShowUncoveredModel()
+  method private System.Void set_ShouldShowUncoveredModel(System.Boolean value)
+  method public System.Boolean get_ShouldShowUndergroundModel()
+  method private System.Void set_ShouldShowUndergroundModel(System.Boolean value)
+  method public Timberborn.BlockSystem.BlockObject get_BlockObject()
+  method private System.Void set_BlockObject(Timberborn.BlockSystem.BlockObject value)
+  method public System.Int32 get_UndergroundModelZOffset()
+  method private System.Void set_UndergroundModelZOffset(System.Int32 value)
+  method public System.Boolean get_HasUndergroundModel()
+  method public System.Boolean get_ModelBlocked()
+  method public System.Boolean get_HasUncoveredModel()
+  method public System.Int32 get_UndergroundBaseZ()
+  method public System.Void Awake()
+  method public System.Void PostInitializeEntity()
+  method public System.Void UpdateModel()
+  method public System.Void UpdateAll()
+  method public System.Void IgnoreModelBlockade()
+  method public System.Void UnignoreModelBlockade()
+  method public System.Void BlockModel()
+  method public System.Void UnblockModel()
+  method public System.Void ShowUncoveredModel()
+  method public System.Void HideUncoveredModel()
+  method public System.Void ShowUndergroundModel()
+  method public System.Void HideUndergroundModel()
+  method public System.Void SetUndergroundModelZOffset(System.Int32 zOffset)
+  method public System.Void SetModelState(System.Boolean isModelShown, System.Boolean isFinishedModelShown, System.Boolean isUncoveredModelShown)
+  method private System.Void UpdateModelVisibility()
+  method public System.Void .ctor()
+
+=== Timberborn.BlockObjectModelSystem.BlockObjectModelSpec   [Timberborn.BlockObjectModelSystem]
+  kind: class   base: Timberborn.BlueprintSystem.ComponentSpec
+  interfaces: IEquatable<Timberborn.BlockObjectModelSystem.BlockObjectModelSpec>
+  field System.String <FullModelName>k__BackingField
+  field System.String <UncoveredModelName>k__BackingField
+  field System.String <UndergroundModelName>k__BackingField
+  field System.Int32 <UndergroundModelDepth>k__BackingField
+  prop System.Type EqualityContract {get}
+  prop System.String FullModelName {get/set}
+  prop System.String UncoveredModelName {get/set}
+  prop System.String UndergroundModelName {get/set}
+  prop System.Int32 UndergroundModelDepth {get/set}
+  method System.Type get_EqualityContract()
+  method public System.String get_FullModelName()
+  method public System.Void modreq(System.Runtime.CompilerServices.IsExternalInit) set_FullModelName(System.String value)
+  method public System.String get_UncoveredModelName()
+  method public System.Void modreq(System.Runtime.CompilerServices.IsExternalInit) set_UncoveredModelName(System.String value)
+  method public System.String get_UndergroundModelName()
+  method public System.Void modreq(System.Runtime.CompilerServices.IsExternalInit) set_UndergroundModelName(System.String value)
+  method public System.Int32 get_UndergroundModelDepth()
+  method public System.Void modreq(System.Runtime.CompilerServices.IsExternalInit) set_UndergroundModelDepth(System.Int32 value)
+  method public System.String ToString()
+  method System.Boolean PrintMembers(System.Text.StringBuilder builder)
+  method public static System.Boolean op_Inequality(Timberborn.BlockObjectModelSystem.BlockObjectModelSpec left, Timberborn.BlockObjectModelSystem.BlockObjectModelSpec right)
+  method public static System.Boolean op_Equality(Timberborn.BlockObjectModelSystem.BlockObjectModelSpec left, Timberborn.BlockObjectModelSystem.BlockObjectModelSpec right)
+  method public System.Int32 GetHashCode()
+  method public System.Boolean Equals(System.Object obj)
+  method public System.Boolean Equals(Timberborn.BlueprintSystem.ComponentSpec other)
+  method public System.Boolean Equals(Timberborn.BlockObjectModelSystem.BlockObjectModelSpec other)
+  method public Timberborn.BlueprintSystem.ComponentSpec <Clone>$()
+  method System.Void .ctor(Timberborn.BlockObjectModelSystem.BlockObjectModelSpec original)
+  method public System.Void .ctor()
+
+=== Timberborn.BlockObjectModelSystem.BlockObjectModelSystemConfigurator   [Timberborn.BlockObjectModelSystem]
+  kind: class   base: Bindito.Core.Configurator
+  [type attr] Bindito.Core.ContextAttribute
+  [type attr] Bindito.Core.ContextAttribute
+  method System.Void Configure()
+  method private static Timberborn.TemplateInstantiation.TemplateModule ProvideTemplateModule()
+  method public System.Void .ctor()
+
+=== Timberborn.BlockObjectModelSystem.GameObjectExtensions   [Timberborn.BlockObjectModelSystem]
+  kind: class   base: System.Object
+  [type attr] System.Runtime.CompilerServices.ExtensionAttribute
+  method public static System.Void ToggleModelVisibility(UnityEngine.GameObject model, System.Boolean showModel, System.Boolean showShadows)
+  method private static System.Void ToggleRenderers(UnityEngine.GameObject model, System.Boolean showModel, System.Boolean showShadows)
+  method private static System.Void ToggleColliders(UnityEngine.GameObject model, System.Boolean showModel)
+
+=== Timberborn.BlockObjectModelSystem.IBlockObjectModel   [Timberborn.BlockObjectModelSystem]
+  kind: interface   base: -
+  prop System.Boolean HasUndergroundModel {get}
+  prop System.Int32 UndergroundModelDepth {get}
+  prop System.Boolean HasUncoveredModel {get}
+  prop System.Boolean UnfinishedConstructionModeModel {get}
+  method public System.Boolean get_HasUndergroundModel()
+  method public System.Int32 get_UndergroundModelDepth()
+  method public System.Boolean get_HasUncoveredModel()
+  method public System.Boolean get_UnfinishedConstructionModeModel()
+  method public System.Void UpdateModelVisibility()
+
+=== Timberborn.BlockObjectModelSystem.IInfiniteUndergroundModel   [Timberborn.BlockObjectModelSystem]
+  kind: interface   base: -
+
+=== Timberborn.BlockObjectModelSystem.IModelUpdater   [Timberborn.BlockObjectModelSystem]
+  kind: interface   base: -
+  method public System.Void UpdateModel()
+
+=== Timberborn.BlockObjectTools.BlockObjectToolGroupSpec   [Timberborn.BlockObjectTools]
+  kind: class   base: Timberborn.BlueprintSystem.ComponentSpec
+  interfaces: IEquatable<Timberborn.BlockObjectTools.BlockObjectToolGroupSpec>
+  field System.String <Id>k__BackingField
+  field System.Int32 <Order>k__BackingField
+  field System.String <NameLocKey>k__BackingField
+  field AssetRef<UnityEngine.Sprite> <Icon>k__BackingField
+  field System.Boolean <FallbackGroup>k__BackingField
+  prop System.Type EqualityContract {get}
+  prop System.String Id {get/set}
+  prop System.Int32 Order {get/set}
+  prop System.String NameLocKey {get/set}
+  prop AssetRef<UnityEngine.Sprite> Icon {get/set}
+  prop System.Boolean FallbackGroup {get/set}
+  method System.Type get_EqualityContract()
+  method public System.String get_Id()
+  method public System.Void modreq(System.Runtime.CompilerServices.IsExternalInit) set_Id(System.String value)
+  method public System.Int32 get_Order()
+  method public System.Void modreq(System.Runtime.CompilerServices.IsExternalInit) set_Order(System.Int32 value)
+  method public System.String get_NameLocKey()
+  method public System.Void modreq(System.Runtime.CompilerServices.IsExternalInit) set_NameLocKey(System.String value)
+  method public AssetRef<UnityEngine.Sprite> get_Icon()
+  method public System.Void modreq(System.Runtime.CompilerServices.IsExternalInit) set_Icon(AssetRef<UnityEngine.Sprite> value)
+  method public System.Boolean get_FallbackGroup()
+  method public System.Void modreq(System.Runtime.CompilerServices.IsExternalInit) set_FallbackGroup(System.Boolean value)
+  method public System.String ToString()
+  method System.Boolean PrintMembers(System.Text.StringBuilder builder)
+  method public static System.Boolean op_Inequality(Timberborn.BlockObjectTools.BlockObjectToolGroupSpec left, Timberborn.BlockObjectTools.BlockObjectToolGroupSpec right)
+  method public static System.Boolean op_Equality(Timberborn.BlockObjectTools.BlockObjectToolGroupSpec left, Timberborn.BlockObjectTools.BlockObjectToolGroupSpec right)
+  method public System.Int32 GetHashCode()
+  method public System.Boolean Equals(System.Object obj)
+  method public System.Boolean Equals(Timberborn.BlueprintSystem.ComponentSpec other)
+  method public System.Boolean Equals(Timberborn.BlockObjectTools.BlockObjectToolGroupSpec other)
+  method public Timberborn.BlueprintSystem.ComponentSpec <Clone>$()
+  method System.Void .ctor(Timberborn.BlockObjectTools.BlockObjectToolGroupSpec original)
+  method public System.Void .ctor()
+
+=== Timberborn.BlockObjectTools.PlaceableBlockObjectSpecService   [Timberborn.BlockObjectTools]
+  kind: class   base: System.Object
+  field Timberborn.BlockObjectTools.BlockObjectToolGroupSpecService _blockObjectToolGroupSpecService
+  field Timberborn.TemplateSystem.TemplateService _templateService
+  method public System.Void .ctor(Timberborn.BlockObjectTools.BlockObjectToolGroupSpecService blockObjectToolGroupSpecService, Timberborn.TemplateSystem.TemplateService templateService)
+  method public IEnumerable<Timberborn.BlockSystem.PlaceableBlockObjectSpec> GetBlockObjects(Timberborn.BlockObjectTools.BlockObjectToolGroupSpec blockObjectToolGroupSpec)
+  method public IEnumerable<Timberborn.BlockSystem.PlaceableBlockObjectSpec> GetBlockObjectsWithoutValidGroup()
+  nested Timberborn.BlockObjectTools.PlaceableBlockObjectSpecService+.<>c
+  nested Timberborn.BlockObjectTools.PlaceableBlockObjectSpecService+.<>c__DisplayClass3_0
+  nested Timberborn.BlockObjectTools.PlaceableBlockObjectSpecService+.<>c__DisplayClass4_0
+
+=== Timberborn.BlockSystem.BlockObject   [Timberborn.BlockSystem]
+  kind: class   base: Timberborn.BaseComponentSystem.BaseComponent
+  interfaces: Timberborn.BaseComponentSystem.IAwakableComponent, Timberborn.EntitySystem.IPreInitializableEntity, Timberborn.WorldPersistence.IPersistentEntity, Timberborn.EntitySystem.IDeletableEntity
+  field static Timberborn.WorldPersistence.ComponentKey BlockObjectKey
+  field static PropertyKey<UnityEngine.Vector3Int> CoordinatesKey
+  field static PropertyKey<Timberborn.Coordinates.Orientation> OrientationKey
+  field static PropertyKey<System.Boolean> FlippedKey
+  field static System.String BlockObjectLoadingIssueLocKey
+  field EventHandler<System.Boolean> OverridableChanged
+  field UnityEngine.Vector3Int <Coordinates>k__BackingField
+  field UnityEngine.Vector3Int <CoordinatesAtBaseZ>k__BackingField
+  field Timberborn.Coordinates.Orientation <Orientation>k__BackingField
+  field Timberborn.Coordinates.FlipMode <FlipMode>k__BackingField
+  field Timberborn.BlockSystem.PositionedBlocks <PositionedBlocks>k__BackingField
+  field Timberborn.BlockSystem.PositionedEntrance <PositionedEntrance>k__BackingField
+  field System.Boolean <Solid>k__BackingField
+  field System.Boolean <GroundOnly>k__BackingField
+  field System.Boolean <AboveGround>k__BackingField
+  field System.Boolean <AddedToService>k__BackingField
+  field System.Boolean <Overridable>k__BackingField
+  field Timberborn.BlockSystem.BlockService _blockService
+  field Timberborn.BlockSystem.BlockValidator _blockValidator
+  field Timberborn.BlockSystem.OverridenBlockObjectService _overridenBlockObjectService
+  field Timberborn.EntitySystem.EntityService _entityService
+  field Timberborn.BlockSystem.BlockObjectValidationService _blockObjectValidationService
+  field Timberborn.ErrorReporting.ILoadingIssueService _loadingIssueService
+  field Timberborn.TransformControl.PositionModifier _positionModifier
+  field Timberborn.TransformControl.RotationModifier _rotationModifier
+  field Timberborn.TransformControl.ScaleModifier _scaleModifier
+  field Timberborn.BlockSystem.PlacementChangeNotifier _placementChangeNotifier
+  field Timberborn.BlockSystem.Blocks _blocks
+  field Timberborn.BlockSystem.BlockObjectCenter _blockObjectCenter
+  field Timberborn.BlockSystem.BlockObjectState _blockObjectState
+  field Timberborn.BlockSystem.BlockObjectSpec _blockObjectSpec
+  field List<Timberborn.BlockSystem.IBlockObjectDeletionBlocker> _deletionBlockers
+  prop UnityEngine.Vector3Int Coordinates {get/set}
+  prop UnityEngine.Vector3Int CoordinatesAtBaseZ {get/set}
+  prop Timberborn.Coordinates.Orientation Orientation {get/set}
+  prop Timberborn.Coordinates.FlipMode FlipMode {get/set}
+  prop Timberborn.BlockSystem.PositionedBlocks PositionedBlocks {get/set}
+  prop Timberborn.BlockSystem.PositionedEntrance PositionedEntrance {get/set}
+  prop System.Boolean Solid {get/set}
+  prop System.Boolean GroundOnly {get/set}
+  prop System.Boolean AboveGround {get/set}
+  prop System.Boolean AddedToService {get/set}
+  prop System.Boolean Overridable {get/set}
+  prop Timberborn.BlockSystem.Blocks Blocks {get}
+  prop Timberborn.BlockSystem.EntranceBlockSpec Entrance {get}
+  prop System.Int32 BaseZ {get}
+  prop Timberborn.Coordinates.Placement Placement {get}
+  prop System.Boolean HasEntrance {get}
+  prop System.Boolean Positioned {get}
+  prop System.Boolean IsFinished {get}
+  prop System.Boolean IsUnfinished {get}
+  prop System.Boolean IsPreview {get}
+  event EventHandler<System.Boolean> OverridableChanged
+  method public System.Void add_OverridableChanged(EventHandler<System.Boolean> value)
+  method public System.Void remove_OverridableChanged(EventHandler<System.Boolean> value)
+  method public UnityEngine.Vector3Int get_Coordinates()
+  method private System.Void set_Coordinates(UnityEngine.Vector3Int value)
+  method public UnityEngine.Vector3Int get_CoordinatesAtBaseZ()
+  method private System.Void set_CoordinatesAtBaseZ(UnityEngine.Vector3Int value)
+  method public Timberborn.Coordinates.Orientation get_Orientation()
+  method private System.Void set_Orientation(Timberborn.Coordinates.Orientation value)
+  method public Timberborn.Coordinates.FlipMode get_FlipMode()
+  method private System.Void set_FlipMode(Timberborn.Coordinates.FlipMode value)
+  method public Timberborn.BlockSystem.PositionedBlocks get_PositionedBlocks()
+  method private System.Void set_PositionedBlocks(Timberborn.BlockSystem.PositionedBlocks value)
+  method public Timberborn.BlockSystem.PositionedEntrance get_PositionedEntrance()
+  method private System.Void set_PositionedEntrance(Timberborn.BlockSystem.PositionedEntrance value)
+  method public System.Boolean get_Solid()
+  method private System.Void set_Solid(System.Boolean value)
+  method public System.Boolean get_GroundOnly()
+  method private System.Void set_GroundOnly(System.Boolean value)
+  method public System.Boolean get_AboveGround()
+  method private System.Void set_AboveGround(System.Boolean value)
+  method public System.Boolean get_AddedToService()
+  method private System.Void set_AddedToService(System.Boolean value)
+  method public System.Boolean get_Overridable()
+  method private System.Void set_Overridable(System.Boolean value)
+  method System.Void .ctor(Timberborn.BlockSystem.BlockService blockService, Timberborn.BlockSystem.BlockValidator blockValidator, Timberborn.BlockSystem.OverridenBlockObjectService overridenBlockObjectService, Timberborn.EntitySystem.EntityService entityService, Timberborn.BlockSystem.BlockObjectValidationService blockObjectValidationService, Timberborn.ErrorReporting.ILoadingIssueService loadingIssueService)
+  method public Timberborn.BlockSystem.Blocks get_Blocks()
+  method public Timberborn.BlockSystem.EntranceBlockSpec get_Entrance()
+  method public System.Int32 get_BaseZ()
+  method public Timberborn.Coordinates.Placement get_Placement()
+  method public System.Boolean get_HasEntrance()
+  method public System.Boolean get_Positioned()
+  method public System.Boolean get_IsFinished()
+  method public System.Boolean get_IsUnfinished()
+  method public System.Boolean get_IsPreview()
+  method public System.Void Awake()
+  method public System.Void PreInitializeEntity()
+  method public System.Void DeleteEntity()
+  method public System.Void MarkAsFinished()
+  method public System.Void MarkAsFinishedAndAddToServices()
+  method public System.Void MarkAsPreview()
+  method public System.Void MarkAsPreviewAndInitialize()
+  method public System.Void MakeOverridable()
+  method public System.Void MakeNonOverridable()
+  method public System.Void Reposition(Timberborn.Coordinates.Placement placement)
+  method public System.Boolean CanDelete()
+  method public UnityEngine.Vector2Int TransformTile(UnityEngine.Vector2Int tile)
+  method public UnityEngine.Vector3Int TransformCoordinates(UnityEngine.Vector3Int coordinates)
+  method public UnityEngine.Vector3 TransformCoordinates(UnityEngine.Vector3 coordinates)
+  method public Timberborn.Coordinates.Direction2D TransformDirection(Timberborn.Coordinates.Direction2D direction2D)
+  method public Timberborn.Coordinates.Direction3D TransformDirection(Timberborn.Coordinates.Direction3D direction3D)
+  method public System.Boolean IsIntersecting(Timberborn.BlockSystem.Block block)
+  method public UnityEngine.Vector3Int CoordinatesBehind()
+  method public System.Void Save(Timberborn.WorldPersistence.IEntitySaver entitySaver)
+  method public System.Void Load(Timberborn.WorldPersistence.IEntityLoader entityLoader)
+  method public System.Boolean IsAlmostValid()
+  method public System.Boolean IsValid()
+  method public System.Void AddToServiceAfterLoad()
+  method private System.Void AddToService()
+  method private System.Void UpdateValues(Timberborn.Coordinates.Placement placement)
+  method private System.Void RemoveFromService()
+  method private System.Void ToggleOverridable(System.Boolean isOverridable)
+  method private System.Void UpdateTransformedBlocks()
+  method private System.Void UpdateTransform()
+  method private static System.Void .cctor()
+  nested Timberborn.BlockSystem.BlockObject+.<>c
+
+=== Timberborn.BlockSystem.BlockObjectLayout   [Timberborn.BlockSystem]
+  kind: enum   base: System.Enum
+  field System.Int32 value__
+  field static Timberborn.BlockSystem.BlockObjectLayout Single
+  field static Timberborn.BlockSystem.BlockObjectLayout Rectangle
+  field static Timberborn.BlockSystem.BlockObjectLayout Line
+  field static Timberborn.BlockSystem.BlockObjectLayout Half
+  field static Timberborn.BlockSystem.BlockObjectLayout SideLine
+  field static Timberborn.BlockSystem.BlockObjectLayout TwoSegmentLine
+
+=== Timberborn.BlockSystem.BlockOccupations   [Timberborn.BlockSystem]
+  kind: enum   base: System.Enum
+  [type attr] System.FlagsAttribute
+  field System.Int32 value__
+  field static Timberborn.BlockSystem.BlockOccupations None
+  field static Timberborn.BlockSystem.BlockOccupations All
+  field static Timberborn.BlockSystem.BlockOccupations Floor
+  field static Timberborn.BlockSystem.BlockOccupations Bottom
+  field static Timberborn.BlockSystem.BlockOccupations Top
+  field static Timberborn.BlockSystem.BlockOccupations Corners
+  field static Timberborn.BlockSystem.BlockOccupations Path
+  field static Timberborn.BlockSystem.BlockOccupations Middle
+
+=== Timberborn.BlockSystem.BlockSpec   [Timberborn.BlockSystem]
+  kind: class   base: System.Object
+  interfaces: IEquatable<Timberborn.BlockSystem.BlockSpec>
+  [type attr] System.Runtime.CompilerServices.NullableContextAttribute
+  [type attr] System.Runtime.CompilerServices.NullableAttribute
+  field Timberborn.BlockSystem.MatterBelow <MatterBelow>k__BackingField
+  field Timberborn.BlockSystem.BlockOccupations <Occupations>k__BackingField
+  field Timberborn.BlockSystem.BlockStackable <Stackable>k__BackingField
+  field System.Boolean <OccupyAllBelow>k__BackingField
+  field System.Boolean <Underground>k__BackingField
+  prop System.Type EqualityContract {get}
+  prop Timberborn.BlockSystem.MatterBelow MatterBelow {get/set}
+  prop Timberborn.BlockSystem.BlockOccupations Occupations {get/set}
+  prop Timberborn.BlockSystem.BlockStackable Stackable {get/set}
+  prop System.Boolean OccupyAllBelow {get/set}
+  prop System.Boolean Underground {get/set}
+  method System.Type get_EqualityContract()
+  method public Timberborn.BlockSystem.MatterBelow get_MatterBelow()
+  method public System.Void modreq(System.Runtime.CompilerServices.IsExternalInit) set_MatterBelow(Timberborn.BlockSystem.MatterBelow value)
+  method public Timberborn.BlockSystem.BlockOccupations get_Occupations()
+  method public System.Void modreq(System.Runtime.CompilerServices.IsExternalInit) set_Occupations(Timberborn.BlockSystem.BlockOccupations value)
+  method public Timberborn.BlockSystem.BlockStackable get_Stackable()
+  method public System.Void modreq(System.Runtime.CompilerServices.IsExternalInit) set_Stackable(Timberborn.BlockSystem.BlockStackable value)
+  method public System.Boolean get_OccupyAllBelow()
+  method public System.Void modreq(System.Runtime.CompilerServices.IsExternalInit) set_OccupyAllBelow(System.Boolean value)
+  method public System.Boolean get_Underground()
+  method public System.Void modreq(System.Runtime.CompilerServices.IsExternalInit) set_Underground(System.Boolean value)
+  method public System.String ToString()
+  method System.Boolean PrintMembers(System.Text.StringBuilder builder)
+  method public static System.Boolean op_Inequality(Timberborn.BlockSystem.BlockSpec left, Timberborn.BlockSystem.BlockSpec right)
+  method public static System.Boolean op_Equality(Timberborn.BlockSystem.BlockSpec left, Timberborn.BlockSystem.BlockSpec right)
+  method public System.Int32 GetHashCode()
+  method public System.Boolean Equals(System.Object obj)
+  method public System.Boolean Equals(Timberborn.BlockSystem.BlockSpec other)
+  method public Timberborn.BlockSystem.BlockSpec <Clone>$()
+  method System.Void .ctor(Timberborn.BlockSystem.BlockSpec original)
+  method public System.Void .ctor()
+
+=== Timberborn.BlockSystem.EntranceBlockSpec   [Timberborn.BlockSystem]
+  kind: class   base: System.Object
+  interfaces: IEquatable<Timberborn.BlockSystem.EntranceBlockSpec>
+  [type attr] System.Runtime.CompilerServices.NullableContextAttribute
+  [type attr] System.Runtime.CompilerServices.NullableAttribute
+  field System.Boolean <HasEntrance>k__BackingField
+  field UnityEngine.Vector3Int <Coordinates>k__BackingField
+  prop System.Type EqualityContract {get}
+  prop System.Boolean HasEntrance {get/set}
+  prop UnityEngine.Vector3Int Coordinates {get/set}
+  method System.Type get_EqualityContract()
+  method public System.Boolean get_HasEntrance()
+  method public System.Void modreq(System.Runtime.CompilerServices.IsExternalInit) set_HasEntrance(System.Boolean value)
+  method public UnityEngine.Vector3Int get_Coordinates()
+  method public System.Void modreq(System.Runtime.CompilerServices.IsExternalInit) set_Coordinates(UnityEngine.Vector3Int value)
+  method public System.String ToString()
+  method System.Boolean PrintMembers(System.Text.StringBuilder builder)
+  method public static System.Boolean op_Inequality(Timberborn.BlockSystem.EntranceBlockSpec left, Timberborn.BlockSystem.EntranceBlockSpec right)
+  method public static System.Boolean op_Equality(Timberborn.BlockSystem.EntranceBlockSpec left, Timberborn.BlockSystem.EntranceBlockSpec right)
+  method public System.Int32 GetHashCode()
+  method public System.Boolean Equals(System.Object obj)
+  method public System.Boolean Equals(Timberborn.BlockSystem.EntranceBlockSpec other)
+  method public Timberborn.BlockSystem.EntranceBlockSpec <Clone>$()
+  method System.Void .ctor(Timberborn.BlockSystem.EntranceBlockSpec original)
+  method public System.Void .ctor()
+
+=== Timberborn.BlockSystem.ToolShapes   [Timberborn.BlockSystem]
+  kind: enum   base: System.Enum
+  field System.Int32 value__
+  field static Timberborn.BlockSystem.ToolShapes Square
+  field static Timberborn.BlockSystem.ToolShapes Hex
+
+=== Timberborn.BlueprintSystem.AdvancedDeserializer   [Timberborn.BlueprintSystem]
+  kind: class   base: System.Object
+  field static System.Reflection.BindingFlags AllInstanceFlag
+  field ImmutableArray<Timberborn.BlueprintSystem.IDeserializer> _customDeserializers
+  method public System.Void .ctor(IEnumerable<Timberborn.BlueprintSystem.IDeserializer> customDeserializers)
+  method public System.Object Deserialize(System.Object instance, System.Type type)
+  method private System.Void DeserializeInternal(System.Object instance, System.Type type)
+  method private static IEnumerable<System.Reflection.PropertyInfo> GetSerializedProperties(System.Type type)
+  method private System.Object DeserializeValue(System.Object sourceValue, System.Type type)
+  method private static System.Boolean IsImmutableArray(System.Type type)
+  method private System.Object DeserializeArray(System.Object sourceValue, System.Type type)
+  method private System.Object DeserializeSingle(System.Object sourceValue, System.Type type)
+  method private static System.Void .cctor()
+  nested Timberborn.BlueprintSystem.AdvancedDeserializer+.<>c
+
+=== Timberborn.BlueprintSystem.BlueprintFileBundleLoader   [Timberborn.BlueprintSystem]
+  kind: class   base: System.Object
+  field Timberborn.AssetSystem.IAssetLoader _assetLoader
+  method public System.Void .ctor(Timberborn.AssetSystem.IAssetLoader assetLoader)
+  method public IEnumerable<Timberborn.BlueprintSystem.BlueprintFileBundle> GetBundles(System.String rootPath, IEnumerable<System.String> blueprintPaths)
+  method public Timberborn.BlueprintSystem.BlueprintFileBundle GetBundle(System.String path)
+  nested Timberborn.BlueprintSystem.BlueprintFileBundleLoader+.<>c
+
+=== Timberborn.BlueprintSystem.BlueprintSourceService   [Timberborn.BlueprintSystem]
+  kind: class   base: System.Object
+  field Dictionary<Timberborn.BlueprintSystem.Blueprint, Timberborn.BlueprintSystem.BlueprintFileBundle> _sources
+  method public System.Void Add(Timberborn.BlueprintSystem.Blueprint blueprint, Timberborn.BlueprintSystem.BlueprintFileBundle source)
+  method public Timberborn.BlueprintSystem.BlueprintFileBundle Get(Timberborn.BlueprintSystem.Blueprint blueprint)
+  method public System.Void .ctor()
+
+=== Timberborn.BlueprintSystem.SerializableTypeExtensions   [Timberborn.BlueprintSystem]
+  kind: class   base: System.Object
+  [type attr] System.Runtime.CompilerServices.ExtensionAttribute
+  field static System.Reflection.BindingFlags AllInstanceFlag
+  method public static IEnumerable<System.Reflection.PropertyInfo> GetSerializedProperties(System.Type type)
+  method public static System.Boolean IsSerializable(System.Type type)
+  method private static System.Void .cctor()
+  nested Timberborn.BlueprintSystem.SerializableTypeExtensions+.<>c
+  nested Timberborn.BlueprintSystem.SerializableTypeExtensions+.<>c__DisplayClass1_0
+
+=== Timberborn.BlueprintSystem.SpecTypeCache   [Timberborn.BlueprintSystem]
+  kind: class   base: System.Object
+  field static System.String ChildrenProperty
+  field static System.Type SpecType
+  field static System.Type SpecAliasAttribute
+  field FrozenDictionary<System.String, System.Type> _typeMap
+  method private System.Void .ctor(FrozenDictionary<System.String, System.Type> typeMap)
+  method public static Timberborn.BlueprintSystem.SpecTypeCache Create()
+  method public System.Boolean TryGetType(System.String key, ref System.Type type)
+  method private static System.Boolean IsSpecClass(System.Type type)
+  method private static IEnumerable<KeyValuePair<System.String, System.Type>> GetSpecEntries(System.Type type)
+  method private static System.Void .cctor()
+  nested Timberborn.BlueprintSystem.SpecTypeCache+.<>c
+  nested Timberborn.BlueprintSystem.SpecTypeCache+.<GetSpecEntries>d__8
+
+=== Timberborn.Goods.GoodAmountSpec   [Timberborn.Goods]
+  kind: class   base: System.Object
+  interfaces: IEquatable<Timberborn.Goods.GoodAmountSpec>
+  field System.String <Id>k__BackingField
+  field System.Int32 <Amount>k__BackingField
+  prop System.Type EqualityContract {get}
+  prop System.String Id {get/set}
+  prop System.Int32 Amount {get/set}
+  method System.Type get_EqualityContract()
+  method public System.String get_Id()
+  method public System.Void modreq(System.Runtime.CompilerServices.IsExternalInit) set_Id(System.String value)
+  method public System.Int32 get_Amount()
+  method public System.Void modreq(System.Runtime.CompilerServices.IsExternalInit) set_Amount(System.Int32 value)
+  method public Timberborn.Goods.GoodAmount ToGoodAmount()
+  method public System.String ToString()
+  method System.Boolean PrintMembers(System.Text.StringBuilder builder)
+  method public static System.Boolean op_Inequality(Timberborn.Goods.GoodAmountSpec left, Timberborn.Goods.GoodAmountSpec right)
+  method public static System.Boolean op_Equality(Timberborn.Goods.GoodAmountSpec left, Timberborn.Goods.GoodAmountSpec right)
+  method public System.Int32 GetHashCode()
+  method public System.Boolean Equals(System.Object obj)
+  method public System.Boolean Equals(Timberborn.Goods.GoodAmountSpec other)
+  method public Timberborn.Goods.GoodAmountSpec <Clone>$()
+  method System.Void .ctor(Timberborn.Goods.GoodAmountSpec original)
+  method public System.Void .ctor()
+
+=== Timberborn.TemplateInstantiation.TemplateInstantiator   [Timberborn.TemplateInstantiation]
+  kind: class   base: System.Object
+  field static System.String CacheContainerName
+  field Timberborn.BaseComponentSystem.BaseInstantiator _baseInstantiator
+  field Timberborn.PrefabOptimization.OptimizedPrefabInstantiator _optimizedPrefabInstantiator
+  field FrozenDictionary<System.Type, ImmutableArray<Timberborn.TemplateInstantiation.DecoratorDefinition>> _decorators
+  field Dictionary<Timberborn.BlueprintSystem.Blueprint, Timberborn.TemplateInstantiation.CachedTemplate> _cache
+  field Lazy<UnityEngine.GameObject> _cacheContainer
+  field List<System.Type> _temporaryTypeCache
+  method public System.Void .ctor(Timberborn.BaseComponentSystem.BaseInstantiator baseInstantiator, Timberborn.PrefabOptimization.OptimizedPrefabInstantiator optimizedPrefabInstantiator, IEnumerable<KeyValuePair<System.Type, IEnumerable<Timberborn.TemplateInstantiation.DecoratorDefinition>>> decorators)
+  method public System.Void CacheInstance(Timberborn.BlueprintSystem.Blueprint blueprint)
+  method public UnityEngine.GameObject Instantiate(Timberborn.BlueprintSystem.Blueprint blueprint, UnityEngine.Transform parent, IReadOnlyList<System.Object> initializingComponents)
+  method private static UnityEngine.GameObject CreateCacheContainer()
+  method private Timberborn.TemplateInstantiation.CachedTemplate GetCachedTemplate(Timberborn.BlueprintSystem.Blueprint blueprint)
+  method private System.Void GetInstanceComponents(Timberborn.BlueprintSystem.Blueprint blueprint, ref List<Timberborn.TemplateInstantiation.CachedTemplateInitializer> initializers, ref List<System.Type> components)
+  method private static System.Type GetDecoratorType(List<System.Type> components, Timberborn.TemplateInstantiation.DecoratorDefinition decorator)
+  method private IEnumerable<Timberborn.TemplateInstantiation.DecoratorDefinition> DecorateTypeAndInterfaces(System.Type subjectType)
+  method private IEnumerable<Timberborn.TemplateInstantiation.DecoratorDefinition> DecorateComponentType(System.Type decoratedType)
+  method private static System.Void .cctor()
+  nested Timberborn.TemplateInstantiation.TemplateInstantiator+.<>c
+  nested Timberborn.TemplateInstantiation.TemplateInstantiator+.<DecorateComponentType>d__15
+
+=== Timberborn.TemplateSystem.TemplateService   [Timberborn.TemplateSystem]
+  kind: class   base: System.Object
+  field Timberborn.TemplateCollectionSystem.TemplateCollectionService _templateCollectionService
+  method public System.Void .ctor(Timberborn.TemplateCollectionSystem.TemplateCollectionService templateCollectionService)
+  method public IEnumerable<T> GetAll()
+  method public T GetSingle()
+
+=== Timberborn.TemplateSystem.TemplateSpec   [Timberborn.TemplateSystem]
+  kind: class   base: Timberborn.BlueprintSystem.ComponentSpec
+  interfaces: IEquatable<Timberborn.TemplateSystem.TemplateSpec>
+  field System.String <TemplateName>k__BackingField
+  field ImmutableArray<System.String> <BackwardCompatibleTemplateNames>k__BackingField
+  field System.String <RequiredFeatureToggle>k__BackingField
+  field System.String <DisablingFeatureToggle>k__BackingField
+  prop System.Type EqualityContract {get}
+  prop System.String TemplateName {get/set}
+  prop ImmutableArray<System.String> BackwardCompatibleTemplateNames {get/set}
+  prop System.String RequiredFeatureToggle {get/set}
+  prop System.String DisablingFeatureToggle {get/set}
+  prop System.Boolean UsableWithCurrentFeatureToggles {get}
+  method System.Type get_EqualityContract()
+  method public System.String get_TemplateName()
+  method public System.Void modreq(System.Runtime.CompilerServices.IsExternalInit) set_TemplateName(System.String value)
+  method public ImmutableArray<System.String> get_BackwardCompatibleTemplateNames()
+  method public System.Void modreq(System.Runtime.CompilerServices.IsExternalInit) set_BackwardCompatibleTemplateNames(ImmutableArray<System.String> value)
+  method public System.String get_RequiredFeatureToggle()
+  method public System.Void modreq(System.Runtime.CompilerServices.IsExternalInit) set_RequiredFeatureToggle(System.String value)
+  method public System.String get_DisablingFeatureToggle()
+  method public System.Void modreq(System.Runtime.CompilerServices.IsExternalInit) set_DisablingFeatureToggle(System.String value)
+  method public System.Boolean get_UsableWithCurrentFeatureToggles()
+  method public System.Boolean IsNamed(System.String templateName)
+  method public System.Boolean IsNamedExactly(System.String templateName)
+  method public System.String ToString()
+  method System.Boolean PrintMembers(System.Text.StringBuilder builder)
+  method public static System.Boolean op_Inequality(Timberborn.TemplateSystem.TemplateSpec left, Timberborn.TemplateSystem.TemplateSpec right)
+  method public static System.Boolean op_Equality(Timberborn.TemplateSystem.TemplateSpec left, Timberborn.TemplateSystem.TemplateSpec right)
+  method public System.Int32 GetHashCode()
+  method public System.Boolean Equals(System.Object obj)
+  method public System.Boolean Equals(Timberborn.BlueprintSystem.ComponentSpec other)
+  method public System.Boolean Equals(Timberborn.TemplateSystem.TemplateSpec other)
+  method public Timberborn.BlueprintSystem.ComponentSpec <Clone>$()
+  method System.Void .ctor(Timberborn.TemplateSystem.TemplateSpec original)
+  method public System.Void .ctor()
+
+=== Timberborn.Versioning.Version   [Timberborn.Versioning]
+  kind: struct   base: System.ValueType
+  [type attr] System.Runtime.CompilerServices.IsReadOnlyAttribute
+  field static System.Char ExperimentalSymbol
+  field System.String <Numeric>k__BackingField
+  field System.String <Full>k__BackingField
+  field System.Boolean _isExperimental
+  field ImmutableArray<System.Int32> _subNumbers
+  prop System.String Numeric {get}
+  prop System.String Full {get}
+  prop System.String Formatted {get}
+  prop System.String NumericWithBranch {get}
+  prop System.Boolean IsDevelopmentVersion {get}
+  method public System.String get_Numeric()
+  method public System.String get_Full()
+  method private System.Void .ctor(System.String numeric, System.String full, System.Boolean isExperimental, ImmutableArray<System.Int32> subNumbers)
+  method public static Timberborn.Versioning.Version Create(System.String version)
+  method public System.String get_Formatted()
+  method public System.String get_NumericWithBranch()
+  method public System.Boolean get_IsDevelopmentVersion()
+  method public System.String ToString()
+  method public System.Boolean IsEqualOrHigherThan(Timberborn.Versioning.Version other, Nullable<System.Int32> depth)
+  method public System.Boolean IsFromSameBranch(Timberborn.Versioning.Version other)
+  method private static System.String ExtractVersionNumber(System.String version)
+  method private static System.Boolean VersionIsInOldFormat(System.String version)
+  method private static System.Boolean GetExperimental(System.String version)
+  method private static System.Void .cctor()
+
+=== Timberborn.WorldPersistence.ComponentKey   [Timberborn.WorldPersistence]
+  kind: struct   base: System.ValueType
+  [type attr] System.Runtime.CompilerServices.IsReadOnlyAttribute
+  field System.String <Name>k__BackingField
+  prop System.String Name {get}
+  method public System.String get_Name()
+  method public System.Void .ctor(System.String name)
+  method public Timberborn.WorldPersistence.ComponentKey AddSuffix(System.String suffix)
+
+=== Timberborn.WorldPersistence.IEntityLoader   [Timberborn.WorldPersistence]
+  kind: interface   base: -
+  method public Timberborn.Persistence.IObjectLoader GetComponent(Timberborn.WorldPersistence.ComponentKey key)
+  method public Timberborn.Persistence.IObjectLoader GetComponent(Timberborn.WorldPersistence.ComponentKey key, System.String suffix)
+  method public System.Boolean HasComponent(Timberborn.WorldPersistence.ComponentKey key)
+  method public System.Boolean HasComponent(Timberborn.WorldPersistence.ComponentKey key, System.String suffix)
+  method public System.Boolean TryGetComponent(Timberborn.WorldPersistence.ComponentKey key, ref Timberborn.Persistence.IObjectLoader objectLoader)
+  method public System.Boolean TryGetComponent(Timberborn.WorldPersistence.ComponentKey key, System.String suffix, ref Timberborn.Persistence.IObjectLoader objectLoader)
+
+=== Timberborn.WorldPersistence.IEntitySaver   [Timberborn.WorldPersistence]
+  kind: interface   base: -
+  method public Timberborn.Persistence.IObjectSaver GetComponent(Timberborn.WorldPersistence.ComponentKey key)
+  method public Timberborn.Persistence.IObjectSaver GetComponent(Timberborn.WorldPersistence.ComponentKey key, System.String suffix)
+
+=== Timberborn.WorldPersistence.SingletonKey   [Timberborn.WorldPersistence]
+  kind: struct   base: System.ValueType
+  [type attr] System.Runtime.CompilerServices.IsReadOnlyAttribute
+  field System.String <Name>k__BackingField
+  prop System.String Name {get}
+  method public System.String get_Name()
+  method public System.Void .ctor(System.String name)

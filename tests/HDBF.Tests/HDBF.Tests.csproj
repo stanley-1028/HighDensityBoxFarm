@@ -1,0 +1,129 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    L1/L2 test runner. Zero NuGet dependencies on purpose: this machine cannot reach
+    nuget.org, and the requirement document's L1 layer only needs deterministic assertions
+    over pure functions (REQ-TEST-01..03).
+  -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <AssemblyName>HDBF.Tests</AssemblyName>
+    <RootNamespace>HDBF.Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <!--
+    ART-03 L1 data contract (ArtModelContractTests) reads the REAL shipped data/ tree - the eight
+    blueprints, their .timbermesh assets, the tier icons and the art document. Build output lives
+    under $env:TEMP, so the repository root is baked into this assembly as metadata; the tests fall
+    over with an explicit message if data/ cannot be found under it. This is plain file I/O, not a
+    game/Unity reference (REQ-TEST-03): no Timberborn or Unity assembly is added by this ItemGroup.
+  -->
+  <ItemGroup>
+    <AssemblyMetadata Include="HdbfRepoRoot" Value="$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)\..\..'))" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\HDBF.Core\HDBF.Core.csproj" />
+  </ItemGroup>
+
+  <!--
+    P1 farming rules + BUG-04 plot-id ownership: these src/HDBF.Gameplay files are pure C#
+    (System + HDBF.Core only) except for the UnityEngine.Vector3Int cell shell. Compiling that
+    production source into this game-free test assembly (with the structural stub under Stubs/)
+    lets L1 assert the real ordering/work-cost/labour-cap source *and* the real scanner candidate
+    construction without referencing any Timberborn or Unity assembly (REQ-TEST-03). No game
+    assembly is loaded at compile or run time; if the files start using real Unity types this
+    project fails to compile on purpose.
+  -->
+  <ItemGroup>
+    <Compile Include="..\..\src\HDBF.Gameplay\Farming\FarmWorkPlanner.cs" Link="Linked\FarmWorkPlanner.cs" />
+    <Compile Include="..\..\src\HDBF.Gameplay\Components\HdbfPlotScanner.cs" Link="Linked\HdbfPlotScanner.cs" />
+    <Compile Include="..\..\src\HDBF.Gameplay\Components\HdbfPlotCellCodec.cs" Link="Linked\HdbfPlotCellCodec.cs" />
+    <!--
+      The UI localization key table is pure C# (a static class of string constants) even though it
+      lives in HDBF.UI. Linking it lets L1 prove that the keys the panel formats exist in all three
+      shipped CSVs without referencing the game-facing HDBF.UI assembly (REQ-TEST-03).
+    -->
+    <Compile Include="..\..\src\HDBF.UI\Localization\HdbfUiLocKeys.cs" Link="Linked\HdbfUiLocKeys.cs" />
+  </ItemGroup>
+
+  <!--
+    BUG-05 anti-revert source contract: the controller partial that owns the retained-plot path
+    cannot be compiled into this game-free assembly (it references Timberborn types), so the two
+    production files of the fix are embedded as text and a test pins the ordering markers
+    (retained branch before CanPlant, RecordSelection before ApplyPlotArrays) and the scan-end
+    diagnostics field names. This fails if the fix is deleted even though every other L1 test and
+    build stays green.
+  -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\src\HDBF.Gameplay\Components\HdbfBoxFarmController.Scan.cs">
+      <LogicalName>HDBF.Tests.Source.Scan.cs</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\src\HDBF.Gameplay\Components\HdbfBoxFarmController.Diagnostics.cs">
+      <LogicalName>HDBF.Tests.Source.Diagnostics.cs</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <!--
+    ADR-009 growth patch source contract: HDBF.Integration references Timberborn assemblies and
+    cannot be loaded into this game-free test assembly, so the shipped patch sources are embedded
+    as text. `GrowthMultiplierPatchTests` pins the single-Postfix / no-IL-rewrite / one-Harmony-
+    instance contract and the feature-switch wiring; deleting or duplicating the patch fails L1.
+  -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\src\HDBF.Integration\Harmony\HdbfPatchCatalog.cs">
+      <LogicalName>HDBF.Tests.Source.GrowthPatchCatalog.cs</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\src\HDBF.Integration\Harmony\BoxFarmGrowthPatch.cs">
+      <LogicalName>HDBF.Tests.Source.GrowthPatch.cs</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\src\HDBF.Integration\Harmony\HdbfHarmonyInstaller.cs">
+      <LogicalName>HDBF.Tests.Source.HarmonyInstaller.cs</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\src\HDBF.Integration\Harmony\HarmonyBootstrap.cs">
+      <LogicalName>HDBF.Tests.Source.HarmonyBootstrap.cs</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\src\HDBF.Integration\Harmony\HdbfGrowthPatchBridge.cs">
+      <LogicalName>HDBF.Tests.Source.GrowthPatchBridge.cs</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <!--
+    REL-01 release-gate contract resources. The gate manifest, the single dev-diagnostics
+    build property and the shipped data config are embedded so ReleaseGateContractTests can
+    assert that build.ps1's gate list still matches the shipped code/data (a drifted gate list
+    fails L1, not just a manual review). No game assembly is referenced.
+  -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\tools\release\release-gates.json">
+      <LogicalName>HDBF.Tests.Release.release-gates.json</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\Directory.Build.props">
+      <LogicalName>HDBF.Tests.Release.Directory.Build.props</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\data\HDBF_Config.json">
+      <LogicalName>HDBF.Tests.Release.HDBF_Config.json</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <!--
+    The three shipped localization files are embedded as test resources so the key-set / label-length
+    contract is checked against exactly the data that ships, from any working directory.
+  -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\data\Localizations\enUS.csv">
+      <LogicalName>HDBF.Tests.Localizations.enUS.csv</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\data\Localizations\zhCN.csv">
+      <LogicalName>HDBF.Tests.Localizations.zhCN.csv</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\data\Localizations\zhTW.csv">
+      <LogicalName>HDBF.Tests.Localizations.zhTW.csv</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
+</Project>

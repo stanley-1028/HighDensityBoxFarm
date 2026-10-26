@@ -1,0 +1,27 @@
+HDBF ART-04 export determinism evidence
+
+Command (run twice back to back on the same art/models/ sources):
+  blender.exe -b --factory-startup -noaudio --python art\export_timbermesh.py
+
+Comparison: run-1 export-manifest.json vs run-2 export-manifest.json (16/16 SHA-256).
+IDENTICAL: 16/16
+
+file                                                       sha256
+BoxFarm.Advanced.Folktails.ConstructionStage0.Model        7b79d1787cf8ba209c4538fe7f951ebbdcab231be8bc9ab078564aedd9bc2513
+BoxFarm.Advanced.Folktails.Model                           59982415ad3e67bc55b11103c380e1119024ca4049fcafe1e48d7e3c3a01886b
+BoxFarm.Advanced.IronTeeth.ConstructionStage0.Model        a79bcb89994633670839a021f96a3f27327bf7f7dacf4be280fb25bb111dbe8e
+BoxFarm.Advanced.IronTeeth.Model                           e515e80a386e4fb761003ef2e2edd8f82bd8a4d0fd9a600fbce3f09da2579461
+BoxFarm.Basic.Folktails.ConstructionStage0.Model           3ab11bc49f67ca95e314fc6f52180ea913e9f6080bb4a5e4c93e6f16c39b6697
+BoxFarm.Basic.Folktails.Model                              f3213b70d452e02cbc35d9c35541c4d87bcb63bc4503af3d3585f3b66b4857a0
+BoxFarm.Basic.IronTeeth.ConstructionStage0.Model           399729d296b5bf9fad1bea5bf616e0c490ec033ae29f662a55ab72dfc3fdc3a9
+BoxFarm.Basic.IronTeeth.Model                              57e66a0aa93d1afab0fa0be464454cbb8a04b9400774fb2732275e843f116829
+BoxFarm.Intermediate.Folktails.ConstructionStage0.Model    053c9e8fed9e6e3f4e969d5cbddc1d975b7ab2d48a73071cb925fde5577411cc
+BoxFarm.Intermediate.Folktails.Model                       5b78cd896b554ad1277e23d4e478b3830813243e336f6cfd7490f1f913f3f9d7
+BoxFarm.Intermediate.IronTeeth.ConstructionStage0.Model    15129d0cbd5eb7d158dad65cdb5dc12a58696202d848b552ab8a2ae8ccd56c42
+BoxFarm.Intermediate.IronTeeth.Model                       7cb96ad49fa67538bd4109a7f23def3a45ab4c56c24cd43a5e38b41ce9caae86
+BoxFarm.Top.Folktails.ConstructionStage0.Model             ce3e1469dd8da02b765b92b50c0a0b0fca01a33d4063d3df6db320d75dac86ef
+BoxFarm.Top.Folktails.Model                                cf202759c0291007b4616694399613102952b0a29ac4c21428d219a0a7716b9a
+BoxFarm.Top.IronTeeth.ConstructionStage0.Model             8f28229c413082ad8febe5307d5a498771faf33ee8bc1f675a0a8240fd8f4753
+BoxFarm.Top.IronTeeth.Model                                9b1282e815f41e753aee9e50a1b69b51882d12c7deb41be8f8109b2e40372036
+
+RESULT: PASS - deterministic (16/16 identical SHA-256 across two full export runs)

@@ -1,0 +1,186 @@
+
+=== Timberborn.TemplateInstantiation.TemplateInstantiator::Instantiate   [Timberborn.TemplateInstantiation]
+  IL_0000: ldarg.0
+  IL_0001: ldarg.1
+  IL_0002: call Timberborn.TemplateInstantiation.CachedTemplate Timberborn.TemplateInstantiation.TemplateInstantiator::GetCachedTemplate(Timberborn.BlueprintSystem.Blueprint)
+  IL_0007: stloc.0
+  IL_0008: ldarg.0
+  IL_0009: ldfld Timberborn.BaseComponentSystem.BaseInstantiator Timberborn.TemplateInstantiation.TemplateInstantiator::_baseInstantiator
+  IL_000e: ldloc.0
+  IL_000f: callvirt UnityEngine.GameObject Timberborn.TemplateInstantiation.CachedTemplate::get_Prefab()
+  IL_0014: ldarg.2
+  IL_0015: ldarg.1
+  IL_0016: ldloc.0
+  IL_0017: callvirt System.Collections.Immutable.ImmutableArray`1<System.Type> Timberborn.TemplateInstantiation.CachedTemplate::get_Components()
+  IL_001c: ldarg.3
+  IL_001d: ldloca.s V_2
+  IL_001f: callvirt UnityEngine.GameObject Timberborn.BaseComponentSystem.BaseInstantiator::InstantiateInactive(UnityEngine.GameObject,UnityEngine.Transform,Timberborn.BlueprintSystem.Blueprint,System.Collections.Immutable.ImmutableArray`1<System.Type>,System.Collections.Generic.IReadOnlyList`1<System.Object>,System.Collections.Generic.List`1<System.Object>&)
+  IL_0024: stloc.1
+  IL_0025: ldloc.0
+  IL_0026: callvirt System.Collections.Immutable.ImmutableArray`1<Timberborn.TemplateInstantiation.CachedTemplateInitializer> Timberborn.TemplateInstantiation.CachedTemplate::get_Initializers()
+  IL_002b: stloc.3
+  IL_002c: ldarg.3
+  IL_002d: brtrue.s IL_0032
+  IL_002f: ldc.i4.0
+  IL_0030: br.s IL_0038
+  IL_0032: ldarg.3
+  IL_0033: callvirt System.Int32 System.Collections.Generic.IReadOnlyCollection`1<System.Object>::get_Count()
+  IL_0038: stloc.s V_4
+  IL_003a: ldc.i4.0
+  IL_003b: stloc.s V_5
+  IL_003d: br.s IL_007c
+  IL_003f: ldloca.s V_3
+  IL_0041: ldloc.s V_5
+  IL_0043: call !0 System.Collections.Immutable.ImmutableArray`1<Timberborn.TemplateInstantiation.CachedTemplateInitializer>::get_Item(System.Int32)
+  IL_0048: stloc.s V_6
+  IL_004a: ldloc.s V_6
+  IL_004c: callvirt System.Action`2<System.Object,System.Object> Timberborn.TemplateInstantiation.CachedTemplateInitializer::get_Method()
+  IL_0051: ldloc.2
+  IL_0052: ldloc.s V_6
+  IL_0054: callvirt System.Int32 Timberborn.TemplateInstantiation.CachedTemplateInitializer::get_SubjectIndex()
+  IL_0059: ldloc.s V_4
+  IL_005b: add
+  IL_005c: callvirt !0 System.Collections.Generic.List`1<System.Object>::get_Item(System.Int32)
+  IL_0061: ldloc.2
+  IL_0062: ldloc.s V_6
+  IL_0064: callvirt System.Int32 Timberborn.TemplateInstantiation.CachedTemplateInitializer::get_DecoratorIndex()
+  IL_0069: ldloc.s V_4
+  IL_006b: add
+  IL_006c: callvirt !0 System.Collections.Generic.List`1<System.Object>::get_Item(System.Int32)
+  IL_0071: callvirt System.Void System.Action`2<System.Object,System.Object>::Invoke(!0,!1)
+  IL_0076: ldloc.s V_5
+  IL_0078: ldc.i4.1
+  IL_0079: add
+  IL_007a: stloc.s V_5
+  IL_007c: ldloc.s V_5
+  IL_007e: ldloca.s V_3
+  IL_0080: call System.Int32 System.Collections.Immutable.ImmutableArray`1<Timberborn.TemplateInstantiation.CachedTemplateInitializer>::get_Length()
+  IL_0085: blt.s IL_003f
+  IL_0087: ldloc.1
+  IL_0088: ldc.i4.1
+  IL_0089: callvirt System.Void UnityEngine.GameObject::SetActive(System.Boolean)
+  IL_008e: ldloc.1
+  IL_008f: ret
+
+=== Timberborn.TemplateInstantiation.TemplateInstantiator::GetInstanceComponents   [Timberborn.TemplateInstantiation]
+  IL_0000: ldarg.2
+  IL_0001: newobj System.Void System.Collections.Generic.List`1<Timberborn.TemplateInstantiation.CachedTemplateInitializer>::.ctor()
+  IL_0006: stind.ref
+  IL_0007: ldarg.3
+  IL_0008: ldarg.1
+  IL_0009: callvirt System.Collections.Immutable.ImmutableArray`1<Timberborn.BlueprintSystem.ComponentSpec> Timberborn.BlueprintSystem.Blueprint::get_Specs()
+  IL_000e: ldsfld System.Func`2<Timberborn.BlueprintSystem.ComponentSpec,System.Type> Timberborn.TemplateInstantiation.TemplateInstantiator/<>c::<>9__12_0
+  IL_0013: dup
+  IL_0014: brtrue.s IL_002d
+  IL_0016: pop
+  IL_0017: ldsfld Timberborn.TemplateInstantiation.TemplateInstantiator/<>c Timberborn.TemplateInstantiation.TemplateInstantiator/<>c::<>9
+  IL_001c: ldftn System.Type Timberborn.TemplateInstantiation.TemplateInstantiator/<>c::<GetInstanceComponents>b__12_0(Timberborn.BlueprintSystem.ComponentSpec)
+  IL_0022: newobj System.Void System.Func`2<Timberborn.BlueprintSystem.ComponentSpec,System.Type>::.ctor(System.Object,System.IntPtr)
+  IL_0027: dup
+  IL_0028: stsfld System.Func`2<Timberborn.BlueprintSystem.ComponentSpec,System.Type> Timberborn.TemplateInstantiation.TemplateInstantiator/<>c::<>9__12_0
+  IL_002d: call System.Collections.Generic.IEnumerable`1<!!1> System.Linq.ImmutableArrayExtensions::Select<Timberborn.BlueprintSystem.ComponentSpec,System.Type>(System.Collections.Immutable.ImmutableArray`1<!!0>,System.Func`2<!!0,!!1>)
+  IL_0032: call System.Collections.Generic.List`1<!!0> System.Linq.Enumerable::ToList<System.Type>(System.Collections.Generic.IEnumerable`1<!!0>)
+  IL_0037: stind.ref
+  IL_0038: ldarg.0
+  IL_0039: ldfld System.Collections.Generic.List`1<System.Type> Timberborn.TemplateInstantiation.TemplateInstantiator::_temporaryTypeCache
+  IL_003e: ldarg.3
+  IL_003f: ldind.ref
+  IL_0040: callvirt System.Void System.Collections.Generic.List`1<System.Type>::AddRange(System.Collections.Generic.IEnumerable`1<!0>)
+  IL_0045: ldc.i4.0
+  IL_0046: stloc.0
+  IL_0047: br IL_00d9
+  IL_004c: ldarg.0
+  IL_004d: ldfld System.Collections.Generic.List`1<System.Type> Timberborn.TemplateInstantiation.TemplateInstantiator::_temporaryTypeCache
+  IL_0052: ldloc.0
+  IL_0053: callvirt !0 System.Collections.Generic.List`1<System.Type>::get_Item(System.Int32)
+  IL_0058: stloc.1
+  IL_0059: ldarg.0
+  IL_005a: ldloc.1
+  IL_005b: call System.Collections.Generic.IEnumerable`1<Timberborn.TemplateInstantiation.DecoratorDefinition> Timberborn.TemplateInstantiation.TemplateInstantiator::DecorateTypeAndInterfaces(System.Type)
+  IL_0060: callvirt System.Collections.Generic.IEnumerator`1<!0> System.Collections.Generic.IEnumerable`1<Timberborn.TemplateInstantiation.DecoratorDefinition>::GetEnumerator()
+  IL_0065: stloc.2
+  IL_0066: br.s IL_00c1
+  IL_0068: ldloc.2
+  IL_0069: callvirt !0 System.Collections.Generic.IEnumerator`1<Timberborn.TemplateInstantiation.DecoratorDefinition>::get_Current()
+  IL_006e: stloc.3
+  IL_006f: ldarg.3
+  IL_0070: ldind.ref
+  IL_0071: ldloc.3
+  IL_0072: call System.Type Timberborn.TemplateInstantiation.TemplateInstantiator::GetDecoratorType(System.Collections.Generic.List`1<System.Type>,Timberborn.TemplateInstantiation.DecoratorDefinition)
+  IL_0077: stloc.s V_4
+  IL_0079: ldloc.s V_4
+  IL_007b: ldnull
+  IL_007c: call System.Boolean System.Type::op_Inequality(System.Type,System.Type)
+  IL_0081: brfalse.s IL_00c1
+  IL_0083: ldarg.3
+  IL_0084: ldind.ref
+  IL_0085: ldloc.s V_4
+  IL_0087: callvirt System.Void System.Collections.Generic.List`1<System.Type>::Add(!0)
+  IL_008c: ldarg.0
+  IL_008d: ldfld System.Collections.Generic.List`1<System.Type> Timberborn.TemplateInstantiation.TemplateInstantiator::_temporaryTypeCache
+  IL_0092: ldloc.s V_4
+  IL_0094: callvirt System.Void System.Collections.Generic.List`1<System.Type>::Add(!0)
+  IL_0099: ldloc.3
+  IL_009a: callvirt System.Boolean Timberborn.TemplateInstantiation.DecoratorDefinition::get_Dedicated()
+  IL_009f: brfalse.s IL_00c1
+  IL_00a1: ldarg.2
+  IL_00a2: ldind.ref
+  IL_00a3: ldloc.3
+  IL_00a4: callvirt System.Action`2<System.Object,System.Object> Timberborn.TemplateInstantiation.DecoratorDefinition::get_Initializer()
+  IL_00a9: ldloc.0
+  IL_00aa: ldarg.0
+  IL_00ab: ldfld System.Collections.Generic.List`1<System.Type> Timberborn.TemplateInstantiation.TemplateInstantiator::_temporaryTypeCache
+  IL_00b0: callvirt System.Int32 System.Collections.Generic.List`1<System.Type>::get_Count()
+  IL_00b5: ldc.i4.1
+  IL_00b6: sub
+  IL_00b7: newobj System.Void Timberborn.TemplateInstantiation.CachedTemplateInitializer::.ctor(System.Action`2<System.Object,System.Object>,System.Int32,System.Int32)
+  IL_00bc: callvirt System.Void System.Collections.Generic.List`1<Timberborn.TemplateInstantiation.CachedTemplateInitializer>::Add(!0)
+  IL_00c1: ldloc.2
+  IL_00c2: callvirt System.Boolean System.Collections.IEnumerator::MoveNext()
+  IL_00c7: brtrue.s IL_0068
+  IL_00c9: leave.s IL_00d5
+  IL_00cb: ldloc.2
+  IL_00cc: brfalse.s IL_00d4
+  IL_00ce: ldloc.2
+  IL_00cf: callvirt System.Void System.IDisposable::Dispose()
+  IL_00d4: endfinally
+  IL_00d5: ldloc.0
+  IL_00d6: ldc.i4.1
+  IL_00d7: add
+  IL_00d8: stloc.0
+  IL_00d9: ldloc.0
+  IL_00da: ldarg.0
+  IL_00db: ldfld System.Collections.Generic.List`1<System.Type> Timberborn.TemplateInstantiation.TemplateInstantiator::_temporaryTypeCache
+  IL_00e0: callvirt System.Int32 System.Collections.Generic.List`1<System.Type>::get_Count()
+  IL_00e5: blt IL_004c
+  IL_00ea: ldarg.0
+  IL_00eb: ldfld System.Collections.Generic.List`1<System.Type> Timberborn.TemplateInstantiation.TemplateInstantiator::_temporaryTypeCache
+  IL_00f0: callvirt System.Void System.Collections.Generic.List`1<System.Type>::Clear()
+  IL_00f5: ret
+
+=== Timberborn.TemplateInstantiation.TemplateInstantiator::GetDecoratorType   [Timberborn.TemplateInstantiation]
+  IL_0000: ldarg.1
+  IL_0001: callvirt System.Type Timberborn.TemplateInstantiation.DecoratorDefinition::get_DecoratorType()
+  IL_0006: stloc.0
+  IL_0007: ldarg.1
+  IL_0008: callvirt System.Boolean Timberborn.TemplateInstantiation.DecoratorDefinition::get_Dedicated()
+  IL_000d: brtrue.s IL_0018
+  IL_000f: ldarg.0
+  IL_0010: ldloc.0
+  IL_0011: callvirt System.Boolean System.Collections.Generic.List`1<System.Type>::Contains(!0)
+  IL_0016: brtrue.s IL_001a
+  IL_0018: ldloc.0
+  IL_0019: ret
+  IL_001a: ldnull
+  IL_001b: ret
+
+=== Timberborn.TemplateInstantiation.TemplateInstantiator::DecorateComponentType   [Timberborn.TemplateInstantiation]
+  IL_0000: ldc.i4.s -2
+  IL_0002: newobj System.Void Timberborn.TemplateInstantiation.TemplateInstantiator/<DecorateComponentType>d__15::.ctor(System.Int32)
+  IL_0007: dup
+  IL_0008: ldarg.0
+  IL_0009: stfld Timberborn.TemplateInstantiation.TemplateInstantiator Timberborn.TemplateInstantiation.TemplateInstantiator/<DecorateComponentType>d__15::<>4__this
+  IL_000e: dup
+  IL_000f: ldarg.1
+  IL_0010: stfld System.Type Timberborn.TemplateInstantiation.TemplateInstantiator/<DecorateComponentType>d__15::<>3__decoratedType
+  IL_0015: ret

@@ -1,0 +1,427 @@
+{
+  "asset": "HDBF (Timberborn High-Density Box Farm) tier building icons",
+  "card": "ART-04",
+  "generator": "art/render_icons.py",
+  "command": "blender.exe -b --factory-startup -noaudio --python art\\render_icons.py",
+  "blender_version": "4.2.1 LTS",
+  "note": "These are offline Blender Cycles CPU renders of the source FBX models - NOT in-game screenshots.",
+  "factions": "Folktails LOD0 source (factions share the same icons)",
+  "tiers": [
+    "Basic",
+    "Intermediate",
+    "Advanced",
+    "Top"
+  ],
+  "camera": {
+    "type": "perspective",
+    "lens_mm": 85.0,
+    "sensor_width_mm": 36.0,
+    "sensor_fit": "AUTO",
+    "location": [
+      -5.067928,
+      7.310596,
+      5.886399
+    ],
+    "azimuth_deg": 34.7,
+    "elevation_deg": 32.0,
+    "azimuth_reference": "degrees from the +Y facade towards -X",
+    "suggested_location_from_brief": [
+      -4.5,
+      6.5,
+      4.0
+    ],
+    "look_at": [
+      0.0,
+      0.0,
+      0.5
+    ],
+    "rotation_euler_rad": [
+      1.012291,
+      -0.0,
+      -2.535963
+    ],
+    "rotation_euler_deg": [
+      58.0,
+      -0.0,
+      -145.3
+    ],
+    "distance": 10.39811,
+    "frame_fill": 0.84,
+    "margin_per_side": 0.08,
+    "projected_bbox_ndc": [
+      0.080003,
+      0.202037,
+      0.919997,
+      0.797963
+    ],
+    "projected_extent": 0.839994,
+    "contract_box_blender": {
+      "min": [
+        -1.5,
+        -1.0,
+        0.0
+      ],
+      "max": [
+        1.5,
+        1.0,
+        1.0
+      ]
+    }
+  },
+  "render": {
+    "engine": "CYCLES",
+    "device": "CPU",
+    "samples": 64,
+    "denoiser": "OPENIMAGEDENOISE",
+    "seed": 0,
+    "resolution": [
+      512,
+      512
+    ],
+    "film_transparent": true,
+    "color_depth": 8,
+    "view_transform": "Standard",
+    "look": "None",
+    "exposure": 0.25,
+    "lights": {
+      "sun": {
+        "energy": 3.6,
+        "angle_deg": 10.0,
+        "elevation_deg": 50.0,
+        "azimuth_deg": 30.0
+      },
+      "fill_sun": {
+        "energy": 1.4,
+        "angle_deg": 35.0,
+        "elevation_deg": 30.0,
+        "azimuth_deg": -145.0
+      },
+      "world": {
+        "color": [
+          0.32,
+          0.32,
+          0.34
+        ],
+        "strength": 0.65
+      }
+    },
+    "ground_plane": false,
+    "text_or_logos": false,
+    "metadata_stripped": true,
+    "deterministic": "Camera, geometry, lighting, samples and seed are fixed, and Blender's Date/RenderTime tEXt chunks are stripped. Measured on this machine with this Blender build, consecutive runs produced byte-identical PNGs (see the determinism block). Cycles CPU output is hardware/build dependent, so byte identity is not guaranteed on other machines or Blender builds."
+  },
+  "determinism": {
+    "scope": "Measured on this machine with this Blender build. Cycles CPU output is hardware/build dependent, so byte identity is proven for consecutive runs here - it is NOT guaranteed across machines or Blender builds.",
+    "metadata_note": "Blender's render-result PNG writer always embeds tEXt chunks (Date, RenderTime, cycles.*_time), so two pixel-identical renders used to differ in file bytes. They are stripped by rewriting each 512 render through the bpy image API; measured on this asset, the pre-strip files were exactly 387 bytes larger (11 tEXt chunks) with an identical IDAT payload size, i.e. identical pixels.",
+    "runs": [
+      {
+        "label": "previous run (icons-manifest.json on disk at start)",
+        "file_sha256": {
+          "art/icons/BoxFarm.Advanced.128.png": "6d4b8012a7b2cbeeb9dab783eb83dcd8ee14fee40cead4632cf160ade4521bc7",
+          "art/icons/BoxFarm.Advanced.png": "e0137d7dff8dbcf6ee66bac16007c03ddb2429e4601d8b51a9a7dd77eaf39206",
+          "art/icons/BoxFarm.Basic.128.png": "c611c815492587a80de3bca9f9f41febb97ed48a10e2766385ca1ddd784ad12d",
+          "art/icons/BoxFarm.Basic.png": "df6e0c5c8b7c99443a5b138fd5e4e43072545136b8575ae93b6211504ae711ac",
+          "art/icons/BoxFarm.Intermediate.128.png": "1eb50aeeaaa3cc4c458387c755551c373a23a340a73df58e868be1e60d7c3244",
+          "art/icons/BoxFarm.Intermediate.png": "434729b89bf7eb37de7eeb10fe9cf99836f89fcdf9b25796dd0d55fc49edcf88",
+          "art/icons/BoxFarm.Top.128.png": "ce70af287b9e4c44e408e8eac375625cc82072515efec16c3036230ace6e70a2",
+          "art/icons/BoxFarm.Top.png": "8e2709b35549aa8b1c7a14e4174d7c4a5b65ad3476851bdc6874337ab537311e"
+        }
+      },
+      {
+        "label": "this run (files on disk now)",
+        "file_sha256": {
+          "art/icons/BoxFarm.Advanced.128.png": "6d4b8012a7b2cbeeb9dab783eb83dcd8ee14fee40cead4632cf160ade4521bc7",
+          "art/icons/BoxFarm.Advanced.png": "e0137d7dff8dbcf6ee66bac16007c03ddb2429e4601d8b51a9a7dd77eaf39206",
+          "art/icons/BoxFarm.Basic.128.png": "c611c815492587a80de3bca9f9f41febb97ed48a10e2766385ca1ddd784ad12d",
+          "art/icons/BoxFarm.Basic.png": "df6e0c5c8b7c99443a5b138fd5e4e43072545136b8575ae93b6211504ae711ac",
+          "art/icons/BoxFarm.Intermediate.128.png": "1eb50aeeaaa3cc4c458387c755551c373a23a340a73df58e868be1e60d7c3244",
+          "art/icons/BoxFarm.Intermediate.png": "434729b89bf7eb37de7eeb10fe9cf99836f89fcdf9b25796dd0d55fc49edcf88",
+          "art/icons/BoxFarm.Top.128.png": "ce70af287b9e4c44e408e8eac375625cc82072515efec16c3036230ace6e70a2",
+          "art/icons/BoxFarm.Top.png": "8e2709b35549aa8b1c7a14e4174d7c4a5b65ad3476851bdc6874337ab537311e"
+        }
+      }
+    ],
+    "png_sha256_identical": true
+  },
+  "downscale": {
+    "from": 512,
+    "to": 128,
+    "method": "alpha-aware premultiplied 4x4 box filter (numpy), written with bpy image API"
+  },
+  "files": [
+    {
+      "path": "art/icons/BoxFarm.Basic.png",
+      "tier": "Basic",
+      "width": 512,
+      "height": 512,
+      "mode": "RGBA",
+      "bit_depth": 8,
+      "bytes": 249556,
+      "sha256": "df6e0c5c8b7c99443a5b138fd5e4e43072545136b8575ae93b6211504ae711ac",
+      "source_model": "art/models/Basic.Folktails/LOD0.fbx",
+      "source_triangles": 5944,
+      "alpha": {
+        "min": 0,
+        "max": 255,
+        "zero_px": 188073,
+        "full_px": 71845,
+        "partial_px": 2226
+      },
+      "coverage": 0.2784,
+      "mean_rgb_covered": [
+        112,
+        85,
+        60
+      ]
+    },
+    {
+      "path": "art/icons/BoxFarm.Basic.128.png",
+      "tier": "Basic",
+      "width": 128,
+      "height": 128,
+      "mode": "RGBA",
+      "bit_depth": 8,
+      "bytes": 14092,
+      "sha256": "c611c815492587a80de3bca9f9f41febb97ed48a10e2766385ca1ddd784ad12d",
+      "source_model": "art/models/Basic.Folktails/LOD0.fbx",
+      "source_triangles": 5944,
+      "alpha": {
+        "min": 0,
+        "max": 255,
+        "zero_px": 11634,
+        "full_px": 4378,
+        "partial_px": 372
+      },
+      "coverage": 0.2781,
+      "mean_rgb_covered": [
+        112,
+        85,
+        60
+      ]
+    },
+    {
+      "path": "art/icons/BoxFarm.Intermediate.png",
+      "tier": "Intermediate",
+      "width": 512,
+      "height": 512,
+      "mode": "RGBA",
+      "bit_depth": 8,
+      "bytes": 237932,
+      "sha256": "434729b89bf7eb37de7eeb10fe9cf99836f89fcdf9b25796dd0d55fc49edcf88",
+      "source_model": "art/models/Intermediate.Folktails/LOD0.fbx",
+      "source_triangles": 5944,
+      "alpha": {
+        "min": 0,
+        "max": 255,
+        "zero_px": 185350,
+        "full_px": 74553,
+        "partial_px": 2241
+      },
+      "coverage": 0.2887,
+      "mean_rgb_covered": [
+        127,
+        92,
+        68
+      ]
+    },
+    {
+      "path": "art/icons/BoxFarm.Intermediate.128.png",
+      "tier": "Intermediate",
+      "width": 128,
+      "height": 128,
+      "mode": "RGBA",
+      "bit_depth": 8,
+      "bytes": 13200,
+      "sha256": "1eb50aeeaaa3cc4c458387c755551c373a23a340a73df58e868be1e60d7c3244",
+      "source_model": "art/models/Intermediate.Folktails/LOD0.fbx",
+      "source_triangles": 5944,
+      "alpha": {
+        "min": 0,
+        "max": 255,
+        "zero_px": 11460,
+        "full_px": 4545,
+        "partial_px": 379
+      },
+      "coverage": 0.2884,
+      "mean_rgb_covered": [
+        127,
+        92,
+        68
+      ]
+    },
+    {
+      "path": "art/icons/BoxFarm.Advanced.png",
+      "tier": "Advanced",
+      "width": 512,
+      "height": 512,
+      "mode": "RGBA",
+      "bit_depth": 8,
+      "bytes": 249403,
+      "sha256": "e0137d7dff8dbcf6ee66bac16007c03ddb2429e4601d8b51a9a7dd77eaf39206",
+      "source_model": "art/models/Advanced.Folktails/LOD0.fbx",
+      "source_triangles": 5944,
+      "alpha": {
+        "min": 0,
+        "max": 255,
+        "zero_px": 180860,
+        "full_px": 79016,
+        "partial_px": 2268
+      },
+      "coverage": 0.3058,
+      "mean_rgb_covered": [
+        124,
+        117,
+        118
+      ]
+    },
+    {
+      "path": "art/icons/BoxFarm.Advanced.128.png",
+      "tier": "Advanced",
+      "width": 128,
+      "height": 128,
+      "mode": "RGBA",
+      "bit_depth": 8,
+      "bytes": 14676,
+      "sha256": "6d4b8012a7b2cbeeb9dab783eb83dcd8ee14fee40cead4632cf160ade4521bc7",
+      "source_model": "art/models/Advanced.Folktails/LOD0.fbx",
+      "source_triangles": 5944,
+      "alpha": {
+        "min": 0,
+        "max": 255,
+        "zero_px": 11184,
+        "full_px": 4826,
+        "partial_px": 374
+      },
+      "coverage": 0.3055,
+      "mean_rgb_covered": [
+        124,
+        117,
+        118
+      ]
+    },
+    {
+      "path": "art/icons/BoxFarm.Top.png",
+      "tier": "Top",
+      "width": 512,
+      "height": 512,
+      "mode": "RGBA",
+      "bit_depth": 8,
+      "bytes": 232305,
+      "sha256": "8e2709b35549aa8b1c7a14e4174d7c4a5b65ad3476851bdc6874337ab537311e",
+      "source_model": "art/models/Top.Folktails/LOD0.fbx",
+      "source_triangles": 5948,
+      "alpha": {
+        "min": 0,
+        "max": 255,
+        "zero_px": 178406,
+        "full_px": 81412,
+        "partial_px": 2326
+      },
+      "coverage": 0.3151,
+      "mean_rgb_covered": [
+        101,
+        105,
+        115
+      ]
+    },
+    {
+      "path": "art/icons/BoxFarm.Top.128.png",
+      "tier": "Top",
+      "width": 128,
+      "height": 128,
+      "mode": "RGBA",
+      "bit_depth": 8,
+      "bytes": 13102,
+      "sha256": "ce70af287b9e4c44e408e8eac375625cc82072515efec16c3036230ace6e70a2",
+      "source_model": "art/models/Top.Folktails/LOD0.fbx",
+      "source_triangles": 5948,
+      "alpha": {
+        "min": 0,
+        "max": 255,
+        "zero_px": 11025,
+        "full_px": 4970,
+        "partial_px": 389
+      },
+      "coverage": 0.3148,
+      "mean_rgb_covered": [
+        101,
+        105,
+        115
+      ]
+    }
+  ],
+  "tier_summary": [
+    {
+      "tier": "Basic",
+      "source_model": "art/models/Basic.Folktails/LOD0.fbx",
+      "source_triangles": 5944,
+      "source_mesh_objects": 1,
+      "coverage_512": 0.2784
+    },
+    {
+      "tier": "Intermediate",
+      "source_model": "art/models/Intermediate.Folktails/LOD0.fbx",
+      "source_triangles": 5944,
+      "source_mesh_objects": 1,
+      "coverage_512": 0.2887
+    },
+    {
+      "tier": "Advanced",
+      "source_model": "art/models/Advanced.Folktails/LOD0.fbx",
+      "source_triangles": 5944,
+      "source_mesh_objects": 1,
+      "coverage_512": 0.3058
+    },
+    {
+      "tier": "Top",
+      "source_model": "art/models/Top.Folktails/LOD0.fbx",
+      "source_triangles": 5948,
+      "source_mesh_objects": 1,
+      "coverage_512": 0.3151
+    }
+  ],
+  "pairwise_differences_512": [
+    {
+      "a": "Basic",
+      "b": "Intermediate",
+      "mean_abs_rgb_diff": 25.873,
+      "coverage_delta": 0.0103
+    },
+    {
+      "a": "Basic",
+      "b": "Advanced",
+      "mean_abs_rgb_diff": 55.517,
+      "coverage_delta": 0.0274
+    },
+    {
+      "a": "Basic",
+      "b": "Top",
+      "mean_abs_rgb_diff": 51.534,
+      "coverage_delta": 0.0367
+    },
+    {
+      "a": "Intermediate",
+      "b": "Advanced",
+      "mean_abs_rgb_diff": 48.631,
+      "coverage_delta": 0.0171
+    },
+    {
+      "a": "Intermediate",
+      "b": "Top",
+      "mean_abs_rgb_diff": 46.715,
+      "coverage_delta": 0.0264
+    },
+    {
+      "a": "Advanced",
+      "b": "Top",
+      "mean_abs_rgb_diff": 37.864,
+      "coverage_delta": 0.0093
+    }
+  ],
+  "verification": {
+    "expected_file_count": 8,
+    "files_ok": 8,
+    "failures": [],
+    "verdict": "PASS"
+  }
+}

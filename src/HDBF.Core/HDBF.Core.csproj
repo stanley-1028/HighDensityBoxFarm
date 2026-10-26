@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    HDBF.Core: pure, game-free domain logic.
+
+    No reference to Timberborn, Unity, or any third-party mod assembly is allowed
+    here (requirements REQ-ARCH-01 / REQ-COMPAT-05). This is what makes the balance
+    formulas, config validation, save schema, and compatibility state machine
+    unit-testable on a machine without the game running.
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <AssemblyName>HDBF.Core</AssemblyName>
+    <RootNamespace>HDBF.Core</RootNamespace>
+    <PackageId>HDBF.Core</PackageId>
+  </PropertyGroup>
+
+</Project>

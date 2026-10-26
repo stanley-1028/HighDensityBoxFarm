@@ -1,0 +1,77 @@
+<Project>
+
+  <!--
+    Build artefacts MUST NOT live inside this repository.
+
+    This repository is *also* the installed Timberborn mod folder: the game loads
+    every *.dll it finds recursively below the mod directory. A bin/obj tree left
+    in place would make the game load duplicate/test assemblies. All intermediate
+    and output files are therefore redirected to %USERPROFILE%\.hdbf\work\.
+  -->
+  <PropertyGroup>
+    <HdbfWorkRoot Condition=" '$(HdbfWorkRoot)' == '' ">$(USERPROFILE)\.hdbf\work</HdbfWorkRoot>
+    <BaseIntermediateOutputPath>$(HdbfWorkRoot)\obj\$(MSBuildProjectName)\</BaseIntermediateOutputPath>
+    <BaseOutputPath>$(HdbfWorkRoot)\bin\$(MSBuildProjectName)\</BaseOutputPath>
+    <!-- Never compile copied-in bin/obj trees (see the safety gate in build.ps1). -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);**\obj\**;**\bin\**</DefaultItemExcludes>
+  </PropertyGroup>
+
+  <!--
+    Shared build settings for the High-Density Box Farm (HDBF) mod.
+
+    Timberborn mod assemblies are loaded by the game's Mono runtime, so every
+    assembly that ships to players targets netstandard2.1. HDBF.Core and the test
+    runner are different: Core is deliberately reference-free so it can be unit
+    tested outside the game, and tools run on modern .NET.
+
+    TimberbornDir can be overridden on the command line:
+        dotnet build -p:TimberbornDir="D:\SteamLibrary\steamapps\common\Timberborn"
+  -->
+
+  <PropertyGroup>
+    <TimberbornDir Condition=" '$(TimberbornDir)' == '' ">C:\Program Files (x86)\Steam\steamapps\common\Timberborn</TimberbornDir>
+    <TimberbornManagedDir>$(TimberbornDir)\Timberborn_Data\Managed</TimberbornManagedDir>
+    <HdbfManaged Condition=" '$(HdbfManaged)' == '' ">$(MSBuildThisFileDirectory)src\HDBF.Core\</HdbfManaged>
+
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <WarningsNotAsErrors />
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <Deterministic>true</Deterministic>
+    <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
+    <DebugType>portable</DebugType>
+    <AppendTargetFrameworkToOutputPath>true</AppendTargetFrameworkToOutputPath>
+    <EnableDefaultCompileItems>true</EnableDefaultCompileItems>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+
+  <!--
+    REL-01 release gate: dev-only diagnostics are a COMPILE-TIME switch, not a runtime config
+    flag. Default off, so the release package contains no diag.* strings, no dev diagnostics
+    types and no HDBF.DevDiagnostics assembly marker (build.ps1 G-08 asserts the staged files
+    byte-for-byte). Enable an evidence build with either:
+        powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1 -DevDiagnostics
+        dotnet build src\HDBF.Gameplay\HDBF.Gameplay.csproj -c Release -p:HdbfDevDiagnostics=true
+
+    The property is declared here (once) so HDBF.Gameplay (controller diagnostics) and
+    HDBF.Integration (ADR-009 growth-patch evidence lines) share exactly one switch. Why
+    compile-time instead of HDBF_Config.json: docs/OPS.md §4.
+  -->
+  <PropertyGroup>
+    <HdbfDevDiagnostics Condition=" '$(HdbfDevDiagnostics)' == '' ">false</HdbfDevDiagnostics>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(HdbfDevDiagnostics)' == 'true' ">
+    <DefineConstants>$(DefineConstants);HDBF_DEV_DIAGNOSTICS</DefineConstants>
+  </PropertyGroup>
+
+  <!-- Game-facing projects set TargetFramework=netstandard2.1 in their own csproj
+       (a props file is imported before the project body, so it cannot branch on a
+       property that the project body defines later). -->
+  <PropertyGroup Condition=" '$(HdbfGameProject)' == 'true' ">
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+    <DebugType>none</DebugType>
+  </PropertyGroup>
+
+</Project>

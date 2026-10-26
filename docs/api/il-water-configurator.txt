@@ -1,0 +1,211 @@
+
+=== Timberborn.WaterBuildings.WaterBuildingsConfigurator::Configure   [Timberborn.WaterBuildings]
+  IL_0000: ldarg.0
+  IL_0001: call Bindito.Core.ISingleBindingBuilder`1<!!0> Bindito.Core.Configurator::Bind<Timberborn.WaterBuildings.StreamGauge>()
+  IL_0006: callvirt Bindito.Core.IExportAssignee Bindito.Core.IScopeAssignee::AsTransient()
+  IL_000b: pop
+  IL_000c: ldarg.0
+  IL_000d: call Bindito.Core.ISingleBindingBuilder`1<!!0> Bindito.Core.Configurator::Bind<Timberborn.WaterBuildings.TickableWaterBuilding>()
+  IL_0012: callvirt Bindito.Core.IExportAssignee Bindito.Core.IScopeAssignee::AsTransient()
+  IL_0017: pop
+  IL_0018: ldarg.0
+  IL_0019: call Bindito.Core.ISingleBindingBuilder`1<!!0> Bindito.Core.Configurator::Bind<Timberborn.WaterBuildings.WaterMover>()
+  IL_001e: callvirt Bindito.Core.IExportAssignee Bindito.Core.IScopeAssignee::AsTransient()
+  IL_0023: pop
+  IL_0024: ldarg.0
+  IL_0025: call Bindito.Core.ISingleBindingBuilder`1<!!0> Bindito.Core.Configurator::Bind<Timberborn.WaterBuildings.WaterMoverParticleController>()
+  IL_002a: callvirt Bindito.Core.IExportAssignee Bindito.Core.IScopeAssignee::AsTransient()
+  IL_002f: pop
+  IL_0030: ldarg.0
+  IL_0031: call Bindito.Core.ISingleBindingBuilder`1<!!0> Bindito.Core.Configurator::Bind<Timberborn.WaterBuildings.WaterNeeder>()
+  IL_0036: callvirt Bindito.Core.IExportAssignee Bindito.Core.IScopeAssignee::AsTransient()
+  IL_003b: pop
+  IL_003c: ldarg.0
+  IL_003d: call Bindito.Core.ISingleBindingBuilder`1<!!0> Bindito.Core.Configurator::Bind<Timberborn.WaterBuildings.AccessibleFloodableBuilding>()
+  IL_0042: callvirt Bindito.Core.IExportAssignee Bindito.Core.IScopeAssignee::AsTransient()
+  IL_0047: pop
+  IL_0048: ldarg.0
+  IL_0049: call Bindito.Core.ISingleBindingBuilder`1<!!0> Bindito.Core.Configurator::Bind<Timberborn.WaterBuildings.FloodableBuilding>()
+  IL_004e: callvirt Bindito.Core.IExportAssignee Bindito.Core.IScopeAssignee::AsTransient()
+  IL_0053: pop
+  IL_0054: ldarg.0
+  IL_0055: call Bindito.Core.ISingleBindingBuilder`1<!!0> Bindito.Core.Configurator::Bind<Timberborn.WaterBuildings.FloodableFire>()
+  IL_005a: callvirt Bindito.Core.IExportAssignee Bindito.Core.IScopeAssignee::AsTransient()
+  IL_005f: pop
+  IL_0060: ldarg.0
+  IL_0061: call Bindito.Core.ISingleBindingBuilder`1<!!0> Bindito.Core.Configurator::Bind<Timberborn.WaterBuildings.FloodedBuildingPreviewValidator>()
+  IL_0066: callvirt Bindito.Core.IExportAssignee Bindito.Core.IScopeAssignee::AsTransient()
+  IL_006b: pop
+  IL_006c: ldarg.0
+  IL_006d: call Bindito.Core.ISingleBindingBuilder`1<!!0> Bindito.Core.Configurator::Bind<Timberborn.WaterBuildings.Floodgate>()
+  IL_0072: callvirt Bindito.Core.IExportAssignee Bindito.Core.IScopeAssignee::AsTransient()
+  IL_0077: pop
+  IL_0078: ldarg.0
+  IL_0079: call Bindito.Core.ISingleBindingBuilder`1<!!0> Bindito.Core.Configurator::Bind<Timberborn.WaterBuildings.FloodgateAnimationController>()
+  IL_007e: callvirt Bindito.Core.IExportAssignee Bindito.Core.IScopeAssignee::AsTransient()
+  IL_0083: pop
+  IL_0084: ldarg.0
+  IL_0085: call Bindito.Core.ISingleBindingBuilder`1<!!0> Bindito.Core.Configurator::Bind<Timberborn.WaterBuildings.FloodgateGateCutoff>()
+  IL_008a: callvirt Bindito.Core.IExportAssignee Bindito.Core.IScopeAssignee::AsTransient()
+  IL_008f: pop
+  IL_0090: ldarg.0
+  IL_0091: call Bindito.Core.ISingleBindingBuilder`1<!!0> Bindito.Core.Configurator::Bind<Timberborn.WaterBuildings.PreviewWaterInputPipeBlocker>()
+  IL_0096: callvirt Bindito.Core.IExportAssignee Bindito.Core.IScopeAssignee::AsTransient()
+  IL_009b: pop
+  IL_009c: ldarg.0
+  IL_009d: call Bindito.Core.ISingleBindingBuilder`1<!!0> Bindito.Core.Configurator::Bind<Timberborn.WaterBuildings.WaterObstacleController>()
+  IL_00a2: callvirt Bindito.Core.IExportAssignee Bindito.Core.IScopeAssignee::AsTransient()
+  IL_00a7: pop
+  IL_00a8: ldarg.0
+  IL_00a9: call Bindito.Core.ISingleBindingBuilder`1<!!0> Bindito.Core.Configurator::Bind<Timberborn.WaterBuildings.StreamGaugeAnimationController>()
+  IL_00ae: callvirt Bindito.Core.IExportAssignee Bindito.Core.IScopeAssignee::AsTransient()
+  IL_00b3: pop
+  IL_00b4: ldarg.0
+  IL_00b5: call Bindito.Core.ISingleBindingBuilder`1<!!0> Bindito.Core.Configurator::Bind<Timberborn.WaterBuildings.ThrottlingValve>()
+  IL_00ba: callvirt Bindito.Core.IExportAssignee Bindito.Core.IScopeAssignee::AsTransient()
+  IL_00bf: pop
+  IL_00c0: ldarg.0
+  IL_00c1: call Bindito.Core.ISingleBindingBuilder`1<!!0> Bindito.Core.Configurator::Bind<Timberborn.WaterBuildings.FillValve>()
+  IL_00c6: callvirt Bindito.Core.IExportAssignee Bindito.Core.IScopeAssignee::AsTransient()
+  IL_00cb: pop
+  IL_00cc: ldarg.0
+  IL_00cd: call Bindito.Core.ISingleBindingBuilder`1<!!0> Bindito.Core.Configurator::Bind<Timberborn.WaterBuildings.WaterInput>()
+  IL_00d2: callvirt Bindito.Core.IExportAssignee Bindito.Core.IScopeAssignee::AsTransient()
+  IL_00d7: pop
+  IL_00d8: ldarg.0
+  IL_00d9: call Bindito.Core.ISingleBindingBuilder`1<!!0> Bindito.Core.Configurator::Bind<Timberborn.WaterBuildings.WaterInputPipeCoordinates>()
+  IL_00de: callvirt Bindito.Core.IExportAssignee Bindito.Core.IScopeAssignee::AsTransient()
+  IL_00e3: pop
+  IL_00e4: ldarg.0
+  IL_00e5: call Bindito.Core.ISingleBindingBuilder`1<!!0> Bindito.Core.Configurator::Bind<Timberborn.WaterBuildings.WaterInputPipe>()
+  IL_00ea: callvirt Bindito.Core.IExportAssignee Bindito.Core.IScopeAssignee::AsTransient()
+  IL_00ef: pop
+  IL_00f0: ldarg.0
+  IL_00f1: call Bindito.Core.ISingleBindingBuilder`1<!!0> Bindito.Core.Configurator::Bind<Timberborn.WaterBuildings.WaterInputPipeSegmentCreator>()
+  IL_00f6: callvirt Bindito.Core.IExportAssignee Bindito.Core.IScopeAssignee::AsTransient()
+  IL_00fb: pop
+  IL_00fc: ldarg.0
+  IL_00fd: call Bindito.Core.ISingleBindingBuilder`1<!!0> Bindito.Core.Configurator::Bind<Timberborn.WaterBuildings.WaterOutput>()
+  IL_0102: callvirt Bindito.Core.IExportAssignee Bindito.Core.IScopeAssignee::AsTransient()
+  IL_0107: pop
+  IL_0108: ldarg.0
+  IL_0109: call Bindito.Core.ISingleBindingBuilder`1<!!0> Bindito.Core.Configurator::Bind<Timberborn.WaterBuildings.WaterInputPipeValidator>()
+  IL_010e: callvirt Bindito.Core.IExportAssignee Bindito.Core.IScopeAssignee::AsTransient()
+  IL_0113: pop
+  IL_0114: ldarg.0
+  IL_0115: call Bindito.Core.ISingleBindingBuilder`1<!!0> Bindito.Core.Configurator::Bind<Timberborn.WaterBuildings.WaterInputPipeObstructedStatus>()
+  IL_011a: callvirt Bindito.Core.IExportAssignee Bindito.Core.IScopeAssignee::AsTransient()
+  IL_011f: pop
+  IL_0120: ldarg.0
+  IL_0121: call Bindito.Core.ISingleBindingBuilder`1<!!0> Bindito.Core.Configurator::Bind<Timberborn.WaterBuildings.WaterInputFixedCoordinates>()
+  IL_0126: callvirt Bindito.Core.IExportAssignee Bindito.Core.IScopeAssignee::AsTransient()
+  IL_012b: pop
+  IL_012c: ldarg.0
+  IL_012d: call Bindito.Core.ISingleBindingBuilder`1<!!0> Bindito.Core.Configurator::Bind<Timberborn.WaterBuildings.FloodgateSynchronizer>()
+  IL_0132: callvirt Bindito.Core.IExportAssignee Bindito.Core.IScopeAssignee::AsSingleton()
+  IL_0137: pop
+  IL_0138: ldarg.0
+  IL_0139: call Bindito.Core.ISingleBindingBuilder`1<!!0> Bindito.Core.Configurator::Bind<Timberborn.WaterBuildings.PreviewWaterInputPipeBlockerService>()
+  IL_013e: callvirt Bindito.Core.IExportAssignee Bindito.Core.IScopeAssignee::AsSingleton()
+  IL_0143: pop
+  IL_0144: ldarg.0
+  IL_0145: call Bindito.Core.ISingleBindingBuilder`1<!!0> Bindito.Core.Configurator::Bind<Timberborn.WaterBuildings.ThrottlingValveSynchronizer>()
+  IL_014a: callvirt Bindito.Core.IExportAssignee Bindito.Core.IScopeAssignee::AsSingleton()
+  IL_014f: pop
+  IL_0150: ldarg.0
+  IL_0151: call Bindito.Core.ISingleBindingBuilder`1<!!0> Bindito.Core.Configurator::Bind<Timberborn.WaterBuildings.FillValveSynchronizer>()
+  IL_0156: callvirt Bindito.Core.IExportAssignee Bindito.Core.IScopeAssignee::AsSingleton()
+  IL_015b: pop
+  IL_015c: ldarg.0
+  IL_015d: call Bindito.Core.ISingleBindingBuilder`1<!!0> Bindito.Core.Configurator::Bind<Timberborn.WaterBuildings.WaterInputService>()
+  IL_0162: callvirt Bindito.Core.IExportAssignee Bindito.Core.IScopeAssignee::AsSingleton()
+  IL_0167: pop
+  IL_0168: ldarg.0
+  IL_0169: call Bindito.Core.IMultiBindingBuilder`1<!!0> Bindito.Core.Configurator::MultiBind<Timberborn.TemplateInstantiation.TemplateModule>()
+  IL_016e: ldnull
+  IL_016f: ldftn Timberborn.TemplateInstantiation.TemplateModule Timberborn.WaterBuildings.WaterBuildingsConfigurator::ProvideTemplateModule()
+  IL_0175: newobj System.Void System.Func`1<Timberborn.TemplateInstantiation.TemplateModule>::.ctor(System.Object,System.IntPtr)
+  IL_017a: callvirt Bindito.Core.IScopeAssignee Bindito.Core.IBindingBuilder`1<Timberborn.TemplateInstantiation.TemplateModule>::ToProvider(System.Func`1<!0>)
+  IL_017f: callvirt Bindito.Core.IExportAssignee Bindito.Core.IScopeAssignee::AsSingleton()
+  IL_0184: pop
+  IL_0185: ret
+
+=== Timberborn.WaterBuildings.WaterBuildingsConfigurator::ProvideTemplateModule   [Timberborn.WaterBuildings]
+  IL_0000: newobj System.Void Timberborn.TemplateInstantiation.TemplateModule/Builder::.ctor()
+  IL_0005: dup
+  IL_0006: callvirt System.Void Timberborn.TemplateInstantiation.TemplateModule/Builder::AddDecorator<Timberborn.WaterBuildings.WaterInputSpec,Timberborn.WaterBuildings.WaterInput>()
+  IL_000b: dup
+  IL_000c: callvirt System.Void Timberborn.TemplateInstantiation.TemplateModule/Builder::AddDecorator<Timberborn.WaterBuildings.WaterInputPipeSpec,Timberborn.WaterBuildings.WaterInputPipe>()
+  IL_0011: dup
+  IL_0012: callvirt System.Void Timberborn.TemplateInstantiation.TemplateModule/Builder::AddDecorator<Timberborn.WaterBuildings.WaterInputPipe,Timberborn.WaterBuildings.WaterInputPipeCoordinates>()
+  IL_0017: dup
+  IL_0018: callvirt System.Void Timberborn.TemplateInstantiation.TemplateModule/Builder::AddDecorator<Timberborn.WaterBuildings.WaterInputPipe,Timberborn.Rendering.EntityMaterials>()
+  IL_001d: dup
+  IL_001e: callvirt System.Void Timberborn.TemplateInstantiation.TemplateModule/Builder::AddDecorator<Timberborn.WaterBuildings.WaterInputPipe,Timberborn.WaterBuildings.WaterInputPipeSegmentCreator>()
+  IL_0023: dup
+  IL_0024: callvirt System.Void Timberborn.TemplateInstantiation.TemplateModule/Builder::AddDecorator<Timberborn.WaterBuildings.WaterInputFixedSpec,Timberborn.WaterBuildings.WaterInputFixedCoordinates>()
+  IL_0029: dup
+  IL_002a: callvirt System.Void Timberborn.TemplateInstantiation.TemplateModule/Builder::AddDecorator<Timberborn.Buildings.BuildingSpec,Timberborn.WaterBuildings.PreviewWaterInputPipeBlocker>()
+  IL_002f: dup
+  IL_0030: callvirt System.Void Timberborn.TemplateInstantiation.TemplateModule/Builder::AddDecorator<Timberborn.Buildings.BuildingAccessible,Timberborn.WaterBuildings.AccessibleFloodableBuilding>()
+  IL_0035: dup
+  IL_0036: callvirt System.Void Timberborn.TemplateInstantiation.TemplateModule/Builder::AddDecorator<Timberborn.Buildings.BuildingAccessible,Timberborn.WaterObjects.BlockableFloodableObject>()
+  IL_003b: dup
+  IL_003c: callvirt System.Void Timberborn.TemplateInstantiation.TemplateModule/Builder::AddDecorator<Timberborn.WaterBuildings.WaterMoverSpec,Timberborn.WaterBuildings.WaterMover>()
+  IL_0041: dup
+  IL_0042: callvirt System.Void Timberborn.TemplateInstantiation.TemplateModule/Builder::AddDecorator<Timberborn.WaterBuildings.FloodgateSpec,Timberborn.WaterBuildings.Floodgate>()
+  IL_0047: dup
+  IL_0048: callvirt System.Void Timberborn.TemplateInstantiation.TemplateModule/Builder::AddDecorator<Timberborn.WaterBuildings.Floodgate,Timberborn.WaterBuildings.FloodgateGateCutoff>()
+  IL_004d: dup
+  IL_004e: callvirt System.Void Timberborn.TemplateInstantiation.TemplateModule/Builder::AddDecorator<Timberborn.WaterBuildings.Floodgate,Timberborn.Automation.AutoAutomatableNeeder>()
+  IL_0053: dup
+  IL_0054: callvirt System.Void Timberborn.TemplateInstantiation.TemplateModule/Builder::AddDecorator<Timberborn.WaterBuildings.ThrottlingValveSpec,Timberborn.WaterBuildings.ThrottlingValve>()
+  IL_0059: dup
+  IL_005a: callvirt System.Void Timberborn.TemplateInstantiation.TemplateModule/Builder::AddDecorator<Timberborn.WaterBuildings.ThrottlingValve,Timberborn.WaterBuildings.WaterObstacleController>()
+  IL_005f: dup
+  IL_0060: callvirt System.Void Timberborn.TemplateInstantiation.TemplateModule/Builder::AddDecorator<Timberborn.WaterBuildings.ThrottlingValve,Timberborn.Automation.AutoAutomatableNeeder>()
+  IL_0065: dup
+  IL_0066: callvirt System.Void Timberborn.TemplateInstantiation.TemplateModule/Builder::AddDecorator<Timberborn.WaterBuildings.FillValveSpec,Timberborn.WaterBuildings.FillValve>()
+  IL_006b: dup
+  IL_006c: callvirt System.Void Timberborn.TemplateInstantiation.TemplateModule/Builder::AddDecorator<Timberborn.WaterBuildings.FillValve,Timberborn.WaterBuildings.WaterObstacleController>()
+  IL_0071: dup
+  IL_0072: callvirt System.Void Timberborn.TemplateInstantiation.TemplateModule/Builder::AddDecorator<Timberborn.WaterBuildings.FillValve,Timberborn.Automation.AutoAutomatableNeeder>()
+  IL_0077: dup
+  IL_0078: callvirt System.Void Timberborn.TemplateInstantiation.TemplateModule/Builder::AddDecorator<Timberborn.WaterBuildings.ImpermeableFloorSpec,Timberborn.PathSystem.DynamicPathModelUpdater>()
+  IL_007d: dup
+  IL_007e: callvirt System.Void Timberborn.TemplateInstantiation.TemplateModule/Builder::AddDecorator<Timberborn.WaterBuildings.FloodableBuildingSpec,Timberborn.WaterBuildings.FloodableBuilding>()
+  IL_0083: dup
+  IL_0084: callvirt System.Void Timberborn.TemplateInstantiation.TemplateModule/Builder::AddDecorator<Timberborn.WaterBuildings.AccessibleFloodableBuilding,Timberborn.WaterBuildings.FloodableBuilding>()
+  IL_0089: dup
+  IL_008a: callvirt System.Void Timberborn.TemplateInstantiation.TemplateModule/Builder::AddDecorator<Timberborn.WaterBuildings.FloodgateAnimationControllerSpec,Timberborn.WaterBuildings.FloodgateAnimationController>()
+  IL_008f: dup
+  IL_0090: callvirt System.Void Timberborn.TemplateInstantiation.TemplateModule/Builder::AddDecorator<Timberborn.WaterBuildings.StreamGaugeSpec,Timberborn.WaterBuildings.StreamGauge>()
+  IL_0095: dup
+  IL_0096: callvirt System.Void Timberborn.TemplateInstantiation.TemplateModule/Builder::AddDecorator<Timberborn.WaterBuildings.StreamGaugeAnimationControllerSpec,Timberborn.WaterBuildings.StreamGaugeAnimationController>()
+  IL_009b: dup
+  IL_009c: callvirt System.Void Timberborn.TemplateInstantiation.TemplateModule/Builder::AddDecorator<Timberborn.WaterBuildings.WaterMoverParticleControllerSpec,Timberborn.WaterBuildings.WaterMoverParticleController>()
+  IL_00a1: dup
+  IL_00a2: callvirt System.Void Timberborn.TemplateInstantiation.TemplateModule/Builder::AddDecorator<Timberborn.WaterBuildings.WaterMoverParticleController,Timberborn.Particles.ParticlesCache>()
+  IL_00a7: dup
+  IL_00a8: callvirt System.Void Timberborn.TemplateInstantiation.TemplateModule/Builder::AddDecorator<Timberborn.WaterBuildings.WaterOutputSpec,Timberborn.WaterBuildings.WaterOutput>()
+  IL_00ad: dup
+  IL_00ae: callvirt System.Void Timberborn.TemplateInstantiation.TemplateModule/Builder::AddDecorator<Timberborn.WaterBuildings.TickableWaterBuildingSpec,Timberborn.WaterBuildings.TickableWaterBuilding>()
+  IL_00b3: dup
+  IL_00b4: callvirt System.Void Timberborn.TemplateInstantiation.TemplateModule/Builder::AddDecorator<Timberborn.WaterBuildings.FloodableFireSpec,Timberborn.WaterBuildings.FloodableFire>()
+  IL_00b9: dup
+  IL_00ba: callvirt System.Void Timberborn.TemplateInstantiation.TemplateModule/Builder::AddDecorator<Timberborn.WaterBuildings.WaterNeederSpec,Timberborn.WaterBuildings.WaterNeeder>()
+  IL_00bf: dup
+  IL_00c0: callvirt System.Void Timberborn.TemplateInstantiation.TemplateModule/Builder::AddDecorator<Timberborn.WaterBuildings.FloodableBuilding,Timberborn.WaterBuildings.FloodedBuildingPreviewValidator>()
+  IL_00c5: dup
+  IL_00c6: callvirt System.Void Timberborn.TemplateInstantiation.TemplateModule/Builder::AddDecorator<Timberborn.WaterBuildings.FloodableBuilding,Timberborn.WaterObjects.FloodableObject>()
+  IL_00cb: dup
+  IL_00cc: callvirt System.Void Timberborn.TemplateInstantiation.TemplateModule/Builder::AddDecorator<Timberborn.WaterBuildings.WaterInputPipe,Timberborn.WaterBuildings.WaterInputPipeValidator>()
+  IL_00d1: dup
+  IL_00d2: callvirt System.Void Timberborn.TemplateInstantiation.TemplateModule/Builder::AddDecorator<Timberborn.WaterBuildings.WaterInputPipe,Timberborn.WaterBuildings.WaterInputPipeObstructedStatus>()
+  IL_00d7: callvirt Timberborn.TemplateInstantiation.TemplateModule Timberborn.TemplateInstantiation.TemplateModule/Builder::Build()
+  IL_00dc: ret
+
+=== Timberborn.WaterBuildings.WaterBuildingsConfigurator::.ctor   [Timberborn.WaterBuildings]
+  IL_0000: ldarg.0
+  IL_0001: call System.Void Bindito.Core.Configurator::.ctor()
+  IL_0006: ret

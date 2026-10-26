@@ -1,0 +1,11 @@
+{
+  "Name": "High-Density Box Farm",
+  "Version": "0.1.0",
+  "Id": "HighDensityBoxFarm",
+  "MinimumGameVersion": "1.0.0.0",
+  "Description": "Four tiers of dense box farms. A single 3x2 building manages up to 600 irrigation-fed plots.",
+  "RequiredMods": [
+  ],
+  "OptionalMods": [
+  ]
+}

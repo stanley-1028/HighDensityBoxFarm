@@ -1,0 +1,11 @@
+{
+  "TemplateCollectionSpec": {
+    "CollectionId": "Buildings.IronTeeth",
+    "Blueprints#append": [
+      "Buildings/Food/BoxFarm/BoxFarm.Basic.IronTeeth.blueprint",
+      "Buildings/Food/BoxFarm/BoxFarm.Intermediate.IronTeeth.blueprint",
+      "Buildings/Food/BoxFarm/BoxFarm.Advanced.IronTeeth.blueprint",
+      "Buildings/Food/BoxFarm/BoxFarm.Top.IronTeeth.blueprint"
+    ]
+  }
+}

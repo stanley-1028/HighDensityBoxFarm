@@ -1,0 +1,18 @@
+﻿round        : round20
+finished     : 2026-10-25T14:26:03
+save         : 2026-10-24 18h28m, Day 1-1.autosave
+settlement   : HDBFTest
+log          : C:\Users\user\Documents\Timberborn\Mods\HighDensityBoxFarm\docs\in-game\round20-Player.log
+
+[HDBF/Info] start HDBF version=0.1.0 modPath=C:\Users\user\Documents\Timberborn\Mods\HDBF
+HDBF/Compat: compat.missing:HDBF.Adapter.TimberPipes: HDBF.Adapter.TimberPipes not detected (not-installed); capability unavailable
+HDBF/Compat: compat.missing:HDBF.Adapter.PowerLines: HDBF.Adapter.PowerLines not detected (not-installed); capability unavailable
+HDBF/Compat: compat.missing:HDBF.Adapter.ConveyorBeltsV2: HDBF.Adapter.ConveyorBeltsV2 not detected (not-installed); capability unavailable
+HDBF/Compat: compat.missing:HDBF.Adapter.MoreMines: HDBF.Adapter.MoreMines not detected (not-installed); capability unavailable
+HDBF/Compat: compat.missing:HDBF.Adapter.HoomanStairs: HDBF.Adapter.HoomanStairs not detected (not-installed); capability unavailable
+Opening file: C:\Users\user\Documents\Timberborn\Saves\HDBFTest\2026-10-24 18h28m, Day 1-1.autosave.timber
+[HDBF/Info] startup: HDBF 0.1.0 ready; tiers=4; modPath=C:\Users\user\Documents\Timberborn\Mods\HDBF; config=C:\Users\user\Documents\Timberborn\Mods\HDBF\HDBF_Config.json
+[HDBF/Compat] compat.harmony-patch-installed: installed HDBF.Patches.BoxFarmGrowthPatch (Postfix, priority=400) target=Timberborn.Growing.Growable.ResumeGrowing harmonyInstance=hdbf.highdensityboxfarm; managed crops grow at G_irr*G_fat*G_maint*G_power speed
+[HDBF/Info] diag.scan.begin.17cd83c8-bb01-4a99-9043-7c67d2eafafc: scan.begin entityId=17cd83c8-bb01-4a99-9043-7c67d2eafafc origin=(130, 139, 3) side=11 entrance=True cell=(130, 139, 3) contains=True surface=3 field[surface-1]=False field[surface]=False field[surface+1]=False blockAtSurface=True
+[HDBF/Info] gameplay.entity: box farm active, entityId=17cd83c8-bb01-4a99-9043-7c67d2eafafc, tier=Basic, blueprint=BoxFarm.Basic.Folktails
+Load time: 68928ms (scene index: 2)

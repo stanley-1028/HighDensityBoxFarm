@@ -1,0 +1,144 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    HDBF.Gameplay: the in-game half of the mod. Shared components for all four
+    building tiers, the HdbfBoxFarmSpec blueprint spec, plot registration,
+    irrigation sampling, soil fatigue, maintenance, power/ports and the day tick.
+
+    Compiles against the installed Timberborn assemblies; nothing from those
+    assemblies is copied into the output.
+  -->
+
+  <PropertyGroup>
+    <HdbfGameProject>true</HdbfGameProject>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <AssemblyName>HDBF.Gameplay</AssemblyName>
+    <RootNamespace>HDBF.Gameplay</RootNamespace>
+  </PropertyGroup>
+
+  <!--
+    Single ProjectReference by design. The build environment rejects a project
+    that declares two project references during NuGet restore (MSBuild
+    _GenerateRestoreProjectPathWalk fails silently), so the dependency chain is
+    linear: Core <- Persistence <- Gameplay. Core's compile reference flows
+    transitively, and Persistence is the layer that owns save-state mapping,
+    which Gameplay components must call from their Save/Load methods.
+
+    Gameplay is also where ModStarter lives: the game loads every *.dll in the
+    mod directory and instantiates any IModStarter, and the mod entry point must
+    see the gameplay registrations, so they ship together.
+
+    HDBF.UI and HDBF.Integration each reference Core only, keeping every project
+    at exactly one project reference.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\HDBF.Persistence\HDBF.Persistence.csproj" />
+  </ItemGroup>
+
+  <!--
+    Two game assemblies beyond the shared HDBF reference set (Directory.Build.targets):
+    * Timberborn.Navigation: GlobalReachabilityService/INavigationService provide the
+      entrance-to-plot reachability filter required by REQ-BLD-01 / REQ-IMPL-06;
+    * Timberborn.MechanicalSystem: MechanicalBuilding exposes the real powered state for the
+      top tier's on-grid / off-grid fallback (chapter 6.5, REQ-IMPL-21).
+    Both are Private=false: the game supplies them at runtime, nothing is copied to our output.
+  -->
+  <ItemGroup>
+    <Reference Include="Timberborn.Navigation">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.Navigation.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Timberborn.MechanicalSystem">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.MechanicalSystem.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <!-- Maintenance material transaction: DistrictCenterRegistry / DistrictInventoryRegistry
+         (chapter 6.5: "materials are deducted from the closest warehouse"). -->
+    <Reference Include="Timberborn.GameDistricts">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.GameDistricts.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <!-- P1 crop loop (chapter 11.5): the custom workplace behavior drives the vanilla worker-side
+         plant/harvest/carry behaviors instead of re-implementing them (0 Harmony patches). -->
+    <Reference Include="Timberborn.BehaviorSystem">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.BehaviorSystem.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Timberborn.Yielding">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.Yielding.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Timberborn.Carrying">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.Carrying.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Timberborn.Emptying">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.Emptying.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Timberborn.Hauling">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.Hauling.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <!-- Managed-plot overlay (REQ-UI-05 / chapter 14.3-14.6), all names verified with
+         tools/ApiIndex against Timberborn 1.1.2.8:
+         * InputSystem: InputService IInputProcessor dispatch (click/Esc ownership);
+         * CameraSystem + TerrainQueryingSystem + GridTraversing: screen ray -> terrain cell;
+         * SelectionSystem: EntitySelectionService (auto-clear when the farm is deselected);
+         * Rendering: MarkerDrawerFactorySpec (vanilla tile mesh + material) and Layers.UILayer;
+         * Coordinates: CoordinateSystem.GridToWorldCentered (same cell -> world rule as MeshDrawer);
+         * Unity.InputSystem: Shift detection (the game's own KeyboardListener uses it). -->
+    <Reference Include="Timberborn.InputSystem">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.InputSystem.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Timberborn.CameraSystem">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.CameraSystem.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Timberborn.TerrainQueryingSystem">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.TerrainQueryingSystem.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Timberborn.GridTraversing">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.GridTraversing.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Timberborn.SelectionSystem">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.SelectionSystem.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Timberborn.Rendering">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.Rendering.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Timberborn.AssetSystem">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.AssetSystem.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Timberborn.Coordinates">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.Coordinates.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <!-- World-space P0/P1 warning icons (chapter 14.2/14.6). The mod does not draw sprites:
+         it registers vanilla StatusToggle entries on the building's StatusSubject and reuses the
+         vanilla StatusIconCycler (camera facing, sprite material, scale, screen-slot layout).
+         IL evidence: BuildingStatusesConfigurator decorates BuildingSpec with StatusSubject /
+         StatusIconCycler; StatusToggle.Create*WithFloatingIcon is public. -->
+    <Reference Include="Timberborn.StatusSystem">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.StatusSystem.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <!-- ILoc for the vanilla status description (the icon hover text). -->
+    <Reference Include="Timberborn.Localization">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.Localization.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Unity.InputSystem">
+      <HintPath>$(TimberbornManagedDir)\Unity.InputSystem.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+</Project>
+

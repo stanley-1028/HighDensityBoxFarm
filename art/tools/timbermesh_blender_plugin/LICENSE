@@ -1,0 +1,41 @@
+MIT License
+
+Copyright (c) Mechanistry sp. z o.o. (Timberborn / Timbermesh Blender Plugin, v1.2.0)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+--------------------------------------------------------------------------------
+Provenance / note for this vendored copy
+--------------------------------------------------------------------------------
+This directory is an unmodified copy of the official Timbermesh Blender Plugin
+v1.2.0 (bl_info version (1, 2, 0), author "Mechanistry sp. z o.o."), taken from
+the local SDK download at
+    C:\Users\user\.hdbf\sdk\blender-plugin\timbermesh_blender_plugin
+for reproducible headless exports inside this workspace.
+
+Upstream project: https://github.com/mechanistry/timbermesh
+The upstream release archive did not ship a standalone LICENSE file; the
+plugin's own wiki page ("Timbermesh Blender Plugin manual", License section)
+states: "Timbermesh Blender Plugin is licensed under the MIT License."
+This file reproduces that MIT license and is kept together with the sources as
+the license file the vendoring instructions require.
+
+The bundled pure-python protobuf runtime under google/protobuf/ keeps its own
+upstream license in google/protobuf/LICENSE.txt (BSD-3-Clause).
+--------------------------------------------------------------------------------

@@ -1,0 +1,114 @@
+{
+  "manifestVersion": 1,
+  "description": "REL-01 release-gate contract. build.ps1 enforces every value below; HDBF.Tests.ReleaseGateContractTests asserts the same values against the shipped sources/data so the gate list cannot drift away from the code without a red L1 suite.",
+  "gateIds": ["G-01", "G-02", "G-03", "G-04", "G-05", "G-06", "G-07", "G-08", "G-09"],
+
+  "requiredAssemblies": [
+    "HDBF.Core",
+    "HDBF.Persistence",
+    "HDBF.Gameplay",
+    "HDBF.Integration",
+    "HDBF.UI"
+  ],
+  "allowedStagedExtensions": [".dll", ".json", ".csv", ".png", ".md", ".txt", ".timbermesh"],
+  "forbiddenStagedPatterns": [
+    "*test*",
+    "*debug*",
+    "*cheat*",
+    "*diag*",
+    "*dev*",
+    "*.pdb",
+    "*.xml",
+    "*.deps.json",
+    "*.runtimeconfig.json"
+  ],
+  "forbiddenConfigKeys": [
+    "debug",
+    "debugPanel",
+    "devDiagnostics",
+    "cheat",
+    "cheatPanel",
+    "godMode",
+    "unlockAll",
+    "devCommands"
+  ],
+
+  "devDiagnostics": {
+    "defaultEnabled": false,
+    "buildProperty": "HdbfDevDiagnostics",
+    "define": "HDBF_DEV_DIAGNOSTICS",
+    "marker": "HDBF.DevDiagnostics",
+    "assembly": "HDBF.Gameplay",
+    "propertyFile": "Directory.Build.props",
+    "sourceFile": "src/HDBF.Gameplay/Components/HdbfBoxFarmController.Diagnostics.cs",
+    "forbiddenStrings": [
+      "diag.",
+      "scan.probe",
+      "DescribeDryPlots",
+      "dryCells",
+      "farm.plan",
+      "compat.harmony-patch-applied",
+      "HDBF.DevDiagnostics",
+      "HDBF_DEV_DIAGNOSTICS"
+    ]
+  },
+
+  "patches": {
+    "maxCount": 1,
+    "patchKind": "Postfix",
+    "harmonyInstanceId": "hdbf.highdensityboxfarm",
+    "catalogSource": "src/HDBF.Integration/Harmony/HdbfPatchCatalog.cs",
+    "implementationSources": [
+      "src/HDBF.Integration/Harmony/HdbfPatchCatalog.cs",
+      "src/HDBF.Integration/Harmony/BoxFarmGrowthPatch.cs",
+      "src/HDBF.Integration/Harmony/HdbfHarmonyInstaller.cs",
+      "src/HDBF.Integration/Harmony/HarmonyBootstrap.cs",
+      "src/HDBF.Integration/Harmony/HdbfGrowthPatchBridge.cs"
+    ],
+    "installerSource": "src/HDBF.Integration/Harmony/HdbfHarmonyInstaller.cs",
+    "bootstrapSource": "src/HDBF.Integration/Harmony/HarmonyBootstrap.cs",
+    "stagedAssembly": "HDBF.Integration.dll",
+    "disableSwitch": "growthMultiplierPatch",
+    "configSource": "data/HDBF_Config.json",
+    "forbiddenTokens": ["Transpiler"]
+  },
+
+  "compatReport": {
+    "sourceFile": "src/HDBF.Core/Compat/CompatReport.cs",
+    "formatVersion": 1,
+    "fields": [
+      "reportVersion",
+      "modVersion",
+      "gameVersion",
+      "schemaVersion",
+      "configSchemaVersion",
+      "detectedMods",
+      "enabledAdapters",
+      "failedAdapters",
+      "detectionSource",
+      "detectionDurationMs",
+      "harmonyPatchCount",
+      "performanceMode",
+      "lastError"
+    ]
+  },
+
+  "localizations": {
+    "stagedDirectory": "Localizations",
+    "languages": ["enUS", "zhCN", "zhTW"],
+    "requiredHeader": "ID,Text,Comment"
+  },
+
+  "testSeams": {
+    "type": "TestHooks",
+    "sourceFile": "src/HDBF.Integration/TestHooks.cs",
+    "allowedAssemblyDirectory": "src/HDBF.Integration",
+    "playerFacingEntryPoints": false
+  },
+
+  "l1": {
+    "minTests": 460,
+    "mustContain": "FAILED 0",
+    "project": "tests/HDBF.Tests/HDBF.Tests.csproj"
+  }
+}

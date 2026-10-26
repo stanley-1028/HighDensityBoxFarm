@@ -1,0 +1,72 @@
+HDBF Box Farm - ART-02 Timbermesh axis / unit test
+========================================================================
+generated (local): 2026-10-25 16:30:22
+blender: 4.2.1 LTS
+plugin: timbermesh_blender_plugin 1.2.0 (vendored at art/tools/)
+test model: 3 x 2 x 1 block built in ART-01 authoring space + 5 asymmetric
+            probe cubes (0.08) + 1 marker empty
+
+1) COMPENSATED EXPORT (production path)
+------------------------------------------------------------------------
+file: art\timbermesh\axis-test\BoxFarm.AxisTest.Model.timbermesh
+compensation: blender_out = (-src.x - 1.5, src.y - 1.0, src.z)
+bounds min         : [-0.0, 0.0, -0.0]
+bounds max         : [3.0, 1.0, 2.0]
+bounds size        : [3.0, 1.0, 2.0]   (want [3.0, 1.0, 2.0])
+triangles          : 72
+vertex properties  : ['color', 'normal', 'position', 'tangent']
+nodes              : ['BoxFarm.AxisTest.Model', '#Slot#Probe']
+slot positions     : {"#Slot#Probe": [1.75, 0.5, 0.5]}
+
+orientation probes (contract -> measured export):
+  front contract=(0.0, 0.5, -0.95)      export=(1.5, 0.5, 0.05)       cube_vertices=8/8 FOUND
+  back  contract=(0.0, 0.5, 0.95)       export=(1.5, 0.5, 1.95)       cube_vertices=8/8 FOUND
+  left  contract=(-1.4, 0.5, 0.0)       export=(0.1, 0.5, 1.0)        cube_vertices=8/8 FOUND
+  right contract=(1.4, 0.5, 0.0)        export=(2.9, 0.5, 1.0)        cube_vertices=8/8 FOUND
+  high  contract=(0.75, 0.9, -0.6)      export=(2.25, 0.9, 0.4)       cube_vertices=8/8 FOUND
+  empty contract=(0.25, 0.5, -0.5) export=(1.75, 0.5, 0.5) measured=[1.75, 0.5, 0.5]
+
+  [PASS] bounds size == (3, 1, 2) +/-0.05                     measured [3.0, 1.0, 2.0]
+  [PASS] bounds min == (0, 0, 0) +/-0.05 (block-corner origin) measured [-0.0, 0.0, -0.0]
+  [PASS] probe front cube vertex at export center (1.5, 0.5, 0.050000000000000044) 8/8 corners found
+  [PASS] probe back  cube vertex at export center (1.5, 0.5, 1.95) 8/8 corners found
+  [PASS] probe left  cube vertex at export center (0.10000000000000009, 0.5, 1.0) 8/8 corners found
+  [PASS] probe right cube vertex at export center (2.9, 0.5, 1.0) 8/8 corners found
+  [PASS] probe high  cube vertex at export center (2.25, 0.9, 0.4) 8/8 corners found
+  [PASS] empty '#Slot#Probe' position                         measured [1.75, 0.5, 0.5] want [1.75, 0.5, 0.5]
+  [PASS] Model.Name == file stem                              measured 'BoxFarm.AxisTest.Model'
+  [PASS] vertex 'color' property present                      properties ['color', 'normal', 'position', 'tangent']
+
+  RESULT: PASS
+
+2) NEGATIVE CONTROL - raw ART-01 authoring space, no compensation
+------------------------------------------------------------------------
+file: art\timbermesh\axis-test\BoxFarm.AxisTestNoCompensation.Model.timbermesh
+This shows the official plugin's own axis mapping, empirically:
+  bounds min : [-1.5, 0.0, -1.0]
+  bounds max : [1.5, 1.0, 1.0]
+  bounds size: [3.0, 1.0, 2.0]
+
+Interpretation of the two runs
+------------------------------------------------------------------------
+* The official plugin DOES convert Blender Z-up -> game Y-up, and it also
+  mirrors X and Z (node_builder writes export = (-bx, bz, -by) and reverses
+  triangle winding to compensate).
+* On raw ART-01 files the plugin therefore yields X [-1.5, 1.5], Y [0, 1],
+  Z [-1, 1]: it keeps the centred pivot of the requirement document.
+* The game's block-object local space is NOT centred. Measured from the
+  shipped ShantySpeaker.IronTeeth.Model.timbermesh of the official modding
+  SDK: a 1 x 1 x 2 decoration occupies X [0, 1], Z [0, 1] and is up to
+  Y 1.87 tall; vanilla blueprint CollidersSpec centres agree
+  (BuildersHut 3x2 box center (1.5, 0.5, 1.0); ShantySpeaker center
+  (0.5, 0.25, 0.5)). So models are authored with the BLOCK CORNER at the
+  origin, spanning [0, size] on X and Z, front at Z = 0.
+* The exporter therefore mirrors X, shifts by half a footprint and shifts
+  the depth by +1.0 so that requirement-13.6 contract coordinates map to
+    export = (contract.x + 1.5, contract.y, contract.z + 1.0).
+* Verified mapping used by the exporter:
+    export = (-blender_out.x, blender_out.z, -blender_out.y)
+    blender_out = (-src.x - 1.5, src.y - 1.0, src.z)
+  i.e. export = (src.x + 1.5, src.z, -src.y + 1.0) = contract + offsets.
+
+OVERALL VERDICT: PASS

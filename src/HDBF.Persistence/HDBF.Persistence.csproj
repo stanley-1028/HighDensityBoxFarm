@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    HDBF.Persistence: maps runtime farm state onto Timberborn's entity persistence
+    (IEntitySaver / IEntityLoader), owns schema versioning, migration and the
+    integrity/fallback rules for damaged records.
+  -->
+
+  <PropertyGroup>
+    <HdbfGameProject>true</HdbfGameProject>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <AssemblyName>HDBF.Persistence</AssemblyName>
+    <RootNamespace>HDBF.Persistence</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\HDBF.Core\HDBF.Core.csproj" />
+  </ItemGroup>
+
+</Project>

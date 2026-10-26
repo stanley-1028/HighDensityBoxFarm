@@ -1,0 +1,196 @@
+
+=== Bindito.Core.Bindito::CreateContainer   [Bindito.Core]
+  IL_0000: ldarg.0
+  IL_0001: call System.Collections.Generic.IEnumerable`1<!!0> System.Linq.Enumerable::AsEnumerable<Bindito.Core.IConfigurator>(System.Collections.Generic.IEnumerable`1<!!0>)
+  IL_0006: call Bindito.Core.IContainer Bindito.Core.Bindito::CreateContainer(System.Collections.Generic.IEnumerable`1<Bindito.Core.IConfigurator>)
+  IL_000b: ret
+
+=== Bindito.Core.Bindito::CreateContainer   [Bindito.Core]
+  IL_0000: newobj System.Void Bindito.Core.Internal.ContainerCreator::.ctor()
+  IL_0005: ldarg.0
+  IL_0006: callvirt Bindito.Core.IContainer Bindito.Core.Internal.ContainerCreator::CreateContainer(System.Collections.Generic.IEnumerable`1<Bindito.Core.IConfigurator>)
+  IL_000b: ret
+
+=== Bindito.Core.IContainerDefinition::Install   [Bindito.Core]
+  (no body)
+
+=== Bindito.Core.IContainerDefinition::InstallAll   [Bindito.Core]
+  (no body)
+
+=== Bindito.Core.Internal.ConfiguratorRunner::RunConfigurators   [Bindito.Core]
+  IL_0000: ldarg.1
+  IL_0001: callvirt System.Collections.Generic.IEnumerator`1<!0> System.Collections.Generic.IEnumerable`1<Bindito.Core.IConfigurator>::GetEnumerator()
+  IL_0006: stloc.0
+  IL_0007: br.s IL_001a
+  IL_0009: ldloc.0
+  IL_000a: callvirt !0 System.Collections.Generic.IEnumerator`1<Bindito.Core.IConfigurator>::get_Current()
+  IL_000f: ldarg.0
+  IL_0010: ldfld Bindito.Core.IContainerDefinition Bindito.Core.Internal.ConfiguratorRunner::_containerDefinition
+  IL_0015: callvirt System.Void Bindito.Core.IConfigurator::Configure(Bindito.Core.IContainerDefinition)
+  IL_001a: ldloc.0
+  IL_001b: callvirt System.Boolean System.Collections.IEnumerator::MoveNext()
+  IL_0020: brtrue.s IL_0009
+  IL_0022: leave.s IL_002e
+  IL_0024: ldloc.0
+  IL_0025: brfalse.s IL_002d
+  IL_0027: ldloc.0
+  IL_0028: callvirt System.Void System.IDisposable::Dispose()
+  IL_002d: endfinally
+  IL_002e: ret
+
+=== Bindito.Core.Internal.ContainerCreator::CreateContainer   [Bindito.Core]
+  IL_0000: ldarg.0
+  IL_0001: ldfld System.Boolean Bindito.Core.Internal.ContainerCreator::_created
+  IL_0006: brfalse.s IL_0013
+  IL_0008: ldstr "One ContainerCreator can only be used to create one container."
+  IL_000d: newobj System.Void System.InvalidOperationException::.ctor(System.String)
+  IL_0012: throw
+  IL_0013: ldarg.0
+  IL_0014: ldfld Bindito.Core.Internal.IBinder Bindito.Core.Internal.ContainerCreator::_parentBinder
+  IL_0019: newobj System.Void Bindito.Core.Internal.Binder::.ctor(Bindito.Core.Internal.IBinder)
+  IL_001e: stloc.0
+  IL_001f: newobj System.Void Bindito.Core.Internal.ProvisionListenerNotifier::.ctor()
+  IL_0024: stloc.1
+  IL_0025: newobj System.Void Bindito.Core.Internal.InjectionListenerNotifier::.ctor()
+  IL_002a: stloc.2
+  IL_002b: newobj System.Void Bindito.Core.Internal.ConstructorRetriever::.ctor()
+  IL_0030: stloc.3
+  IL_0031: newobj System.Void Bindito.Core.Internal.MethodRetriever::.ctor()
+  IL_0036: stloc.s V_4
+  IL_0038: ldloc.3
+  IL_0039: ldloc.s V_4
+  IL_003b: newobj System.Void Bindito.Core.Internal.DependencyRetriever::.ctor(Bindito.Core.Internal.IConstructorRetriever,Bindito.Core.Internal.IMethodRetriever)
+  IL_0040: newobj System.Void Bindito.Core.Internal.MultiBindingService::.ctor()
+  IL_0045: stloc.s V_5
+  IL_0047: ldloc.s V_5
+  IL_0049: ldloc.0
+  IL_004a: ldarg.0
+  IL_004b: ldfld Bindito.Core.Internal.IBinder Bindito.Core.Internal.ContainerCreator::_parentBinder
+  IL_0050: newobj System.Void Bindito.Core.Internal.BindingResolver::.ctor(Bindito.Core.Internal.IMultiBindingService,Bindito.Core.Internal.IBinder,Bindito.Core.Internal.IBinder)
+  IL_0055: stloc.s V_6
+  IL_0057: ldloc.s V_6
+  IL_0059: newobj System.Void Bindito.Core.Internal.BindingAnalyser::.ctor(Bindito.Core.Internal.IDependencyRetriever,Bindito.Core.Internal.IBindingResolver)
+  IL_005e: newobj System.Void Bindito.Core.Internal.BindingValidator::.ctor(Bindito.Core.Internal.IBindingAnalyser)
+  IL_0063: stloc.s V_7
+  IL_0065: ldloc.0
+  IL_0066: ldarg.0
+  IL_0067: ldfld Bindito.Core.Internal.IInstanceProviderBank Bindito.Core.Internal.ContainerCreator::_parentInstanceProviderBank
+  IL_006c: newobj System.Void Bindito.Core.Internal.InstanceProviderBank::.ctor(Bindito.Core.Internal.IBinder,Bindito.Core.Internal.IInstanceProviderBank)
+  IL_0071: stloc.s V_8
+  IL_0073: ldloc.s V_8
+  IL_0075: newobj System.Void Bindito.Core.Internal.InstanceBank::.ctor(Bindito.Core.Internal.IInstanceProviderBank)
+  IL_007a: stloc.s V_9
+  IL_007c: ldloc.s V_9
+  IL_007e: ldloc.s V_5
+  IL_0080: newobj System.Void Bindito.Core.Internal.ParameterProvider::.ctor(Bindito.Core.Internal.IInstanceBank,Bindito.Core.Internal.IMultiBindingService)
+  IL_0085: dup
+  IL_0086: ldloc.s V_4
+  IL_0088: ldloc.2
+  IL_0089: newobj System.Void Bindito.Core.Internal.MethodInjector::.ctor(Bindito.Core.Internal.IParameterProvider,Bindito.Core.Internal.IMethodRetriever,Bindito.Core.Internal.IInjectionListenerNotifier)
+  IL_008e: stloc.s V_10
+  IL_0090: ldloc.3
+  IL_0091: newobj System.Void Bindito.Core.Internal.InstanceCreator::.ctor(Bindito.Core.Internal.IParameterProvider,Bindito.Core.Internal.IConstructorRetriever)
+  IL_0096: ldloc.s V_10
+  IL_0098: ldloc.s V_7
+  IL_009a: newobj System.Void Bindito.Core.Internal.ValidatingMethodInjector::.ctor(Bindito.Core.Internal.IMethodInjector,Bindito.Core.Internal.IBindingValidator)
+  IL_009f: stloc.s V_11
+  IL_00a1: ldloc.s V_10
+  IL_00a3: ldloc.1
+  IL_00a4: ldloc.s V_11
+  IL_00a6: ldloc.s V_9
+  IL_00a8: newobj System.Void Bindito.Core.Internal.InstanceProviderFuncFactory::.ctor(Bindito.Core.Internal.IInstanceCreator,Bindito.Core.Internal.IMethodInjector,Bindito.Core.Internal.IProvisionListenerNotifier,Bindito.Core.Internal.IValidatingMethodInjector,Bindito.Core.Internal.IInstanceBank)
+  IL_00ad: newobj System.Void Bindito.Core.Internal.Scoper::.ctor()
+  IL_00b2: stloc.s V_12
+  IL_00b4: ldloc.s V_12
+  IL_00b6: newobj System.Void Bindito.Core.Internal.InstanceProviderFactory::.ctor(Bindito.Core.Internal.IInstanceProviderFuncFactory,Bindito.Core.Internal.IScoper)
+  IL_00bb: stloc.s V_13
+  IL_00bd: ldloc.s V_8
+  IL_00bf: ldloc.s V_13
+  IL_00c1: callvirt System.Void Bindito.Core.Internal.InstanceProviderBank::set_InstanceProviderFactory(Bindito.Core.Internal.IInstanceProviderFactory)
+  IL_00c6: ldloc.0
+  IL_00c7: newobj System.Void Bindito.Core.Internal.BoundInstanceService::.ctor(Bindito.Core.Internal.IBinder)
+  IL_00cc: stloc.s V_14
+  IL_00ce: ldloc.s V_9
+  IL_00d0: ldloc.s V_11
+  IL_00d2: ldloc.s V_14
+  IL_00d4: ldarg.0
+  IL_00d5: newobj System.Void Bindito.Core.Internal.Container::.ctor(Bindito.Core.Internal.IInstanceBank,Bindito.Core.Internal.IValidatingMethodInjector,Bindito.Core.Internal.IBoundInstanceService,Bindito.Core.Internal.IContainerCreator)
+  IL_00da: dup
+  IL_00db: ldarg.1
+  IL_00dc: ldloc.0
+  IL_00dd: ldloc.1
+  IL_00de: ldloc.2
+  IL_00df: call System.Void Bindito.Core.Internal.ContainerCreator::ConfigureContainer(Bindito.Core.IContainer,System.Collections.Generic.IEnumerable`1<Bindito.Core.IConfigurator>,Bindito.Core.Internal.IBinder,Bindito.Core.Internal.IProvisionListenerNotifier,Bindito.Core.Internal.IInjectionListenerNotifier)
+  IL_00e4: ldloc.s V_7
+  IL_00e6: ldloc.0
+  IL_00e7: call System.Void Bindito.Core.Internal.ContainerCreator::ValidateConfiguration(Bindito.Core.Internal.IBindingValidator,Bindito.Core.Internal.IBinder)
+  IL_00ec: ldloc.s V_8
+  IL_00ee: ldloc.0
+  IL_00ef: call System.Void Bindito.Core.Internal.ContainerCreator::InitializeInstanceProviders(Bindito.Core.Internal.InstanceProviderBank,Bindito.Core.Internal.Binder)
+  IL_00f4: ldarg.0
+  IL_00f5: ldloc.s V_8
+  IL_00f7: ldloc.0
+  IL_00f8: call System.Void Bindito.Core.Internal.ContainerCreator::PostCreate(Bindito.Core.Internal.IInstanceProviderBank,Bindito.Core.Internal.IBinder)
+  IL_00fd: ret
+
+=== Bindito.Core.Internal.ContainerCreator::CreateChildContainer   [Bindito.Core]
+  IL_0000: ldarg.0
+  IL_0001: ldfld System.Boolean Bindito.Core.Internal.ContainerCreator::_created
+  IL_0006: brtrue.s IL_0013
+  IL_0008: ldstr "Can't create a child container before parent."
+  IL_000d: newobj System.Void System.InvalidOperationException::.ctor(System.String)
+  IL_0012: throw
+  IL_0013: ldarg.0
+  IL_0014: ldfld Bindito.Core.Internal.IInstanceProviderBank Bindito.Core.Internal.ContainerCreator::_ownInstanceProviderBank
+  IL_0019: ldarg.0
+  IL_001a: ldfld Bindito.Core.Internal.IBinder Bindito.Core.Internal.ContainerCreator::_ownBinder
+  IL_001f: newobj System.Void Bindito.Core.Internal.ContainerCreator::.ctor(Bindito.Core.Internal.IInstanceProviderBank,Bindito.Core.Internal.IBinder)
+  IL_0024: ldarg.1
+  IL_0025: callvirt Bindito.Core.IContainer Bindito.Core.Internal.ContainerCreator::CreateContainer(System.Collections.Generic.IEnumerable`1<Bindito.Core.IConfigurator>)
+  IL_002a: ret
+
+=== Bindito.Core.Internal.ContainerCreator::PostCreate   [Bindito.Core]
+  IL_0000: ldarg.0
+  IL_0001: ldarg.1
+  IL_0002: stfld Bindito.Core.Internal.IInstanceProviderBank Bindito.Core.Internal.ContainerCreator::_ownInstanceProviderBank
+  IL_0007: ldarg.0
+  IL_0008: ldarg.2
+  IL_0009: stfld Bindito.Core.Internal.IBinder Bindito.Core.Internal.ContainerCreator::_ownBinder
+  IL_000e: ldarg.0
+  IL_000f: ldc.i4.1
+  IL_0010: stfld System.Boolean Bindito.Core.Internal.ContainerCreator::_created
+  IL_0015: ret
+
+=== Bindito.Core.Internal.ContainerDefinition::Install   [Bindito.Core]
+  IL_0000: ldarg.1
+  IL_0001: ldarg.0
+  IL_0002: callvirt System.Void Bindito.Core.IConfigurator::Configure(Bindito.Core.IContainerDefinition)
+  IL_0007: ret
+
+=== Bindito.Core.Internal.ContainerDefinition::InstallAll   [Bindito.Core]
+  IL_0000: call System.Collections.Generic.IEnumerable`1<System.Type> Bindito.Core.Internal.ContainerDefinition::FindConfigurators()
+  IL_0005: callvirt System.Collections.Generic.IEnumerator`1<!0> System.Collections.Generic.IEnumerable`1<System.Type>::GetEnumerator()
+  IL_000a: stloc.0
+  IL_000b: br.s IL_002e
+  IL_000d: ldloc.0
+  IL_000e: callvirt !0 System.Collections.Generic.IEnumerator`1<System.Type>::get_Current()
+  IL_0013: stloc.1
+  IL_0014: ldloc.1
+  IL_0015: ldarg.1
+  IL_0016: call System.Boolean Bindito.Core.Internal.ContainerDefinition::HasContext(System.Type,System.String)
+  IL_001b: brfalse.s IL_002e
+  IL_001d: ldarg.0
+  IL_001e: ldloc.1
+  IL_001f: call System.Object System.Activator::CreateInstance(System.Type)
+  IL_0024: castclass Bindito.Core.IConfigurator
+  IL_0029: call System.Void Bindito.Core.Internal.ContainerDefinition::Install(Bindito.Core.IConfigurator)
+  IL_002e: ldloc.0
+  IL_002f: callvirt System.Boolean System.Collections.IEnumerator::MoveNext()
+  IL_0034: brtrue.s IL_000d
+  IL_0036: leave.s IL_0042
+  IL_0038: ldloc.0
+  IL_0039: brfalse.s IL_0041
+  IL_003b: ldloc.0
+  IL_003c: callvirt System.Void System.IDisposable::Dispose()
+  IL_0041: endfinally
+  IL_0042: ret

@@ -1,0 +1,65 @@
+
+=== Timberborn.TemplateInstantiation.TemplateModule+.Builder::AddDecorator<TSubject, TDecorator>   [Timberborn.TemplateInstantiation]
+  IL_0000: ldtoken TDecorator
+  IL_0005: call System.Type System.Type::GetTypeFromHandle(System.RuntimeTypeHandle)
+  IL_000a: call Timberborn.TemplateInstantiation.DecoratorDefinition Timberborn.TemplateInstantiation.DecoratorDefinition::CreateSingleton(System.Type)
+  IL_000f: stloc.0
+  IL_0010: ldarg.0
+  IL_0011: ldfld System.Collections.Generic.Dictionary`2<System.Type,System.Collections.Generic.List`1<Timberborn.TemplateInstantiation.DecoratorDefinition>> Timberborn.TemplateInstantiation.TemplateModule/Builder::_decorators
+  IL_0016: ldtoken TSubject
+  IL_001b: call System.Type System.Type::GetTypeFromHandle(System.RuntimeTypeHandle)
+  IL_0020: call !!1 Timberborn.Common.DictionaryExtensions::GetOrAdd<System.Type,System.Collections.Generic.List`1<Timberborn.TemplateInstantiation.DecoratorDefinition>>(System.Collections.Generic.IDictionary`2<!!0,!!1>,!!0)
+  IL_0025: ldloc.0
+  IL_0026: callvirt System.Void System.Collections.Generic.List`1<Timberborn.TemplateInstantiation.DecoratorDefinition>::Add(!0)
+  IL_002b: ret
+
+=== Timberborn.TemplateInstantiation.TemplateModule+.Builder::AddDedicatedDecorator<TSubject, TDecorator>   [Timberborn.TemplateInstantiation]
+  IL_0000: newobj System.Void Timberborn.TemplateInstantiation.TemplateModule/Builder/<>c__DisplayClass2_0`2<TSubject,TDecorator>::.ctor()
+  IL_0005: stloc.0
+  IL_0006: ldloc.0
+  IL_0007: ldarg.1
+  IL_0008: stfld Timberborn.TemplateInstantiation.IDedicatedDecoratorInitializer`2<TSubject,TDecorator> Timberborn.TemplateInstantiation.TemplateModule/Builder/<>c__DisplayClass2_0`2<TSubject,TDecorator>::initializer
+  IL_000d: ldtoken TDecorator
+  IL_0012: call System.Type System.Type::GetTypeFromHandle(System.RuntimeTypeHandle)
+  IL_0017: ldloc.0
+  IL_0018: ldftn System.Void Timberborn.TemplateInstantiation.TemplateModule/Builder/<>c__DisplayClass2_0`2<TSubject,TDecorator>::<AddDedicatedDecorator>b__0(System.Object,System.Object)
+  IL_001e: newobj System.Void System.Action`2<System.Object,System.Object>::.ctor(System.Object,System.IntPtr)
+  IL_0023: call Timberborn.TemplateInstantiation.DecoratorDefinition Timberborn.TemplateInstantiation.DecoratorDefinition::CreateDedicated(System.Type,System.Action`2<System.Object,System.Object>)
+  IL_0028: stloc.1
+  IL_0029: ldarg.0
+  IL_002a: ldfld System.Collections.Generic.Dictionary`2<System.Type,System.Collections.Generic.List`1<Timberborn.TemplateInstantiation.DecoratorDefinition>> Timberborn.TemplateInstantiation.TemplateModule/Builder::_decorators
+  IL_002f: ldtoken TSubject
+  IL_0034: call System.Type System.Type::GetTypeFromHandle(System.RuntimeTypeHandle)
+  IL_0039: call !!1 Timberborn.Common.DictionaryExtensions::GetOrAdd<System.Type,System.Collections.Generic.List`1<Timberborn.TemplateInstantiation.DecoratorDefinition>>(System.Collections.Generic.IDictionary`2<!!0,!!1>,!!0)
+  IL_003e: ldloc.1
+  IL_003f: callvirt System.Void System.Collections.Generic.List`1<Timberborn.TemplateInstantiation.DecoratorDefinition>::Add(!0)
+  IL_0044: ret
+
+=== Timberborn.TemplateInstantiation.TemplateModule+.Builder::Build   [Timberborn.TemplateInstantiation]
+  IL_0000: ldarg.0
+  IL_0001: ldfld System.Collections.Generic.Dictionary`2<System.Type,System.Collections.Generic.List`1<Timberborn.TemplateInstantiation.DecoratorDefinition>> Timberborn.TemplateInstantiation.TemplateModule/Builder::_decorators
+  IL_0006: newobj System.Void Timberborn.TemplateInstantiation.TemplateModule::.ctor(System.Collections.Generic.Dictionary`2<System.Type,System.Collections.Generic.List`1<Timberborn.TemplateInstantiation.DecoratorDefinition>>)
+  IL_000b: ret
+
+=== Timberborn.TemplateInstantiation.TemplateModule+.Builder::.ctor   [Timberborn.TemplateInstantiation]
+  IL_0000: ldarg.0
+  IL_0001: newobj System.Void System.Collections.Generic.Dictionary`2<System.Type,System.Collections.Generic.List`1<Timberborn.TemplateInstantiation.DecoratorDefinition>>::.ctor()
+  IL_0006: stfld System.Collections.Generic.Dictionary`2<System.Type,System.Collections.Generic.List`1<Timberborn.TemplateInstantiation.DecoratorDefinition>> Timberborn.TemplateInstantiation.TemplateModule/Builder::_decorators
+  IL_000b: ldarg.0
+  IL_000c: call System.Void System.Object::.ctor()
+  IL_0011: ret
+
+=== Timberborn.TemplateInstantiation.TemplateModule+.Builder+.<>c__DisplayClass2_0`2::.ctor   [Timberborn.TemplateInstantiation]
+  IL_0000: ldarg.0
+  IL_0001: call System.Void System.Object::.ctor()
+  IL_0006: ret
+
+=== Timberborn.TemplateInstantiation.TemplateModule+.Builder+.<>c__DisplayClass2_0`2::<AddDedicatedDecorator>b__0   [Timberborn.TemplateInstantiation]
+  IL_0000: ldarg.0
+  IL_0001: ldfld Timberborn.TemplateInstantiation.IDedicatedDecoratorInitializer`2<TSubject,TDecorator> Timberborn.TemplateInstantiation.TemplateModule/Builder/<>c__DisplayClass2_0`2<TSubject,TDecorator>::initializer
+  IL_0006: ldarg.1
+  IL_0007: unbox.any TSubject
+  IL_000c: ldarg.2
+  IL_000d: unbox.any TDecorator
+  IL_0012: callvirt System.Void Timberborn.TemplateInstantiation.IDedicatedDecoratorInitializer`2<TSubject,TDecorator>::Initialize(TSubject,TDecorator)
+  IL_0017: ret

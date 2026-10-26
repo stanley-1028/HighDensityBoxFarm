@@ -1,0 +1,63 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    HDBF.UI: entity panel fragments, status/warning rows and localization glue.
+    References HDBF.Core only (single ProjectReference, see Directory.Build.props note)
+    plus the extra game UI assemblies listed below.
+  -->
+
+  <PropertyGroup>
+    <HdbfGameProject>true</HdbfGameProject>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <AssemblyName>HDBF.UI</AssemblyName>
+    <RootNamespace>HDBF.UI</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\HDBF.Core\HDBF.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="UnityEngine.UIElementsModule">
+      <HintPath>$(TimberbornManagedDir)\UnityEngine.UIElementsModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.TextRenderingModule">
+      <HintPath>$(TimberbornManagedDir)\UnityEngine.TextRenderingModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Timberborn.CoreUI">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.CoreUI.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Timberborn.EntityPanelSystem">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.EntityPanelSystem.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Timberborn.Localization">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.Localization.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Timberborn.UIFormatters">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.UIFormatters.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Timberborn.StatusSystem">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.StatusSystem.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Timberborn.SingletonSystem">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.SingletonSystem.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Timberborn.EntityNaming">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.EntityNaming.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Bindito.Core">
+      <HintPath>$(TimberbornManagedDir)\Bindito.Core.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,2964 @@
+{
+  "generated_by": "art/gen_models.py (ART-04 flat-roof / flat-patch revision)",
+  "art_revision": "ART-04",
+  "roof_platform": {
+    "description": "ONE empty flat platform per model; no crop slots, no soil, no roof objects. Thin curb is the envelope apex.",
+    "top_contract": 0.96,
+    "curb_top_contract": 1.0,
+    "curb_height": 0.04,
+    "curb_width": 0.04,
+    "clear_above": 0.06,
+    "plans": {
+      "Basic": {
+        "size_x": 2.05,
+        "size_z": 1.25
+      },
+      "Intermediate": {
+        "size_x": 2.45,
+        "size_z": 1.55
+      },
+      "Advanced": {
+        "size_x": 2.78,
+        "size_z": 1.82
+      },
+      "Top": {
+        "size_x": 2.96,
+        "size_z": 1.96
+      },
+      "ConstructionStage0": {
+        "size_x": 2.86,
+        "size_z": 1.86
+      }
+    }
+  },
+  "atlas": {
+    "size": 2048,
+    "files": {
+      "albedo": "textures/atlas_albedo.png",
+      "normal": "textures/atlas_normal.png",
+      "mask": "textures/atlas_mask.png"
+    },
+    "channels": {
+      "albedo": "sRGB RGB(A)",
+      "normal": "linear RGB, OpenGL (+Y up)",
+      "mask": "linear RGBA: R=metallic, G=roughness, A=smoothness, B=metallic duplicate (glTF metallicRoughness packing)"
+    },
+    "padding_px": 4,
+    "uv_space": "ART-04: every face of one material is mapped into that material's fixed flat patch (no per-face unique packing); all uv0 in [0,1]",
+    "patch_texels_per_grid": 64
+  },
+  "material_order": [
+    "M_HDBF_Wood",
+    "M_HDBF_Metal",
+    "M_HDBF_Glass",
+    "M_HDBF_Fabric"
+  ],
+  "material_patches": [
+    {
+      "id": "wood_plain",
+      "atlas_region": "wood",
+      "pixel_rect": [
+        96,
+        352,
+        480,
+        736
+      ],
+      "uv_rect": [
+        0.046875,
+        0.640625,
+        0.234375,
+        0.828125
+      ],
+      "texels": [
+        384,
+        384
+      ],
+      "texels_per_grid": 64,
+      "used_by_models": [
+        "Basic.Folktails.LOD0",
+        "Basic.Folktails.LOD1",
+        "Basic.Folktails.LOD2",
+        "Basic.IronTeeth.LOD0",
+        "Basic.IronTeeth.LOD1",
+        "Basic.IronTeeth.LOD2",
+        "ConstructionStage0",
+        "Top.IronTeeth.LOD0",
+        "Top.IronTeeth.LOD1",
+        "Top.IronTeeth.LOD2"
+      ],
+      "materials": [
+        "BaseWood_Brown.Folktails",
+        "BaseWood_DarkBrown.IronTeeth"
+      ]
+    },
+    {
+      "id": "wood_light",
+      "atlas_region": "wood",
+      "pixel_rect": [
+        96,
+        1056,
+        480,
+        1440
+      ],
+      "uv_rect": [
+        0.046875,
+        0.296875,
+        0.234375,
+        0.484375
+      ],
+      "texels": [
+        384,
+        384
+      ],
+      "texels_per_grid": 64,
+      "used_by_models": [
+        "Advanced.Folktails.LOD0",
+        "Advanced.Folktails.LOD1",
+        "Advanced.Folktails.LOD2",
+        "Advanced.IronTeeth.LOD0",
+        "Advanced.IronTeeth.LOD1",
+        "Advanced.IronTeeth.LOD2"
+      ],
+      "materials": [
+        "BaseWood_Grey.IronTeeth",
+        "BaseWood_LightBrown.Folktails",
+        "BaseWood_White.Folktails"
+      ]
+    },
+    {
+      "id": "planks_light",
+      "atlas_region": "wood",
+      "pixel_rect": [
+        96,
+        1568,
+        480,
+        1952
+      ],
+      "uv_rect": [
+        0.046875,
+        0.046875,
+        0.234375,
+        0.234375
+      ],
+      "texels": [
+        384,
+        384
+      ],
+      "texels_per_grid": 64,
+      "used_by_models": [
+        "Intermediate.Folktails.LOD0",
+        "Intermediate.Folktails.LOD1",
+        "Intermediate.Folktails.LOD2",
+        "Intermediate.IronTeeth.LOD0",
+        "Intermediate.IronTeeth.LOD1",
+        "Intermediate.IronTeeth.LOD2"
+      ],
+      "materials": [
+        "IrregularPlanks_DarkBrown.IronTeeth",
+        "IrregularPlanks_LightBrown.Folktails"
+      ]
+    },
+    {
+      "id": "planks_brown",
+      "atlas_region": "wood",
+      "pixel_rect": [
+        528,
+        352,
+        784,
+        608
+      ],
+      "uv_rect": [
+        0.257812,
+        0.703125,
+        0.382812,
+        0.828125
+      ],
+      "texels": [
+        256,
+        256
+      ],
+      "texels_per_grid": 64,
+      "used_by_models": [
+        "Top.Folktails.LOD0",
+        "Top.Folktails.LOD1",
+        "Top.Folktails.LOD2"
+      ],
+      "materials": [
+        "IrregularPlanks_Brown.Folktails"
+      ]
+    },
+    {
+      "id": "metal_base",
+      "atlas_region": "metal",
+      "pixel_rect": [
+        1056,
+        384,
+        1440,
+        768
+      ],
+      "uv_rect": [
+        0.515625,
+        0.625,
+        0.703125,
+        0.8125
+      ],
+      "texels": [
+        384,
+        384
+      ],
+      "texels_per_grid": 64,
+      "used_by_models": [
+        "ConstructionStage0",
+        "Top.Folktails.LOD0",
+        "Top.Folktails.LOD1",
+        "Top.Folktails.LOD2",
+        "Top.IronTeeth.LOD0",
+        "Top.IronTeeth.LOD1",
+        "Top.IronTeeth.LOD2"
+      ],
+      "materials": [
+        "BaseMetal.Folktails",
+        "BaseMetal.IronTeeth"
+      ]
+    },
+    {
+      "id": "metal_painted",
+      "atlas_region": "metal",
+      "pixel_rect": [
+        1056,
+        1088,
+        1440,
+        1472
+      ],
+      "uv_rect": [
+        0.515625,
+        0.28125,
+        0.703125,
+        0.46875
+      ],
+      "texels": [
+        384,
+        384
+      ],
+      "texels_per_grid": 64,
+      "used_by_models": [
+        "Advanced.Folktails.LOD0",
+        "Advanced.Folktails.LOD1",
+        "Advanced.Folktails.LOD2",
+        "Advanced.IronTeeth.LOD0",
+        "Advanced.IronTeeth.LOD1",
+        "Advanced.IronTeeth.LOD2"
+      ],
+      "materials": [
+        "PaintedMetal.Folktails",
+        "PaintedMetal.IronTeeth"
+      ]
+    },
+    {
+      "id": "metal_details",
+      "atlas_region": "metal",
+      "pixel_rect": [
+        1056,
+        1568,
+        1312,
+        1824
+      ],
+      "uv_rect": [
+        0.515625,
+        0.109375,
+        0.640625,
+        0.234375
+      ],
+      "texels": [
+        256,
+        256
+      ],
+      "texels_per_grid": 64,
+      "used_by_models": [
+        "Advanced.Folktails.LOD0",
+        "Advanced.Folktails.LOD1",
+        "Advanced.Folktails.LOD2",
+        "Advanced.IronTeeth.LOD0",
+        "Advanced.IronTeeth.LOD1",
+        "Advanced.IronTeeth.LOD2",
+        "Top.Folktails.LOD0",
+        "Top.Folktails.LOD1",
+        "Top.Folktails.LOD2",
+        "Top.IronTeeth.LOD0",
+        "Top.IronTeeth.LOD1",
+        "Top.IronTeeth.LOD2"
+      ],
+      "materials": [
+        "Details.Folktails",
+        "Details.IronTeeth",
+        "IrregularPlanks_MetalForged.IronTeeth"
+      ]
+    },
+    {
+      "id": "glass",
+      "atlas_region": "glass",
+      "pixel_rect": [
+        1744,
+        704,
+        1832,
+        792
+      ],
+      "uv_rect": [
+        0.851562,
+        0.613281,
+        0.894531,
+        0.65625
+      ],
+      "texels": [
+        88,
+        88
+      ],
+      "texels_per_grid": 64,
+      "used_by_models": [
+        "Advanced.Folktails.LOD0",
+        "Advanced.Folktails.LOD1",
+        "Advanced.Folktails.LOD2",
+        "Advanced.IronTeeth.LOD0",
+        "Advanced.IronTeeth.LOD1",
+        "Advanced.IronTeeth.LOD2",
+        "Intermediate.Folktails.LOD0",
+        "Intermediate.Folktails.LOD1",
+        "Intermediate.Folktails.LOD2",
+        "Intermediate.IronTeeth.LOD0",
+        "Intermediate.IronTeeth.LOD1",
+        "Intermediate.IronTeeth.LOD2",
+        "Top.Folktails.LOD0",
+        "Top.Folktails.LOD1",
+        "Top.Folktails.LOD2",
+        "Top.IronTeeth.LOD0",
+        "Top.IronTeeth.LOD1",
+        "Top.IronTeeth.LOD2"
+      ],
+      "materials": [
+        "WindowsAtlas.Folktails",
+        "WindowsAtlas.IronTeeth"
+      ]
+    },
+    {
+      "id": "plaster",
+      "atlas_region": "canvas",
+      "pixel_rect": [
+        1872,
+        288,
+        2000,
+        416
+      ],
+      "uv_rect": [
+        0.914062,
+        0.796875,
+        0.976562,
+        0.859375
+      ],
+      "texels": [
+        128,
+        128
+      ],
+      "texels_per_grid": 64,
+      "used_by_models": [
+        "Intermediate.Folktails.LOD0",
+        "Intermediate.Folktails.LOD1",
+        "Intermediate.Folktails.LOD2",
+        "Intermediate.IronTeeth.LOD0",
+        "Intermediate.IronTeeth.LOD1",
+        "Intermediate.IronTeeth.LOD2"
+      ],
+      "materials": [
+        "Plaster_Orange.IronTeeth",
+        "Plaster_White.Folktails"
+      ]
+    },
+    {
+      "id": "roof",
+      "atlas_region": "thatch",
+      "pixel_rect": [
+        1872,
+        1472,
+        2000,
+        1600
+      ],
+      "uv_rect": [
+        0.914062,
+        0.21875,
+        0.976562,
+        0.28125
+      ],
+      "texels": [
+        128,
+        128
+      ],
+      "texels_per_grid": 64,
+      "used_by_models": [
+        "Basic.Folktails.LOD0",
+        "Basic.Folktails.LOD1",
+        "Basic.Folktails.LOD2",
+        "Basic.IronTeeth.LOD0",
+        "Basic.IronTeeth.LOD1",
+        "Basic.IronTeeth.LOD2"
+      ],
+      "materials": [
+        "RoofPlanks.IronTeeth",
+        "ThatchedRoof.Folktails"
+      ]
+    }
+  ],
+  "materials": [
+    {
+      "slot": 0,
+      "name": "M_HDBF_Wood",
+      "atlas_regions": [
+        {
+          "region": "wood",
+          "pixel_rect": [
+            0,
+            0,
+            842,
+            2048
+          ],
+          "uv_rect": [
+            0.0,
+            0.0,
+            0.41113,
+            1.0
+          ]
+        },
+        {
+          "region": "soil_full",
+          "pixel_rect": [
+            846,
+            0,
+            942,
+            1024
+          ],
+          "uv_rect": [
+            0.41309,
+            0.5,
+            0.45996,
+            1.0
+          ]
+        },
+        {
+          "region": "soil_empty",
+          "pixel_rect": [
+            846,
+            1028,
+            942,
+            2048
+          ],
+          "uv_rect": [
+            0.41309,
+            0.0,
+            0.45996,
+            0.49805
+          ]
+        }
+      ],
+      "params": {
+        "metallic": 0.0,
+        "roughness": 0.72,
+        "alpha": 1.0,
+        "blend": "Opaque"
+      },
+      "used_by": [
+        "Advanced.Folktails.LOD0",
+        "Advanced.Folktails.LOD1",
+        "Advanced.Folktails.LOD2",
+        "Advanced.IronTeeth.LOD0",
+        "Advanced.IronTeeth.LOD1",
+        "Advanced.IronTeeth.LOD2",
+        "Basic.Folktails.LOD0",
+        "Basic.Folktails.LOD1",
+        "Basic.Folktails.LOD2",
+        "Basic.IronTeeth.LOD0",
+        "Basic.IronTeeth.LOD1",
+        "Basic.IronTeeth.LOD2",
+        "ConstructionStage0",
+        "Intermediate.Folktails.LOD0",
+        "Intermediate.Folktails.LOD1",
+        "Intermediate.Folktails.LOD2",
+        "Intermediate.IronTeeth.LOD0",
+        "Intermediate.IronTeeth.LOD1",
+        "Intermediate.IronTeeth.LOD2",
+        "Top.Folktails.LOD0",
+        "Top.Folktails.LOD1",
+        "Top.Folktails.LOD2",
+        "Top.IronTeeth.LOD0",
+        "Top.IronTeeth.LOD1",
+        "Top.IronTeeth.LOD2"
+      ]
+    },
+    {
+      "slot": 1,
+      "name": "M_HDBF_Metal",
+      "atlas_regions": [
+        {
+          "region": "metal",
+          "pixel_rect": [
+            950,
+            0,
+            1729,
+            2048
+          ],
+          "uv_rect": [
+            0.46387,
+            0.0,
+            0.84424,
+            1.0
+          ]
+        }
+      ],
+      "params": {
+        "metallic": 0.92,
+        "roughness": 0.48,
+        "alpha": 1.0,
+        "blend": "Opaque"
+      },
+      "used_by": [
+        "Advanced.Folktails.LOD0",
+        "Advanced.Folktails.LOD1",
+        "Advanced.Folktails.LOD2",
+        "Advanced.IronTeeth.LOD0",
+        "Advanced.IronTeeth.LOD1",
+        "Advanced.IronTeeth.LOD2",
+        "ConstructionStage0",
+        "Top.Folktails.LOD0",
+        "Top.Folktails.LOD1",
+        "Top.Folktails.LOD2",
+        "Top.IronTeeth.LOD0",
+        "Top.IronTeeth.LOD1",
+        "Top.IronTeeth.LOD2"
+      ]
+    },
+    {
+      "slot": 2,
+      "name": "M_HDBF_Glass",
+      "atlas_regions": [
+        {
+          "region": "glass",
+          "pixel_rect": [
+            1730,
+            0,
+            1845,
+            2048
+          ],
+          "uv_rect": [
+            0.84473,
+            0.0,
+            0.90088,
+            1.0
+          ]
+        }
+      ],
+      "params": {
+        "metallic": 0.0,
+        "roughness": 0.08,
+        "alpha": 0.62,
+        "blend": "Blend"
+      },
+      "used_by": [
+        "Advanced.Folktails.LOD0",
+        "Advanced.Folktails.LOD1",
+        "Advanced.Folktails.LOD2",
+        "Advanced.IronTeeth.LOD0",
+        "Advanced.IronTeeth.LOD1",
+        "Advanced.IronTeeth.LOD2",
+        "Intermediate.Folktails.LOD0",
+        "Intermediate.Folktails.LOD1",
+        "Intermediate.Folktails.LOD2",
+        "Intermediate.IronTeeth.LOD0",
+        "Intermediate.IronTeeth.LOD1",
+        "Intermediate.IronTeeth.LOD2",
+        "Top.Folktails.LOD0",
+        "Top.Folktails.LOD1",
+        "Top.Folktails.LOD2",
+        "Top.IronTeeth.LOD0",
+        "Top.IronTeeth.LOD1",
+        "Top.IronTeeth.LOD2"
+      ]
+    },
+    {
+      "slot": 3,
+      "name": "M_HDBF_Fabric",
+      "atlas_regions": [
+        {
+          "region": "canvas",
+          "pixel_rect": [
+            1846,
+            0,
+            2048,
+            1250
+          ],
+          "uv_rect": [
+            0.90137,
+            0.38965,
+            1.0,
+            1.0
+          ]
+        },
+        {
+          "region": "thatch",
+          "pixel_rect": [
+            1846,
+            1254,
+            2048,
+            2048
+          ],
+          "uv_rect": [
+            0.90137,
+            0.0,
+            1.0,
+            0.3877
+          ]
+        }
+      ],
+      "params": {
+        "metallic": 0.0,
+        "roughness": 0.86,
+        "alpha": 1.0,
+        "blend": "Opaque"
+      },
+      "used_by": [
+        "Advanced.Folktails.LOD0",
+        "Advanced.Folktails.LOD1",
+        "Advanced.Folktails.LOD2",
+        "Advanced.IronTeeth.LOD0",
+        "Advanced.IronTeeth.LOD1",
+        "Advanced.IronTeeth.LOD2",
+        "Basic.Folktails.LOD0",
+        "Basic.Folktails.LOD1",
+        "Basic.Folktails.LOD2",
+        "Basic.IronTeeth.LOD0",
+        "Basic.IronTeeth.LOD1",
+        "Basic.IronTeeth.LOD2",
+        "Intermediate.Folktails.LOD0",
+        "Intermediate.Folktails.LOD1",
+        "Intermediate.Folktails.LOD2",
+        "Intermediate.IronTeeth.LOD0",
+        "Intermediate.IronTeeth.LOD1",
+        "Intermediate.IronTeeth.LOD2",
+        "Top.Folktails.LOD0",
+        "Top.Folktails.LOD1",
+        "Top.Folktails.LOD2",
+        "Top.IronTeeth.LOD0",
+        "Top.IronTeeth.LOD1",
+        "Top.IronTeeth.LOD2"
+      ]
+    }
+  ],
+  "tier_material_sets": {
+    "Basic": [
+      "M_HDBF_Wood",
+      "M_HDBF_Fabric"
+    ],
+    "Intermediate": [
+      "M_HDBF_Wood",
+      "M_HDBF_Glass",
+      "M_HDBF_Fabric"
+    ],
+    "Advanced": [
+      "M_HDBF_Wood",
+      "M_HDBF_Metal",
+      "M_HDBF_Glass",
+      "M_HDBF_Fabric"
+    ],
+    "Top": [
+      "M_HDBF_Wood",
+      "M_HDBF_Metal",
+      "M_HDBF_Glass",
+      "M_HDBF_Fabric"
+    ],
+    "ConstructionStage0": [
+      "M_HDBF_Wood",
+      "M_HDBF_Metal"
+    ]
+  },
+  "tiers": {
+    "Basic": [
+      "M_HDBF_Wood",
+      "M_HDBF_Fabric"
+    ],
+    "Intermediate": [
+      "M_HDBF_Wood",
+      "M_HDBF_Glass",
+      "M_HDBF_Fabric"
+    ],
+    "Advanced": [
+      "M_HDBF_Wood",
+      "M_HDBF_Metal",
+      "M_HDBF_Glass",
+      "M_HDBF_Fabric"
+    ],
+    "Top": [
+      "M_HDBF_Wood",
+      "M_HDBF_Metal",
+      "M_HDBF_Glass",
+      "M_HDBF_Fabric"
+    ],
+    "ConstructionStage0": [
+      "M_HDBF_Wood",
+      "M_HDBF_Metal"
+    ]
+  },
+  "slots": {
+    "Basic.Folktails": [
+      "M_HDBF_Wood",
+      "M_HDBF_Fabric"
+    ],
+    "Basic.IronTeeth": [
+      "M_HDBF_Wood",
+      "M_HDBF_Fabric"
+    ],
+    "Intermediate.Folktails": [
+      "M_HDBF_Wood",
+      "M_HDBF_Glass",
+      "M_HDBF_Fabric"
+    ],
+    "Intermediate.IronTeeth": [
+      "M_HDBF_Wood",
+      "M_HDBF_Glass",
+      "M_HDBF_Fabric"
+    ],
+    "Advanced.Folktails": [
+      "M_HDBF_Wood",
+      "M_HDBF_Metal",
+      "M_HDBF_Glass",
+      "M_HDBF_Fabric"
+    ],
+    "Advanced.IronTeeth": [
+      "M_HDBF_Wood",
+      "M_HDBF_Metal",
+      "M_HDBF_Glass",
+      "M_HDBF_Fabric"
+    ],
+    "Top.Folktails": [
+      "M_HDBF_Wood",
+      "M_HDBF_Metal",
+      "M_HDBF_Glass",
+      "M_HDBF_Fabric"
+    ],
+    "Top.IronTeeth": [
+      "M_HDBF_Wood",
+      "M_HDBF_Metal",
+      "M_HDBF_Glass",
+      "M_HDBF_Fabric"
+    ],
+    "ConstructionStage0": [
+      "M_HDBF_Wood",
+      "M_HDBF_Metal"
+    ]
+  },
+  "models": {
+    "Basic.Folktails": {
+      "LOD0": {
+        "file_stem": "LOD0",
+        "materials": [
+          "M_HDBF_Wood",
+          "M_HDBF_Fabric"
+        ],
+        "triangles": 5944,
+        "material_patches": {
+          "M_HDBF_Wood": {
+            "id": "wood_plain",
+            "atlas_region": "wood",
+            "pixel_rect": [
+              96,
+              352,
+              480,
+              736
+            ],
+            "uv_rect": [
+              0.046875,
+              0.640625,
+              0.234375,
+              0.828125
+            ],
+            "texels": [
+              384,
+              384
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "BaseWood_Brown.Folktails"
+          },
+          "M_HDBF_Fabric": {
+            "id": "roof",
+            "atlas_region": "thatch",
+            "pixel_rect": [
+              1872,
+              1472,
+              2000,
+              1600
+            ],
+            "uv_rect": [
+              0.914062,
+              0.21875,
+              0.976562,
+              0.28125
+            ],
+            "texels": [
+              128,
+              128
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "ThatchedRoof.Folktails"
+          }
+        },
+        "roof_platform": {
+          "size_x": 2.05,
+          "size_z": 1.25,
+          "top": 0.96,
+          "curb_top": 1.0
+        }
+      },
+      "LOD1": {
+        "file_stem": "LOD1",
+        "materials": [
+          "M_HDBF_Wood",
+          "M_HDBF_Fabric"
+        ],
+        "triangles": 2382,
+        "material_patches": {
+          "M_HDBF_Wood": {
+            "id": "wood_plain",
+            "atlas_region": "wood",
+            "pixel_rect": [
+              96,
+              352,
+              480,
+              736
+            ],
+            "uv_rect": [
+              0.046875,
+              0.640625,
+              0.234375,
+              0.828125
+            ],
+            "texels": [
+              384,
+              384
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "BaseWood_Brown.Folktails"
+          },
+          "M_HDBF_Fabric": {
+            "id": "roof",
+            "atlas_region": "thatch",
+            "pixel_rect": [
+              1872,
+              1472,
+              2000,
+              1600
+            ],
+            "uv_rect": [
+              0.914062,
+              0.21875,
+              0.976562,
+              0.28125
+            ],
+            "texels": [
+              128,
+              128
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "ThatchedRoof.Folktails"
+          }
+        },
+        "roof_platform": {
+          "size_x": 2.05,
+          "size_z": 1.25,
+          "top": 0.96,
+          "curb_top": 1.0
+        }
+      },
+      "LOD2": {
+        "file_stem": "LOD2",
+        "materials": [
+          "M_HDBF_Wood",
+          "M_HDBF_Fabric"
+        ],
+        "triangles": 796,
+        "material_patches": {
+          "M_HDBF_Wood": {
+            "id": "wood_plain",
+            "atlas_region": "wood",
+            "pixel_rect": [
+              96,
+              352,
+              480,
+              736
+            ],
+            "uv_rect": [
+              0.046875,
+              0.640625,
+              0.234375,
+              0.828125
+            ],
+            "texels": [
+              384,
+              384
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "BaseWood_Brown.Folktails"
+          },
+          "M_HDBF_Fabric": {
+            "id": "roof",
+            "atlas_region": "thatch",
+            "pixel_rect": [
+              1872,
+              1472,
+              2000,
+              1600
+            ],
+            "uv_rect": [
+              0.914062,
+              0.21875,
+              0.976562,
+              0.28125
+            ],
+            "texels": [
+              128,
+              128
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "ThatchedRoof.Folktails"
+          }
+        },
+        "roof_platform": {
+          "size_x": 2.05,
+          "size_z": 1.25,
+          "top": 0.96,
+          "curb_top": 1.0
+        }
+      }
+    },
+    "Basic.IronTeeth": {
+      "LOD0": {
+        "file_stem": "LOD0",
+        "materials": [
+          "M_HDBF_Wood",
+          "M_HDBF_Fabric"
+        ],
+        "triangles": 5944,
+        "material_patches": {
+          "M_HDBF_Wood": {
+            "id": "wood_plain",
+            "atlas_region": "wood",
+            "pixel_rect": [
+              96,
+              352,
+              480,
+              736
+            ],
+            "uv_rect": [
+              0.046875,
+              0.640625,
+              0.234375,
+              0.828125
+            ],
+            "texels": [
+              384,
+              384
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "BaseWood_DarkBrown.IronTeeth"
+          },
+          "M_HDBF_Fabric": {
+            "id": "roof",
+            "atlas_region": "thatch",
+            "pixel_rect": [
+              1872,
+              1472,
+              2000,
+              1600
+            ],
+            "uv_rect": [
+              0.914062,
+              0.21875,
+              0.976562,
+              0.28125
+            ],
+            "texels": [
+              128,
+              128
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "RoofPlanks.IronTeeth"
+          }
+        },
+        "roof_platform": {
+          "size_x": 2.05,
+          "size_z": 1.25,
+          "top": 0.96,
+          "curb_top": 1.0
+        }
+      },
+      "LOD1": {
+        "file_stem": "LOD1",
+        "materials": [
+          "M_HDBF_Wood",
+          "M_HDBF_Fabric"
+        ],
+        "triangles": 2382,
+        "material_patches": {
+          "M_HDBF_Wood": {
+            "id": "wood_plain",
+            "atlas_region": "wood",
+            "pixel_rect": [
+              96,
+              352,
+              480,
+              736
+            ],
+            "uv_rect": [
+              0.046875,
+              0.640625,
+              0.234375,
+              0.828125
+            ],
+            "texels": [
+              384,
+              384
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "BaseWood_DarkBrown.IronTeeth"
+          },
+          "M_HDBF_Fabric": {
+            "id": "roof",
+            "atlas_region": "thatch",
+            "pixel_rect": [
+              1872,
+              1472,
+              2000,
+              1600
+            ],
+            "uv_rect": [
+              0.914062,
+              0.21875,
+              0.976562,
+              0.28125
+            ],
+            "texels": [
+              128,
+              128
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "RoofPlanks.IronTeeth"
+          }
+        },
+        "roof_platform": {
+          "size_x": 2.05,
+          "size_z": 1.25,
+          "top": 0.96,
+          "curb_top": 1.0
+        }
+      },
+      "LOD2": {
+        "file_stem": "LOD2",
+        "materials": [
+          "M_HDBF_Wood",
+          "M_HDBF_Fabric"
+        ],
+        "triangles": 796,
+        "material_patches": {
+          "M_HDBF_Wood": {
+            "id": "wood_plain",
+            "atlas_region": "wood",
+            "pixel_rect": [
+              96,
+              352,
+              480,
+              736
+            ],
+            "uv_rect": [
+              0.046875,
+              0.640625,
+              0.234375,
+              0.828125
+            ],
+            "texels": [
+              384,
+              384
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "BaseWood_DarkBrown.IronTeeth"
+          },
+          "M_HDBF_Fabric": {
+            "id": "roof",
+            "atlas_region": "thatch",
+            "pixel_rect": [
+              1872,
+              1472,
+              2000,
+              1600
+            ],
+            "uv_rect": [
+              0.914062,
+              0.21875,
+              0.976562,
+              0.28125
+            ],
+            "texels": [
+              128,
+              128
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "RoofPlanks.IronTeeth"
+          }
+        },
+        "roof_platform": {
+          "size_x": 2.05,
+          "size_z": 1.25,
+          "top": 0.96,
+          "curb_top": 1.0
+        }
+      }
+    },
+    "Intermediate.Folktails": {
+      "LOD0": {
+        "file_stem": "LOD0",
+        "materials": [
+          "M_HDBF_Wood",
+          "M_HDBF_Glass",
+          "M_HDBF_Fabric"
+        ],
+        "triangles": 5944,
+        "material_patches": {
+          "M_HDBF_Wood": {
+            "id": "planks_light",
+            "atlas_region": "wood",
+            "pixel_rect": [
+              96,
+              1568,
+              480,
+              1952
+            ],
+            "uv_rect": [
+              0.046875,
+              0.046875,
+              0.234375,
+              0.234375
+            ],
+            "texels": [
+              384,
+              384
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "IrregularPlanks_LightBrown.Folktails"
+          },
+          "M_HDBF_Glass": {
+            "id": "glass",
+            "atlas_region": "glass",
+            "pixel_rect": [
+              1744,
+              704,
+              1832,
+              792
+            ],
+            "uv_rect": [
+              0.851562,
+              0.613281,
+              0.894531,
+              0.65625
+            ],
+            "texels": [
+              88,
+              88
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "WindowsAtlas.Folktails"
+          },
+          "M_HDBF_Fabric": {
+            "id": "plaster",
+            "atlas_region": "canvas",
+            "pixel_rect": [
+              1872,
+              288,
+              2000,
+              416
+            ],
+            "uv_rect": [
+              0.914062,
+              0.796875,
+              0.976562,
+              0.859375
+            ],
+            "texels": [
+              128,
+              128
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "Plaster_White.Folktails"
+          }
+        },
+        "roof_platform": {
+          "size_x": 2.45,
+          "size_z": 1.55,
+          "top": 0.96,
+          "curb_top": 1.0
+        }
+      },
+      "LOD1": {
+        "file_stem": "LOD1",
+        "materials": [
+          "M_HDBF_Wood",
+          "M_HDBF_Glass",
+          "M_HDBF_Fabric"
+        ],
+        "triangles": 2382,
+        "material_patches": {
+          "M_HDBF_Wood": {
+            "id": "planks_light",
+            "atlas_region": "wood",
+            "pixel_rect": [
+              96,
+              1568,
+              480,
+              1952
+            ],
+            "uv_rect": [
+              0.046875,
+              0.046875,
+              0.234375,
+              0.234375
+            ],
+            "texels": [
+              384,
+              384
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "IrregularPlanks_LightBrown.Folktails"
+          },
+          "M_HDBF_Glass": {
+            "id": "glass",
+            "atlas_region": "glass",
+            "pixel_rect": [
+              1744,
+              704,
+              1832,
+              792
+            ],
+            "uv_rect": [
+              0.851562,
+              0.613281,
+              0.894531,
+              0.65625
+            ],
+            "texels": [
+              88,
+              88
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "WindowsAtlas.Folktails"
+          },
+          "M_HDBF_Fabric": {
+            "id": "plaster",
+            "atlas_region": "canvas",
+            "pixel_rect": [
+              1872,
+              288,
+              2000,
+              416
+            ],
+            "uv_rect": [
+              0.914062,
+              0.796875,
+              0.976562,
+              0.859375
+            ],
+            "texels": [
+              128,
+              128
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "Plaster_White.Folktails"
+          }
+        },
+        "roof_platform": {
+          "size_x": 2.45,
+          "size_z": 1.55,
+          "top": 0.96,
+          "curb_top": 1.0
+        }
+      },
+      "LOD2": {
+        "file_stem": "LOD2",
+        "materials": [
+          "M_HDBF_Wood",
+          "M_HDBF_Glass",
+          "M_HDBF_Fabric"
+        ],
+        "triangles": 820,
+        "material_patches": {
+          "M_HDBF_Wood": {
+            "id": "planks_light",
+            "atlas_region": "wood",
+            "pixel_rect": [
+              96,
+              1568,
+              480,
+              1952
+            ],
+            "uv_rect": [
+              0.046875,
+              0.046875,
+              0.234375,
+              0.234375
+            ],
+            "texels": [
+              384,
+              384
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "IrregularPlanks_LightBrown.Folktails"
+          },
+          "M_HDBF_Glass": {
+            "id": "glass",
+            "atlas_region": "glass",
+            "pixel_rect": [
+              1744,
+              704,
+              1832,
+              792
+            ],
+            "uv_rect": [
+              0.851562,
+              0.613281,
+              0.894531,
+              0.65625
+            ],
+            "texels": [
+              88,
+              88
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "WindowsAtlas.Folktails"
+          },
+          "M_HDBF_Fabric": {
+            "id": "plaster",
+            "atlas_region": "canvas",
+            "pixel_rect": [
+              1872,
+              288,
+              2000,
+              416
+            ],
+            "uv_rect": [
+              0.914062,
+              0.796875,
+              0.976562,
+              0.859375
+            ],
+            "texels": [
+              128,
+              128
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "Plaster_White.Folktails"
+          }
+        },
+        "roof_platform": {
+          "size_x": 2.45,
+          "size_z": 1.55,
+          "top": 0.96,
+          "curb_top": 1.0
+        }
+      }
+    },
+    "Intermediate.IronTeeth": {
+      "LOD0": {
+        "file_stem": "LOD0",
+        "materials": [
+          "M_HDBF_Wood",
+          "M_HDBF_Glass",
+          "M_HDBF_Fabric"
+        ],
+        "triangles": 5944,
+        "material_patches": {
+          "M_HDBF_Wood": {
+            "id": "planks_light",
+            "atlas_region": "wood",
+            "pixel_rect": [
+              96,
+              1568,
+              480,
+              1952
+            ],
+            "uv_rect": [
+              0.046875,
+              0.046875,
+              0.234375,
+              0.234375
+            ],
+            "texels": [
+              384,
+              384
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "IrregularPlanks_DarkBrown.IronTeeth"
+          },
+          "M_HDBF_Glass": {
+            "id": "glass",
+            "atlas_region": "glass",
+            "pixel_rect": [
+              1744,
+              704,
+              1832,
+              792
+            ],
+            "uv_rect": [
+              0.851562,
+              0.613281,
+              0.894531,
+              0.65625
+            ],
+            "texels": [
+              88,
+              88
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "WindowsAtlas.IronTeeth"
+          },
+          "M_HDBF_Fabric": {
+            "id": "plaster",
+            "atlas_region": "canvas",
+            "pixel_rect": [
+              1872,
+              288,
+              2000,
+              416
+            ],
+            "uv_rect": [
+              0.914062,
+              0.796875,
+              0.976562,
+              0.859375
+            ],
+            "texels": [
+              128,
+              128
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "Plaster_Orange.IronTeeth"
+          }
+        },
+        "roof_platform": {
+          "size_x": 2.45,
+          "size_z": 1.55,
+          "top": 0.96,
+          "curb_top": 1.0
+        }
+      },
+      "LOD1": {
+        "file_stem": "LOD1",
+        "materials": [
+          "M_HDBF_Wood",
+          "M_HDBF_Glass",
+          "M_HDBF_Fabric"
+        ],
+        "triangles": 2382,
+        "material_patches": {
+          "M_HDBF_Wood": {
+            "id": "planks_light",
+            "atlas_region": "wood",
+            "pixel_rect": [
+              96,
+              1568,
+              480,
+              1952
+            ],
+            "uv_rect": [
+              0.046875,
+              0.046875,
+              0.234375,
+              0.234375
+            ],
+            "texels": [
+              384,
+              384
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "IrregularPlanks_DarkBrown.IronTeeth"
+          },
+          "M_HDBF_Glass": {
+            "id": "glass",
+            "atlas_region": "glass",
+            "pixel_rect": [
+              1744,
+              704,
+              1832,
+              792
+            ],
+            "uv_rect": [
+              0.851562,
+              0.613281,
+              0.894531,
+              0.65625
+            ],
+            "texels": [
+              88,
+              88
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "WindowsAtlas.IronTeeth"
+          },
+          "M_HDBF_Fabric": {
+            "id": "plaster",
+            "atlas_region": "canvas",
+            "pixel_rect": [
+              1872,
+              288,
+              2000,
+              416
+            ],
+            "uv_rect": [
+              0.914062,
+              0.796875,
+              0.976562,
+              0.859375
+            ],
+            "texels": [
+              128,
+              128
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "Plaster_Orange.IronTeeth"
+          }
+        },
+        "roof_platform": {
+          "size_x": 2.45,
+          "size_z": 1.55,
+          "top": 0.96,
+          "curb_top": 1.0
+        }
+      },
+      "LOD2": {
+        "file_stem": "LOD2",
+        "materials": [
+          "M_HDBF_Wood",
+          "M_HDBF_Glass",
+          "M_HDBF_Fabric"
+        ],
+        "triangles": 820,
+        "material_patches": {
+          "M_HDBF_Wood": {
+            "id": "planks_light",
+            "atlas_region": "wood",
+            "pixel_rect": [
+              96,
+              1568,
+              480,
+              1952
+            ],
+            "uv_rect": [
+              0.046875,
+              0.046875,
+              0.234375,
+              0.234375
+            ],
+            "texels": [
+              384,
+              384
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "IrregularPlanks_DarkBrown.IronTeeth"
+          },
+          "M_HDBF_Glass": {
+            "id": "glass",
+            "atlas_region": "glass",
+            "pixel_rect": [
+              1744,
+              704,
+              1832,
+              792
+            ],
+            "uv_rect": [
+              0.851562,
+              0.613281,
+              0.894531,
+              0.65625
+            ],
+            "texels": [
+              88,
+              88
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "WindowsAtlas.IronTeeth"
+          },
+          "M_HDBF_Fabric": {
+            "id": "plaster",
+            "atlas_region": "canvas",
+            "pixel_rect": [
+              1872,
+              288,
+              2000,
+              416
+            ],
+            "uv_rect": [
+              0.914062,
+              0.796875,
+              0.976562,
+              0.859375
+            ],
+            "texels": [
+              128,
+              128
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "Plaster_Orange.IronTeeth"
+          }
+        },
+        "roof_platform": {
+          "size_x": 2.45,
+          "size_z": 1.55,
+          "top": 0.96,
+          "curb_top": 1.0
+        }
+      }
+    },
+    "Advanced.Folktails": {
+      "LOD0": {
+        "file_stem": "LOD0",
+        "materials": [
+          "M_HDBF_Wood",
+          "M_HDBF_Metal",
+          "M_HDBF_Glass",
+          "M_HDBF_Fabric"
+        ],
+        "triangles": 5944,
+        "material_patches": {
+          "M_HDBF_Wood": {
+            "id": "wood_light",
+            "atlas_region": "wood",
+            "pixel_rect": [
+              96,
+              1056,
+              480,
+              1440
+            ],
+            "uv_rect": [
+              0.046875,
+              0.296875,
+              0.234375,
+              0.484375
+            ],
+            "texels": [
+              384,
+              384
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "BaseWood_White.Folktails"
+          },
+          "M_HDBF_Metal": {
+            "id": "metal_painted",
+            "atlas_region": "metal",
+            "pixel_rect": [
+              1056,
+              1088,
+              1440,
+              1472
+            ],
+            "uv_rect": [
+              0.515625,
+              0.28125,
+              0.703125,
+              0.46875
+            ],
+            "texels": [
+              384,
+              384
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "PaintedMetal.Folktails"
+          },
+          "M_HDBF_Glass": {
+            "id": "glass",
+            "atlas_region": "glass",
+            "pixel_rect": [
+              1744,
+              704,
+              1832,
+              792
+            ],
+            "uv_rect": [
+              0.851562,
+              0.613281,
+              0.894531,
+              0.65625
+            ],
+            "texels": [
+              88,
+              88
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "WindowsAtlas.Folktails"
+          },
+          "M_HDBF_Fabric": {
+            "id": "metal_details",
+            "atlas_region": "metal",
+            "pixel_rect": [
+              1056,
+              1568,
+              1312,
+              1824
+            ],
+            "uv_rect": [
+              0.515625,
+              0.109375,
+              0.640625,
+              0.234375
+            ],
+            "texels": [
+              256,
+              256
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "Details.Folktails"
+          }
+        },
+        "roof_platform": {
+          "size_x": 2.78,
+          "size_z": 1.82,
+          "top": 0.96,
+          "curb_top": 1.0
+        }
+      },
+      "LOD1": {
+        "file_stem": "LOD1",
+        "materials": [
+          "M_HDBF_Wood",
+          "M_HDBF_Metal",
+          "M_HDBF_Glass",
+          "M_HDBF_Fabric"
+        ],
+        "triangles": 2382,
+        "material_patches": {
+          "M_HDBF_Wood": {
+            "id": "wood_light",
+            "atlas_region": "wood",
+            "pixel_rect": [
+              96,
+              1056,
+              480,
+              1440
+            ],
+            "uv_rect": [
+              0.046875,
+              0.296875,
+              0.234375,
+              0.484375
+            ],
+            "texels": [
+              384,
+              384
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "BaseWood_White.Folktails"
+          },
+          "M_HDBF_Metal": {
+            "id": "metal_painted",
+            "atlas_region": "metal",
+            "pixel_rect": [
+              1056,
+              1088,
+              1440,
+              1472
+            ],
+            "uv_rect": [
+              0.515625,
+              0.28125,
+              0.703125,
+              0.46875
+            ],
+            "texels": [
+              384,
+              384
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "PaintedMetal.Folktails"
+          },
+          "M_HDBF_Glass": {
+            "id": "glass",
+            "atlas_region": "glass",
+            "pixel_rect": [
+              1744,
+              704,
+              1832,
+              792
+            ],
+            "uv_rect": [
+              0.851562,
+              0.613281,
+              0.894531,
+              0.65625
+            ],
+            "texels": [
+              88,
+              88
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "WindowsAtlas.Folktails"
+          },
+          "M_HDBF_Fabric": {
+            "id": "metal_details",
+            "atlas_region": "metal",
+            "pixel_rect": [
+              1056,
+              1568,
+              1312,
+              1824
+            ],
+            "uv_rect": [
+              0.515625,
+              0.109375,
+              0.640625,
+              0.234375
+            ],
+            "texels": [
+              256,
+              256
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "Details.Folktails"
+          }
+        },
+        "roof_platform": {
+          "size_x": 2.78,
+          "size_z": 1.82,
+          "top": 0.96,
+          "curb_top": 1.0
+        }
+      },
+      "LOD2": {
+        "file_stem": "LOD2",
+        "materials": [
+          "M_HDBF_Wood",
+          "M_HDBF_Metal",
+          "M_HDBF_Glass",
+          "M_HDBF_Fabric"
+        ],
+        "triangles": 832,
+        "material_patches": {
+          "M_HDBF_Wood": {
+            "id": "wood_light",
+            "atlas_region": "wood",
+            "pixel_rect": [
+              96,
+              1056,
+              480,
+              1440
+            ],
+            "uv_rect": [
+              0.046875,
+              0.296875,
+              0.234375,
+              0.484375
+            ],
+            "texels": [
+              384,
+              384
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "BaseWood_White.Folktails"
+          },
+          "M_HDBF_Metal": {
+            "id": "metal_painted",
+            "atlas_region": "metal",
+            "pixel_rect": [
+              1056,
+              1088,
+              1440,
+              1472
+            ],
+            "uv_rect": [
+              0.515625,
+              0.28125,
+              0.703125,
+              0.46875
+            ],
+            "texels": [
+              384,
+              384
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "PaintedMetal.Folktails"
+          },
+          "M_HDBF_Glass": {
+            "id": "glass",
+            "atlas_region": "glass",
+            "pixel_rect": [
+              1744,
+              704,
+              1832,
+              792
+            ],
+            "uv_rect": [
+              0.851562,
+              0.613281,
+              0.894531,
+              0.65625
+            ],
+            "texels": [
+              88,
+              88
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "WindowsAtlas.Folktails"
+          },
+          "M_HDBF_Fabric": {
+            "id": "metal_details",
+            "atlas_region": "metal",
+            "pixel_rect": [
+              1056,
+              1568,
+              1312,
+              1824
+            ],
+            "uv_rect": [
+              0.515625,
+              0.109375,
+              0.640625,
+              0.234375
+            ],
+            "texels": [
+              256,
+              256
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "Details.Folktails"
+          }
+        },
+        "roof_platform": {
+          "size_x": 2.78,
+          "size_z": 1.82,
+          "top": 0.96,
+          "curb_top": 1.0
+        }
+      }
+    },
+    "Advanced.IronTeeth": {
+      "LOD0": {
+        "file_stem": "LOD0",
+        "materials": [
+          "M_HDBF_Wood",
+          "M_HDBF_Metal",
+          "M_HDBF_Glass",
+          "M_HDBF_Fabric"
+        ],
+        "triangles": 5944,
+        "material_patches": {
+          "M_HDBF_Wood": {
+            "id": "wood_light",
+            "atlas_region": "wood",
+            "pixel_rect": [
+              96,
+              1056,
+              480,
+              1440
+            ],
+            "uv_rect": [
+              0.046875,
+              0.296875,
+              0.234375,
+              0.484375
+            ],
+            "texels": [
+              384,
+              384
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "BaseWood_Grey.IronTeeth"
+          },
+          "M_HDBF_Metal": {
+            "id": "metal_painted",
+            "atlas_region": "metal",
+            "pixel_rect": [
+              1056,
+              1088,
+              1440,
+              1472
+            ],
+            "uv_rect": [
+              0.515625,
+              0.28125,
+              0.703125,
+              0.46875
+            ],
+            "texels": [
+              384,
+              384
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "PaintedMetal.IronTeeth"
+          },
+          "M_HDBF_Glass": {
+            "id": "glass",
+            "atlas_region": "glass",
+            "pixel_rect": [
+              1744,
+              704,
+              1832,
+              792
+            ],
+            "uv_rect": [
+              0.851562,
+              0.613281,
+              0.894531,
+              0.65625
+            ],
+            "texels": [
+              88,
+              88
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "WindowsAtlas.IronTeeth"
+          },
+          "M_HDBF_Fabric": {
+            "id": "metal_details",
+            "atlas_region": "metal",
+            "pixel_rect": [
+              1056,
+              1568,
+              1312,
+              1824
+            ],
+            "uv_rect": [
+              0.515625,
+              0.109375,
+              0.640625,
+              0.234375
+            ],
+            "texels": [
+              256,
+              256
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "Details.IronTeeth"
+          }
+        },
+        "roof_platform": {
+          "size_x": 2.78,
+          "size_z": 1.82,
+          "top": 0.96,
+          "curb_top": 1.0
+        }
+      },
+      "LOD1": {
+        "file_stem": "LOD1",
+        "materials": [
+          "M_HDBF_Wood",
+          "M_HDBF_Metal",
+          "M_HDBF_Glass",
+          "M_HDBF_Fabric"
+        ],
+        "triangles": 2382,
+        "material_patches": {
+          "M_HDBF_Wood": {
+            "id": "wood_light",
+            "atlas_region": "wood",
+            "pixel_rect": [
+              96,
+              1056,
+              480,
+              1440
+            ],
+            "uv_rect": [
+              0.046875,
+              0.296875,
+              0.234375,
+              0.484375
+            ],
+            "texels": [
+              384,
+              384
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "BaseWood_Grey.IronTeeth"
+          },
+          "M_HDBF_Metal": {
+            "id": "metal_painted",
+            "atlas_region": "metal",
+            "pixel_rect": [
+              1056,
+              1088,
+              1440,
+              1472
+            ],
+            "uv_rect": [
+              0.515625,
+              0.28125,
+              0.703125,
+              0.46875
+            ],
+            "texels": [
+              384,
+              384
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "PaintedMetal.IronTeeth"
+          },
+          "M_HDBF_Glass": {
+            "id": "glass",
+            "atlas_region": "glass",
+            "pixel_rect": [
+              1744,
+              704,
+              1832,
+              792
+            ],
+            "uv_rect": [
+              0.851562,
+              0.613281,
+              0.894531,
+              0.65625
+            ],
+            "texels": [
+              88,
+              88
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "WindowsAtlas.IronTeeth"
+          },
+          "M_HDBF_Fabric": {
+            "id": "metal_details",
+            "atlas_region": "metal",
+            "pixel_rect": [
+              1056,
+              1568,
+              1312,
+              1824
+            ],
+            "uv_rect": [
+              0.515625,
+              0.109375,
+              0.640625,
+              0.234375
+            ],
+            "texels": [
+              256,
+              256
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "Details.IronTeeth"
+          }
+        },
+        "roof_platform": {
+          "size_x": 2.78,
+          "size_z": 1.82,
+          "top": 0.96,
+          "curb_top": 1.0
+        }
+      },
+      "LOD2": {
+        "file_stem": "LOD2",
+        "materials": [
+          "M_HDBF_Wood",
+          "M_HDBF_Metal",
+          "M_HDBF_Glass",
+          "M_HDBF_Fabric"
+        ],
+        "triangles": 832,
+        "material_patches": {
+          "M_HDBF_Wood": {
+            "id": "wood_light",
+            "atlas_region": "wood",
+            "pixel_rect": [
+              96,
+              1056,
+              480,
+              1440
+            ],
+            "uv_rect": [
+              0.046875,
+              0.296875,
+              0.234375,
+              0.484375
+            ],
+            "texels": [
+              384,
+              384
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "BaseWood_Grey.IronTeeth"
+          },
+          "M_HDBF_Metal": {
+            "id": "metal_painted",
+            "atlas_region": "metal",
+            "pixel_rect": [
+              1056,
+              1088,
+              1440,
+              1472
+            ],
+            "uv_rect": [
+              0.515625,
+              0.28125,
+              0.703125,
+              0.46875
+            ],
+            "texels": [
+              384,
+              384
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "PaintedMetal.IronTeeth"
+          },
+          "M_HDBF_Glass": {
+            "id": "glass",
+            "atlas_region": "glass",
+            "pixel_rect": [
+              1744,
+              704,
+              1832,
+              792
+            ],
+            "uv_rect": [
+              0.851562,
+              0.613281,
+              0.894531,
+              0.65625
+            ],
+            "texels": [
+              88,
+              88
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "WindowsAtlas.IronTeeth"
+          },
+          "M_HDBF_Fabric": {
+            "id": "metal_details",
+            "atlas_region": "metal",
+            "pixel_rect": [
+              1056,
+              1568,
+              1312,
+              1824
+            ],
+            "uv_rect": [
+              0.515625,
+              0.109375,
+              0.640625,
+              0.234375
+            ],
+            "texels": [
+              256,
+              256
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "Details.IronTeeth"
+          }
+        },
+        "roof_platform": {
+          "size_x": 2.78,
+          "size_z": 1.82,
+          "top": 0.96,
+          "curb_top": 1.0
+        }
+      }
+    },
+    "Top.Folktails": {
+      "LOD0": {
+        "file_stem": "LOD0",
+        "materials": [
+          "M_HDBF_Wood",
+          "M_HDBF_Metal",
+          "M_HDBF_Glass",
+          "M_HDBF_Fabric"
+        ],
+        "triangles": 5948,
+        "material_patches": {
+          "M_HDBF_Wood": {
+            "id": "planks_brown",
+            "atlas_region": "wood",
+            "pixel_rect": [
+              528,
+              352,
+              784,
+              608
+            ],
+            "uv_rect": [
+              0.257812,
+              0.703125,
+              0.382812,
+              0.828125
+            ],
+            "texels": [
+              256,
+              256
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "IrregularPlanks_Brown.Folktails"
+          },
+          "M_HDBF_Metal": {
+            "id": "metal_base",
+            "atlas_region": "metal",
+            "pixel_rect": [
+              1056,
+              384,
+              1440,
+              768
+            ],
+            "uv_rect": [
+              0.515625,
+              0.625,
+              0.703125,
+              0.8125
+            ],
+            "texels": [
+              384,
+              384
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "BaseMetal.Folktails"
+          },
+          "M_HDBF_Glass": {
+            "id": "glass",
+            "atlas_region": "glass",
+            "pixel_rect": [
+              1744,
+              704,
+              1832,
+              792
+            ],
+            "uv_rect": [
+              0.851562,
+              0.613281,
+              0.894531,
+              0.65625
+            ],
+            "texels": [
+              88,
+              88
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "WindowsAtlas.Folktails"
+          },
+          "M_HDBF_Fabric": {
+            "id": "metal_details",
+            "atlas_region": "metal",
+            "pixel_rect": [
+              1056,
+              1568,
+              1312,
+              1824
+            ],
+            "uv_rect": [
+              0.515625,
+              0.109375,
+              0.640625,
+              0.234375
+            ],
+            "texels": [
+              256,
+              256
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "Details.Folktails"
+          }
+        },
+        "roof_platform": {
+          "size_x": 2.96,
+          "size_z": 1.96,
+          "top": 0.96,
+          "curb_top": 1.0
+        }
+      },
+      "LOD1": {
+        "file_stem": "LOD1",
+        "materials": [
+          "M_HDBF_Wood",
+          "M_HDBF_Metal",
+          "M_HDBF_Glass",
+          "M_HDBF_Fabric"
+        ],
+        "triangles": 2382,
+        "material_patches": {
+          "M_HDBF_Wood": {
+            "id": "planks_brown",
+            "atlas_region": "wood",
+            "pixel_rect": [
+              528,
+              352,
+              784,
+              608
+            ],
+            "uv_rect": [
+              0.257812,
+              0.703125,
+              0.382812,
+              0.828125
+            ],
+            "texels": [
+              256,
+              256
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "IrregularPlanks_Brown.Folktails"
+          },
+          "M_HDBF_Metal": {
+            "id": "metal_base",
+            "atlas_region": "metal",
+            "pixel_rect": [
+              1056,
+              384,
+              1440,
+              768
+            ],
+            "uv_rect": [
+              0.515625,
+              0.625,
+              0.703125,
+              0.8125
+            ],
+            "texels": [
+              384,
+              384
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "BaseMetal.Folktails"
+          },
+          "M_HDBF_Glass": {
+            "id": "glass",
+            "atlas_region": "glass",
+            "pixel_rect": [
+              1744,
+              704,
+              1832,
+              792
+            ],
+            "uv_rect": [
+              0.851562,
+              0.613281,
+              0.894531,
+              0.65625
+            ],
+            "texels": [
+              88,
+              88
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "WindowsAtlas.Folktails"
+          },
+          "M_HDBF_Fabric": {
+            "id": "metal_details",
+            "atlas_region": "metal",
+            "pixel_rect": [
+              1056,
+              1568,
+              1312,
+              1824
+            ],
+            "uv_rect": [
+              0.515625,
+              0.109375,
+              0.640625,
+              0.234375
+            ],
+            "texels": [
+              256,
+              256
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "Details.Folktails"
+          }
+        },
+        "roof_platform": {
+          "size_x": 2.96,
+          "size_z": 1.96,
+          "top": 0.96,
+          "curb_top": 1.0
+        }
+      },
+      "LOD2": {
+        "file_stem": "LOD2",
+        "materials": [
+          "M_HDBF_Wood",
+          "M_HDBF_Metal",
+          "M_HDBF_Glass",
+          "M_HDBF_Fabric"
+        ],
+        "triangles": 832,
+        "material_patches": {
+          "M_HDBF_Wood": {
+            "id": "planks_brown",
+            "atlas_region": "wood",
+            "pixel_rect": [
+              528,
+              352,
+              784,
+              608
+            ],
+            "uv_rect": [
+              0.257812,
+              0.703125,
+              0.382812,
+              0.828125
+            ],
+            "texels": [
+              256,
+              256
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "IrregularPlanks_Brown.Folktails"
+          },
+          "M_HDBF_Metal": {
+            "id": "metal_base",
+            "atlas_region": "metal",
+            "pixel_rect": [
+              1056,
+              384,
+              1440,
+              768
+            ],
+            "uv_rect": [
+              0.515625,
+              0.625,
+              0.703125,
+              0.8125
+            ],
+            "texels": [
+              384,
+              384
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "BaseMetal.Folktails"
+          },
+          "M_HDBF_Glass": {
+            "id": "glass",
+            "atlas_region": "glass",
+            "pixel_rect": [
+              1744,
+              704,
+              1832,
+              792
+            ],
+            "uv_rect": [
+              0.851562,
+              0.613281,
+              0.894531,
+              0.65625
+            ],
+            "texels": [
+              88,
+              88
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "WindowsAtlas.Folktails"
+          },
+          "M_HDBF_Fabric": {
+            "id": "metal_details",
+            "atlas_region": "metal",
+            "pixel_rect": [
+              1056,
+              1568,
+              1312,
+              1824
+            ],
+            "uv_rect": [
+              0.515625,
+              0.109375,
+              0.640625,
+              0.234375
+            ],
+            "texels": [
+              256,
+              256
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "Details.Folktails"
+          }
+        },
+        "roof_platform": {
+          "size_x": 2.96,
+          "size_z": 1.96,
+          "top": 0.96,
+          "curb_top": 1.0
+        }
+      }
+    },
+    "Top.IronTeeth": {
+      "LOD0": {
+        "file_stem": "LOD0",
+        "materials": [
+          "M_HDBF_Wood",
+          "M_HDBF_Metal",
+          "M_HDBF_Glass",
+          "M_HDBF_Fabric"
+        ],
+        "triangles": 5948,
+        "material_patches": {
+          "M_HDBF_Wood": {
+            "id": "wood_plain",
+            "atlas_region": "wood",
+            "pixel_rect": [
+              96,
+              352,
+              480,
+              736
+            ],
+            "uv_rect": [
+              0.046875,
+              0.640625,
+              0.234375,
+              0.828125
+            ],
+            "texels": [
+              384,
+              384
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "BaseWood_DarkBrown.IronTeeth"
+          },
+          "M_HDBF_Metal": {
+            "id": "metal_base",
+            "atlas_region": "metal",
+            "pixel_rect": [
+              1056,
+              384,
+              1440,
+              768
+            ],
+            "uv_rect": [
+              0.515625,
+              0.625,
+              0.703125,
+              0.8125
+            ],
+            "texels": [
+              384,
+              384
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "BaseMetal.IronTeeth"
+          },
+          "M_HDBF_Glass": {
+            "id": "glass",
+            "atlas_region": "glass",
+            "pixel_rect": [
+              1744,
+              704,
+              1832,
+              792
+            ],
+            "uv_rect": [
+              0.851562,
+              0.613281,
+              0.894531,
+              0.65625
+            ],
+            "texels": [
+              88,
+              88
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "WindowsAtlas.IronTeeth"
+          },
+          "M_HDBF_Fabric": {
+            "id": "metal_details",
+            "atlas_region": "metal",
+            "pixel_rect": [
+              1056,
+              1568,
+              1312,
+              1824
+            ],
+            "uv_rect": [
+              0.515625,
+              0.109375,
+              0.640625,
+              0.234375
+            ],
+            "texels": [
+              256,
+              256
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "IrregularPlanks_MetalForged.IronTeeth"
+          }
+        },
+        "roof_platform": {
+          "size_x": 2.96,
+          "size_z": 1.96,
+          "top": 0.96,
+          "curb_top": 1.0
+        }
+      },
+      "LOD1": {
+        "file_stem": "LOD1",
+        "materials": [
+          "M_HDBF_Wood",
+          "M_HDBF_Metal",
+          "M_HDBF_Glass",
+          "M_HDBF_Fabric"
+        ],
+        "triangles": 2382,
+        "material_patches": {
+          "M_HDBF_Wood": {
+            "id": "wood_plain",
+            "atlas_region": "wood",
+            "pixel_rect": [
+              96,
+              352,
+              480,
+              736
+            ],
+            "uv_rect": [
+              0.046875,
+              0.640625,
+              0.234375,
+              0.828125
+            ],
+            "texels": [
+              384,
+              384
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "BaseWood_DarkBrown.IronTeeth"
+          },
+          "M_HDBF_Metal": {
+            "id": "metal_base",
+            "atlas_region": "metal",
+            "pixel_rect": [
+              1056,
+              384,
+              1440,
+              768
+            ],
+            "uv_rect": [
+              0.515625,
+              0.625,
+              0.703125,
+              0.8125
+            ],
+            "texels": [
+              384,
+              384
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "BaseMetal.IronTeeth"
+          },
+          "M_HDBF_Glass": {
+            "id": "glass",
+            "atlas_region": "glass",
+            "pixel_rect": [
+              1744,
+              704,
+              1832,
+              792
+            ],
+            "uv_rect": [
+              0.851562,
+              0.613281,
+              0.894531,
+              0.65625
+            ],
+            "texels": [
+              88,
+              88
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "WindowsAtlas.IronTeeth"
+          },
+          "M_HDBF_Fabric": {
+            "id": "metal_details",
+            "atlas_region": "metal",
+            "pixel_rect": [
+              1056,
+              1568,
+              1312,
+              1824
+            ],
+            "uv_rect": [
+              0.515625,
+              0.109375,
+              0.640625,
+              0.234375
+            ],
+            "texels": [
+              256,
+              256
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "IrregularPlanks_MetalForged.IronTeeth"
+          }
+        },
+        "roof_platform": {
+          "size_x": 2.96,
+          "size_z": 1.96,
+          "top": 0.96,
+          "curb_top": 1.0
+        }
+      },
+      "LOD2": {
+        "file_stem": "LOD2",
+        "materials": [
+          "M_HDBF_Wood",
+          "M_HDBF_Metal",
+          "M_HDBF_Glass",
+          "M_HDBF_Fabric"
+        ],
+        "triangles": 832,
+        "material_patches": {
+          "M_HDBF_Wood": {
+            "id": "wood_plain",
+            "atlas_region": "wood",
+            "pixel_rect": [
+              96,
+              352,
+              480,
+              736
+            ],
+            "uv_rect": [
+              0.046875,
+              0.640625,
+              0.234375,
+              0.828125
+            ],
+            "texels": [
+              384,
+              384
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "BaseWood_DarkBrown.IronTeeth"
+          },
+          "M_HDBF_Metal": {
+            "id": "metal_base",
+            "atlas_region": "metal",
+            "pixel_rect": [
+              1056,
+              384,
+              1440,
+              768
+            ],
+            "uv_rect": [
+              0.515625,
+              0.625,
+              0.703125,
+              0.8125
+            ],
+            "texels": [
+              384,
+              384
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "BaseMetal.IronTeeth"
+          },
+          "M_HDBF_Glass": {
+            "id": "glass",
+            "atlas_region": "glass",
+            "pixel_rect": [
+              1744,
+              704,
+              1832,
+              792
+            ],
+            "uv_rect": [
+              0.851562,
+              0.613281,
+              0.894531,
+              0.65625
+            ],
+            "texels": [
+              88,
+              88
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "WindowsAtlas.IronTeeth"
+          },
+          "M_HDBF_Fabric": {
+            "id": "metal_details",
+            "atlas_region": "metal",
+            "pixel_rect": [
+              1056,
+              1568,
+              1312,
+              1824
+            ],
+            "uv_rect": [
+              0.515625,
+              0.109375,
+              0.640625,
+              0.234375
+            ],
+            "texels": [
+              256,
+              256
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "IrregularPlanks_MetalForged.IronTeeth"
+          }
+        },
+        "roof_platform": {
+          "size_x": 2.96,
+          "size_z": 1.96,
+          "top": 0.96,
+          "curb_top": 1.0
+        }
+      }
+    },
+    "ConstructionStage0": {
+      "LOD0": {
+        "file_stem": "ConstructionStage0",
+        "materials": [
+          "M_HDBF_Wood",
+          "M_HDBF_Metal"
+        ],
+        "triangles": 348,
+        "material_patches": {
+          "M_HDBF_Wood": {
+            "id": "wood_plain",
+            "atlas_region": "wood",
+            "pixel_rect": [
+              96,
+              352,
+              480,
+              736
+            ],
+            "uv_rect": [
+              0.046875,
+              0.640625,
+              0.234375,
+              0.828125
+            ],
+            "texels": [
+              384,
+              384
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "BaseWood_Brown.Folktails"
+          },
+          "M_HDBF_Metal": {
+            "id": "metal_base",
+            "atlas_region": "metal",
+            "pixel_rect": [
+              1056,
+              384,
+              1440,
+              768
+            ],
+            "uv_rect": [
+              0.515625,
+              0.625,
+              0.703125,
+              0.8125
+            ],
+            "texels": [
+              384,
+              384
+            ],
+            "texels_per_grid": 64,
+            "vanilla_material": "BaseMetal.Folktails"
+          }
+        },
+        "roof_platform": {
+          "size_x": 2.86,
+          "size_z": 1.86,
+          "top": 0.96,
+          "curb_top": 1.0
+        }
+      }
+    }
+  }
+}

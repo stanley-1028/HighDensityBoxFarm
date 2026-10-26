@@ -1,0 +1,18 @@
+# Build outputs
+bin/
+obj/
+build/
+artifacts/
+
+# Extracted game reference material (regenerated from the installed game by tools/ApiIndex)
+.ref/
+
+# Local scratch
+*.log
+.tmp-*
+
+# IDE
+.vs/
+.idea/
+*.user
+*.suo

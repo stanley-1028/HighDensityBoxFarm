@@ -1,0 +1,139 @@
+<Project>
+
+  <!--
+    Reference set for assemblies that run inside Timberborn.
+
+    Only the game assemblies HDBF actually touches are referenced, and
+    Private=false keeps them out of the shipped output (the game supplies them).
+    Any project that needs more simply references additional names via
+    $(HdbfExtraGameAssemblies) or its own ItemGroup.
+  -->
+
+  <ItemGroup Condition=" '$(HdbfGameProject)' == 'true' ">
+    <Reference Include="UnityEngine">
+      <HintPath>$(TimberbornManagedDir)\UnityEngine.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(TimberbornManagedDir)\UnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Timberborn.Common">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.Common.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Timberborn.BlueprintSystem">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.BlueprintSystem.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Timberborn.BlockSystem">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.BlockSystem.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Timberborn.BaseComponentSystem">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.BaseComponentSystem.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Timberborn.TickSystem">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.TickSystem.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Timberborn.EntitySystem">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.EntitySystem.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Timberborn.SingletonSystem">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.SingletonSystem.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Timberborn.TimeSystem">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.TimeSystem.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Timberborn.TemplateSystem">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.TemplateSystem.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Timberborn.TemplateInstantiation">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.TemplateInstantiation.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Timberborn.Buildings">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.Buildings.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Timberborn.BuildingsNavigation">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.BuildingsNavigation.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Timberborn.WorkSystem">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.WorkSystem.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Timberborn.Planting">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.Planting.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Timberborn.Fields">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.Fields.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Timberborn.Growing">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.Growing.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Timberborn.SoilMoistureSystem">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.SoilMoistureSystem.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Timberborn.TerrainSystem">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.TerrainSystem.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Timberborn.MapStateSystem">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.MapStateSystem.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Timberborn.InventorySystem">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.InventorySystem.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Timberborn.SimpleOutputBuildings">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.SimpleOutputBuildings.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Timberborn.Goods">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.Goods.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Timberborn.WorldPersistence">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.WorldPersistence.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Timberborn.Persistence">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.Persistence.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Timberborn.Modding">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.Modding.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Timberborn.ModManagerScene">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.ModManagerScene.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Timberborn.Versioning">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.Versioning.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Bindito.Core">
+      <HintPath>$(TimberbornManagedDir)\Bindito.Core.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>$(TimberbornManagedDir)\Newtonsoft.Json.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+</Project>
