@@ -1,14 +1,18 @@
-"""HDBF Box Farm - ART-02/ART-04 batch Timbermesh exporter (Blender 4.2.1, headless).
+"""HDBF Box Farm - v2 batch Timbermesh exporter (Blender 4.2.1, headless).
 
-Takes the ART-01 LOD0 source meshes (art/models/<Tier>.<Faction>/LOD0.fbx and
+Takes the v2 LOD0 source meshes (art/models/<Tier>.<Faction>/LOD0.fbx and
 art/models/ConstructionStage0/ConstructionStage0.fbx), re-authors them into the
 game's block-object local space (block-corner origin, see
-art/timbermesh_common.py for the full coordinate derivation), adds the ART-02
-port marker empties (ART-04: THREE ports only, the six #Slot#Crop_* markers are
-removed), assigns VANILLA material asset names (the game looks materials up by
-name in the faction MaterialCollection), keeps the ART-04 flat-patch UV0 /
-per-face vertex colours, and exports one .timbermesh per model through the
-official vendored plugin (art/tools/timbermesh_blender_plugin, v1.2.0 MIT).
+art/timbermesh_common.py for the full coordinate derivation), adds the exactly
+THREE port marker empties (`#Port#Power/#Port#Pipe/#Port#Logistics`; the v2
+models have no `#Slot#` nodes), assigns VANILLA material asset names (the game
+looks materials up by name in the faction MaterialCollection), keeps the
+flat-patch UV0 / per-face vertex colours, and exports one .timbermesh per model
+through the official vendored plugin (art/tools/timbermesh_blender_plugin,
+v1.2.0 MIT).
+
+v2 (2026-10-26): strict 3 x 3 x 1 envelope; the roof is ONE flat empty platform
+whose WALKING SURFACE is the model apex at y = 1.00 and nothing exists above it.
 
 Run:
   & 'C:\\Users\\user\\.hdbf\\sdk\\blender-4.2.1-windows-x64\\blender.exe'
@@ -352,12 +356,16 @@ def check_stats(spec, stats):
             continue
         if max(abs(got[i] - expected[i]) for i in range(3)) > C.POSITION_TOLERANCE:
             problems.append("empty %s at %s, want %s" % (name, got, expected))
-    # ART-04: no crop-slot marker may survive; exactly the 3 port markers remain.
+    # ART-04/v2: no crop-slot marker may survive; exactly the 3 port markers remain.
     if stats["slots"]:
         problems.append("crop-slot marker node(s) still present: %s"
                         % sorted(stats["slots"]))
     if len(stats["ports"]) != 3:
         problems.append("port count %d (want 3)" % len(stats["ports"]))
+    # v2 flat roof: the walking surface is the model apex (y == PLATFORM_TOP)
+    if abs(stats["bounds_max"][1] - C.PLATFORM_TOP) > 0.005:
+        problems.append("roof apex y=%.4f (want the flat walking surface %.3f)"
+                        % (stats["bounds_max"][1], C.PLATFORM_TOP))
     if problems:
         raise RuntimeError("%s: %s" % (spec["stem"], "; ".join(problems)))
 
@@ -438,7 +446,7 @@ def main():
 
     manifest = {
         "generated_by": "art/export_timbermesh.py",
-        "art_revision": "ART-04",
+        "art_revision": "HDBF-v2",
         "blender_version": BLENDER_VERSION,
         "plugin": {
             "name": "timbermesh_blender_plugin",
@@ -447,25 +455,35 @@ def main():
             "license": "MIT",
         },
         "coordinate_system": {
-            "game_model_space": "block-corner origin: X [0,3] width, Y [0,1] height, Z [0,2] depth, front -Z",
+            "game_model_space": "block-corner origin: X [0,3] width, Y [0,1] height, Z [0,3] depth, front -Z",
             "export_matrix_blender": [[-1.0, 0.0, 0.0, -1.5],
-                                      [0.0, 1.0, 0.0, -1.0],
+                                      [0.0, 1.0, 0.0, -1.5],
                                       [0.0, 0.0, 1.0, 0.0],
                                       [0.0, 0.0, 0.0, 1.0]],
             "note": "art/models/* are centered-pivot (contract space); exporter mirrors X, shifts by half a footprint and flips winding so the plugin output is corner-origin game space",
         },
+        "envelope_export_space": {
+            "size": [C.SIZE_X, C.SIZE_Y, C.SIZE_Z],
+            "min": [0.0, 0.0, 0.0],
+            "max": [C.SIZE_X, C.SIZE_Y, C.SIZE_Z],
+            "tolerance": C.BOUNDS_TOLERANCE,
+        },
         "roof_platform": {
-            "description": "ONE empty flat platform per model; six crop slots, soil, "
-                           "roof objects and #Slot#Crop_* markers removed in ART-04",
-            "top_contract": C.PLATFORM_TOP,
-            "curb_top_contract": C.PLATFORM_CURB_TOP,
+            "description": "ONE flat empty platform per model; walking surface == "
+                           "model apex y = 1.00, nothing above it, 30 cm clearance "
+                           "above the surface, flush <=0.04 perimeter fascia",
+            "top": C.PLATFORM_TOP,
+            "walking_surface_is_model_apex": True,
+            "fascia_height": C.PLATFORM_CURB_H,
+            "fascia_width": C.PLATFORM_CURB_W,
+            "fascia_protrusion_above_top": 0.0,
             "clear_above": C.PLATFORM_CLEAR_ABOVE,
             "plans": {tier: {"size_x": plan[0], "size_z": plan[1]}
                       for tier, plan in C.PLATFORM_PLAN.items()},
         },
         "marker_empties": {
             "ports": sorted(C.port_export_positions()),
-            "crop_slots": [],
+            "slot_markers": [],
         },
         "model_count": len(results),
         "models": results,

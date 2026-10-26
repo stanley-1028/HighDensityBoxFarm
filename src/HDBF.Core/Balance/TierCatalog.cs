@@ -7,7 +7,7 @@ namespace HDBF.Core.Balance
     /// Immutable per-tier balance data. Every value that differs between the four tiers lives
     /// here; gameplay code must never branch on <see cref="HdbfTier"/> (REQ-IMPL-01,
     /// REQ-ARCH-07). Values follow requirement document chapters 5 and 6 and are all
-    /// "ÂàùÁâàÂèØË∞É" ‚Äî they may be overridden from JSON at runtime (REQ-IMPL-03).
+    /// "?ùÁ??ØË?" ??they may be overridden from JSON at runtime (REQ-IMPL-03).
     /// </summary>
     public sealed record TierProfile
     {
@@ -17,6 +17,12 @@ namespace HDBF.Core.Balance
 
         public int PlotCapacity { get; init; }
 
+        /// <summary>
+        /// v2 read-only alias for <see cref="PlotCapacity"/> (INTERFACES section 2). v2 code must
+        /// use this name; the v1 field stays until the plot pipeline is deleted in phase 3.
+        /// </summary>
+        public int SlotCapacity => PlotCapacity;
+
         public int MaxWorkers { get; init; }
 
         /// <summary>Square work-range edge length in cells (11/15/19/27).</summary>
@@ -25,6 +31,12 @@ namespace HDBF.Core.Balance
         public float MinIrrigationCoverage { get; init; }
 
         public float WaterPerPlotPerDay { get; init; }
+
+        /// <summary>
+        /// v2 read-only alias for <see cref="WaterPerPlotPerDay"/> (INTERFACES section 2). v2 code
+        /// must use this name; the v1 field stays until the plot pipeline is deleted in phase 3.
+        /// </summary>
+        public float WaterPerSlotPerDay => WaterPerPlotPerDay;
 
         public int TankCapacityDays { get; init; }
 
@@ -71,6 +83,12 @@ namespace HDBF.Core.Balance
     public static class TierCatalog
     {
         public const int PlotsPerFarmer = 38;
+
+        /// <summary>
+        /// v2 read-only alias for <see cref="PlotsPerFarmer"/> (INTERFACES section 2). New v2 code
+        /// uses this name; both constants must stay equal until the v1 field is deleted.
+        /// </summary>
+        public const int SlotsPerFarmer = PlotsPerFarmer;
         public const int PlotActionsPerFarmerDay = 13;
         public const float WorkCostPerPlotDay = 0.08f;
         public const float PathDistanceDivisor = 20f;
@@ -112,7 +130,7 @@ namespace HDBF.Core.Balance
                 BuildWood = 40,
                 BuildPlank = 0,
                 BuildMetal = 0,
-                BuildWorkdays = 6f,
+                BuildWorkdays = 2f,
                 MaintenanceKind = HdbfMaintenanceKind.IrrigationOnly,
                 MaintenanceCycleDays = 0f,
                 MaintenanceMaterialCount = 0,
@@ -136,7 +154,7 @@ namespace HDBF.Core.Balance
                 BuildWood = 20,
                 BuildPlank = 40,
                 BuildMetal = 0,
-                BuildWorkdays = 10f,
+                BuildWorkdays = 3f,
                 MaintenanceKind = HdbfMaintenanceKind.Plank,
                 MaintenanceCycleDays = 10f,
                 MaintenanceMaterialCount = 8,
@@ -160,7 +178,7 @@ namespace HDBF.Core.Balance
                 BuildWood = 0,
                 BuildPlank = 50,
                 BuildMetal = 30,
-                BuildWorkdays = 16f,
+                BuildWorkdays = 5f,
                 MaintenanceKind = HdbfMaintenanceKind.Metal,
                 MaintenanceCycleDays = 10f,
                 MaintenanceMaterialCount = 6,
@@ -184,7 +202,7 @@ namespace HDBF.Core.Balance
                 BuildWood = 0,
                 BuildPlank = 50,
                 BuildMetal = 100,
-                BuildWorkdays = 28f,
+                BuildWorkdays = 8f,
                 MaintenanceKind = HdbfMaintenanceKind.PowerOrOffGridMetal,
                 MaintenanceCycleDays = 0f,
                 MaintenanceMaterialCount = 0,

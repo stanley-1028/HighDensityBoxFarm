@@ -16,3 +16,6 @@ artifacts/
 .idea/
 *.user
 *.suo
+# Python caches (art pipeline)
+__pycache__/
+*.pyc

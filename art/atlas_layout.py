@@ -1,23 +1,33 @@
 """HDBF Box Farm — shared art contract (atlas layout, ports, slots, tiers).
 
+**v2 revision (2026-10-26): four tiers are all 3 x 3 x 1.**  The envelope is
+strictly 3.00 (X width) x 1.00 (Y height) x 3.00 (Z depth) in asset space, the
+front face is -Z and the pivot is the footprint bottom centre.  The roof is ONE
+flat empty platform whose WALKING SURFACE is the model apex (y = 1.00) and
+nothing exists above it.  The four tiers are told apart by facade / opening /
+material layering (indoor high-density shelves behind windows), not by a roof
+silhouette.  A construction-stage greybox ships per tier x faction.
+
 This module is the single source of truth shared by:
-  * art/gen_textures.py   — paints the 2048x2048 PBR atlas into these pixel rects
-  * art/gen_models.py     — packs every model face into one of these rects (UV)
-  * art/validate_models.py — re-checks the exported assets against this contract
+  * art/gen_textures.py    — paints the 2048x2048 atlas into these pixel rects
+  * art/gen_models_v2.py   — builds the v2 source models + material_slots.json
+  * art/validate_models.py — re-checks the exported source assets (FBX+GLB)
+  * art/validate_timbermesh.py (via timbermesh_common) — checks the 16 shipped
+    `.timbermesh` files
 
 It is pure Python (no bpy / numpy) so it can be imported by any validator.
 
 Coordinate systems
 ------------------
-* "asset space" = Unity space required by requirement 13.3/13.6:
+* "asset space" = Unity space required by the v2 building spec:
   X right, Y up, Z depth, building front faces -Z, pivot at footprint bottom
-  centre: X in [-1.5, 1.5], Y in [0, 1], Z in [-1, 1].  Port coordinates in
-  PORT_SPECS are given in this space (directly comparable to ch. 13.6 table).
+  centre: X in [-1.5, 1.5], Y in [0, 1], Z in [-1.5, 1.5].  Port coordinates in
+  PORT_SPECS are given in this space.
 * "blender space" = authoring space: Blender is Z-up, and the FBX/GLB export
   with Blender's standard axis conversion emits
       asset = ( blender.x, blender.z, -blender.y )
   so blender front is +Y and blender space bounds are
-  X in [-1.5, 1.5], Y in [-1, 1] (front = +Y), Z in [0, 1] (up).
+  X in [-1.5, 1.5], Y in [-1.5, 1.5] (front = +Y), Z in [0, 1] (up).
 
 Atlas layout
 ------------
@@ -122,28 +132,39 @@ LOD_CAST_SHADOW = {0: True, 1: True, 2: False}
 CONSTRUCTION_STAGE = "ConstructionStage0"
 
 # --------------------------------------------------------------------------- #
-# ART-04 flat roof platform (no troughs, no roof objects)
+# v2 envelope (3 x 3 x 1) + flat roof platform (no objects on top)
 # --------------------------------------------------------------------------- #
-#: ART-04 (2026-10-25 user instruction) replaced the six raised crop troughs with
-#: ONE empty flat platform.  The platform walking surface has the same height in
-#: every tier / LOD / faction; only the plan size grows with the tier, which is
-#: what keeps the four 50%-camera silhouettes distinguishable (validator C9).
-#: No geometry may stand on the platform: only the thin perimeter curb (the
-#: bounds apex at y = 1.0) is allowed outside the platform face.
-#:
-#: asset space (X width, Y up, Z depth; front -Z).  Platform is centred on the
-#: footprint; the construction-stage greybox uses the same top and an almost
-#: full-footprint plan so it reads as the same empty platform while half built.
-ROOF_PLATFORM_TOP = 0.96        # walking surface of the ONE platform
-ROOF_PLATFORM_THICKNESS = 0.05  # slab thickness (underside y = 0.91)
-ROOF_CURB_H = 0.04              # thin perimeter edge, top = 1.00 (bounds apex)
-ROOF_CURB_W = 0.04              # curb width
+#: v2 (2026-10-26): every finished model and every construction-stage greybox is
+#: strictly 3.00 x 1.00 x 3.00 in asset space (X width, Y up, Z depth).  All
+#: decoration, windows, port geometry and roof edges must stay inside it.
+ENVELOPE = {
+    "size_x": 3.0, "size_y": 1.0, "size_z": 3.0,
+    "min_x": -1.5, "min_y": 0.0, "min_z": -1.5,
+    "max_x": 1.5, "max_y": 1.0, "max_z": 1.5,
+}
+#: envelope tolerance used by both validators (grid units).
+ENVELOPE_TOLERANCE = 0.02
+
+#: The roof is ONE flat empty platform: the WALKING SURFACE is the model apex
+#: (y = 1.00) in every tier / LOD / faction, and no geometry exists above it.
+#: The perimeter "收边" is a flush fascia band (height <= 0.04, width 0.04)
+#: whose top is exactly the walking surface, so it cannot block stacking.
+ROOF_PLATFORM_TOP = 1.00        # walking surface of the ONE platform (model apex)
+ROOF_PLATFORM_THICKNESS = 0.05  # slab thickness (underside y = 0.95)
+ROOF_CURB_H = 0.04              # flush perimeter fascia band height (top = walking surface)
+ROOF_CURB_W = 0.04              # curb / fascia width
+#: no geometry is allowed in the 30 cm above the walking surface (REQ-V2-ART-01);
+#: in practice nothing may exceed ROOF_PLATFORM_TOP at all.
+ROOF_CLEAR_ABOVE = 0.30
+#: The platform plan is near the full 3x3 footprint (so an upper building has a
+#: real support surface); the plan shrinks slightly on the lower tiers and every
+#: plan stays inside the 3.00 x 3.00 envelope.
 ROOF_PLATFORM = {
-    "Basic":        {"size_x": 2.05, "size_z": 1.25},
-    "Intermediate": {"size_x": 2.45, "size_z": 1.55},
-    "Advanced":     {"size_x": 2.78, "size_z": 1.82},
-    "Top":          {"size_x": 2.96, "size_z": 1.96},
-    "ConstructionStage0": {"size_x": 2.86, "size_z": 1.86},
+    "Basic":        {"size_x": 2.84, "size_z": 2.84},
+    "Intermediate": {"size_x": 2.92, "size_z": 2.92},
+    "Advanced":     {"size_x": 2.96, "size_z": 2.96},
+    "Top":          {"size_x": 2.98, "size_z": 2.98},
+    "ConstructionStage0": {"size_x": 2.90, "size_z": 2.90},
 }
 
 
@@ -153,47 +174,71 @@ def roof_platform(tier):
 
 
 # --------------------------------------------------------------------------- #
-# ports: five port classes, six empty markers (requirement 13.6)
+# v2 indoor-high-density facade contract (REQ-V2-ART-04)
 # --------------------------------------------------------------------------- #
-#: coordinates are ASSET space (Unity Y-up, front -Z); "rot_blender" is the
+#: Four tiers must be distinguishable at the 50% camera by at least two of
+#: {silhouette, material, windows/openings, ports} (validator C9).  The model
+#: expresses "indoor high density" with STATIC racks/shelves visible through the
+#: facade openings (3 levels, interior only) — never with 600 dynamic slots.
+V2_INDOOR = {
+    # shelf levels are horizontal slabs visible behind the facade openings
+    "shelf_levels": 3,
+    "shelf_min_levels_checked": 2,
+    # glass facade area (grid^2, front + side windows) expected per tier
+    "glass_area_min": {
+        "Basic": 0.00,
+        "Intermediate": 0.35,
+        "Advanced": 0.60,
+        "Top": 0.85,
+    },
+    # open-front bay count (Basic is an open barn; other tiers are glazed)
+    "open_front_bays": {
+        "Basic": 3,
+        "Intermediate": 0,
+        "Advanced": 0,
+        "Top": 0,
+    },
+}
+#: a "port fixture" counts as present when >= this many triangles lie within
+#: PORT_FIXTURE_RADIUS grid units of the port marker position (geometry differs
+#: per tier: covered/blank on lower tiers, open flange/box on higher tiers).
+PORT_FIXTURE_RADIUS = 0.22
+PORT_FIXTURE_MIN_TRIS = 8
+
+
+# --------------------------------------------------------------------------- #
+# ports: exactly the three #Port# marker empties (REQ-V2-BLD-06 / ART-02)
+# --------------------------------------------------------------------------- #
+#: v2 (2026-10-26): the model ships EXACTLY three `#Port#` empty markers.  The
+#: coordinates below are ASSET space (Unity Y-up, front -Z, pivot at the
+#: footprint bottom centre) for the new 3 x 3 footprint; they keep the v1 port
+#: heights/roles and only re-anchor the depth to +-1.50.  "rot_blender" is the
 #: euler rotation that makes the empty's local +Z point outwards in Blender.
 PORT_SPECS = [
-    {"name": "Entrance",  "object": "PORT_HDBF_Entrance",  "class": "entrance",
-     "asset": (0.00, 0.00, -1.00),  "outward": (0, 0, -1), "size": (0.80, 0.60, 0.05),
-     "rot_blender": (-90.0, 0.0, 0.0), "visible_from": "all",
-     "note": "front facade centre, 0.8 x 0.6 clear opening"},
-    {"name": "Power",     "object": "PORT_HDBF_Power",     "class": "power",
-     "asset": (1.00, 0.85, 1.00),   "outward": (0, 0, 1),  "size": (0.12, 0.12, 0.06),
-     "rot_blender": (90.0, 0.0, 0.0), "visible_from": "Top",
-     "note": "rear right, junction box + insulator; cover plate on lower tiers"},
-    {"name": "Pipe",      "object": "PORT_HDBF_Pipe",      "class": "pipe",
-     "asset": (-1.50, 0.40, 0.00),  "outward": (-1, 0, 0), "size": (0.16, 0.16, 0.06),
-     "rot_blender": (0.0, -90.0, 0.0), "visible_from": "all",
-     "note": "left short side centre, flange + cover (Basic cover only)"},
-    {"name": "Logistics", "object": "PORT_HDBF_Logistics", "class": "logistics",
-     "asset": (-1.00, 0.35, 1.00),  "outward": (0, 0, 1),  "size": (0.80, 0.40, 0.06),
-     "rot_blender": (90.0, 0.0, 0.0), "visible_from": "Intermediate+",
+    {"name": "Power", "object": "#Port#Power", "class": "power",
+     "asset": (1.00, 0.85, 1.50), "outward": (0, 0, 1),
+     "size": (0.12, 0.12, 0.06), "rot_blender": (90.0, 0.0, 0.0),
+     "note": "rear right, junction box + insulator (exposed on Top only)"},
+    {"name": "Pipe", "object": "#Port#Pipe", "class": "pipe",
+     "asset": (-1.50, 0.40, 0.00), "outward": (-1, 0, 0),
+     "size": (0.16, 0.16, 0.06), "rot_blender": (0.0, -90.0, 0.0),
+     "note": "left short side centre, flange + cover on lower tiers"},
+    {"name": "Logistics", "object": "#Port#Logistics", "class": "logistics",
+     "asset": (-1.00, 0.35, 1.50), "outward": (0, 0, 1),
+     "size": (0.80, 0.40, 0.06), "rot_blender": (90.0, 0.0, 0.0),
      "note": "rear left, conveyor opening; blank cover plate on Basic"},
-    {"name": "Vent_01",   "object": "PORT_HDBF_Vent_01",   "class": "vent",
-     "asset": (0.50, 1.00, -0.30),  "outward": (0, 1, 0),  "size": (0.30, 0.30, 0.05),
-     "rot_blender": (0.0, 0.0, 0.0), "visible_from": "all",
-     "note": "roof vent marker A; ART-04 removed the vent GEOMETRY (empty platform)"},
-    {"name": "Vent_02",   "object": "PORT_HDBF_Vent_02",   "class": "vent",
-     "asset": (-0.50, 1.00, 0.30),  "outward": (0, 1, 0),  "size": (0.30, 0.30, 0.05),
-     "rot_blender": (0.0, 0.0, 0.0), "visible_from": "all",
-     "note": "roof vent marker B; ART-04 removed the vent GEOMETRY (empty platform)"},
 ]
 
-#: port tolerance in grid units (requirement 13.6).
+#: port tolerance in grid units.
 PORT_TOLERANCE = 0.02
 
-#: ports whose *visible geometry* is absent per tier (marker empties still exist,
-#: so upgrade never shifts a port coordinate).  Requirement 13.6 / 13.2.
+#: ports whose *visible geometry* is absent per tier (marker empties still
+#: exist, so an upgrade never shifts a port coordinate).
 PORT_GEOMETRY_VISIBLE = {
-    "Basic":        {"Entrance", "Pipe", "Vent_01", "Vent_02"},
-    "Intermediate": {"Entrance", "Pipe", "Logistics", "Vent_01", "Vent_02"},
-    "Advanced":     {"Entrance", "Pipe", "Logistics", "Vent_01", "Vent_02"},
-    "Top":          {"Entrance", "Power", "Pipe", "Logistics", "Vent_01", "Vent_02"},
+    "Basic":        {"Pipe"},
+    "Intermediate": {"Pipe", "Logistics"},
+    "Advanced":     {"Pipe", "Logistics"},
+    "Top":          {"Power", "Pipe", "Logistics"},
 }
 
 #: which materials each tier is expected to reference (subsequence of
@@ -281,14 +326,29 @@ def validate_contract():
             assert x1 <= o[0] or o[2] <= x0 or y1 <= o[1] or o[3] <= y0, (
                 "regions overlap: %s %s" % (name, other))
         used.add(name)
-    assert len(PORT_SPECS) == 6
-    # ART-04: one flat platform per tier, uniform top, curb apex == envelope top.
-    assert abs(ROOF_PLATFORM_TOP + ROOF_CURB_H - 1.0) < 1e-9
+    assert len(PORT_SPECS) == 3
+    # v2: strict 3 x 3 x 1 envelope, flat roof apex at the walking surface.
+    assert ENVELOPE["size_x"] == 3.0 and ENVELOPE["size_y"] == 1.0 \
+        and ENVELOPE["size_z"] == 3.0
+    assert ENVELOPE["min_x"] == -ENVELOPE["size_x"] / 2.0
+    assert ENVELOPE["min_z"] == -ENVELOPE["size_z"] / 2.0
+    assert abs(ROOF_PLATFORM_TOP - ENVELOPE["max_y"]) < 1e-9
+    assert 0.0 < ROOF_CURB_H <= 0.04 + 1e-9
+    assert ROOF_PLATFORM_TOP - ROOF_PLATFORM_THICKNESS > 0.0
+    assert ROOF_CLEAR_ABOVE >= ROOF_CURB_H
     for tier, plan in ROOF_PLATFORM.items():
         assert tier in TIERS or tier == CONSTRUCTION_STAGE, tier
-        assert 0.0 < plan["size_x"] <= 3.0 and 0.0 < plan["size_z"] <= 2.0, tier
-        assert plan["size_x"] / 2.0 + 1e-9 < 1.5, tier
-        assert plan["size_z"] / 2.0 + 1e-9 < 1.0, tier
+        assert 0.0 < plan["size_x"] <= ENVELOPE["size_x"], tier
+        assert 0.0 < plan["size_z"] <= ENVELOPE["size_z"], tier
+        # the flat top must be a real support surface, not a token strip
+        assert plan["size_x"] >= 2.50 and plan["size_z"] >= 2.50, tier
+        assert plan["size_x"] / 2.0 + 1e-9 < ENVELOPE["size_x"] / 2.0, tier
+        assert plan["size_z"] / 2.0 + 1e-9 < ENVELOPE["size_z"] / 2.0, tier
+    # indoor-expression contract: glass coverage must grow strictly with the tier
+    order = ["Basic", "Intermediate", "Advanced", "Top"]
+    mins = [V2_INDOOR["glass_area_min"][tier] for tier in order]
+    assert mins == sorted(mins) and len(set(mins)) == len(mins), mins
+    assert V2_INDOOR["shelf_levels"] >= V2_INDOOR["shelf_min_levels_checked"] >= 2
     return True
 
 

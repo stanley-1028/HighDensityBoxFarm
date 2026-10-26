@@ -1,10 +1,19 @@
 #!/usr/bin/env python3
-"""HDBF orthographic three-view preview renders (Blender headless only).
+"""HDBF v2 orthographic three-view / 50%-camera preview renders (Blender only).
 
-Renders 512x512 PNGs of each tier's Folktails LOD0 model (front / side / top)
-plus a 50%-scale contact shot and one construction-stage view, using Cycles CPU
-(samples <= 32) with a neutral background and simple sun + ambient lighting.
-No text, annotations or overlays are ever added to the images.
+Renders 512x512 PNGs of each tier's Folktails LOD0 model (front / side / top),
+a 50%-camera contact shot (``<Tier>_scale50.png``, the in-game "50% zoom"
+readability view) and one iso view, using Cycles CPU (samples <= 32) with a
+neutral background and simple sun + ambient lighting.  No text, annotations or
+overlays are ever added to the images.
+
+v2 (2026-10-26): the models are 3x3x1 indoor farms with ONE flat empty roof
+platform (walking surface = model apex y = 1.00).  After the per-tier renders
+three 50%-camera A/B comparison sheets are composed (no text, pure render
+panels) so the four tiers can be checked for distinguishability:
+    art/previews/tier_ab_basic_vs_intermediate_50.png   (2 panels)
+    art/previews/tier_ab_advanced_vs_top_50.png         (2 panels)
+    art/previews/tiers_scale50_grid.png                 (2x2 panels)
 
 Usage (from the workspace root):
     blender.exe -b --factory-startup -noaudio --python art\\render_previews.py
@@ -17,6 +26,7 @@ Outputs:
     art/previews/<Tier>_iso.png     (3/4 iso view)
     art/previews/ConstructionStage0_front.png
     art/previews/ConstructionStage0_iso.png
+    art/previews/tier_ab_*.png / tiers_scale50_grid.png (composed 50% A/B sheets)
 
 Exit codes: 0 all previews rendered and verified; 1 render/verify failure;
 2 blocked (bpy unavailable or required model files missing).
@@ -47,6 +57,14 @@ except Exception as exc:  # pragma: no cover - environment specific
     HAVE_BPY = False
     BPY_ERR = "%s: %s" % (type(exc).__name__, exc)
 
+try:
+    import numpy as np
+
+    NUMPY_ERR = None
+except Exception as exc:  # pragma: no cover
+    np = None
+    NUMPY_ERR = "%s: %s" % (type(exc).__name__, exc)
+
 if os.path.join(HERE) not in sys.path:
     sys.path.insert(0, HERE)
 try:
@@ -57,9 +75,9 @@ except Exception as exc:  # pragma: no cover
 
 RESOLUTION = 512
 SAMPLES = 16
-ORTHO_SCALE = 3.5
-ORTHO_SCALE_50 = 7.0
-ORTHO_SCALE_ISO = 4.6
+ORTHO_SCALE = 4.0          # 3x3 footprint + margin
+ORTHO_SCALE_50 = 8.0       # 50% camera scale (one 3-grid building fills 3/8 of frame)
+ORTHO_SCALE_ISO = 5.6
 
 
 def _sun_rotation(elevation_deg, azimuth_deg):
@@ -189,7 +207,7 @@ def make_camera(name, location, direction=None, ortho_scale=ORTHO_SCALE):
 
 def make_cameras():
     """Blender authoring space: X right, Y front (+Y), Z up. Asset front = -Z."""
-    iso_loc = (5.2, 5.2, 3.6)
+    iso_loc = (6.2, 6.2, 4.4)
     return {
         "front": make_camera("cam_front", (0.0, 8.0, 0.5), (0.0, -1.0, 0.0)),
         "side": make_camera("cam_side", (-8.0, 0.0, 0.5), (1.0, 0.0, 0.0)),
@@ -339,6 +357,87 @@ def png_header(path):
             "color_type": head[25]}
 
 
+# --------------------------------------------------------------------------- #
+# 50%-camera A/B composition (no text; pure render panels)
+# --------------------------------------------------------------------------- #
+def _load_pixels(path):
+    """Load a PNG as a bottom-up float RGBA numpy array (Blender convention)."""
+    img = bpy.data.images.load(path, check_existing=False)
+    try:
+        w, h = img.size
+        pixels = np.array(img.pixels[:], dtype=np.float64).reshape(h, w, 4)
+    finally:
+        bpy.data.images.remove(img)
+    return pixels
+
+
+def compose_sheet(out_path, panel_paths, columns):
+    """Compose rendered panels into one PNG grid (rows filled top-down)."""
+    tiles = [_load_pixels(path) for path in panel_paths]
+    height, width = tiles[0].shape[0], tiles[0].shape[1]
+    rows = (len(tiles) + columns - 1) // columns
+    canvas = np.zeros((rows * height, columns * width, 4), dtype=np.float64)
+    canvas[..., 3] = 1.0
+    for index, tile in enumerate(tiles):
+        row = index // columns
+        column = index % columns
+        # numpy row 0 is the BOTTOM row of the image -> place rows top-down
+        top_row = rows - 1 - row
+        canvas[top_row * height:(top_row + 1) * height,
+               column * width:(column + 1) * width] = tile
+    img = bpy.data.images.new("preview_sheet", width=columns * width,
+                              height=rows * height, alpha=True)
+    try:
+        img.pixels = canvas.reshape(-1).tolist()
+        img.filepath_raw = out_path
+        img.file_format = "PNG"
+        img.save()
+    finally:
+        bpy.data.images.remove(img)
+    return png_header(out_path)
+
+
+def build_ab_sheets(out):
+    """Compose the 50%-camera A/B sheets from the rendered scale50 panels."""
+    if np is None:
+        out.append("ENGINE NOTE: numpy unavailable (%s); 50%% A/B sheets skipped"
+                   % NUMPY_ERR)
+        return []
+    sheets = []
+    sheet_jobs = (
+        ("tier_ab_basic_vs_intermediate_50", ["Basic", "Intermediate"], 2),
+        ("tier_ab_advanced_vs_top_50", ["Advanced", "Top"], 2),
+        ("tiers_scale50_grid",
+         ["Basic", "Intermediate", "Advanced", "Top"], 2),
+    )
+    for name, tiers, columns in sheet_jobs:
+        panels = [os.path.join(PREVIEW_DIR, "%s_scale50.png" % tier)
+                  for tier in tiers]
+        if not all(os.path.isfile(path) for path in panels):
+            out.append("  %-32s SKIP (missing scale50 panel)" % name)
+            continue
+        dst = os.path.join(PREVIEW_DIR, name + ".png")
+        try:
+            header = compose_sheet(dst, panels, columns)
+        except Exception as exc:                              # noqa: BLE001
+            out.append("  %-32s FAILED to compose: %s: %s"
+                       % (name, type(exc).__name__, exc))
+            sheets.append((dst, False, 0, "%s: %s" % (type(exc).__name__, exc)))
+            continue
+        rows = (len(panels) + columns - 1) // columns
+        ok = (header is not None
+              and header["width"] == RESOLUTION * columns
+              and header["height"] == RESOLUTION * rows
+              and os.path.getsize(dst) > 4096)
+        detail = ("%d panels %dx%d"
+                  % (len(panels), RESOLUTION * columns, RESOLUTION * rows))
+        out.append("  %-32s %s  %s"
+                   % (name, "OK  " if ok else "FAIL", detail))
+        sheets.append((dst, ok, os.path.getsize(dst) if os.path.isfile(dst) else 0,
+                       detail))
+    return sheets
+
+
 def main():
     started = time.time()
     if not HAVE_BPY:
@@ -435,6 +534,10 @@ def main():
                            % ("Construction", view, "OK  " if ok else "FAIL",
                               detail if ok else err))
                 renderer.results.append((dst, ok, size, detail if ok else err))
+    out.append("")
+    out.append("50%-camera A/B sheets (composed from the scale50 panels above):")
+    for dst, ok, size, detail in build_ab_sheets(out):
+        renderer.results.append((dst, ok, size, detail))
     if renderer.fallback_note:
         out.append("ENGINE NOTE: %s" % renderer.fallback_note)
     fails = [r for r in renderer.results if not r[1]]
@@ -447,8 +550,8 @@ def main():
         for path, _ok, _size, err in fails:
             out.append("  bad: %s (%s)" % (path, err))
     else:
-        out.append("VERDICT: PASS - all %d previews are 512x512 8-bit PNG"
-                   % len(renderer.results))
+        out.append("VERDICT: PASS - %d preview image(s) rendered and verified as "
+                   "8-bit PNG" % len(renderer.results))
     out.append("elapsed: %.1fs" % (time.time() - started))
     text = "\n".join(out)
     sys.stdout.write(text + "\n")

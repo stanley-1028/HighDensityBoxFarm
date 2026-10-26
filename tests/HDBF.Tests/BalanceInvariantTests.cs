@@ -80,10 +80,11 @@ namespace HDBF.Tests
 
         public static void TestTierBuildWorkdays()
         {
-            TestAssert.Equal(6f, TierCatalog.Get(HdbfTier.Basic).BuildWorkdays);
-            TestAssert.Equal(10f, TierCatalog.Get(HdbfTier.Intermediate).BuildWorkdays);
-            TestAssert.Equal(16f, TierCatalog.Get(HdbfTier.Advanced).BuildWorkdays);
-            TestAssert.Equal(28f, TierCatalog.Get(HdbfTier.Top).BuildWorkdays);
+            // v2.1 (2026-10-26): construction time shortened from 6/10/16/28 to 2/3/5/8 workdays.
+            TestAssert.Equal(2f, TierCatalog.Get(HdbfTier.Basic).BuildWorkdays);
+            TestAssert.Equal(3f, TierCatalog.Get(HdbfTier.Intermediate).BuildWorkdays);
+            TestAssert.Equal(5f, TierCatalog.Get(HdbfTier.Advanced).BuildWorkdays);
+            TestAssert.Equal(8f, TierCatalog.Get(HdbfTier.Top).BuildWorkdays);
         }
 
         public static void TestTierBuildMaterials()
@@ -167,7 +168,8 @@ namespace HDBF.Tests
 
         public static void TestUnitPlotBuildWorkdaysDecreasesMonotonically()
         {
-            var expected = new[] { 0.1f, 10f / 150f, 16f / 300f, 28f / 600f };
+            // v2.1 build workdays 2/3/5/8 over 60/150/300/600 slots keep the unit-plot effort decreasing.
+            var expected = new[] { 2f / 60f, 3f / 150f, 5f / 300f, 8f / 600f };
             var previous = float.MaxValue;
             for (var index = 0; index < expected.Length; index++)
             {

@@ -1,5 +1,10 @@
 # HDBF 盒子農場 — 3D 美術來源資產（`art/`）
 
+> **v2 更新（2026-10-26）：本文件是 ART-01 的歷史說明；現行模型是 v2 3×3×1 室內農場。**
+> 現行生成器 = `art/gen_models_v2.py`；驗證器 = `art/validate_models.py` / `art/validate_timbermesh.py`；
+> 匯出器 = `art/export_timbermesh.py`；凍結契約 = `data/ART_PLACEHOLDER.md`（v2 版）。
+> 本文件下列 3×2×1 尺寸、6 槽/6 端口表與 ART-01 驗證規則**均已過時**，僅作歷史記錄保留。
+
 > **ART-04 更新（2026-10-25）— 本文件多數內容是 ART-01 的歷史說明。**
 > 現在 `art/models/**` 是由 **`art/gen_models.py`（ART-04）** 重新生成的：屋頂只剩**單一空平台**
 > （6 個作物槽/土壤/槽緣與 `#Slot#Crop_*` 節點已移除）、模型沒有作物視覺、材質改成

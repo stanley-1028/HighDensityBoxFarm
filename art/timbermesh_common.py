@@ -1,18 +1,24 @@
-"""HDBF Box Farm - ART-02 Timbermesh export contract (pure Python, no bpy).
+"""HDBF Box Farm - v2 Timbermesh export contract (pure Python, no bpy).
 
 Single source of truth shared by:
   * art/export_timbermesh.py     (Blender headless exporter)
-  * art/axis_test.py             (Blender headless 3x2x1 axis/unit test)
   * art/validate_timbermesh.py   (pure-Python validator, no Blender)
+  * art/validate_models.py       (source FBX/GLB validator, Blender headless)
+
+v2 (2026-10-26) changes the building from 3 x 2 x 1 to a strict **3 x 3 x 1**
+indoor high-density farm.  The roof is ONE flat empty platform whose WALKING
+SURFACE is the model apex at y = 1.00; the four tiers differ by facade /
+openings / material layering, not by roof silhouette.  There are exactly three
+`#Port#` empty markers and no `#Slot#` nodes.
 
 Coordinate systems (all measured against the real game, see README-timbermesh.md)
 --------------------------------------------------------------------------------
-1. "contract space" = requirement chapter 13.3/13.6 space, which ART-01 used:
+1. "contract space" = requirement space used by the source models:
    X right, Y up, Z depth, building front faces -Z, pivot at the footprint
-   bottom CENTRE: X in [-1.5, 1.5], Y in [0, 1], Z in [-1, 1].
+   bottom CENTRE: X in [-1.5, 1.5], Y in [0, 1], Z in [-1.5, 1.5].
 
-2. "ART-01 Blender authoring space" = what art/models/*/LOD*.fbx contain:
-   Blender Z-up, front faces +Y, geometry spans X [-1.5, 1.5], Y [-1, 1]
+2. "source Blender authoring space" = what art/models/*/LOD*.fbx contain:
+   Blender Z-up, front faces +Y, geometry spans X [-1.5, 1.5], Y [-1.5, 1.5]
    (front = +Y), Z [0, 1] (up).  Mapping to contract space is
    contract = (blender.x, blender.z, -blender.y).
 
@@ -22,9 +28,9 @@ Coordinate systems (all measured against the real game, see README-timbermesh.md
    and cross-checked against vanilla blueprints' CollidersSpec: it is
    BLOCK-CORNER origin, X 0..sizeX (width), Y 0..sizeY (height, UP),
    Z 0..sizeZ (depth), front at Z = 0 / -Z.
-   For this 3 x 2 x 1 building:
-       export = (contract.x + 1.5, contract.y, contract.z + 1.0)
-   i.e. the model must span X [0, 3], Y [0, 1], Z [0, 2].  The requirement
+   For this 3 x 3 x 1 building:
+       export = (contract.x + 1.5, contract.y, contract.z + 1.5)
+   i.e. the model must span X [0, 3], Y [0, 1], Z [0, 3].  The requirement
    document assumed a centred pivot; the game does not, so the exporter shifts
    by half a footprint.  This is recorded as a deviation in the report.
 
@@ -35,8 +41,9 @@ mirrors X and Z; triangle winding is reversed to compensate, so authored
 outward normals stay outward).  Therefore, to get a desired export coordinate
 the exporter must author the Blender scene as
     blender = (-export.x, -export.z, export.y)
-which for ART-01 sources (contract = (blender.x, blender.z, -blender.y)) is
-    blender_export = (-blender_src.x - 1.5, blender_src.y - 1.0, blender_src.z)
+which for the v2 source models (contract = (blender.x, blender.z, -blender.y))
+is
+    blender_export = (-src.x - 1.5, src.y - 1.5, src.z)
 """
 
 from __future__ import annotations
@@ -59,9 +66,10 @@ TIMBERMESH_DIR = os.path.join(HERE, "timbermesh")
 TIERS = ["Basic", "Intermediate", "Advanced", "Top"]
 FACTIONS = ["Folktails", "IronTeeth"]
 
-#: block size of the building (requirement 13.3): X width, Y height, Z depth.
-SIZE_X, SIZE_Y, SIZE_Z = 3.0, 1.0, 2.0
-BOUNDS_TOLERANCE = 0.05
+#: block size of the building (v2: 3 x 3 x 1): X width, Y height, Z depth.
+SIZE_X, SIZE_Y, SIZE_Z = 3.0, 1.0, 3.0
+#: strict envelope tolerance used by both validators (grid units).
+BOUNDS_TOLERANCE = 0.02
 POSITION_TOLERANCE = 0.02
 
 #: per-LOD0 triangle budget (requirement 13.5).
@@ -214,30 +222,35 @@ for (_t, _f, _c), _mapping in MATERIAL_MAP.items():
 
 
 # --------------------------------------------------------------------------- #
-# empties: connection ports only (ART-04 removed the six crop slots)
+# empties: connection ports only (v2 keeps exactly the three #Port# markers)
 # --------------------------------------------------------------------------- #
-#: requirement 13.6 port coordinates (contract space, centred pivot) and the
-#: required marker set for ART-02 (3 ports; the entrance and the two vents are
-#: not part of this card's marker contract).
+#: v2 (2026-10-26) port coordinates in CONTRACT space (centred pivot); the new
+#: 3 x 3 footprint re-anchors the depth to +-1.50 while keeping the v1 heights
+#: and roles.  There are exactly 3 ports and no `#Slot#` marker.
 PORT_SPECS = [
     # name, contract (x, y, z), outward direction, requirement note
-    ("#Port#Power", (1.00, 0.85, 1.00), (0.0, 0.0, 1.0), "back-right, power junction box"),
+    ("#Port#Power", (1.00, 0.85, 1.50), (0.0, 0.0, 1.0), "back-right, power junction box"),
     ("#Port#Pipe", (-1.50, 0.40, 0.00), (-1.0, 0.0, 0.0), "left short side, pipe flange"),
-    ("#Port#Logistics", (-1.00, 0.35, 1.00), (0.0, 0.0, 1.0), "back-left, conveyor opening"),
+    ("#Port#Logistics", (-1.00, 0.35, 1.50), (0.0, 0.0, 1.0), "back-left, conveyor opening"),
 ]
 
-#: ART-04 (2026-10-25): the six raised crop slots (`#Slot#Crop_0..5`) and all
-#: crop/soil geometry are GONE.  The roof is ONE EMPTY FLAT PLATFORM.  These
-#: constants are the frozen contract both the exporter and the validator check.
-PLATFORM_TOP = A.ROOF_PLATFORM_TOP                  # walking surface y
-PLATFORM_CURB_TOP = PLATFORM_TOP + A.ROOF_CURB_H    # thin edge apex == y 1.0
+#: v2 (2026-10-26): the roof is ONE EMPTY FLAT PLATFORM.  Its WALKING SURFACE is
+#: the model apex at y = 1.00; nothing may exist above it and a 30 cm clearance
+#: cone above the surface is empty.  The perimeter "收边" is a flush fascia band
+#: (height <= 0.04) whose top is the walking surface, so it cannot block
+#: stacking.  These constants are the frozen contract the exporter and both
+#: validators check.
+PLATFORM_TOP = A.ROOF_PLATFORM_TOP                  # walking surface y (== apex)
+PLATFORM_CURB_TOP = PLATFORM_TOP                    # flush: curb top == walking surface
+PLATFORM_CURB_H = A.ROOF_CURB_H                     # flush fascia band height
 PLATFORM_CURB_W = A.ROOF_CURB_W
-PLATFORM_CLEAR_ABOVE = 0.06                         # nothing above top + 0.06
+PLATFORM_CLEAR_ABOVE = A.ROOF_CLEAR_ABOVE           # empty 30 cm above the surface
 PLATFORM_PLAN = {tier: (spec["size_x"], spec["size_z"])
                  for tier, spec in A.ROOF_PLATFORM.items()}
 
 assert len(PORT_SPECS) == 3
-assert abs(PLATFORM_CURB_TOP - 1.0) < 1e-9
+assert abs(PLATFORM_CURB_TOP - PLATFORM_TOP) < 1e-9
+assert PLATFORM_CURB_H <= 0.04 + 1e-9
 assert "ConstructionStage0" in PLATFORM_PLAN
 
 

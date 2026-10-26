@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""HDBF ART-02/ART-04 - pure-Python .timbermesh validator (no Blender, no bpy).
+"""HDBF v2 - pure-Python .timbermesh validator (no Blender, no bpy).
 
 Parses every expected ``art/timbermesh/BoxFarm.<Tier>.<Faction>[.ConstructionStage0].Model
 .timbermesh`` with the vendored official Blender plugin's protobuf schema
 (``art/tools/timbermesh_blender_plugin/model_pb2.py``) after zlib decompression,
-then checks the frozen ART-02 export contract from ``art/timbermesh_common.py``.
+then checks the frozen HDBF-v2 export contract from ``art/timbermesh_common.py``.
 
 A ``.timbermesh`` file is ``zlib.compress(model_pb2.Model.SerializeToString())``:
 
@@ -22,22 +22,26 @@ and its length must be ``vertexCount * dim * 4``.
 Checks per file (all eight must PASS):
   C1 parses: zlib.decompress + protobuf ParseFromString without exception.
   C2 identity: Model.name == file stem; Model.version == 0.
-  C3 mesh bounds (export space, block-corner origin): size == (3.0, 1.0, 2.0)
-     and min == (0, 0, 0), each +-0.05.
+  C3 mesh bounds (export space, block-corner origin): size == (3.0, 1.0, 3.0)
+     and min == (0, 0, 0), each +-0.02 (strict v2 envelope).
   C4 triangles: sum(len(mesh.indices)//3) <= 6000 (tier LOD0 budget).
   C5 materials: 1..4 distinct, every mesh.material in the faction whitelist.
-  C6 empties + empty roof platform: exactly 3
+  C6 empties + flat roof: exactly 3
      #Port#Power/#Port#Pipe/#Port#Logistics (vertexCount == 0, no meshes,
      node position within +-0.02 of the export-space contract), NO #Slot#
-     node at all (ART-04 removed the six #Slot#Crop_* markers), and the roof
-     is ONE empty flat platform: a platform face present at platform_top
-     +-0.01 and no vertex above platform_top+0.06 inside the platform plan.
+     node at all, and the roof is ONE flat empty platform: the WALKING SURFACE
+     is the model apex at y == 1.00, NOTHING exists above y == 1.00 (the 30 cm
+     above the surface is therefore empty), the top face exists inside the
+     near-full platform plan, and the perimeter fascia never rises above 1.00.
   C7 vertex properties: names subset of {position, normal, tangent, color,
      uv0, uv1, uv2}; position/normal/tangent present on every node with
      vertexCount > 0; no NaN/Inf; FLOAT scalar type; document dimensions;
      data length == vertexCount*dim*4.
   C8 topology: indices in [0, vertexCount); node parent == -1 or < own index;
      exactly one root node whose name == file stem; uv0 in [0,1] +-0.001.
+
+The report (``art/timbermesh-validation.txt``) is deterministic: identical input
+files produce a byte-identical report (no timestamps, no elapsed times).
 
 Usage:
     python art/validate_timbermesh.py
@@ -53,13 +57,11 @@ it is used to prove the parser works and to show its diagnosis).
 from __future__ import annotations
 
 import argparse
-import datetime
 import math
 import os
 import platform
 import struct
 import sys
-import time
 import traceback
 import zlib
 
@@ -90,10 +92,10 @@ REFERENCE_PATH = os.path.join(
 CHECK_DEFS = [
     ("C1", "parses (zlib + protobuf)"),
     ("C2", "model identity (name/version)"),
-    ("C3", "mesh bounds (3x1x2 @ corner)"),
+    ("C3", "mesh bounds (3x1x3 @ corner)"),
     ("C4", "triangles <= budget"),
     ("C5", "materials (whitelist + count)"),
-    ("C6", "#Port# empties + empty roof platform"),
+    ("C6", "#Port# empties + flat empty roof"),
     ("C7", "vertex properties"),
     ("C8", "topology (indices/parents/uv0)"),
 ]
@@ -102,7 +104,7 @@ CHECK_DESCRIPTIONS = {
     "C1": "zlib.decompress(file) then model_pb2.Model().ParseFromString(data), no exception",
     "C2": "Model.name == file stem (e.g. 'BoxFarm.Basic.Folktails.Model'), Model.version == 0",
     "C3": "mesh bounds: size == (%.1f, %.1f, %.1f) and min == (0, 0, 0), each +-%.2f "
-          "(game model space is block-corner origin, NOT centred)" % (
+          "(game model space is block-corner origin, NOT centred; strict v2 envelope)" % (
               C.SIZE_X, C.SIZE_Y, C.SIZE_Z, C.BOUNDS_TOLERANCE),
     "C4": "triangles = sum(len(mesh.indices)//3) over all nodes; must be <= %d "
           "(timbermesh_common.TRI_BUDGET_LOD0; index counts must be multiples of 3)" % C.TRI_BUDGET_LOD0,
@@ -110,8 +112,9 @@ CHECK_DESCRIPTIONS = {
           "faction-specific vanilla whitelist from timbermesh_common.MATERIAL_WHITELIST",
     "C6": "exactly the 3 nodes #Port#Power/#Port#Pipe/#Port#Logistics (vertexCount == 0, no "
           "meshes, position within +-%.2f of the contract), NO #Slot# node at all, and the roof "
-          "is ONE empty flat platform: no vertex above platform_top+%.2f inside the platform plan, "
-          "platform face present at platform_top+-0.01" % (C.POSITION_TOLERANCE, C.PLATFORM_CLEAR_ABOVE),
+          "is ONE flat empty platform: walking surface == model apex y == %.2f inside the "
+          "near-full plan, NOTHING above y == %.2f (30 cm clearance), top face present"
+          % (C.POSITION_TOLERANCE, C.PLATFORM_TOP, C.PLATFORM_TOP),
     "C7": "vertex property names subset of {position, normal, tangent, color, uv0, uv1, uv2}; "
           "'position','normal','tangent' present on every node with vertexCount > 0; no NaN/Inf; "
           "scalarType FLOAT(4); dim 3/3/4/4/2/2/2; data length == vertexCount*dim*4",
@@ -457,7 +460,8 @@ class Analysis(object):
                 "(tolerance %.3f, %d vertices)" % (_fmt3(size), _fmt3(lo), _fmt3(hi),
                                                    size_dev, min_dev, tolerance, vertices))
         if reasons:
-            check.fail("mesh bounds do not match the 3x1x2 block-corner contract", reasons, notes)
+            check.fail("mesh bounds do not match the strict 3x3x1 block-corner contract",
+                       reasons, notes)
         else:
             check.pass_(text, notes)
 
@@ -628,6 +632,11 @@ class Analysis(object):
         if x1 is not None:
             face_verts = 0
             above = []
+            above_top = []
+            top_x = [math.inf, -math.inf]
+            top_z = [math.inf, -math.inf]
+            apex = -math.inf
+            near_top = []
             for fact in self.facts:
                 prop = fact.props.get("position")
                 if prop is None or prop.values is None:
@@ -637,19 +646,55 @@ class Analysis(object):
                     x, y, z = values[k], values[k + 1], values[k + 2]
                     if not (math.isfinite(x) and math.isfinite(y) and math.isfinite(z)):
                         continue
-                    if x0 - 0.02 <= x <= x1 + 0.02 and z0 - 0.02 <= z <= z1 + 0.02:
+                    apex = max(apex, y)
+                    if y > top + 1e-6:
+                        above_top.append((round(x, 3), round(y, 3), round(z, 3)))
+                    in_plan = (x0 - 0.02 <= x <= x1 + 0.02
+                               and z0 - 0.02 <= z <= z1 + 0.02)
+                    if in_plan:
                         if abs(y - top) <= 0.01:
                             face_verts += 1
+                            top_x[0] = min(top_x[0], x)
+                            top_x[1] = max(top_x[1], x)
+                            top_z[0] = min(top_z[0], z)
+                            top_z[1] = max(top_z[1], z)
+                        if y > top - C.PLATFORM_CURB_H - 1e-6:
+                            # everything in the top <=0.04 band must be the flat
+                            # platform / its flush fascia, i.e. inside the plan
+                            near_top.append((round(x, 3), round(y, 3), round(z, 3)))
                         if y > ceiling + 1e-6:
                             above.append((round(x, 3), round(y, 3), round(z, 3)))
-            platform_ok = face_verts > 0 and not above
-            platform_info = "face=%d above=%d" % (face_verts, len(above))
+            platform_ok = (face_verts > 0 and not above and not above_top
+                           and abs(apex - top) <= 0.005
+                           and (top_x[1] - top_x[0]) >= (x1 - x0) - 0.10
+                           and (top_z[1] - top_z[0]) >= (z1 - z0) - 0.10)
+            platform_info = ("face=%d above=0 apex=%.3f top=%.3f ext=%.2fx%.2f"
+                             % (face_verts, top, top, top_x[1] - top_x[0],
+                                top_z[1] - top_z[0]))
             if face_verts == 0:
-                reasons.append("roof platform: no vertex at platform_top %.3f inside the "
-                               "platform plan (%s)" % (top, platform_info))
+                reasons.append("roof platform: no vertex at the walking surface %.3f "
+                               "inside the platform plan (%s)" % (top, platform_info))
+            if above_top:
+                reasons.append("roof platform: %d vertex/vertices above the walking "
+                               "surface %.3f (the top face must be the model apex; "
+                               "e.g. %s)" % (len(above_top), top, above_top[:5]))
             if above:
-                reasons.append("roof platform: %d vertex/vertices above platform_top+%.2f "
-                               "(e.g. %s)" % (len(above), C.PLATFORM_CLEAR_ABOVE, above[:5]))
+                reasons.append("roof platform: %d vertex/vertices above the 30 cm "
+                               "clearance ceiling %.3f (e.g. %s)"
+                               % (len(above), ceiling, above[:5]))
+            if abs(apex - top) > 0.005:
+                reasons.append("roof platform: model apex y=%.4f != walking surface "
+                               "%.3f (the flat top must be the highest face)"
+                               % (apex, top))
+            if (top_x[1] - top_x[0]) < (x1 - x0) - 0.10 or \
+                    (top_z[1] - top_z[0]) < (z1 - z0) - 0.10:
+                reasons.append("roof platform: flat top face does not span the "
+                               "near-full plan (ext=%.2fx%.2f, plan=%.2fx%.2f)"
+                               % (top_x[1] - top_x[0], top_z[1] - top_z[0],
+                                  x1 - x0, z1 - z0))
+            notes.append("flat roof: apex=%.4f top=%.4f above_top=%d above_clearance=%d "
+                         "near_top_band_vertices=%d" % (apex, top, len(above_top),
+                                                        len(above), len(near_top)))
         self.slots_present = 0
         self.ports_present = present
         self.empty_devs = {"port": max_dev}
@@ -853,9 +898,10 @@ def make_probe_spec(path):
 def render_header(meta):
     lines = []
     lines.append("=" * 104)
-    lines.append("HDBF ART-02 - .timbermesh validation report")
+    lines.append("HDBF v2 - 3x3x1 indoor box farm .timbermesh validation report")
     lines.append("=" * 104)
-    lines.append("generated:  %s" % meta["date"])
+    lines.append("report:     deterministic (identical input files -> byte-identical report;")
+    lines.append("            no timestamps, no elapsed times)")
     lines.append("mode:       pure-python / Blender-free (zlib + the vendored official plugin's")
     lines.append("            protobuf schema model_pb2; no bpy, no Blender, no Unity)")
     lines.append("contract:   art/timbermesh_common.py (single source of truth: tiers, factions,")
@@ -866,13 +912,15 @@ def render_header(meta):
     lines.append("output dir: %s" % meta["outdir"])
     lines.append("files:      %d expected (8 finished LOD0 + 8 ConstructionStage0), %d present"
                  % (meta["expected"], meta["present"]))
-    lines.append("tolerances: bounds +-%.3f, min corner +-%.3f, empty positions +-%.3f, "
-                 "uv0 [0,1] +-%.3f"
+    lines.append("tolerances: bounds +-%.3f (strict 3.00 x 1.00 x 3.00 envelope), min corner "
+                 "+-%.3f, empty positions +-%.3f, uv0 [0,1] +-%.3f"
                  % (C.BOUNDS_TOLERANCE, C.BOUNDS_TOLERANCE,
                     C.POSITION_TOLERANCE, UV_TOLERANCE))
     lines.append("tri budget: <= %d per file (timbermesh_common.TRI_BUDGET_LOD0 = LOD0 tier "
                  "budget)" % meta["budget"])
-    lines.append("elapsed:    %.2f s" % meta["elapsed"])
+    lines.append("roof:       ONE flat empty platform; walking surface == model apex y = %.2f; "
+                 "nothing above it; %d cm clearance above the surface"
+                 % (C.PLATFORM_TOP, int(round(C.PLATFORM_CLEAR_ABOVE * 100))))
     lines.append("")
     lines.append("-" * 104)
     lines.append("CHECKS (per file; all eight must PASS for the file to PASS)")
@@ -974,7 +1022,7 @@ def render_verdict(results, extras, meta):
     lines.append("OVERALL VERDICT: %s" % overall)
     if present < len(results):
         lines.append("  (reason: %d of the %d expected .timbermesh files are missing - "
-                     "the ART-02 export is not complete)"
+                     "the v2 export is not complete)"
                      % (len(results) - present, len(results)))
     if meta.get("report_path"):
         lines.append("report: %s" % _rel(meta["report_path"]))
@@ -983,7 +1031,7 @@ def render_verdict(results, extras, meta):
 
 def render_console(results, extras, probes, meta):
     lines = []
-    lines.append("HDBF ART-02 timbermesh validation - %s" % meta["date"])
+    lines.append("HDBF v2 3x3x1 timbermesh validation (deterministic report)")
     lines.append("mode: pure-python / Blender-free (vendored protobuf model_pb2 + zlib); "
                  "contract: art/timbermesh_common.py")
     lines.append("expected: %d files (8 finished + 8 ConstructionStage0); found: %d"
@@ -1088,7 +1136,6 @@ def _emit(lines):
 
 def main(argv=None):
     args = parse_args(argv)
-    started = time.perf_counter()
     specs = C.all_model_specs()
     results = []
     for spec in specs:
@@ -1117,11 +1164,7 @@ def main(argv=None):
         analysis.analyze()
         probes.append(("REFERENCE (vanilla SDK asset; contract checks expected to fail)", analysis))
 
-    elapsed = time.perf_counter() - started
-    now = datetime.datetime.now().astimezone()
     meta = {
-        # offset-only on purpose: the locale timezone *name* is not ASCII-safe on Windows
-        "date": now.strftime("%Y-%m-%dT%H:%M:%S%z"),
         "python": "%s %s on %s" % (platform.python_implementation(),
                                    platform.python_version(), platform.system()),
         "workspace": WORKSPACE,
@@ -1129,7 +1172,6 @@ def main(argv=None):
         "expected": len(specs),
         "present": sum(1 for result in results if result.present),
         "budget": C.TRI_BUDGET_LOD0,
-        "elapsed": elapsed,
         "report_path": None if args.no_report else os.path.abspath(args.report),
     }
     if not args.no_report:

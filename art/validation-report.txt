@@ -1,474 +1,740 @@
-HDBF ART VALIDATION REPORT
-==============================================================================
-mode: FULL (Blender headless: GLB parse + FBX re-import)
-blender: 4.2.1 LTS
-python: 3.11.7
-numpy: 1.24.3
-platform: Windows-10-10.0.26200-SP0
-workspace: C:\Users\user\Documents\Timberborn\Mods\HighDensityBoxFarm
-assets dir: C:\Users\user\Documents\Timberborn\Mods\HighDensityBoxFarm\art\models
-contract: art/atlas_layout.py loaded
-thresholds: bounds 3.00x1.00x2.00 +-0.02, pivot (X/Z centre, minY) +-0.02, tri budget +-20%, LOD bbox shrink <=2%, UV grid 512x512, double-covered <=0.20% of covered texels, ports +-0.02
-C9 metric (amended, Lead 2026-10-25): outline-distinguishability at 50% scale, LOD2 strict / LOD0 reported; pair passes in a view if mean|dh|>=0.04 or max|dh|>=0.12 grid or area IoU<=0.85. Raw area-IoU matrices are informational only (fixed envelope limitation).
-expected: 24 finished models (8 per LOD) + 1 construction stage, 50 model files + 3 atlas PNGs + material_slots.json = 54 files
+======================================================================================================================
+HDBF v2 - 3x3x1 indoor box farm source-model validation report
+======================================================================================================================
+report:     deterministic (identical inputs -> byte-identical report;
+            no timestamps, no elapsed times)
+mode:       Blender 4.2.1 LTS, FBX re-import + GLB import (both checked)
+numpy:      1.24.3
+contract:   art/atlas_layout.py (envelope, flat roof, ports, tier materials, indoor expression)
+            art/material_patches.py (flat-patch UV), art/timbermesh_common.py (export contract)
+files:      25 source models (8 tier x faction x 3 LOD = 24 + ConstructionStage0)
+tolerances: envelope +-0.020 grid, flat top +-0.005, ports +-0.020, tri budget +-20%, LOD shrink <=2%, UV patch +-0.0002
+50%-camera C9: 32 px/grid raster (128x128); a tier pair must differ on >=2 of {material>=0.05, windows>=0.03, silhouette>=0.02, roof-plan>=0.015, ports>=10%}
 
-CHECK SUMMARY
-[PASS] C1 File set complete                              PASS
-[PASS] C2 Asset-space bounds + pivot (GLB+FBX)           PASS
-[PASS] C3 Triangles per LOD vs budget                    PASS
-[PASS] C4 Trough nodes (6/LOD) + LOD0 centres            PASS
-[PASS] C5 Port empties: coords + local +Z outward        PASS
-[PASS] C6 Materials + atlas PNGs                         PASS
-[PASS] C7 UV range + intra-model overlap                 PASS
-[PASS] C8 LOD bbox continuity (shrink <=2%)              PASS
-[PASS] C9 Cross-tier silhouette distinguishability (50%) PASS
-[PASS] C10 material_slots.json cross-check                PASS
+----------------------------------------------------------------------------------------------------------------------
+CHECKS
+  C1  files present + both formats parse
+  C2  strict 3.00 x 1.00 x 3.00 envelope + flat roof apex
+  C3  triangle budget (LOD0/1/2 +-20%)
+  C4  v2 structure + indoor shelves/glass expression
+  C5  exactly 3 #Port# empties, no #Slot# node
+  C6  material slot sets per tier/faction
+  C7  flat-patch UV0 bounds
+  C8  LOD bounding-box shrink <= 2%
+  C9  four tiers distinguishable at the 50% camera
+  C10 material_slots.json agrees with the meshes
 
+FILE SET  PASS  all 54 expected files present; atlas PNGs are 2048x2048
+        - 54 expected files scanned (25 models x FBX+GLB + 3 atlas PNGs + material_slots.json)
+
+======================================================================================================================
+SUMMARY TABLE (one row per source model)
+======================================================================================================================
+MODEL                                    C1 C2 C3 C4 C5 C6 C7    TRIS     MATS  ENVELOPE X/Y/Z 
+Basic.Folktails.LOD0                      P  P  P  P  P  P  P    5942        2  3.000/1.000/3.000
+Basic.Folktails.LOD1                      P  P  P  P  P  P  P    2382        2  3.000/1.000/3.000
+Basic.Folktails.LOD2                      P  P  P  P  P  P  P     794        2  3.000/1.000/3.000
+Basic.IronTeeth.LOD0                      P  P  P  P  P  P  P    5942        2  3.000/1.000/3.000
+Basic.IronTeeth.LOD1                      P  P  P  P  P  P  P    2382        2  3.000/1.000/3.000
+Basic.IronTeeth.LOD2                      P  P  P  P  P  P  P     794        2  3.000/1.000/3.000
+Intermediate.Folktails.LOD0               P  P  P  P  P  P  P    5950        3  3.000/1.000/3.000
+Intermediate.Folktails.LOD1               P  P  P  P  P  P  P    2382        3  3.000/1.000/3.000
+Intermediate.Folktails.LOD2               P  P  P  P  P  P  P     822        3  3.000/1.000/3.000
+Intermediate.IronTeeth.LOD0               P  P  P  P  P  P  P    5950        3  3.000/1.000/3.000
+Intermediate.IronTeeth.LOD1               P  P  P  P  P  P  P    2382        3  3.000/1.000/3.000
+Intermediate.IronTeeth.LOD2               P  P  P  P  P  P  P     822        3  3.000/1.000/3.000
+Advanced.Folktails.LOD0                   P  P  P  P  P  P  P    5950        4  3.000/1.000/3.000
+Advanced.Folktails.LOD1                   P  P  P  P  P  P  P    2394        4  3.000/1.000/3.000
+Advanced.Folktails.LOD2                   P  P  P  P  P  P  P     818        4  3.000/1.000/3.000
+Advanced.IronTeeth.LOD0                   P  P  P  P  P  P  P    5950        4  3.000/1.000/3.000
+Advanced.IronTeeth.LOD1                   P  P  P  P  P  P  P    2394        4  3.000/1.000/3.000
+Advanced.IronTeeth.LOD2                   P  P  P  P  P  P  P     818        4  3.000/1.000/3.000
+Top.Folktails.LOD0                        P  P  P  P  P  P  P    5958        4  3.000/1.000/3.000
+Top.Folktails.LOD1                        P  P  P  P  P  P  P    2402        4  3.000/1.000/3.000
+Top.Folktails.LOD2                        P  P  P  P  P  P  P     822        4  3.000/1.000/3.000
+Top.IronTeeth.LOD0                        P  P  P  P  P  P  P    5958        4  3.000/1.000/3.000
+Top.IronTeeth.LOD1                        P  P  P  P  P  P  P    2402        4  3.000/1.000/3.000
+Top.IronTeeth.LOD2                        P  P  P  P  P  P  P     822        4  3.000/1.000/3.000
+ConstructionStage0                        P  P  P  P  P  P  P     372        2  3.000/1.000/3.000
+  C8/C9/C10 are cross-model checks; see their sections below.
+
+======================================================================================================================
+PER-MODEL CHECKS
+======================================================================================================================
+----------------------------------------------------------------------------------------------------------------------
+Basic.Folktails.LOD0
+  C1  parse                                  PASS  FBX and GLB imported; both carry one body mesh + 3 empties
+        - fbx: 1 mesh node(s), 5942 tris, 12272 vertices, 3 empties
+        - glb: 1 mesh node(s), 5942 tris, 12272 vertices, 3 empties
+  C2  envelope                               PASS  strict 3.00x1.00x3.00 envelope; flat roof walking surface == apex y=1.00; nothing above it
+        - fbx: size=3.000x1.000x3.000 min=(-1.500,-0.000,-1.500) top_face_vertices=60 above_top=0
+        - glb: size=3.000x1.000x3.000 min=(-1.500,0.000,-1.500) top_face_vertices=60 above_top=0
+        - FBX vs GLB bounds delta max=0.000000
+  C3  triangle budget                        PASS  LOD0 budget 6000 +-20%: measured 5942 tris (FBX == GLB)
+        - fbx tris=5942
+        - glb tris=5942
+  C4  indoor expression                      PASS  static indoor racks + glazed facade present; no crop/slot entities
+        - fbx: shelf levels y=[0.16, 0.22, 0.27, 0.34, 0.39, 0.44, 0.5, 0.59, 0.64, 0.68, 0.78, 0.88]
+        - fbx: glass_area=0.000 grid^2 (min 0.00); distinct rack levels=12
+        - glb: shelf levels y=[0.16, 0.22, 0.28, 0.34, 0.4, 0.47, 0.6, 0.64, 0.68, 0.78, 0.88]
+        - glb: glass_area=0.000 grid^2 (min 0.00); distinct rack levels=11
+  C5  ports                                  PASS  exactly the 3 #Port#Power/#Port#Pipe/#Port#Logistics empties at the frozen positions; 0 #Slot# nodes
+        - fbx: 3 empties, positions match exactly the three #Port# contract markers (max dev 0.0000), no #Slot#
+        - glb: 3 empties, positions match exactly the three #Port# contract markers (max dev 0.0000), no #Slot#
+  C6  materials                              PASS  material slot set matches ATLAS TIER_MATERIALS (['M_HDBF_Fabric', 'M_HDBF_Wood'])
+        - fbx: ['M_HDBF_Fabric', 'M_HDBF_Wood']
+        - glb: ['M_HDBF_Fabric', 'M_HDBF_Wood']
+  C7  flat-patch UV                          PASS  every face of one material samples that material's fixed flat UV patch
+        - fbx: all UVs inside their material flat patches (5942 triangles, 4 px patch gutter)
+        - glb: all UVs inside their material flat patches (5942 triangles, 4 px patch gutter)
+----------------------------------------------------------------------------------------------------------------------
+Basic.Folktails.LOD1
+  C1  parse                                  PASS  FBX and GLB imported; both carry one body mesh + 3 empties
+        - fbx: 1 mesh node(s), 2382 tris, 4868 vertices, 3 empties
+        - glb: 1 mesh node(s), 2382 tris, 4868 vertices, 3 empties
+  C2  envelope                               PASS  strict 3.00x1.00x3.00 envelope; flat roof walking surface == apex y=1.00; nothing above it
+        - fbx: size=3.000x1.000x3.000 min=(-1.500,-0.000,-1.500) top_face_vertices=60 above_top=0
+        - glb: size=3.000x1.000x3.000 min=(-1.500,0.000,-1.500) top_face_vertices=60 above_top=0
+        - FBX vs GLB bounds delta max=0.000000
+  C3  triangle budget                        PASS  LOD1 budget 2400 +-20%: measured 2382 tris (FBX == GLB)
+        - fbx tris=2382
+        - glb tris=2382
+  C4  indoor expression                      PASS  no crop/trough/slot entity in the source scene (indoor-expression checks apply to LOD0)
+  C5  ports                                  PASS  exactly the 3 #Port#Power/#Port#Pipe/#Port#Logistics empties at the frozen positions; 0 #Slot# nodes
+        - fbx: 3 empties, positions match exactly the three #Port# contract markers (max dev 0.0000), no #Slot#
+        - glb: 3 empties, positions match exactly the three #Port# contract markers (max dev 0.0000), no #Slot#
+  C6  materials                              PASS  material slot set matches ATLAS TIER_MATERIALS (['M_HDBF_Fabric', 'M_HDBF_Wood'])
+        - fbx: ['M_HDBF_Fabric', 'M_HDBF_Wood']
+        - glb: ['M_HDBF_Fabric', 'M_HDBF_Wood']
+  C7  flat-patch UV                          PASS  every face of one material samples that material's fixed flat UV patch
+        - fbx: all UVs inside their material flat patches (2382 triangles, 4 px patch gutter)
+        - glb: all UVs inside their material flat patches (2382 triangles, 4 px patch gutter)
+----------------------------------------------------------------------------------------------------------------------
+Basic.Folktails.LOD2
+  C1  parse                                  PASS  FBX and GLB imported; both carry one body mesh + 3 empties
+        - fbx: 1 mesh node(s), 794 tris, 1628 vertices, 3 empties
+        - glb: 1 mesh node(s), 794 tris, 1628 vertices, 3 empties
+  C2  envelope                               PASS  strict 3.00x1.00x3.00 envelope; flat roof walking surface == apex y=1.00; nothing above it
+        - fbx: size=3.000x1.000x3.000 min=(-1.500,-0.000,-1.500) top_face_vertices=60 above_top=0
+        - glb: size=3.000x1.000x3.000 min=(-1.500,0.000,-1.500) top_face_vertices=60 above_top=0
+        - FBX vs GLB bounds delta max=0.000000
+  C3  triangle budget                        PASS  LOD2 budget 800 +-20%: measured 794 tris (FBX == GLB)
+        - fbx tris=794
+        - glb tris=794
+  C4  indoor expression                      PASS  no crop/trough/slot entity in the source scene (indoor-expression checks apply to LOD0)
+  C5  ports                                  PASS  exactly the 3 #Port#Power/#Port#Pipe/#Port#Logistics empties at the frozen positions; 0 #Slot# nodes
+        - fbx: 3 empties, positions match exactly the three #Port# contract markers (max dev 0.0000), no #Slot#
+        - glb: 3 empties, positions match exactly the three #Port# contract markers (max dev 0.0000), no #Slot#
+  C6  materials                              PASS  material slot set matches ATLAS TIER_MATERIALS (['M_HDBF_Fabric', 'M_HDBF_Wood'])
+        - fbx: ['M_HDBF_Fabric', 'M_HDBF_Wood']
+        - glb: ['M_HDBF_Fabric', 'M_HDBF_Wood']
+  C7  flat-patch UV                          PASS  every face of one material samples that material's fixed flat UV patch
+        - fbx: all UVs inside their material flat patches (794 triangles, 4 px patch gutter)
+        - glb: all UVs inside their material flat patches (794 triangles, 4 px patch gutter)
+----------------------------------------------------------------------------------------------------------------------
+Basic.IronTeeth.LOD0
+  C1  parse                                  PASS  FBX and GLB imported; both carry one body mesh + 3 empties
+        - fbx: 1 mesh node(s), 5942 tris, 12272 vertices, 3 empties
+        - glb: 1 mesh node(s), 5942 tris, 12272 vertices, 3 empties
+  C2  envelope                               PASS  strict 3.00x1.00x3.00 envelope; flat roof walking surface == apex y=1.00; nothing above it
+        - fbx: size=3.000x1.000x3.000 min=(-1.500,-0.000,-1.500) top_face_vertices=60 above_top=0
+        - glb: size=3.000x1.000x3.000 min=(-1.500,0.000,-1.500) top_face_vertices=60 above_top=0
+        - FBX vs GLB bounds delta max=0.000000
+  C3  triangle budget                        PASS  LOD0 budget 6000 +-20%: measured 5942 tris (FBX == GLB)
+        - fbx tris=5942
+        - glb tris=5942
+  C4  indoor expression                      PASS  static indoor racks + glazed facade present; no crop/slot entities
+        - fbx: shelf levels y=[0.16, 0.22, 0.27, 0.32, 0.39, 0.44, 0.5, 0.59, 0.64, 0.68, 0.78, 0.88]
+        - fbx: glass_area=0.000 grid^2 (min 0.00); distinct rack levels=12
+        - glb: shelf levels y=[0.16, 0.22, 0.28, 0.34, 0.4, 0.47, 0.6, 0.64, 0.68, 0.78, 0.88]
+        - glb: glass_area=0.000 grid^2 (min 0.00); distinct rack levels=11
+  C5  ports                                  PASS  exactly the 3 #Port#Power/#Port#Pipe/#Port#Logistics empties at the frozen positions; 0 #Slot# nodes
+        - fbx: 3 empties, positions match exactly the three #Port# contract markers (max dev 0.0000), no #Slot#
+        - glb: 3 empties, positions match exactly the three #Port# contract markers (max dev 0.0000), no #Slot#
+  C6  materials                              PASS  material slot set matches ATLAS TIER_MATERIALS (['M_HDBF_Fabric', 'M_HDBF_Wood'])
+        - fbx: ['M_HDBF_Fabric', 'M_HDBF_Wood']
+        - glb: ['M_HDBF_Fabric', 'M_HDBF_Wood']
+  C7  flat-patch UV                          PASS  every face of one material samples that material's fixed flat UV patch
+        - fbx: all UVs inside their material flat patches (5942 triangles, 4 px patch gutter)
+        - glb: all UVs inside their material flat patches (5942 triangles, 4 px patch gutter)
+----------------------------------------------------------------------------------------------------------------------
+Basic.IronTeeth.LOD1
+  C1  parse                                  PASS  FBX and GLB imported; both carry one body mesh + 3 empties
+        - fbx: 1 mesh node(s), 2382 tris, 4868 vertices, 3 empties
+        - glb: 1 mesh node(s), 2382 tris, 4868 vertices, 3 empties
+  C2  envelope                               PASS  strict 3.00x1.00x3.00 envelope; flat roof walking surface == apex y=1.00; nothing above it
+        - fbx: size=3.000x1.000x3.000 min=(-1.500,-0.000,-1.500) top_face_vertices=60 above_top=0
+        - glb: size=3.000x1.000x3.000 min=(-1.500,0.000,-1.500) top_face_vertices=60 above_top=0
+        - FBX vs GLB bounds delta max=0.000000
+  C3  triangle budget                        PASS  LOD1 budget 2400 +-20%: measured 2382 tris (FBX == GLB)
+        - fbx tris=2382
+        - glb tris=2382
+  C4  indoor expression                      PASS  no crop/trough/slot entity in the source scene (indoor-expression checks apply to LOD0)
+  C5  ports                                  PASS  exactly the 3 #Port#Power/#Port#Pipe/#Port#Logistics empties at the frozen positions; 0 #Slot# nodes
+        - fbx: 3 empties, positions match exactly the three #Port# contract markers (max dev 0.0000), no #Slot#
+        - glb: 3 empties, positions match exactly the three #Port# contract markers (max dev 0.0000), no #Slot#
+  C6  materials                              PASS  material slot set matches ATLAS TIER_MATERIALS (['M_HDBF_Fabric', 'M_HDBF_Wood'])
+        - fbx: ['M_HDBF_Fabric', 'M_HDBF_Wood']
+        - glb: ['M_HDBF_Fabric', 'M_HDBF_Wood']
+  C7  flat-patch UV                          PASS  every face of one material samples that material's fixed flat UV patch
+        - fbx: all UVs inside their material flat patches (2382 triangles, 4 px patch gutter)
+        - glb: all UVs inside their material flat patches (2382 triangles, 4 px patch gutter)
+----------------------------------------------------------------------------------------------------------------------
+Basic.IronTeeth.LOD2
+  C1  parse                                  PASS  FBX and GLB imported; both carry one body mesh + 3 empties
+        - fbx: 1 mesh node(s), 794 tris, 1628 vertices, 3 empties
+        - glb: 1 mesh node(s), 794 tris, 1628 vertices, 3 empties
+  C2  envelope                               PASS  strict 3.00x1.00x3.00 envelope; flat roof walking surface == apex y=1.00; nothing above it
+        - fbx: size=3.000x1.000x3.000 min=(-1.500,-0.000,-1.500) top_face_vertices=60 above_top=0
+        - glb: size=3.000x1.000x3.000 min=(-1.500,0.000,-1.500) top_face_vertices=60 above_top=0
+        - FBX vs GLB bounds delta max=0.000000
+  C3  triangle budget                        PASS  LOD2 budget 800 +-20%: measured 794 tris (FBX == GLB)
+        - fbx tris=794
+        - glb tris=794
+  C4  indoor expression                      PASS  no crop/trough/slot entity in the source scene (indoor-expression checks apply to LOD0)
+  C5  ports                                  PASS  exactly the 3 #Port#Power/#Port#Pipe/#Port#Logistics empties at the frozen positions; 0 #Slot# nodes
+        - fbx: 3 empties, positions match exactly the three #Port# contract markers (max dev 0.0000), no #Slot#
+        - glb: 3 empties, positions match exactly the three #Port# contract markers (max dev 0.0000), no #Slot#
+  C6  materials                              PASS  material slot set matches ATLAS TIER_MATERIALS (['M_HDBF_Fabric', 'M_HDBF_Wood'])
+        - fbx: ['M_HDBF_Fabric', 'M_HDBF_Wood']
+        - glb: ['M_HDBF_Fabric', 'M_HDBF_Wood']
+  C7  flat-patch UV                          PASS  every face of one material samples that material's fixed flat UV patch
+        - fbx: all UVs inside their material flat patches (794 triangles, 4 px patch gutter)
+        - glb: all UVs inside their material flat patches (794 triangles, 4 px patch gutter)
+----------------------------------------------------------------------------------------------------------------------
+Intermediate.Folktails.LOD0
+  C1  parse                                  PASS  FBX and GLB imported; both carry one body mesh + 3 empties
+        - fbx: 1 mesh node(s), 5950 tris, 12332 vertices, 3 empties
+        - glb: 1 mesh node(s), 5950 tris, 12332 vertices, 3 empties
+  C2  envelope                               PASS  strict 3.00x1.00x3.00 envelope; flat roof walking surface == apex y=1.00; nothing above it
+        - fbx: size=3.000x1.000x3.000 min=(-1.500,-0.000,-1.500) top_face_vertices=60 above_top=0
+        - glb: size=3.000x1.000x3.000 min=(-1.500,0.000,-1.500) top_face_vertices=60 above_top=0
+        - FBX vs GLB bounds delta max=0.000000
+  C3  triangle budget                        PASS  LOD0 budget 6000 +-20%: measured 5950 tris (FBX == GLB)
+        - fbx tris=5950
+        - glb tris=5950
+  C4  indoor expression                      PASS  static indoor racks + glazed facade present; no crop/slot entities
+        - fbx: shelf levels y=[0.16, 0.21, 0.27, 0.33, 0.38, 0.44, 0.5, 0.59, 0.64, 0.68, 0.78, 0.86, 0.9]
+        - fbx: glass_area=3.903 grid^2 (min 0.35); distinct rack levels=13
+        - glb: shelf levels y=[0.15, 0.21, 0.25, 0.3, 0.34, 0.4, 0.47, 0.6, 0.64, 0.68, 0.78, 0.86, 0.9]
+        - glb: glass_area=3.903 grid^2 (min 0.35); distinct rack levels=13
+  C5  ports                                  PASS  exactly the 3 #Port#Power/#Port#Pipe/#Port#Logistics empties at the frozen positions; 0 #Slot# nodes
+        - fbx: 3 empties, positions match exactly the three #Port# contract markers (max dev 0.0000), no #Slot#
+        - glb: 3 empties, positions match exactly the three #Port# contract markers (max dev 0.0000), no #Slot#
+  C6  materials                              PASS  material slot set matches ATLAS TIER_MATERIALS (['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Wood'])
+        - fbx: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Wood']
+        - glb: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Wood']
+  C7  flat-patch UV                          PASS  every face of one material samples that material's fixed flat UV patch
+        - fbx: all UVs inside their material flat patches (5950 triangles, 4 px patch gutter)
+        - glb: all UVs inside their material flat patches (5950 triangles, 4 px patch gutter)
+----------------------------------------------------------------------------------------------------------------------
+Intermediate.Folktails.LOD1
+  C1  parse                                  PASS  FBX and GLB imported; both carry one body mesh + 3 empties
+        - fbx: 1 mesh node(s), 2382 tris, 4868 vertices, 3 empties
+        - glb: 1 mesh node(s), 2382 tris, 4868 vertices, 3 empties
+  C2  envelope                               PASS  strict 3.00x1.00x3.00 envelope; flat roof walking surface == apex y=1.00; nothing above it
+        - fbx: size=3.000x1.000x3.000 min=(-1.500,-0.000,-1.500) top_face_vertices=60 above_top=0
+        - glb: size=3.000x1.000x3.000 min=(-1.500,0.000,-1.500) top_face_vertices=60 above_top=0
+        - FBX vs GLB bounds delta max=0.000000
+  C3  triangle budget                        PASS  LOD1 budget 2400 +-20%: measured 2382 tris (FBX == GLB)
+        - fbx tris=2382
+        - glb tris=2382
+  C4  indoor expression                      PASS  no crop/trough/slot entity in the source scene (indoor-expression checks apply to LOD0)
+  C5  ports                                  PASS  exactly the 3 #Port#Power/#Port#Pipe/#Port#Logistics empties at the frozen positions; 0 #Slot# nodes
+        - fbx: 3 empties, positions match exactly the three #Port# contract markers (max dev 0.0000), no #Slot#
+        - glb: 3 empties, positions match exactly the three #Port# contract markers (max dev 0.0000), no #Slot#
+  C6  materials                              PASS  material slot set matches ATLAS TIER_MATERIALS (['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Wood'])
+        - fbx: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Wood']
+        - glb: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Wood']
+  C7  flat-patch UV                          PASS  every face of one material samples that material's fixed flat UV patch
+        - fbx: all UVs inside their material flat patches (2382 triangles, 4 px patch gutter)
+        - glb: all UVs inside their material flat patches (2382 triangles, 4 px patch gutter)
+----------------------------------------------------------------------------------------------------------------------
+Intermediate.Folktails.LOD2
+  C1  parse                                  PASS  FBX and GLB imported; both carry one body mesh + 3 empties
+        - fbx: 1 mesh node(s), 822 tris, 1676 vertices, 3 empties
+        - glb: 1 mesh node(s), 822 tris, 1676 vertices, 3 empties
+  C2  envelope                               PASS  strict 3.00x1.00x3.00 envelope; flat roof walking surface == apex y=1.00; nothing above it
+        - fbx: size=3.000x1.000x3.000 min=(-1.500,-0.000,-1.500) top_face_vertices=60 above_top=0
+        - glb: size=3.000x1.000x3.000 min=(-1.500,0.000,-1.500) top_face_vertices=60 above_top=0
+        - FBX vs GLB bounds delta max=0.000000
+  C3  triangle budget                        PASS  LOD2 budget 800 +-20%: measured 822 tris (FBX == GLB)
+        - fbx tris=822
+        - glb tris=822
+  C4  indoor expression                      PASS  no crop/trough/slot entity in the source scene (indoor-expression checks apply to LOD0)
+  C5  ports                                  PASS  exactly the 3 #Port#Power/#Port#Pipe/#Port#Logistics empties at the frozen positions; 0 #Slot# nodes
+        - fbx: 3 empties, positions match exactly the three #Port# contract markers (max dev 0.0000), no #Slot#
+        - glb: 3 empties, positions match exactly the three #Port# contract markers (max dev 0.0000), no #Slot#
+  C6  materials                              PASS  material slot set matches ATLAS TIER_MATERIALS (['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Wood'])
+        - fbx: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Wood']
+        - glb: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Wood']
+  C7  flat-patch UV                          PASS  every face of one material samples that material's fixed flat UV patch
+        - fbx: all UVs inside their material flat patches (822 triangles, 4 px patch gutter)
+        - glb: all UVs inside their material flat patches (822 triangles, 4 px patch gutter)
+----------------------------------------------------------------------------------------------------------------------
+Intermediate.IronTeeth.LOD0
+  C1  parse                                  PASS  FBX and GLB imported; both carry one body mesh + 3 empties
+        - fbx: 1 mesh node(s), 5950 tris, 12332 vertices, 3 empties
+        - glb: 1 mesh node(s), 5950 tris, 12332 vertices, 3 empties
+  C2  envelope                               PASS  strict 3.00x1.00x3.00 envelope; flat roof walking surface == apex y=1.00; nothing above it
+        - fbx: size=3.000x1.000x3.000 min=(-1.500,-0.000,-1.500) top_face_vertices=60 above_top=0
+        - glb: size=3.000x1.000x3.000 min=(-1.500,0.000,-1.500) top_face_vertices=60 above_top=0
+        - FBX vs GLB bounds delta max=0.000000
+  C3  triangle budget                        PASS  LOD0 budget 6000 +-20%: measured 5950 tris (FBX == GLB)
+        - fbx tris=5950
+        - glb tris=5950
+  C4  indoor expression                      PASS  static indoor racks + glazed facade present; no crop/slot entities
+        - fbx: shelf levels y=[0.16, 0.21, 0.27, 0.33, 0.38, 0.44, 0.5, 0.59, 0.64, 0.68, 0.78, 0.86, 0.9]
+        - fbx: glass_area=3.903 grid^2 (min 0.35); distinct rack levels=13
+        - glb: shelf levels y=[0.15, 0.21, 0.25, 0.3, 0.34, 0.4, 0.47, 0.6, 0.64, 0.68, 0.78, 0.86, 0.9]
+        - glb: glass_area=3.903 grid^2 (min 0.35); distinct rack levels=13
+  C5  ports                                  PASS  exactly the 3 #Port#Power/#Port#Pipe/#Port#Logistics empties at the frozen positions; 0 #Slot# nodes
+        - fbx: 3 empties, positions match exactly the three #Port# contract markers (max dev 0.0000), no #Slot#
+        - glb: 3 empties, positions match exactly the three #Port# contract markers (max dev 0.0000), no #Slot#
+  C6  materials                              PASS  material slot set matches ATLAS TIER_MATERIALS (['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Wood'])
+        - fbx: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Wood']
+        - glb: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Wood']
+  C7  flat-patch UV                          PASS  every face of one material samples that material's fixed flat UV patch
+        - fbx: all UVs inside their material flat patches (5950 triangles, 4 px patch gutter)
+        - glb: all UVs inside their material flat patches (5950 triangles, 4 px patch gutter)
+----------------------------------------------------------------------------------------------------------------------
+Intermediate.IronTeeth.LOD1
+  C1  parse                                  PASS  FBX and GLB imported; both carry one body mesh + 3 empties
+        - fbx: 1 mesh node(s), 2382 tris, 4868 vertices, 3 empties
+        - glb: 1 mesh node(s), 2382 tris, 4868 vertices, 3 empties
+  C2  envelope                               PASS  strict 3.00x1.00x3.00 envelope; flat roof walking surface == apex y=1.00; nothing above it
+        - fbx: size=3.000x1.000x3.000 min=(-1.500,-0.000,-1.500) top_face_vertices=60 above_top=0
+        - glb: size=3.000x1.000x3.000 min=(-1.500,0.000,-1.500) top_face_vertices=60 above_top=0
+        - FBX vs GLB bounds delta max=0.000000
+  C3  triangle budget                        PASS  LOD1 budget 2400 +-20%: measured 2382 tris (FBX == GLB)
+        - fbx tris=2382
+        - glb tris=2382
+  C4  indoor expression                      PASS  no crop/trough/slot entity in the source scene (indoor-expression checks apply to LOD0)
+  C5  ports                                  PASS  exactly the 3 #Port#Power/#Port#Pipe/#Port#Logistics empties at the frozen positions; 0 #Slot# nodes
+        - fbx: 3 empties, positions match exactly the three #Port# contract markers (max dev 0.0000), no #Slot#
+        - glb: 3 empties, positions match exactly the three #Port# contract markers (max dev 0.0000), no #Slot#
+  C6  materials                              PASS  material slot set matches ATLAS TIER_MATERIALS (['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Wood'])
+        - fbx: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Wood']
+        - glb: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Wood']
+  C7  flat-patch UV                          PASS  every face of one material samples that material's fixed flat UV patch
+        - fbx: all UVs inside their material flat patches (2382 triangles, 4 px patch gutter)
+        - glb: all UVs inside their material flat patches (2382 triangles, 4 px patch gutter)
+----------------------------------------------------------------------------------------------------------------------
+Intermediate.IronTeeth.LOD2
+  C1  parse                                  PASS  FBX and GLB imported; both carry one body mesh + 3 empties
+        - fbx: 1 mesh node(s), 822 tris, 1676 vertices, 3 empties
+        - glb: 1 mesh node(s), 822 tris, 1676 vertices, 3 empties
+  C2  envelope                               PASS  strict 3.00x1.00x3.00 envelope; flat roof walking surface == apex y=1.00; nothing above it
+        - fbx: size=3.000x1.000x3.000 min=(-1.500,-0.000,-1.500) top_face_vertices=60 above_top=0
+        - glb: size=3.000x1.000x3.000 min=(-1.500,0.000,-1.500) top_face_vertices=60 above_top=0
+        - FBX vs GLB bounds delta max=0.000000
+  C3  triangle budget                        PASS  LOD2 budget 800 +-20%: measured 822 tris (FBX == GLB)
+        - fbx tris=822
+        - glb tris=822
+  C4  indoor expression                      PASS  no crop/trough/slot entity in the source scene (indoor-expression checks apply to LOD0)
+  C5  ports                                  PASS  exactly the 3 #Port#Power/#Port#Pipe/#Port#Logistics empties at the frozen positions; 0 #Slot# nodes
+        - fbx: 3 empties, positions match exactly the three #Port# contract markers (max dev 0.0000), no #Slot#
+        - glb: 3 empties, positions match exactly the three #Port# contract markers (max dev 0.0000), no #Slot#
+  C6  materials                              PASS  material slot set matches ATLAS TIER_MATERIALS (['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Wood'])
+        - fbx: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Wood']
+        - glb: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Wood']
+  C7  flat-patch UV                          PASS  every face of one material samples that material's fixed flat UV patch
+        - fbx: all UVs inside their material flat patches (822 triangles, 4 px patch gutter)
+        - glb: all UVs inside their material flat patches (822 triangles, 4 px patch gutter)
+----------------------------------------------------------------------------------------------------------------------
+Advanced.Folktails.LOD0
+  C1  parse                                  PASS  FBX and GLB imported; both carry one body mesh + 3 empties
+        - fbx: 1 mesh node(s), 5950 tris, 12404 vertices, 3 empties
+        - glb: 1 mesh node(s), 5950 tris, 12404 vertices, 3 empties
+  C2  envelope                               PASS  strict 3.00x1.00x3.00 envelope; flat roof walking surface == apex y=1.00; nothing above it
+        - fbx: size=3.000x1.000x3.000 min=(-1.500,-0.000,-1.500) top_face_vertices=396 above_top=0
+        - glb: size=3.000x1.000x3.000 min=(-1.500,0.000,-1.500) top_face_vertices=396 above_top=0
+        - FBX vs GLB bounds delta max=0.000000
+  C3  triangle budget                        PASS  LOD0 budget 6000 +-20%: measured 5950 tris (FBX == GLB)
+        - fbx tris=5950
+        - glb tris=5950
+  C4  indoor expression                      PASS  static indoor racks + glazed facade present; no crop/slot entities
+        - fbx: shelf levels y=[0.16, 0.24, 0.3, 0.34, 0.39, 0.44, 0.59, 0.64, 0.68, 0.74, 0.78, 0.88]
+        - fbx: glass_area=4.718 grid^2 (min 0.60); distinct rack levels=12
+        - glb: shelf levels y=[0.16, 0.25, 0.3, 0.34, 0.4, 0.47, 0.6, 0.64, 0.68, 0.74, 0.78, 0.88]
+        - glb: glass_area=4.718 grid^2 (min 0.60); distinct rack levels=12
+  C5  ports                                  PASS  exactly the 3 #Port#Power/#Port#Pipe/#Port#Logistics empties at the frozen positions; 0 #Slot# nodes
+        - fbx: 3 empties, positions match exactly the three #Port# contract markers (max dev 0.0000), no #Slot#
+        - glb: 3 empties, positions match exactly the three #Port# contract markers (max dev 0.0000), no #Slot#
+  C6  materials                              PASS  material slot set matches ATLAS TIER_MATERIALS (['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood'])
+        - fbx: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood']
+        - glb: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood']
+  C7  flat-patch UV                          PASS  every face of one material samples that material's fixed flat UV patch
+        - fbx: all UVs inside their material flat patches (5950 triangles, 4 px patch gutter)
+        - glb: all UVs inside their material flat patches (5950 triangles, 4 px patch gutter)
+----------------------------------------------------------------------------------------------------------------------
+Advanced.Folktails.LOD1
+  C1  parse                                  PASS  FBX and GLB imported; both carry one body mesh + 3 empties
+        - fbx: 1 mesh node(s), 2394 tris, 4868 vertices, 3 empties
+        - glb: 1 mesh node(s), 2394 tris, 4868 vertices, 3 empties
+  C2  envelope                               PASS  strict 3.00x1.00x3.00 envelope; flat roof walking surface == apex y=1.00; nothing above it
+        - fbx: size=3.000x1.000x3.000 min=(-1.500,-0.000,-1.500) top_face_vertices=60 above_top=0
+        - glb: size=3.000x1.000x3.000 min=(-1.500,0.000,-1.500) top_face_vertices=60 above_top=0
+        - FBX vs GLB bounds delta max=0.000000
+  C3  triangle budget                        PASS  LOD1 budget 2400 +-20%: measured 2394 tris (FBX == GLB)
+        - fbx tris=2394
+        - glb tris=2394
+  C4  indoor expression                      PASS  no crop/trough/slot entity in the source scene (indoor-expression checks apply to LOD0)
+  C5  ports                                  PASS  exactly the 3 #Port#Power/#Port#Pipe/#Port#Logistics empties at the frozen positions; 0 #Slot# nodes
+        - fbx: 3 empties, positions match exactly the three #Port# contract markers (max dev 0.0000), no #Slot#
+        - glb: 3 empties, positions match exactly the three #Port# contract markers (max dev 0.0000), no #Slot#
+  C6  materials                              PASS  material slot set matches ATLAS TIER_MATERIALS (['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood'])
+        - fbx: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood']
+        - glb: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood']
+  C7  flat-patch UV                          PASS  every face of one material samples that material's fixed flat UV patch
+        - fbx: all UVs inside their material flat patches (2394 triangles, 4 px patch gutter)
+        - glb: all UVs inside their material flat patches (2394 triangles, 4 px patch gutter)
+----------------------------------------------------------------------------------------------------------------------
+Advanced.Folktails.LOD2
+  C1  parse                                  PASS  FBX and GLB imported; both carry one body mesh + 3 empties
+        - fbx: 1 mesh node(s), 818 tris, 1652 vertices, 3 empties
+        - glb: 1 mesh node(s), 818 tris, 1652 vertices, 3 empties
+  C2  envelope                               PASS  strict 3.00x1.00x3.00 envelope; flat roof walking surface == apex y=1.00; nothing above it
+        - fbx: size=3.000x1.000x3.000 min=(-1.500,-0.000,-1.500) top_face_vertices=60 above_top=0
+        - glb: size=3.000x1.000x3.000 min=(-1.500,0.000,-1.500) top_face_vertices=60 above_top=0
+        - FBX vs GLB bounds delta max=0.000000
+  C3  triangle budget                        PASS  LOD2 budget 800 +-20%: measured 818 tris (FBX == GLB)
+        - fbx tris=818
+        - glb tris=818
+  C4  indoor expression                      PASS  no crop/trough/slot entity in the source scene (indoor-expression checks apply to LOD0)
+  C5  ports                                  PASS  exactly the 3 #Port#Power/#Port#Pipe/#Port#Logistics empties at the frozen positions; 0 #Slot# nodes
+        - fbx: 3 empties, positions match exactly the three #Port# contract markers (max dev 0.0000), no #Slot#
+        - glb: 3 empties, positions match exactly the three #Port# contract markers (max dev 0.0000), no #Slot#
+  C6  materials                              PASS  material slot set matches ATLAS TIER_MATERIALS (['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood'])
+        - fbx: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood']
+        - glb: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood']
+  C7  flat-patch UV                          PASS  every face of one material samples that material's fixed flat UV patch
+        - fbx: all UVs inside their material flat patches (818 triangles, 4 px patch gutter)
+        - glb: all UVs inside their material flat patches (818 triangles, 4 px patch gutter)
+----------------------------------------------------------------------------------------------------------------------
+Advanced.IronTeeth.LOD0
+  C1  parse                                  PASS  FBX and GLB imported; both carry one body mesh + 3 empties
+        - fbx: 1 mesh node(s), 5950 tris, 12404 vertices, 3 empties
+        - glb: 1 mesh node(s), 5950 tris, 12404 vertices, 3 empties
+  C2  envelope                               PASS  strict 3.00x1.00x3.00 envelope; flat roof walking surface == apex y=1.00; nothing above it
+        - fbx: size=3.000x1.000x3.000 min=(-1.500,-0.000,-1.500) top_face_vertices=396 above_top=0
+        - glb: size=3.000x1.000x3.000 min=(-1.500,0.000,-1.500) top_face_vertices=396 above_top=0
+        - FBX vs GLB bounds delta max=0.000000
+  C3  triangle budget                        PASS  LOD0 budget 6000 +-20%: measured 5950 tris (FBX == GLB)
+        - fbx tris=5950
+        - glb tris=5950
+  C4  indoor expression                      PASS  static indoor racks + glazed facade present; no crop/slot entities
+        - fbx: shelf levels y=[0.16, 0.24, 0.3, 0.34, 0.39, 0.44, 0.59, 0.64, 0.68, 0.74, 0.78, 0.88]
+        - fbx: glass_area=4.718 grid^2 (min 0.60); distinct rack levels=12
+        - glb: shelf levels y=[0.16, 0.25, 0.3, 0.34, 0.4, 0.47, 0.6, 0.64, 0.68, 0.74, 0.78, 0.88]
+        - glb: glass_area=4.718 grid^2 (min 0.60); distinct rack levels=12
+  C5  ports                                  PASS  exactly the 3 #Port#Power/#Port#Pipe/#Port#Logistics empties at the frozen positions; 0 #Slot# nodes
+        - fbx: 3 empties, positions match exactly the three #Port# contract markers (max dev 0.0000), no #Slot#
+        - glb: 3 empties, positions match exactly the three #Port# contract markers (max dev 0.0000), no #Slot#
+  C6  materials                              PASS  material slot set matches ATLAS TIER_MATERIALS (['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood'])
+        - fbx: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood']
+        - glb: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood']
+  C7  flat-patch UV                          PASS  every face of one material samples that material's fixed flat UV patch
+        - fbx: all UVs inside their material flat patches (5950 triangles, 4 px patch gutter)
+        - glb: all UVs inside their material flat patches (5950 triangles, 4 px patch gutter)
+----------------------------------------------------------------------------------------------------------------------
+Advanced.IronTeeth.LOD1
+  C1  parse                                  PASS  FBX and GLB imported; both carry one body mesh + 3 empties
+        - fbx: 1 mesh node(s), 2394 tris, 4868 vertices, 3 empties
+        - glb: 1 mesh node(s), 2394 tris, 4868 vertices, 3 empties
+  C2  envelope                               PASS  strict 3.00x1.00x3.00 envelope; flat roof walking surface == apex y=1.00; nothing above it
+        - fbx: size=3.000x1.000x3.000 min=(-1.500,-0.000,-1.500) top_face_vertices=60 above_top=0
+        - glb: size=3.000x1.000x3.000 min=(-1.500,0.000,-1.500) top_face_vertices=60 above_top=0
+        - FBX vs GLB bounds delta max=0.000000
+  C3  triangle budget                        PASS  LOD1 budget 2400 +-20%: measured 2394 tris (FBX == GLB)
+        - fbx tris=2394
+        - glb tris=2394
+  C4  indoor expression                      PASS  no crop/trough/slot entity in the source scene (indoor-expression checks apply to LOD0)
+  C5  ports                                  PASS  exactly the 3 #Port#Power/#Port#Pipe/#Port#Logistics empties at the frozen positions; 0 #Slot# nodes
+        - fbx: 3 empties, positions match exactly the three #Port# contract markers (max dev 0.0000), no #Slot#
+        - glb: 3 empties, positions match exactly the three #Port# contract markers (max dev 0.0000), no #Slot#
+  C6  materials                              PASS  material slot set matches ATLAS TIER_MATERIALS (['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood'])
+        - fbx: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood']
+        - glb: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood']
+  C7  flat-patch UV                          PASS  every face of one material samples that material's fixed flat UV patch
+        - fbx: all UVs inside their material flat patches (2394 triangles, 4 px patch gutter)
+        - glb: all UVs inside their material flat patches (2394 triangles, 4 px patch gutter)
+----------------------------------------------------------------------------------------------------------------------
+Advanced.IronTeeth.LOD2
+  C1  parse                                  PASS  FBX and GLB imported; both carry one body mesh + 3 empties
+        - fbx: 1 mesh node(s), 818 tris, 1652 vertices, 3 empties
+        - glb: 1 mesh node(s), 818 tris, 1652 vertices, 3 empties
+  C2  envelope                               PASS  strict 3.00x1.00x3.00 envelope; flat roof walking surface == apex y=1.00; nothing above it
+        - fbx: size=3.000x1.000x3.000 min=(-1.500,-0.000,-1.500) top_face_vertices=60 above_top=0
+        - glb: size=3.000x1.000x3.000 min=(-1.500,0.000,-1.500) top_face_vertices=60 above_top=0
+        - FBX vs GLB bounds delta max=0.000000
+  C3  triangle budget                        PASS  LOD2 budget 800 +-20%: measured 818 tris (FBX == GLB)
+        - fbx tris=818
+        - glb tris=818
+  C4  indoor expression                      PASS  no crop/trough/slot entity in the source scene (indoor-expression checks apply to LOD0)
+  C5  ports                                  PASS  exactly the 3 #Port#Power/#Port#Pipe/#Port#Logistics empties at the frozen positions; 0 #Slot# nodes
+        - fbx: 3 empties, positions match exactly the three #Port# contract markers (max dev 0.0000), no #Slot#
+        - glb: 3 empties, positions match exactly the three #Port# contract markers (max dev 0.0000), no #Slot#
+  C6  materials                              PASS  material slot set matches ATLAS TIER_MATERIALS (['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood'])
+        - fbx: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood']
+        - glb: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood']
+  C7  flat-patch UV                          PASS  every face of one material samples that material's fixed flat UV patch
+        - fbx: all UVs inside their material flat patches (818 triangles, 4 px patch gutter)
+        - glb: all UVs inside their material flat patches (818 triangles, 4 px patch gutter)
+----------------------------------------------------------------------------------------------------------------------
+Top.Folktails.LOD0
+  C1  parse                                  PASS  FBX and GLB imported; both carry one body mesh + 3 empties
+        - fbx: 1 mesh node(s), 5958 tris, 12428 vertices, 3 empties
+        - glb: 1 mesh node(s), 5958 tris, 12428 vertices, 3 empties
+  C2  envelope                               PASS  strict 3.00x1.00x3.00 envelope; flat roof walking surface == apex y=1.00; nothing above it
+        - fbx: size=3.000x1.000x3.000 min=(-1.500,-0.000,-1.500) top_face_vertices=396 above_top=0
+        - glb: size=3.000x1.000x3.000 min=(-1.500,0.000,-1.500) top_face_vertices=396 above_top=0
+        - FBX vs GLB bounds delta max=0.000000
+  C3  triangle budget                        PASS  LOD0 budget 6000 +-20%: measured 5958 tris (FBX == GLB)
+        - fbx tris=5958
+        - glb tris=5958
+  C4  indoor expression                      PASS  static indoor racks + glazed facade present; no crop/slot entities
+        - fbx: shelf levels y=[0.16, 0.24, 0.3, 0.34, 0.39, 0.44, 0.59, 0.64, 0.7, 0.78, 0.85, 0.89]
+        - fbx: glass_area=4.099 grid^2 (min 0.85); distinct rack levels=12
+        - glb: shelf levels y=[0.16, 0.25, 0.3, 0.34, 0.4, 0.47, 0.6, 0.64, 0.68, 0.78, 0.85, 0.89]
+        - glb: glass_area=4.099 grid^2 (min 0.85); distinct rack levels=12
+  C5  ports                                  PASS  exactly the 3 #Port#Power/#Port#Pipe/#Port#Logistics empties at the frozen positions; 0 #Slot# nodes
+        - fbx: 3 empties, positions match exactly the three #Port# contract markers (max dev 0.0000), no #Slot#
+        - glb: 3 empties, positions match exactly the three #Port# contract markers (max dev 0.0000), no #Slot#
+  C6  materials                              PASS  material slot set matches ATLAS TIER_MATERIALS (['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood'])
+        - fbx: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood']
+        - glb: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood']
+  C7  flat-patch UV                          PASS  every face of one material samples that material's fixed flat UV patch
+        - fbx: all UVs inside their material flat patches (5958 triangles, 4 px patch gutter)
+        - glb: all UVs inside their material flat patches (5958 triangles, 4 px patch gutter)
+----------------------------------------------------------------------------------------------------------------------
+Top.Folktails.LOD1
+  C1  parse                                  PASS  FBX and GLB imported; both carry one body mesh + 3 empties
+        - fbx: 1 mesh node(s), 2402 tris, 4844 vertices, 3 empties
+        - glb: 1 mesh node(s), 2402 tris, 4844 vertices, 3 empties
+  C2  envelope                               PASS  strict 3.00x1.00x3.00 envelope; flat roof walking surface == apex y=1.00; nothing above it
+        - fbx: size=3.000x1.000x3.000 min=(-1.500,-0.000,-1.500) top_face_vertices=60 above_top=0
+        - glb: size=3.000x1.000x3.000 min=(-1.500,0.000,-1.500) top_face_vertices=60 above_top=0
+        - FBX vs GLB bounds delta max=0.000000
+  C3  triangle budget                        PASS  LOD1 budget 2400 +-20%: measured 2402 tris (FBX == GLB)
+        - fbx tris=2402
+        - glb tris=2402
+  C4  indoor expression                      PASS  no crop/trough/slot entity in the source scene (indoor-expression checks apply to LOD0)
+  C5  ports                                  PASS  exactly the 3 #Port#Power/#Port#Pipe/#Port#Logistics empties at the frozen positions; 0 #Slot# nodes
+        - fbx: 3 empties, positions match exactly the three #Port# contract markers (max dev 0.0000), no #Slot#
+        - glb: 3 empties, positions match exactly the three #Port# contract markers (max dev 0.0000), no #Slot#
+  C6  materials                              PASS  material slot set matches ATLAS TIER_MATERIALS (['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood'])
+        - fbx: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood']
+        - glb: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood']
+  C7  flat-patch UV                          PASS  every face of one material samples that material's fixed flat UV patch
+        - fbx: all UVs inside their material flat patches (2402 triangles, 4 px patch gutter)
+        - glb: all UVs inside their material flat patches (2402 triangles, 4 px patch gutter)
+----------------------------------------------------------------------------------------------------------------------
+Top.Folktails.LOD2
+  C1  parse                                  PASS  FBX and GLB imported; both carry one body mesh + 3 empties
+        - fbx: 1 mesh node(s), 822 tris, 1652 vertices, 3 empties
+        - glb: 1 mesh node(s), 822 tris, 1652 vertices, 3 empties
+  C2  envelope                               PASS  strict 3.00x1.00x3.00 envelope; flat roof walking surface == apex y=1.00; nothing above it
+        - fbx: size=3.000x1.000x3.000 min=(-1.500,-0.000,-1.500) top_face_vertices=60 above_top=0
+        - glb: size=3.000x1.000x3.000 min=(-1.500,0.000,-1.500) top_face_vertices=60 above_top=0
+        - FBX vs GLB bounds delta max=0.000000
+  C3  triangle budget                        PASS  LOD2 budget 800 +-20%: measured 822 tris (FBX == GLB)
+        - fbx tris=822
+        - glb tris=822
+  C4  indoor expression                      PASS  no crop/trough/slot entity in the source scene (indoor-expression checks apply to LOD0)
+  C5  ports                                  PASS  exactly the 3 #Port#Power/#Port#Pipe/#Port#Logistics empties at the frozen positions; 0 #Slot# nodes
+        - fbx: 3 empties, positions match exactly the three #Port# contract markers (max dev 0.0000), no #Slot#
+        - glb: 3 empties, positions match exactly the three #Port# contract markers (max dev 0.0000), no #Slot#
+  C6  materials                              PASS  material slot set matches ATLAS TIER_MATERIALS (['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood'])
+        - fbx: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood']
+        - glb: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood']
+  C7  flat-patch UV                          PASS  every face of one material samples that material's fixed flat UV patch
+        - fbx: all UVs inside their material flat patches (822 triangles, 4 px patch gutter)
+        - glb: all UVs inside their material flat patches (822 triangles, 4 px patch gutter)
+----------------------------------------------------------------------------------------------------------------------
+Top.IronTeeth.LOD0
+  C1  parse                                  PASS  FBX and GLB imported; both carry one body mesh + 3 empties
+        - fbx: 1 mesh node(s), 5958 tris, 12428 vertices, 3 empties
+        - glb: 1 mesh node(s), 5958 tris, 12428 vertices, 3 empties
+  C2  envelope                               PASS  strict 3.00x1.00x3.00 envelope; flat roof walking surface == apex y=1.00; nothing above it
+        - fbx: size=3.000x1.000x3.000 min=(-1.500,-0.000,-1.500) top_face_vertices=396 above_top=0
+        - glb: size=3.000x1.000x3.000 min=(-1.500,0.000,-1.500) top_face_vertices=396 above_top=0
+        - FBX vs GLB bounds delta max=0.000000
+  C3  triangle budget                        PASS  LOD0 budget 6000 +-20%: measured 5958 tris (FBX == GLB)
+        - fbx tris=5958
+        - glb tris=5958
+  C4  indoor expression                      PASS  static indoor racks + glazed facade present; no crop/slot entities
+        - fbx: shelf levels y=[0.16, 0.24, 0.3, 0.34, 0.39, 0.44, 0.59, 0.64, 0.7, 0.78, 0.85, 0.89]
+        - fbx: glass_area=4.099 grid^2 (min 0.85); distinct rack levels=12
+        - glb: shelf levels y=[0.16, 0.25, 0.3, 0.34, 0.4, 0.47, 0.6, 0.64, 0.68, 0.78, 0.85, 0.89]
+        - glb: glass_area=4.099 grid^2 (min 0.85); distinct rack levels=12
+  C5  ports                                  PASS  exactly the 3 #Port#Power/#Port#Pipe/#Port#Logistics empties at the frozen positions; 0 #Slot# nodes
+        - fbx: 3 empties, positions match exactly the three #Port# contract markers (max dev 0.0000), no #Slot#
+        - glb: 3 empties, positions match exactly the three #Port# contract markers (max dev 0.0000), no #Slot#
+  C6  materials                              PASS  material slot set matches ATLAS TIER_MATERIALS (['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood'])
+        - fbx: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood']
+        - glb: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood']
+  C7  flat-patch UV                          PASS  every face of one material samples that material's fixed flat UV patch
+        - fbx: all UVs inside their material flat patches (5958 triangles, 4 px patch gutter)
+        - glb: all UVs inside their material flat patches (5958 triangles, 4 px patch gutter)
+----------------------------------------------------------------------------------------------------------------------
+Top.IronTeeth.LOD1
+  C1  parse                                  PASS  FBX and GLB imported; both carry one body mesh + 3 empties
+        - fbx: 1 mesh node(s), 2402 tris, 4844 vertices, 3 empties
+        - glb: 1 mesh node(s), 2402 tris, 4844 vertices, 3 empties
+  C2  envelope                               PASS  strict 3.00x1.00x3.00 envelope; flat roof walking surface == apex y=1.00; nothing above it
+        - fbx: size=3.000x1.000x3.000 min=(-1.500,-0.000,-1.500) top_face_vertices=60 above_top=0
+        - glb: size=3.000x1.000x3.000 min=(-1.500,0.000,-1.500) top_face_vertices=60 above_top=0
+        - FBX vs GLB bounds delta max=0.000000
+  C3  triangle budget                        PASS  LOD1 budget 2400 +-20%: measured 2402 tris (FBX == GLB)
+        - fbx tris=2402
+        - glb tris=2402
+  C4  indoor expression                      PASS  no crop/trough/slot entity in the source scene (indoor-expression checks apply to LOD0)
+  C5  ports                                  PASS  exactly the 3 #Port#Power/#Port#Pipe/#Port#Logistics empties at the frozen positions; 0 #Slot# nodes
+        - fbx: 3 empties, positions match exactly the three #Port# contract markers (max dev 0.0000), no #Slot#
+        - glb: 3 empties, positions match exactly the three #Port# contract markers (max dev 0.0000), no #Slot#
+  C6  materials                              PASS  material slot set matches ATLAS TIER_MATERIALS (['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood'])
+        - fbx: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood']
+        - glb: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood']
+  C7  flat-patch UV                          PASS  every face of one material samples that material's fixed flat UV patch
+        - fbx: all UVs inside their material flat patches (2402 triangles, 4 px patch gutter)
+        - glb: all UVs inside their material flat patches (2402 triangles, 4 px patch gutter)
+----------------------------------------------------------------------------------------------------------------------
+Top.IronTeeth.LOD2
+  C1  parse                                  PASS  FBX and GLB imported; both carry one body mesh + 3 empties
+        - fbx: 1 mesh node(s), 822 tris, 1652 vertices, 3 empties
+        - glb: 1 mesh node(s), 822 tris, 1652 vertices, 3 empties
+  C2  envelope                               PASS  strict 3.00x1.00x3.00 envelope; flat roof walking surface == apex y=1.00; nothing above it
+        - fbx: size=3.000x1.000x3.000 min=(-1.500,-0.000,-1.500) top_face_vertices=60 above_top=0
+        - glb: size=3.000x1.000x3.000 min=(-1.500,0.000,-1.500) top_face_vertices=60 above_top=0
+        - FBX vs GLB bounds delta max=0.000000
+  C3  triangle budget                        PASS  LOD2 budget 800 +-20%: measured 822 tris (FBX == GLB)
+        - fbx tris=822
+        - glb tris=822
+  C4  indoor expression                      PASS  no crop/trough/slot entity in the source scene (indoor-expression checks apply to LOD0)
+  C5  ports                                  PASS  exactly the 3 #Port#Power/#Port#Pipe/#Port#Logistics empties at the frozen positions; 0 #Slot# nodes
+        - fbx: 3 empties, positions match exactly the three #Port# contract markers (max dev 0.0000), no #Slot#
+        - glb: 3 empties, positions match exactly the three #Port# contract markers (max dev 0.0000), no #Slot#
+  C6  materials                              PASS  material slot set matches ATLAS TIER_MATERIALS (['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood'])
+        - fbx: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood']
+        - glb: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood']
+  C7  flat-patch UV                          PASS  every face of one material samples that material's fixed flat UV patch
+        - fbx: all UVs inside their material flat patches (822 triangles, 4 px patch gutter)
+        - glb: all UVs inside their material flat patches (822 triangles, 4 px patch gutter)
+----------------------------------------------------------------------------------------------------------------------
+ConstructionStage0
+  C1  parse                                  PASS  FBX and GLB imported; both carry one body mesh + 3 empties
+        - fbx: 1 mesh node(s), 372 tris, 744 vertices, 3 empties
+        - glb: 1 mesh node(s), 372 tris, 744 vertices, 3 empties
+  C2  envelope                               PASS  strict 3.00x1.00x3.00 envelope; flat roof walking surface == apex y=1.00; nothing above it
+        - fbx: size=3.000x1.000x3.000 min=(-1.500,-0.000,-1.500) top_face_vertices=60 above_top=0
+        - glb: size=3.000x1.000x3.000 min=(-1.500,0.000,-1.500) top_face_vertices=60 above_top=0
+        - FBX vs GLB bounds delta max=0.000000
+  C3  triangle budget                        PASS  construction-stage greybox: 372 triangles (no LOD budget applies)
+        - fbx tris=372
+        - glb tris=372
+  C4  indoor expression                      PASS  construction greybox carries no crop/trough/slot entity; indoor racks start at the finished stage
+  C5  ports                                  PASS  exactly the 3 #Port#Power/#Port#Pipe/#Port#Logistics empties at the frozen positions; 0 #Slot# nodes
+        - fbx: 3 empties, positions match exactly the three #Port# contract markers (max dev 0.0000), no #Slot#
+        - glb: 3 empties, positions match exactly the three #Port# contract markers (max dev 0.0000), no #Slot#
+  C6  materials                              PASS  material slot set matches ATLAS TIER_MATERIALS (['M_HDBF_Metal', 'M_HDBF_Wood'])
+        - fbx: ['M_HDBF_Metal', 'M_HDBF_Wood']
+        - glb: ['M_HDBF_Metal', 'M_HDBF_Wood']
+  C7  flat-patch UV                          PASS  every face of one material samples that material's fixed flat UV patch
+        - fbx: all UVs inside their material flat patches (372 triangles, 4 px patch gutter)
+        - glb: all UVs inside their material flat patches (372 triangles, 4 px patch gutter)
+
+======================================================================================================================
+C8: LOD BOUNDING BOX
+======================================================================================================================
+  PASS  LOD shrink                             every LOD keeps the full 3x3x1 envelope (shrink <= 2%)
+        - Advanced.Folktails LOD1 bbox shrink 0.000%
+        - Advanced.Folktails LOD2 bbox shrink 0.000%
+        - Advanced.IronTeeth LOD1 bbox shrink 0.000%
+        - Advanced.IronTeeth LOD2 bbox shrink 0.000%
+        - Basic.Folktails LOD1 bbox shrink 0.000%
+        - Basic.Folktails LOD2 bbox shrink 0.000%
+        - Basic.IronTeeth LOD1 bbox shrink 0.000%
+        - Basic.IronTeeth LOD2 bbox shrink 0.000%
+        - Intermediate.Folktails LOD1 bbox shrink 0.000%
+        - Intermediate.Folktails LOD2 bbox shrink 0.000%
+        - Intermediate.IronTeeth LOD1 bbox shrink 0.000%
+        - Intermediate.IronTeeth LOD2 bbox shrink 0.000%
+        - Top.Folktails LOD1 bbox shrink 0.000%
+        - Top.Folktails LOD2 bbox shrink 0.000%
+        - Top.IronTeeth LOD1 bbox shrink 0.000%
+        - Top.IronTeeth LOD2 bbox shrink 0.000%
+
+======================================================================================================================
+C9: FOUR TIERS DISTINGUISHABLE AT THE 50% CAMERA (LOD0)
+======================================================================================================================
+  PASS  50% distinguishability                 all 12 tier pairs differ on >= 2 of the 50%-camera criteria (material + windows/contour/ports)
+        - Basic vs Intermediate [Folktails]: material=0.494Y windows=0.110Y sil=0.161Y plan=0.08Y ports=0.33Y -> PASS (4/4 categories)
+        - Basic vs Advanced [Folktails]: material=0.901Y windows=0.215Y sil=0.159Y plan=0.12Y ports=0.34Y -> PASS (4/4 categories)
+        - Basic vs Top [Folktails]: material=0.970Y windows=0.247Y sil=0.161Y plan=0.14Y ports=0.63Y -> PASS (4/4 categories)
+        - Intermediate vs Advanced [Folktails]: material=0.904Y windows=0.118Y sil=0.005n plan=0.04Y ports=0.17Y -> PASS (4/4 categories)
+        - Intermediate vs Top [Folktails]: material=0.938Y windows=0.150Y sil=0.006n plan=0.06Y ports=0.59Y -> PASS (4/4 categories)
+        - Advanced vs Top [Folktails]: material=0.441Y windows=0.057Y sil=0.004n plan=0.02Y ports=0.66Y -> PASS (4/4 categories)
+        - Basic vs Intermediate [IronTeeth]: material=0.494Y windows=0.110Y sil=0.161Y plan=0.08Y ports=0.33Y -> PASS (4/4 categories)
+        - Basic vs Advanced [IronTeeth]: material=0.901Y windows=0.215Y sil=0.159Y plan=0.12Y ports=0.34Y -> PASS (4/4 categories)
+        - Basic vs Top [IronTeeth]: material=0.970Y windows=0.247Y sil=0.161Y plan=0.14Y ports=0.63Y -> PASS (4/4 categories)
+        - Intermediate vs Advanced [IronTeeth]: material=0.904Y windows=0.119Y sil=0.005n plan=0.04Y ports=0.17Y -> PASS (4/4 categories)
+        - Intermediate vs Top [IronTeeth]: material=0.938Y windows=0.151Y sil=0.006n plan=0.06Y ports=0.59Y -> PASS (4/4 categories)
+        - Advanced vs Top [IronTeeth]: material=0.441Y windows=0.057Y sil=0.004n plan=0.02Y ports=0.66Y -> PASS (4/4 categories)
+
+======================================================================================================================
+C10: material_slots.json
+======================================================================================================================
+  PASS  material_slots.json agrees with the meshes material_slots.json (envelope, roof rule, ports, plans, triangles, materials, 10 flat patches) agrees with the measured meshes
+        - 9 models, 10 patch records validated against the meshes
+
+======================================================================================================================
+FLAT ROOF EVIDENCE (contract space; walking surface == apex)
+======================================================================================================================
+  MODEL                                         TOP     APEX  ABOVE_TOP  TOP_VERTS
+  Basic.Folktails.LOD0                       1.0000   1.0000          0         60
+  Basic.Folktails.LOD1                       1.0000   1.0000          0         60
+  Basic.Folktails.LOD2                       1.0000   1.0000          0         60
+  Basic.IronTeeth.LOD0                       1.0000   1.0000          0         60
+  Basic.IronTeeth.LOD1                       1.0000   1.0000          0         60
+  Basic.IronTeeth.LOD2                       1.0000   1.0000          0         60
+  Intermediate.Folktails.LOD0                1.0000   1.0000          0         60
+  Intermediate.Folktails.LOD1                1.0000   1.0000          0         60
+  Intermediate.Folktails.LOD2                1.0000   1.0000          0         60
+  Intermediate.IronTeeth.LOD0                1.0000   1.0000          0         60
+  Intermediate.IronTeeth.LOD1                1.0000   1.0000          0         60
+  Intermediate.IronTeeth.LOD2                1.0000   1.0000          0         60
+  Advanced.Folktails.LOD0                    1.0000   1.0000          0        396
+  Advanced.Folktails.LOD1                    1.0000   1.0000          0         60
+  Advanced.Folktails.LOD2                    1.0000   1.0000          0         60
+  Advanced.IronTeeth.LOD0                    1.0000   1.0000          0        396
+  Advanced.IronTeeth.LOD1                    1.0000   1.0000          0         60
+  Advanced.IronTeeth.LOD2                    1.0000   1.0000          0         60
+  Top.Folktails.LOD0                         1.0000   1.0000          0        396
+  Top.Folktails.LOD1                         1.0000   1.0000          0         60
+  Top.Folktails.LOD2                         1.0000   1.0000          0         60
+  Top.IronTeeth.LOD0                         1.0000   1.0000          0        396
+  Top.IronTeeth.LOD1                         1.0000   1.0000          0         60
+  Top.IronTeeth.LOD2                         1.0000   1.0000          0         60
+  ConstructionStage0                         1.0000   1.0000          0         60
+
+======================================================================================================================
+ENVELOPE TABLE (contract space, finished LOD0 models)
+======================================================================================================================
+  MODEL                                        SIZE X     SIZE Y     SIZE Z  MIN (X,Y,Z)           
+  Basic.Folktails.LOD0                         3.0000     1.0000     3.0000  (-1.500, 0.000, -1.500)
+  Basic.IronTeeth.LOD0                         3.0000     1.0000     3.0000  (-1.500, 0.000, -1.500)
+  Intermediate.Folktails.LOD0                  3.0000     1.0000     3.0000  (-1.500, 0.000, -1.500)
+  Intermediate.IronTeeth.LOD0                  3.0000     1.0000     3.0000  (-1.500, 0.000, -1.500)
+  Advanced.Folktails.LOD0                      3.0000     1.0000     3.0000  (-1.500, 0.000, -1.500)
+  Advanced.IronTeeth.LOD0                      3.0000     1.0000     3.0000  (-1.500, 0.000, -1.500)
+  Top.Folktails.LOD0                           3.0000     1.0000     3.0000  (-1.500, 0.000, -1.500)
+  Top.IronTeeth.LOD0                           3.0000     1.0000     3.0000  (-1.500, 0.000, -1.500)
+
+======================================================================================================================
+VERDICT
+======================================================================================================================
 OVERALL VERDICT: PASS
+  every expected source model passes C1-C10 under the v2 3x3x1 flat-roof contract.
 
-PER-MODEL EVIDENCE
-model                        src  tris     extentX    extentY    extentZ    centreX centreZ minY
-------------------------------------------------------------------------------------------------
-Basic.Folktails LOD0         GLB  5940     3.0000     1.0000     2.0000     +0.0000 +0.0000 +0.0000
-Basic.Folktails LOD0         FBX  5940     3.0000     1.0000     2.0000     +0.0000 -0.0000 -0.0000
-Basic.Folktails LOD1         GLB  2386     3.0000     1.0000     2.0000     +0.0000 +0.0000 +0.0000
-Basic.Folktails LOD1         FBX  2386     3.0000     1.0000     2.0000     +0.0000 -0.0000 -0.0000
-Basic.Folktails LOD2         GLB  798      3.0000     1.0000     2.0000     +0.0000 +0.0000 +0.0000
-Basic.Folktails LOD2         FBX  798      3.0000     1.0000     2.0000     +0.0000 -0.0000 -0.0000
-Basic.IronTeeth LOD0         GLB  5940     3.0000     1.0000     2.0000     +0.0000 +0.0000 +0.0000
-Basic.IronTeeth LOD0         FBX  5940     3.0000     1.0000     2.0000     +0.0000 -0.0000 -0.0000
-Basic.IronTeeth LOD1         GLB  2386     3.0000     1.0000     2.0000     +0.0000 +0.0000 +0.0000
-Basic.IronTeeth LOD1         FBX  2386     3.0000     1.0000     2.0000     +0.0000 -0.0000 -0.0000
-Basic.IronTeeth LOD2         GLB  798      3.0000     1.0000     2.0000     +0.0000 +0.0000 +0.0000
-Basic.IronTeeth LOD2         FBX  798      3.0000     1.0000     2.0000     +0.0000 -0.0000 -0.0000
-Intermediate.Folktails LOD0  GLB  5950     3.0000     1.0000     2.0000     +0.0000 +0.0000 +0.0000
-Intermediate.Folktails LOD0  FBX  5950     3.0000     1.0000     2.0000     +0.0000 -0.0000 -0.0000
-Intermediate.Folktails LOD1  GLB  2380     3.0000     1.0000     2.0000     +0.0000 +0.0000 +0.0000
-Intermediate.Folktails LOD1  FBX  2380     3.0000     1.0000     2.0000     +0.0000 -0.0000 -0.0000
-Intermediate.Folktails LOD2  GLB  800      3.0000     1.0000     2.0000     +0.0000 +0.0000 +0.0000
-Intermediate.Folktails LOD2  FBX  800      3.0000     1.0000     2.0000     +0.0000 -0.0000 -0.0000
-Intermediate.IronTeeth LOD0  GLB  5950     3.0000     1.0000     2.0000     +0.0000 +0.0000 +0.0000
-Intermediate.IronTeeth LOD0  FBX  5950     3.0000     1.0000     2.0000     +0.0000 -0.0000 -0.0000
-Intermediate.IronTeeth LOD1  GLB  2380     3.0000     1.0000     2.0000     +0.0000 +0.0000 +0.0000
-Intermediate.IronTeeth LOD1  FBX  2380     3.0000     1.0000     2.0000     +0.0000 -0.0000 -0.0000
-Intermediate.IronTeeth LOD2  GLB  800      3.0000     1.0000     2.0000     +0.0000 +0.0000 +0.0000
-Intermediate.IronTeeth LOD2  FBX  800      3.0000     1.0000     2.0000     +0.0000 -0.0000 -0.0000
-Advanced.Folktails LOD0      GLB  5942     3.0000     1.0000     2.0000     +0.0000 +0.0000 +0.0000
-Advanced.Folktails LOD0      FBX  5942     3.0000     1.0000     2.0000     +0.0000 -0.0000 -0.0000
-Advanced.Folktails LOD1      GLB  2376     3.0000     1.0000     2.0000     +0.0000 +0.0000 +0.0000
-Advanced.Folktails LOD1      FBX  2376     3.0000     1.0000     2.0000     +0.0000 -0.0000 -0.0000
-Advanced.Folktails LOD2      GLB  792      3.0000     1.0000     2.0000     +0.0000 +0.0000 +0.0000
-Advanced.Folktails LOD2      FBX  792      3.0000     1.0000     2.0000     +0.0000 -0.0000 -0.0000
-Advanced.IronTeeth LOD0      GLB  5942     3.0000     1.0000     2.0000     +0.0000 +0.0000 +0.0000
-Advanced.IronTeeth LOD0      FBX  5942     3.0000     1.0000     2.0000     +0.0000 -0.0000 -0.0000
-Advanced.IronTeeth LOD1      GLB  2376     3.0000     1.0000     2.0000     +0.0000 +0.0000 +0.0000
-Advanced.IronTeeth LOD1      FBX  2376     3.0000     1.0000     2.0000     +0.0000 -0.0000 -0.0000
-Advanced.IronTeeth LOD2      GLB  792      3.0000     1.0000     2.0000     +0.0000 +0.0000 +0.0000
-Advanced.IronTeeth LOD2      FBX  792      3.0000     1.0000     2.0000     +0.0000 -0.0000 -0.0000
-Top.Folktails LOD0           GLB  5950     3.0000     1.0000     2.0000     +0.0000 +0.0000 +0.0000
-Top.Folktails LOD0           FBX  5950     3.0000     1.0000     2.0000     +0.0000 -0.0000 -0.0000
-Top.Folktails LOD1           GLB  2384     3.0000     1.0000     2.0000     +0.0000 +0.0000 +0.0000
-Top.Folktails LOD1           FBX  2384     3.0000     1.0000     2.0000     +0.0000 -0.0000 -0.0000
-Top.Folktails LOD2           GLB  796      3.0000     1.0000     2.0000     +0.0000 +0.0000 +0.0000
-Top.Folktails LOD2           FBX  796      3.0000     1.0000     2.0000     +0.0000 -0.0000 -0.0000
-Top.IronTeeth LOD0           GLB  5950     3.0000     1.0000     2.0000     +0.0000 +0.0000 +0.0000
-Top.IronTeeth LOD0           FBX  5950     3.0000     1.0000     2.0000     +0.0000 -0.0000 -0.0000
-Top.IronTeeth LOD1           GLB  2384     3.0000     1.0000     2.0000     +0.0000 +0.0000 +0.0000
-Top.IronTeeth LOD1           FBX  2384     3.0000     1.0000     2.0000     +0.0000 -0.0000 -0.0000
-Top.IronTeeth LOD2           GLB  796      3.0000     1.0000     2.0000     +0.0000 +0.0000 +0.0000
-Top.IronTeeth LOD2           FBX  796      3.0000     1.0000     2.0000     +0.0000 -0.0000 -0.0000
-ConstructionStage0           GLB  408      3.0000     1.0000     2.0000     +0.0000 +0.0000 +0.0000
-ConstructionStage0           FBX  408      3.0000     1.0000     2.0000     +0.0000 -0.0000 -0.0000
-
-PER-NODE TRIANGLE COUNTS
-Basic.Folktails LOD0         GLB  total=5940  Basic_Trough_01_=100 Basic_Trough_02_=180 Basic_Trough_03_=100 Basic_Trough_04_=180 Basic_Trough_05_=100 Basic_Trough_06_=180 body=5100
-Basic.Folktails LOD0         FBX  total=5940  Basic_Trough_01_=100 Basic_Trough_02_=180 Basic_Trough_03_=100 Basic_Trough_04_=180 Basic_Trough_05_=100 Basic_Trough_06_=180 body=5100
-Basic.Folktails LOD1         GLB  total=2386  Basic_Trough_01_=30 Basic_Trough_02_=30 Basic_Trough_03_=30 Basic_Trough_04_=30 Basic_Trough_05_=30 Basic_Trough_06_=30 body=2206
-Basic.Folktails LOD1         FBX  total=2386  Basic_Trough_01_=30 Basic_Trough_02_=30 Basic_Trough_03_=30 Basic_Trough_04_=30 Basic_Trough_05_=30 Basic_Trough_06_=30 body=2206
-Basic.Folktails LOD2         GLB  total=798   Basic_Trough_01_=20 Basic_Trough_02_=20 Basic_Trough_03_=20 Basic_Trough_04_=20 Basic_Trough_05_=20 Basic_Trough_06_=20 body=678
-Basic.Folktails LOD2         FBX  total=798   Basic_Trough_01_=20 Basic_Trough_02_=20 Basic_Trough_03_=20 Basic_Trough_04_=20 Basic_Trough_05_=20 Basic_Trough_06_=20 body=678
-Basic.IronTeeth LOD0         GLB  total=5940  Basic_Trough_01_=100 Basic_Trough_02_=180 Basic_Trough_03_=100 Basic_Trough_04_=180 Basic_Trough_05_=100 Basic_Trough_06_=180 body=5100
-Basic.IronTeeth LOD0         FBX  total=5940  Basic_Trough_01_=100 Basic_Trough_02_=180 Basic_Trough_03_=100 Basic_Trough_04_=180 Basic_Trough_05_=100 Basic_Trough_06_=180 body=5100
-Basic.IronTeeth LOD1         GLB  total=2386  Basic_Trough_01_=30 Basic_Trough_02_=30 Basic_Trough_03_=30 Basic_Trough_04_=30 Basic_Trough_05_=30 Basic_Trough_06_=30 body=2206
-Basic.IronTeeth LOD1         FBX  total=2386  Basic_Trough_01_=30 Basic_Trough_02_=30 Basic_Trough_03_=30 Basic_Trough_04_=30 Basic_Trough_05_=30 Basic_Trough_06_=30 body=2206
-Basic.IronTeeth LOD2         GLB  total=798   Basic_Trough_01_=20 Basic_Trough_02_=20 Basic_Trough_03_=20 Basic_Trough_04_=20 Basic_Trough_05_=20 Basic_Trough_06_=20 body=678
-Basic.IronTeeth LOD2         FBX  total=798   Basic_Trough_01_=20 Basic_Trough_02_=20 Basic_Trough_03_=20 Basic_Trough_04_=20 Basic_Trough_05_=20 Basic_Trough_06_=20 body=678
-Intermediate.Folktails LOD0  GLB  total=5950  Intermediate_Trough_01_=100 Intermediate_Trough_02_=180 Intermediate_Trough_03_=100 Intermediate_Trough_04_=180 Intermediate_Trough_05_=100 Intermediate_Trough_06_=180 body=5110
-Intermediate.Folktails LOD0  FBX  total=5950  Intermediate_Trough_01_=100 Intermediate_Trough_02_=180 Intermediate_Trough_03_=100 Intermediate_Trough_04_=180 Intermediate_Trough_05_=100 Intermediate_Trough_06_=180 body=5110
-Intermediate.Folktails LOD1  GLB  total=2380  Intermediate_Trough_01_=30 Intermediate_Trough_02_=30 Intermediate_Trough_03_=30 Intermediate_Trough_04_=30 Intermediate_Trough_05_=30 Intermediate_Trough_06_=30 body=2200
-Intermediate.Folktails LOD1  FBX  total=2380  Intermediate_Trough_01_=30 Intermediate_Trough_02_=30 Intermediate_Trough_03_=30 Intermediate_Trough_04_=30 Intermediate_Trough_05_=30 Intermediate_Trough_06_=30 body=2200
-Intermediate.Folktails LOD2  GLB  total=800   Intermediate_Trough_01_=20 Intermediate_Trough_02_=20 Intermediate_Trough_03_=20 Intermediate_Trough_04_=20 Intermediate_Trough_05_=20 Intermediate_Trough_06_=20 body=680
-Intermediate.Folktails LOD2  FBX  total=800   Intermediate_Trough_01_=20 Intermediate_Trough_02_=20 Intermediate_Trough_03_=20 Intermediate_Trough_04_=20 Intermediate_Trough_05_=20 Intermediate_Trough_06_=20 body=680
-Intermediate.IronTeeth LOD0  GLB  total=5950  Intermediate_Trough_01_=100 Intermediate_Trough_02_=180 Intermediate_Trough_03_=100 Intermediate_Trough_04_=180 Intermediate_Trough_05_=100 Intermediate_Trough_06_=180 body=5110
-Intermediate.IronTeeth LOD0  FBX  total=5950  Intermediate_Trough_01_=100 Intermediate_Trough_02_=180 Intermediate_Trough_03_=100 Intermediate_Trough_04_=180 Intermediate_Trough_05_=100 Intermediate_Trough_06_=180 body=5110
-Intermediate.IronTeeth LOD1  GLB  total=2380  Intermediate_Trough_01_=30 Intermediate_Trough_02_=30 Intermediate_Trough_03_=30 Intermediate_Trough_04_=30 Intermediate_Trough_05_=30 Intermediate_Trough_06_=30 body=2200
-Intermediate.IronTeeth LOD1  FBX  total=2380  Intermediate_Trough_01_=30 Intermediate_Trough_02_=30 Intermediate_Trough_03_=30 Intermediate_Trough_04_=30 Intermediate_Trough_05_=30 Intermediate_Trough_06_=30 body=2200
-Intermediate.IronTeeth LOD2  GLB  total=800   Intermediate_Trough_01_=20 Intermediate_Trough_02_=20 Intermediate_Trough_03_=20 Intermediate_Trough_04_=20 Intermediate_Trough_05_=20 Intermediate_Trough_06_=20 body=680
-Intermediate.IronTeeth LOD2  FBX  total=800   Intermediate_Trough_01_=20 Intermediate_Trough_02_=20 Intermediate_Trough_03_=20 Intermediate_Trough_04_=20 Intermediate_Trough_05_=20 Intermediate_Trough_06_=20 body=680
-Advanced.Folktails LOD0      GLB  total=5942  Advanced_Trough_01_=100 Advanced_Trough_02_=180 Advanced_Trough_03_=100 Advanced_Trough_04_=180 Advanced_Trough_05_=100 Advanced_Trough_06_=180 body=5102
-Advanced.Folktails LOD0      FBX  total=5942  Advanced_Trough_01_=100 Advanced_Trough_02_=180 Advanced_Trough_03_=100 Advanced_Trough_04_=180 Advanced_Trough_05_=100 Advanced_Trough_06_=180 body=5102
-Advanced.Folktails LOD1      GLB  total=2376  Advanced_Trough_01_=30 Advanced_Trough_02_=30 Advanced_Trough_03_=30 Advanced_Trough_04_=30 Advanced_Trough_05_=30 Advanced_Trough_06_=30 body=2196
-Advanced.Folktails LOD1      FBX  total=2376  Advanced_Trough_01_=30 Advanced_Trough_02_=30 Advanced_Trough_03_=30 Advanced_Trough_04_=30 Advanced_Trough_05_=30 Advanced_Trough_06_=30 body=2196
-Advanced.Folktails LOD2      GLB  total=792   Advanced_Trough_01_=20 Advanced_Trough_02_=20 Advanced_Trough_03_=20 Advanced_Trough_04_=20 Advanced_Trough_05_=20 Advanced_Trough_06_=20 body=672
-Advanced.Folktails LOD2      FBX  total=792   Advanced_Trough_01_=20 Advanced_Trough_02_=20 Advanced_Trough_03_=20 Advanced_Trough_04_=20 Advanced_Trough_05_=20 Advanced_Trough_06_=20 body=672
-Advanced.IronTeeth LOD0      GLB  total=5942  Advanced_Trough_01_=100 Advanced_Trough_02_=180 Advanced_Trough_03_=100 Advanced_Trough_04_=180 Advanced_Trough_05_=100 Advanced_Trough_06_=180 body=5102
-Advanced.IronTeeth LOD0      FBX  total=5942  Advanced_Trough_01_=100 Advanced_Trough_02_=180 Advanced_Trough_03_=100 Advanced_Trough_04_=180 Advanced_Trough_05_=100 Advanced_Trough_06_=180 body=5102
-Advanced.IronTeeth LOD1      GLB  total=2376  Advanced_Trough_01_=30 Advanced_Trough_02_=30 Advanced_Trough_03_=30 Advanced_Trough_04_=30 Advanced_Trough_05_=30 Advanced_Trough_06_=30 body=2196
-Advanced.IronTeeth LOD1      FBX  total=2376  Advanced_Trough_01_=30 Advanced_Trough_02_=30 Advanced_Trough_03_=30 Advanced_Trough_04_=30 Advanced_Trough_05_=30 Advanced_Trough_06_=30 body=2196
-Advanced.IronTeeth LOD2      GLB  total=792   Advanced_Trough_01_=20 Advanced_Trough_02_=20 Advanced_Trough_03_=20 Advanced_Trough_04_=20 Advanced_Trough_05_=20 Advanced_Trough_06_=20 body=672
-Advanced.IronTeeth LOD2      FBX  total=792   Advanced_Trough_01_=20 Advanced_Trough_02_=20 Advanced_Trough_03_=20 Advanced_Trough_04_=20 Advanced_Trough_05_=20 Advanced_Trough_06_=20 body=672
-Top.Folktails LOD0           GLB  total=5950  Top_Trough_01_=100 Top_Trough_02_=180 Top_Trough_03_=100 Top_Trough_04_=180 Top_Trough_05_=100 Top_Trough_06_=180 body=5110
-Top.Folktails LOD0           FBX  total=5950  Top_Trough_01_=100 Top_Trough_02_=180 Top_Trough_03_=100 Top_Trough_04_=180 Top_Trough_05_=100 Top_Trough_06_=180 body=5110
-Top.Folktails LOD1           GLB  total=2384  Top_Trough_01_=30 Top_Trough_02_=30 Top_Trough_03_=30 Top_Trough_04_=30 Top_Trough_05_=30 Top_Trough_06_=30 body=2204
-Top.Folktails LOD1           FBX  total=2384  Top_Trough_01_=30 Top_Trough_02_=30 Top_Trough_03_=30 Top_Trough_04_=30 Top_Trough_05_=30 Top_Trough_06_=30 body=2204
-Top.Folktails LOD2           GLB  total=796   Top_Trough_01_=20 Top_Trough_02_=20 Top_Trough_03_=20 Top_Trough_04_=20 Top_Trough_05_=20 Top_Trough_06_=20 body=676
-Top.Folktails LOD2           FBX  total=796   Top_Trough_01_=20 Top_Trough_02_=20 Top_Trough_03_=20 Top_Trough_04_=20 Top_Trough_05_=20 Top_Trough_06_=20 body=676
-Top.IronTeeth LOD0           GLB  total=5950  Top_Trough_01_=100 Top_Trough_02_=180 Top_Trough_03_=100 Top_Trough_04_=180 Top_Trough_05_=100 Top_Trough_06_=180 body=5110
-Top.IronTeeth LOD0           FBX  total=5950  Top_Trough_01_=100 Top_Trough_02_=180 Top_Trough_03_=100 Top_Trough_04_=180 Top_Trough_05_=100 Top_Trough_06_=180 body=5110
-Top.IronTeeth LOD1           GLB  total=2384  Top_Trough_01_=30 Top_Trough_02_=30 Top_Trough_03_=30 Top_Trough_04_=30 Top_Trough_05_=30 Top_Trough_06_=30 body=2204
-Top.IronTeeth LOD1           FBX  total=2384  Top_Trough_01_=30 Top_Trough_02_=30 Top_Trough_03_=30 Top_Trough_04_=30 Top_Trough_05_=30 Top_Trough_06_=30 body=2204
-Top.IronTeeth LOD2           GLB  total=796   Top_Trough_01_=20 Top_Trough_02_=20 Top_Trough_03_=20 Top_Trough_04_=20 Top_Trough_05_=20 Top_Trough_06_=20 body=676
-Top.IronTeeth LOD2           FBX  total=796   Top_Trough_01_=20 Top_Trough_02_=20 Top_Trough_03_=20 Top_Trough_04_=20 Top_Trough_05_=20 Top_Trough_06_=20 body=676
-ConstructionStage0           GLB  total=408   _Trough_01=24 _Trough_02=24 _Trough_03=24 _Trough_04=24 _Trough_05=24 _Trough_06=24 body=264
-ConstructionStage0           FBX  total=408   _Trough_01=24 _Trough_02=24 _Trough_03=24 _Trough_04=24 _Trough_05=24 _Trough_06=24 body=264
-
-NODES / MATERIALS / UV
-model                        src  troughs ports   materials                  uv_oob  uv_cov   uv_dbl  
-------------------------------------------------------------------------------------------------------
-Basic.Folktails LOD0         GLB  6/6     6/6     Wood,Fabric                0       23.6%    0.0000% 
-Basic.Folktails LOD0         FBX  6/6     6/6     Wood,Fabric                0       23.6%    0.0000% 
-Basic.Folktails LOD1         GLB  6/6     6/6     Wood,Fabric                0       27.8%    0.0000% 
-Basic.Folktails LOD1         FBX  6/6     6/6     Wood,Fabric                0       27.8%    0.0000% 
-Basic.Folktails LOD2         GLB  6/6     6/6     Wood,Fabric                0       27.3%    0.0000% 
-Basic.Folktails LOD2         FBX  6/6     6/6     Wood,Fabric                0       27.3%    0.0000% 
-Basic.IronTeeth LOD0         GLB  6/6     6/6     Wood,Fabric                0       18.6%    0.0000% 
-Basic.IronTeeth LOD0         FBX  6/6     6/6     Wood,Fabric                0       18.6%    0.0000% 
-Basic.IronTeeth LOD1         GLB  6/6     6/6     Wood,Fabric                0       27.8%    0.0000% 
-Basic.IronTeeth LOD1         FBX  6/6     6/6     Wood,Fabric                0       27.8%    0.0000% 
-Basic.IronTeeth LOD2         GLB  6/6     6/6     Wood,Fabric                0       27.3%    0.0000% 
-Basic.IronTeeth LOD2         FBX  6/6     6/6     Wood,Fabric                0       27.3%    0.0000% 
-Intermediate.Folktails LOD0  GLB  6/6     6/6     Wood,Glass,Fabric          0       19.0%    0.0000% 
-Intermediate.Folktails LOD0  FBX  6/6     6/6     Wood,Glass,Fabric          0       19.0%    0.0000% 
-Intermediate.Folktails LOD1  GLB  6/6     6/6     Wood,Glass,Fabric          0       25.5%    0.0000% 
-Intermediate.Folktails LOD1  FBX  6/6     6/6     Wood,Glass,Fabric          0       25.5%    0.0000% 
-Intermediate.Folktails LOD2  GLB  6/6     6/6     Wood,Glass,Fabric          0       33.3%    0.0000% 
-Intermediate.Folktails LOD2  FBX  6/6     6/6     Wood,Glass,Fabric          0       33.3%    0.0000% 
-Intermediate.IronTeeth LOD0  GLB  6/6     6/6     Wood,Glass,Fabric          0       20.5%    0.0000% 
-Intermediate.IronTeeth LOD0  FBX  6/6     6/6     Wood,Glass,Fabric          0       20.5%    0.0000% 
-Intermediate.IronTeeth LOD1  GLB  6/6     6/6     Wood,Glass,Fabric          0       25.5%    0.0000% 
-Intermediate.IronTeeth LOD1  FBX  6/6     6/6     Wood,Glass,Fabric          0       25.5%    0.0000% 
-Intermediate.IronTeeth LOD2  GLB  6/6     6/6     Wood,Glass,Fabric          0       33.3%    0.0000% 
-Intermediate.IronTeeth LOD2  FBX  6/6     6/6     Wood,Glass,Fabric          0       33.3%    0.0000% 
-Advanced.Folktails LOD0      GLB  6/6     6/6     Wood,Metal,Glass,Fabric    0       39.6%    0.0000% 
-Advanced.Folktails LOD0      FBX  6/6     6/6     Wood,Metal,Glass,Fabric    0       39.6%    0.0000% 
-Advanced.Folktails LOD1      GLB  6/6     6/6     Wood,Metal,Glass,Fabric    0       44.3%    0.0000% 
-Advanced.Folktails LOD1      FBX  6/6     6/6     Wood,Metal,Glass,Fabric    0       44.3%    0.0000% 
-Advanced.Folktails LOD2      GLB  6/6     6/6     Wood,Metal,Glass,Fabric    0       41.9%    0.0000% 
-Advanced.Folktails LOD2      FBX  6/6     6/6     Wood,Metal,Glass,Fabric    0       41.9%    0.0000% 
-Advanced.IronTeeth LOD0      GLB  6/6     6/6     Wood,Metal,Glass,Fabric    0       41.4%    0.0000% 
-Advanced.IronTeeth LOD0      FBX  6/6     6/6     Wood,Metal,Glass,Fabric    0       41.4%    0.0000% 
-Advanced.IronTeeth LOD1      GLB  6/6     6/6     Wood,Metal,Glass,Fabric    0       44.3%    0.0000% 
-Advanced.IronTeeth LOD1      FBX  6/6     6/6     Wood,Metal,Glass,Fabric    0       44.3%    0.0000% 
-Advanced.IronTeeth LOD2      GLB  6/6     6/6     Wood,Metal,Glass,Fabric    0       41.9%    0.0000% 
-Advanced.IronTeeth LOD2      FBX  6/6     6/6     Wood,Metal,Glass,Fabric    0       41.9%    0.0000% 
-Top.Folktails LOD0           GLB  6/6     6/6     Wood,Metal,Glass,Fabric    0       28.0%    0.0000% 
-Top.Folktails LOD0           FBX  6/6     6/6     Wood,Metal,Glass,Fabric    0       28.0%    0.0000% 
-Top.Folktails LOD1           GLB  6/6     6/6     Wood,Metal,Glass,Fabric    0       34.2%    0.0000% 
-Top.Folktails LOD1           FBX  6/6     6/6     Wood,Metal,Glass,Fabric    0       34.2%    0.0000% 
-Top.Folktails LOD2           GLB  6/6     6/6     Wood,Metal,Glass,Fabric    0       37.5%    0.0000% 
-Top.Folktails LOD2           FBX  6/6     6/6     Wood,Metal,Glass,Fabric    0       37.5%    0.0000% 
-Top.IronTeeth LOD0           GLB  6/6     6/6     Wood,Metal,Glass,Fabric    0       27.9%    0.0000% 
-Top.IronTeeth LOD0           FBX  6/6     6/6     Wood,Metal,Glass,Fabric    0       27.9%    0.0000% 
-Top.IronTeeth LOD1           GLB  6/6     6/6     Wood,Metal,Glass,Fabric    0       34.2%    0.0000% 
-Top.IronTeeth LOD1           FBX  6/6     6/6     Wood,Metal,Glass,Fabric    0       34.2%    0.0000% 
-Top.IronTeeth LOD2           GLB  6/6     6/6     Wood,Metal,Glass,Fabric    0       37.5%    0.0000% 
-Top.IronTeeth LOD2           FBX  6/6     6/6     Wood,Metal,Glass,Fabric    0       37.5%    0.0000% 
-ConstructionStage0           GLB  n/a-greybox n/a-greybox Wood,Metal                 0       26.9%    0.0000% 
-ConstructionStage0           FBX  n/a-greybox n/a-greybox Wood,Metal                 0       26.9%    0.0000% 
-
-PORT / TROUGH WORST ERRORS (per model, max over all ports/troughs)
-Basic.Folktails LOD0         GLB  port pos 0.0000 dir 0.0000
-Basic.Folktails LOD0         FBX  port pos 0.0000 dir 0.0000
-Basic.Folktails LOD1         GLB  port pos 0.0000 dir 0.0000
-Basic.Folktails LOD1         FBX  port pos 0.0000 dir 0.0000
-Basic.Folktails LOD2         GLB  port pos 0.0000 dir 0.0000
-Basic.Folktails LOD2         FBX  port pos 0.0000 dir 0.0000
-Basic.IronTeeth LOD0         GLB  port pos 0.0000 dir 0.0000
-Basic.IronTeeth LOD0         FBX  port pos 0.0000 dir 0.0000
-Basic.IronTeeth LOD1         GLB  port pos 0.0000 dir 0.0000
-Basic.IronTeeth LOD1         FBX  port pos 0.0000 dir 0.0000
-Basic.IronTeeth LOD2         GLB  port pos 0.0000 dir 0.0000
-Basic.IronTeeth LOD2         FBX  port pos 0.0000 dir 0.0000
-Intermediate.Folktails LOD0  GLB  port pos 0.0000 dir 0.0000
-Intermediate.Folktails LOD0  FBX  port pos 0.0000 dir 0.0000
-Intermediate.Folktails LOD1  GLB  port pos 0.0000 dir 0.0000
-Intermediate.Folktails LOD1  FBX  port pos 0.0000 dir 0.0000
-Intermediate.Folktails LOD2  GLB  port pos 0.0000 dir 0.0000
-Intermediate.Folktails LOD2  FBX  port pos 0.0000 dir 0.0000
-Intermediate.IronTeeth LOD0  GLB  port pos 0.0000 dir 0.0000
-Intermediate.IronTeeth LOD0  FBX  port pos 0.0000 dir 0.0000
-Intermediate.IronTeeth LOD1  GLB  port pos 0.0000 dir 0.0000
-Intermediate.IronTeeth LOD1  FBX  port pos 0.0000 dir 0.0000
-Intermediate.IronTeeth LOD2  GLB  port pos 0.0000 dir 0.0000
-Intermediate.IronTeeth LOD2  FBX  port pos 0.0000 dir 0.0000
-Advanced.Folktails LOD0      GLB  port pos 0.0000 dir 0.0000
-Advanced.Folktails LOD0      FBX  port pos 0.0000 dir 0.0000
-Advanced.Folktails LOD1      GLB  port pos 0.0000 dir 0.0000
-Advanced.Folktails LOD1      FBX  port pos 0.0000 dir 0.0000
-Advanced.Folktails LOD2      GLB  port pos 0.0000 dir 0.0000
-Advanced.Folktails LOD2      FBX  port pos 0.0000 dir 0.0000
-Advanced.IronTeeth LOD0      GLB  port pos 0.0000 dir 0.0000
-Advanced.IronTeeth LOD0      FBX  port pos 0.0000 dir 0.0000
-Advanced.IronTeeth LOD1      GLB  port pos 0.0000 dir 0.0000
-Advanced.IronTeeth LOD1      FBX  port pos 0.0000 dir 0.0000
-Advanced.IronTeeth LOD2      GLB  port pos 0.0000 dir 0.0000
-Advanced.IronTeeth LOD2      FBX  port pos 0.0000 dir 0.0000
-Top.Folktails LOD0           GLB  port pos 0.0000 dir 0.0000
-Top.Folktails LOD0           FBX  port pos 0.0000 dir 0.0000
-Top.Folktails LOD1           GLB  port pos 0.0000 dir 0.0000
-Top.Folktails LOD1           FBX  port pos 0.0000 dir 0.0000
-Top.Folktails LOD2           GLB  port pos 0.0000 dir 0.0000
-Top.Folktails LOD2           FBX  port pos 0.0000 dir 0.0000
-Top.IronTeeth LOD0           GLB  port pos 0.0000 dir 0.0000
-Top.IronTeeth LOD0           FBX  port pos 0.0000 dir 0.0000
-Top.IronTeeth LOD1           GLB  port pos 0.0000 dir 0.0000
-Top.IronTeeth LOD1           FBX  port pos 0.0000 dir 0.0000
-Top.IronTeeth LOD2           GLB  port pos 0.0000 dir 0.0000
-Top.IronTeeth LOD2           FBX  port pos 0.0000 dir 0.0000
-ConstructionStage0           GLB  port pos 0.0000 dir 0.0000
-ConstructionStage0           FBX  port pos 0.0000 dir 0.0000
-
-FAILURES (expected/actual)
-  none
-
-WARNINGS / INFORMATION
-  C4 Trough nodes (6/LOD) + LOD0 centres:
-    [INFO] ConstructionStage0 GLB: 6 construction trough nodes present
-    [INFO] ConstructionStage0 FBX: 6 construction trough nodes present
-  C5 Port empties: coords + local +Z outward:
-    [INFO] ConstructionStage0 GLB: 6 construction port empties present
-    [INFO] ConstructionStage0 FBX: 6 construction port empties present
-    [WARN] Intermediate.Folktails LOD2: expected-visible port geometry not detected near Logistics (heuristic only, does not fail) | nearby vertices (r=0.30): Entrance=12 Power=72 Pipe=24 Logistics=0 Vent_01=64 Vent_02=64
-    [WARN] Intermediate.IronTeeth LOD2: expected-visible port geometry not detected near Logistics (heuristic only, does not fail) | nearby vertices (r=0.30): Entrance=12 Power=72 Pipe=24 Logistics=0 Vent_01=64 Vent_02=64
-    [WARN] Advanced.Folktails LOD2: expected-visible port geometry not detected near Entrance, Logistics (heuristic only, does not fail) | nearby vertices (r=0.30): Entrance=0 Power=114 Pipe=72 Logistics=0 Vent_01=64 Vent_02=64
-    [WARN] Advanced.IronTeeth LOD2: expected-visible port geometry not detected near Entrance, Logistics (heuristic only, does not fail) | nearby vertices (r=0.30): Entrance=0 Power=114 Pipe=72 Logistics=0 Vent_01=64 Vent_02=64
-    [WARN] Top.Folktails LOD2: expected-visible port geometry not detected near Entrance, Logistics (heuristic only, does not fail) | nearby vertices (r=0.30): Entrance=0 Power=240 Pipe=72 Logistics=0 Vent_01=64 Vent_02=67
-    [WARN] Top.IronTeeth LOD2: expected-visible port geometry not detected near Entrance, Logistics (heuristic only, does not fail) | nearby vertices (r=0.30): Entrance=0 Power=240 Pipe=72 Logistics=0 Vent_01=64 Vent_02=67
-  C6 Materials + atlas PNGs:
-    [INFO] GLB embeds 12 atlas image reference(s): M_HDBF_Fabric:baseColorTexture -> embedded bufferView 6; M_HDBF_Fabric:metallicRoughnessTexture -> embedded bufferView 7; M_HDBF_Fabric:normalTexture -> embedded bufferView 5 (embedded PNGs are expected for glTF; not a failure)
-    [INFO] FBX external texture reference(s) (4 unique): M_HDBF_Metal -> C:\Users\user\Documents\Timberborn\Mods\HighDensityBoxFarm\art\models\ConstructionStage0\..\..\textures\atlas_albedo.png; M_HDBF_Metal -> C:\Users\user\Documents\Timberborn\Mods\HighDensityBoxFarm\art\models\ConstructionStage0\..\..\textures\atlas_normal.png; M_HDBF_Wood -> C:\Users\user\Documents\Timberborn\Mods\HighDensityBoxFarm\art\models\ConstructionStage0\..\..\textures\atlas_albedo.png; M_HDBF_Wood -> C:\Users\user\Documents\Timberborn\Mods\HighDensityBoxFarm\art\models\ConstructionStage0\..\..\textures\atlas_normal.png
-  C9 Cross-tier silhouette distinguishability (50%):
-    [INFO] Basic.Folktails LOD0 silhouette: front area=2884px fill=93.9% side area=1832px fill=89.5% top area=6144px fill=100.0%
-    [INFO] Basic.Folktails LOD2 silhouette: front area=2816px fill=91.7% side area=1782px fill=87.0% top area=6144px fill=100.0%
-    [INFO] Intermediate.Folktails LOD0 silhouette: front area=2948px fill=96.0% side area=1895px fill=92.5% top area=6144px fill=100.0%
-    [INFO] Intermediate.Folktails LOD2 silhouette: front area=2946px fill=95.9% side area=1830px fill=89.4% top area=6144px fill=100.0%
-    [INFO] Advanced.Folktails LOD0 silhouette: front area=3006px fill=97.9% side area=1904px fill=93.0% top area=6144px fill=100.0%
-    [INFO] Advanced.Folktails LOD2 silhouette: front area=3014px fill=98.1% side area=1862px fill=90.9% top area=6144px fill=100.0%
-    [INFO] Top.Folktails LOD0 silhouette: front area=3016px fill=98.2% side area=1941px fill=94.8% top area=6144px fill=100.0%
-    [INFO] Top.Folktails LOD2 silhouette: front area=3016px fill=98.2% side area=1921px fill=93.8% top area=6144px fill=100.0%
-    [INFO] Basic.IronTeeth LOD0 silhouette: front area=2886px fill=93.9% side area=1833px fill=89.5% top area=6144px fill=100.0%
-    [INFO] Basic.IronTeeth LOD2 silhouette: front area=2816px fill=91.7% side area=1782px fill=87.0% top area=6144px fill=100.0%
-    [INFO] Intermediate.IronTeeth LOD0 silhouette: front area=2948px fill=96.0% side area=1894px fill=92.5% top area=6144px fill=100.0%
-    [INFO] Intermediate.IronTeeth LOD2 silhouette: front area=2946px fill=95.9% side area=1830px fill=89.4% top area=6144px fill=100.0%
-    [INFO] Advanced.IronTeeth LOD0 silhouette: front area=3006px fill=97.9% side area=1903px fill=92.9% top area=6144px fill=100.0%
-    [INFO] Advanced.IronTeeth LOD2 silhouette: front area=3014px fill=98.1% side area=1862px fill=90.9% top area=6144px fill=100.0%
-    [INFO] Top.IronTeeth LOD0 silhouette: front area=3016px fill=98.2% side area=1942px fill=94.8% top area=6144px fill=100.0%
-    [INFO] Top.IronTeeth LOD2 silhouette: front area=3016px fill=98.2% side area=1921px fill=93.8% top area=6144px fill=100.0%
-    [INFO] raw area-IoU matrices below are INFORMATIONAL ONLY: the fixed 3x1x2 envelope forces filled-area overlap near 1.0, so area IoU alone cannot discriminate tiers. The PASS rule is the outline rule: mean|dh|>=0.04 grid or max|dh|>=0.12 grid or area IoU<=0.85, in at least one view at 50% scale
-    [INFO] area-IoU LOD0 Folktails front    Basic Intermed Advanced      Top
-    [INFO] area-IoU LOD0 Basic             1.000    0.976    0.959    0.956
-    [INFO] area-IoU LOD0 Intermediate      0.976    1.000    0.974    0.971
-    [INFO] area-IoU LOD0 Advanced          0.959    0.974    1.000    0.997
-    [INFO] area-IoU LOD0 Top               0.956    0.971    0.997    1.000
-    [INFO] area-IoU LOD0 Folktails side    Basic Intermed Advanced      Top
-    [INFO] area-IoU LOD0 Basic             1.000    0.964    0.959    0.941
-    [INFO] area-IoU LOD0 Intermediate      0.964    1.000    0.974    0.965
-    [INFO] area-IoU LOD0 Advanced          0.959    0.974    1.000    0.974
-    [INFO] area-IoU LOD0 Top               0.941    0.965    0.974    1.000
-    [INFO] area-IoU LOD0 Folktails top     Basic Intermed Advanced      Top
-    [INFO] area-IoU LOD0 Basic             1.000    1.000    1.000    1.000
-    [INFO] area-IoU LOD0 Intermediate      1.000    1.000    1.000    1.000
-    [INFO] area-IoU LOD0 Advanced          1.000    1.000    1.000    1.000
-    [INFO] area-IoU LOD0 Top               1.000    1.000    1.000    1.000
-    [INFO] area-IoU LOD2 Folktails front    Basic Intermed Advanced      Top
-    [INFO] area-IoU LOD2 Basic             1.000    0.956    0.934    0.934
-    [INFO] area-IoU LOD2 Intermediate      0.956    1.000    0.977    0.977
-    [INFO] area-IoU LOD2 Advanced          0.934    0.977    1.000    0.999
-    [INFO] area-IoU LOD2 Top               0.934    0.977    0.999    1.000
-    [INFO] area-IoU LOD2 Folktails side    Basic Intermed Advanced      Top
-    [INFO] area-IoU LOD2 Basic             1.000    0.971    0.954    0.925
-    [INFO] area-IoU LOD2 Intermediate      0.971    1.000    0.982    0.951
-    [INFO] area-IoU LOD2 Advanced          0.954    0.982    1.000    0.966
-    [INFO] area-IoU LOD2 Top               0.925    0.951    0.966    1.000
-    [INFO] area-IoU LOD2 Folktails top     Basic Intermed Advanced      Top
-    [INFO] area-IoU LOD2 Basic             1.000    1.000    1.000    1.000
-    [INFO] area-IoU LOD2 Intermediate      1.000    1.000    1.000    1.000
-    [INFO] area-IoU LOD2 Advanced          1.000    1.000    1.000    1.000
-    [INFO] area-IoU LOD2 Top               1.000    1.000    1.000    1.000
-    [INFO] area-IoU LOD0 IronTeeth front    Basic Intermed Advanced      Top
-    [INFO] area-IoU LOD0 Basic             1.000    0.978    0.960    0.957
-    [INFO] area-IoU LOD0 Intermediate      0.978    1.000    0.974    0.971
-    [INFO] area-IoU LOD0 Advanced          0.960    0.974    1.000    0.997
-    [INFO] area-IoU LOD0 Top               0.957    0.971    0.997    1.000
-    [INFO] area-IoU LOD0 IronTeeth side    Basic Intermed Advanced      Top
-    [INFO] area-IoU LOD0 Basic             1.000    0.964    0.959    0.941
-    [INFO] area-IoU LOD0 Intermediate      0.964    1.000    0.973    0.965
-    [INFO] area-IoU LOD0 Advanced          0.959    0.973    1.000    0.974
-    [INFO] area-IoU LOD0 Top               0.941    0.965    0.974    1.000
-    [INFO] area-IoU LOD0 IronTeeth top     Basic Intermed Advanced      Top
-    [INFO] area-IoU LOD0 Basic             1.000    1.000    1.000    1.000
-    [INFO] area-IoU LOD0 Intermediate      1.000    1.000    1.000    1.000
-    [INFO] area-IoU LOD0 Advanced          1.000    1.000    1.000    1.000
-    [INFO] area-IoU LOD0 Top               1.000    1.000    1.000    1.000
-    [INFO] area-IoU LOD2 IronTeeth front    Basic Intermed Advanced      Top
-    [INFO] area-IoU LOD2 Basic             1.000    0.956    0.934    0.934
-    [INFO] area-IoU LOD2 Intermediate      0.956    1.000    0.977    0.977
-    [INFO] area-IoU LOD2 Advanced          0.934    0.977    1.000    0.999
-    [INFO] area-IoU LOD2 Top               0.934    0.977    0.999    1.000
-    [INFO] area-IoU LOD2 IronTeeth side    Basic Intermed Advanced      Top
-    [INFO] area-IoU LOD2 Basic             1.000    0.971    0.954    0.925
-    [INFO] area-IoU LOD2 Intermediate      0.971    1.000    0.982    0.951
-    [INFO] area-IoU LOD2 Advanced          0.954    0.982    1.000    0.966
-    [INFO] area-IoU LOD2 Top               0.925    0.951    0.966    1.000
-    [INFO] area-IoU LOD2 IronTeeth top     Basic Intermed Advanced      Top
-    [INFO] area-IoU LOD2 Basic             1.000    1.000    1.000    1.000
-    [INFO] area-IoU LOD2 Intermediate      1.000    1.000    1.000    1.000
-    [INFO] area-IoU LOD2 Advanced          1.000    1.000    1.000    1.000
-    [INFO] area-IoU LOD2 Top               1.000    1.000    1.000    1.000
-    [INFO] [report LOD0] PASS Folktails Basic vs Intermediate: PASS via front,side | front m=0.036 x=0.688 iou=0.976 *; side m=0.038 x=0.156 iou=0.964 *; top m=0.000 x=0.000 iou=1.000
-    [INFO] [report LOD0] PASS Folktails Basic vs Advanced: PASS via front,side | front m=0.040 x=0.188 iou=0.959 *; side m=0.038 x=0.188 iou=0.959 *; top m=0.000 x=0.000 iou=1.000
-    [INFO] [report LOD0] PASS Folktails Basic vs Top: PASS via front,side | front m=0.049 x=0.500 iou=0.956 *; side m=0.057 x=0.188 iou=0.941 *; top m=0.000 x=0.000 iou=1.000
-    [INFO] [report LOD0] PASS Folktails Intermediate vs Advanced: PASS via front | front m=0.038 x=0.688 iou=0.974 *; side m=0.021 x=0.094 iou=0.974; top m=0.000 x=0.000 iou=1.000
-    [INFO] [report LOD0] PASS Folktails Intermediate vs Top: PASS via front,side | front m=0.033 x=0.688 iou=0.971 *; side m=0.028 x=0.156 iou=0.965 *; top m=0.000 x=0.000 iou=1.000
-    [INFO] [report LOD0] PASS Folktails Advanced vs Top: PASS via front,side | front m=0.009 x=0.500 iou=0.997 *; side m=0.025 x=0.156 iou=0.974 *; top m=0.000 x=0.000 iou=1.000
-    [INFO] [report LOD0] PASS IronTeeth Basic vs Intermediate: PASS via front,side | front m=0.035 x=0.688 iou=0.978 *; side m=0.038 x=0.156 iou=0.964 *; top m=0.000 x=0.000 iou=1.000
-    [INFO] [report LOD0] PASS IronTeeth Basic vs Advanced: PASS via front,side | front m=0.039 x=0.188 iou=0.960 *; side m=0.038 x=0.188 iou=0.959 *; top m=0.000 x=0.000 iou=1.000
-    [INFO] [report LOD0] PASS IronTeeth Basic vs Top: PASS via front,side | front m=0.048 x=0.500 iou=0.957 *; side m=0.057 x=0.188 iou=0.941 *; top m=0.000 x=0.000 iou=1.000
-    [INFO] [report LOD0] PASS IronTeeth Intermediate vs Advanced: PASS via front | front m=0.038 x=0.688 iou=0.974 *; side m=0.021 x=0.094 iou=0.973; top m=0.000 x=0.000 iou=1.000
-    [INFO] [report LOD0] PASS IronTeeth Intermediate vs Top: PASS via front,side | front m=0.033 x=0.688 iou=0.971 *; side m=0.028 x=0.156 iou=0.965 *; top m=0.000 x=0.000 iou=1.000
-    [INFO] [report LOD0] PASS IronTeeth Advanced vs Top: PASS via front,side | front m=0.009 x=0.500 iou=0.997 *; side m=0.025 x=0.156 iou=0.974 *; top m=0.000 x=0.000 iou=1.000
-
-DETAIL
-  C7 UV range + intra-model overlap (epsilon diagnostics):
-  C8 LOD bbox continuity (shrink <=2%):
-    [PASS] Basic.Folktails GLB: LOD1/LOD2 shrink within 2.00% (worst 0.00%)
-    [PASS] Basic.Folktails FBX: LOD1/LOD2 shrink within 2.00% (worst 0.00%)
-    [PASS] Basic.IronTeeth GLB: LOD1/LOD2 shrink within 2.00% (worst 0.00%)
-    [PASS] Basic.IronTeeth FBX: LOD1/LOD2 shrink within 2.00% (worst 0.00%)
-    [PASS] Intermediate.Folktails GLB: LOD1/LOD2 shrink within 2.00% (worst 0.00%)
-    [PASS] Intermediate.Folktails FBX: LOD1/LOD2 shrink within 2.00% (worst 0.00%)
-    [PASS] Intermediate.IronTeeth GLB: LOD1/LOD2 shrink within 2.00% (worst 0.00%)
-    [PASS] Intermediate.IronTeeth FBX: LOD1/LOD2 shrink within 2.00% (worst 0.00%)
-    [PASS] Advanced.Folktails GLB: LOD1/LOD2 shrink within 2.00% (worst 0.00%)
-    [PASS] Advanced.Folktails FBX: LOD1/LOD2 shrink within 2.00% (worst 0.00%)
-    [PASS] Advanced.IronTeeth GLB: LOD1/LOD2 shrink within 2.00% (worst 0.00%)
-    [PASS] Advanced.IronTeeth FBX: LOD1/LOD2 shrink within 2.00% (worst 0.00%)
-    [PASS] Top.Folktails GLB: LOD1/LOD2 shrink within 2.00% (worst 0.00%)
-    [PASS] Top.Folktails FBX: LOD1/LOD2 shrink within 2.00% (worst 0.00%)
-    [PASS] Top.IronTeeth GLB: LOD1/LOD2 shrink within 2.00% (worst 0.00%)
-    [PASS] Top.IronTeeth FBX: LOD1/LOD2 shrink within 2.00% (worst 0.00%)
-  C9 Cross-tier silhouette distinguishability (50%):
-    [INFO] Basic.Folktails LOD0 silhouette: front area=2884px fill=93.9% side area=1832px fill=89.5% top area=6144px fill=100.0%
-    [INFO] Basic.Folktails LOD2 silhouette: front area=2816px fill=91.7% side area=1782px fill=87.0% top area=6144px fill=100.0%
-    [INFO] Intermediate.Folktails LOD0 silhouette: front area=2948px fill=96.0% side area=1895px fill=92.5% top area=6144px fill=100.0%
-    [INFO] Intermediate.Folktails LOD2 silhouette: front area=2946px fill=95.9% side area=1830px fill=89.4% top area=6144px fill=100.0%
-    [INFO] Advanced.Folktails LOD0 silhouette: front area=3006px fill=97.9% side area=1904px fill=93.0% top area=6144px fill=100.0%
-    [INFO] Advanced.Folktails LOD2 silhouette: front area=3014px fill=98.1% side area=1862px fill=90.9% top area=6144px fill=100.0%
-    [INFO] Top.Folktails LOD0 silhouette: front area=3016px fill=98.2% side area=1941px fill=94.8% top area=6144px fill=100.0%
-    [INFO] Top.Folktails LOD2 silhouette: front area=3016px fill=98.2% side area=1921px fill=93.8% top area=6144px fill=100.0%
-    [INFO] Basic.IronTeeth LOD0 silhouette: front area=2886px fill=93.9% side area=1833px fill=89.5% top area=6144px fill=100.0%
-    [INFO] Basic.IronTeeth LOD2 silhouette: front area=2816px fill=91.7% side area=1782px fill=87.0% top area=6144px fill=100.0%
-    [INFO] Intermediate.IronTeeth LOD0 silhouette: front area=2948px fill=96.0% side area=1894px fill=92.5% top area=6144px fill=100.0%
-    [INFO] Intermediate.IronTeeth LOD2 silhouette: front area=2946px fill=95.9% side area=1830px fill=89.4% top area=6144px fill=100.0%
-    [INFO] Advanced.IronTeeth LOD0 silhouette: front area=3006px fill=97.9% side area=1903px fill=92.9% top area=6144px fill=100.0%
-    [INFO] Advanced.IronTeeth LOD2 silhouette: front area=3014px fill=98.1% side area=1862px fill=90.9% top area=6144px fill=100.0%
-    [INFO] Top.IronTeeth LOD0 silhouette: front area=3016px fill=98.2% side area=1942px fill=94.8% top area=6144px fill=100.0%
-    [INFO] Top.IronTeeth LOD2 silhouette: front area=3016px fill=98.2% side area=1921px fill=93.8% top area=6144px fill=100.0%
-    [INFO] raw area-IoU matrices below are INFORMATIONAL ONLY: the fixed 3x1x2 envelope forces filled-area overlap near 1.0, so area IoU alone cannot discriminate tiers. The PASS rule is the outline rule: mean|dh|>=0.04 grid or max|dh|>=0.12 grid or area IoU<=0.85, in at least one view at 50% scale
-    [INFO] area-IoU LOD0 Folktails front    Basic Intermed Advanced      Top
-    [INFO] area-IoU LOD0 Basic             1.000    0.976    0.959    0.956
-    [INFO] area-IoU LOD0 Intermediate      0.976    1.000    0.974    0.971
-    [INFO] area-IoU LOD0 Advanced          0.959    0.974    1.000    0.997
-    [INFO] area-IoU LOD0 Top               0.956    0.971    0.997    1.000
-    [INFO] area-IoU LOD0 Folktails side    Basic Intermed Advanced      Top
-    [INFO] area-IoU LOD0 Basic             1.000    0.964    0.959    0.941
-    [INFO] area-IoU LOD0 Intermediate      0.964    1.000    0.974    0.965
-    [INFO] area-IoU LOD0 Advanced          0.959    0.974    1.000    0.974
-    [INFO] area-IoU LOD0 Top               0.941    0.965    0.974    1.000
-    [INFO] area-IoU LOD0 Folktails top     Basic Intermed Advanced      Top
-    [INFO] area-IoU LOD0 Basic             1.000    1.000    1.000    1.000
-    [INFO] area-IoU LOD0 Intermediate      1.000    1.000    1.000    1.000
-    [INFO] area-IoU LOD0 Advanced          1.000    1.000    1.000    1.000
-    [INFO] area-IoU LOD0 Top               1.000    1.000    1.000    1.000
-    [INFO] area-IoU LOD2 Folktails front    Basic Intermed Advanced      Top
-    [INFO] area-IoU LOD2 Basic             1.000    0.956    0.934    0.934
-    [INFO] area-IoU LOD2 Intermediate      0.956    1.000    0.977    0.977
-    [INFO] area-IoU LOD2 Advanced          0.934    0.977    1.000    0.999
-    [INFO] area-IoU LOD2 Top               0.934    0.977    0.999    1.000
-    [INFO] area-IoU LOD2 Folktails side    Basic Intermed Advanced      Top
-    [INFO] area-IoU LOD2 Basic             1.000    0.971    0.954    0.925
-    [INFO] area-IoU LOD2 Intermediate      0.971    1.000    0.982    0.951
-    [INFO] area-IoU LOD2 Advanced          0.954    0.982    1.000    0.966
-    [INFO] area-IoU LOD2 Top               0.925    0.951    0.966    1.000
-    [INFO] area-IoU LOD2 Folktails top     Basic Intermed Advanced      Top
-    [INFO] area-IoU LOD2 Basic             1.000    1.000    1.000    1.000
-    [INFO] area-IoU LOD2 Intermediate      1.000    1.000    1.000    1.000
-    [INFO] area-IoU LOD2 Advanced          1.000    1.000    1.000    1.000
-    [INFO] area-IoU LOD2 Top               1.000    1.000    1.000    1.000
-    [INFO] area-IoU LOD0 IronTeeth front    Basic Intermed Advanced      Top
-    [INFO] area-IoU LOD0 Basic             1.000    0.978    0.960    0.957
-    [INFO] area-IoU LOD0 Intermediate      0.978    1.000    0.974    0.971
-    [INFO] area-IoU LOD0 Advanced          0.960    0.974    1.000    0.997
-    [INFO] area-IoU LOD0 Top               0.957    0.971    0.997    1.000
-    [INFO] area-IoU LOD0 IronTeeth side    Basic Intermed Advanced      Top
-    [INFO] area-IoU LOD0 Basic             1.000    0.964    0.959    0.941
-    [INFO] area-IoU LOD0 Intermediate      0.964    1.000    0.973    0.965
-    [INFO] area-IoU LOD0 Advanced          0.959    0.973    1.000    0.974
-    [INFO] area-IoU LOD0 Top               0.941    0.965    0.974    1.000
-    [INFO] area-IoU LOD0 IronTeeth top     Basic Intermed Advanced      Top
-    [INFO] area-IoU LOD0 Basic             1.000    1.000    1.000    1.000
-    [INFO] area-IoU LOD0 Intermediate      1.000    1.000    1.000    1.000
-    [INFO] area-IoU LOD0 Advanced          1.000    1.000    1.000    1.000
-    [INFO] area-IoU LOD0 Top               1.000    1.000    1.000    1.000
-    [INFO] area-IoU LOD2 IronTeeth front    Basic Intermed Advanced      Top
-    [INFO] area-IoU LOD2 Basic             1.000    0.956    0.934    0.934
-    [INFO] area-IoU LOD2 Intermediate      0.956    1.000    0.977    0.977
-    [INFO] area-IoU LOD2 Advanced          0.934    0.977    1.000    0.999
-    [INFO] area-IoU LOD2 Top               0.934    0.977    0.999    1.000
-    [INFO] area-IoU LOD2 IronTeeth side    Basic Intermed Advanced      Top
-    [INFO] area-IoU LOD2 Basic             1.000    0.971    0.954    0.925
-    [INFO] area-IoU LOD2 Intermediate      0.971    1.000    0.982    0.951
-    [INFO] area-IoU LOD2 Advanced          0.954    0.982    1.000    0.966
-    [INFO] area-IoU LOD2 Top               0.925    0.951    0.966    1.000
-    [INFO] area-IoU LOD2 IronTeeth top     Basic Intermed Advanced      Top
-    [INFO] area-IoU LOD2 Basic             1.000    1.000    1.000    1.000
-    [INFO] area-IoU LOD2 Intermediate      1.000    1.000    1.000    1.000
-    [INFO] area-IoU LOD2 Advanced          1.000    1.000    1.000    1.000
-    [INFO] area-IoU LOD2 Top               1.000    1.000    1.000    1.000
-    [PASS] [STRICT LOD2] Folktails Basic vs Intermediate: PASS via front,side | front m=0.038 x=0.156 iou=0.956 *; side m=0.027 x=0.156 iou=0.971 *; top m=0.000 x=0.000 iou=1.000
-    [PASS] [STRICT LOD2] Folktails Basic vs Advanced: PASS via front,side | front m=0.061 x=0.188 iou=0.934 *; side m=0.042 x=0.219 iou=0.954 *; top m=0.000 x=0.000 iou=1.000
-    [PASS] [STRICT LOD2] Folktails Basic vs Top: PASS via front,side | front m=0.064 x=0.188 iou=0.934 *; side m=0.075 x=0.219 iou=0.925 *; top m=0.000 x=0.000 iou=1.000
-    [PASS] [STRICT LOD2] Folktails Intermediate vs Advanced: PASS via side | front m=0.022 x=0.031 iou=0.977; side m=0.016 x=0.125 iou=0.982 *; top m=0.000 x=0.000 iou=1.000
-    [PASS] [STRICT LOD2] Folktails Intermediate vs Top: PASS via front,side | front m=0.026 x=0.188 iou=0.977 *; side m=0.050 x=0.188 iou=0.951 *; top m=0.000 x=0.000 iou=1.000
-    [PASS] [STRICT LOD2] Folktails Advanced vs Top: PASS via front,side | front m=0.004 x=0.188 iou=0.999 *; side m=0.036 x=0.188 iou=0.966 *; top m=0.000 x=0.000 iou=1.000
-    [PASS] [STRICT LOD2] IronTeeth Basic vs Intermediate: PASS via front,side | front m=0.038 x=0.156 iou=0.956 *; side m=0.027 x=0.156 iou=0.971 *; top m=0.000 x=0.000 iou=1.000
-    [PASS] [STRICT LOD2] IronTeeth Basic vs Advanced: PASS via front,side | front m=0.061 x=0.188 iou=0.934 *; side m=0.042 x=0.219 iou=0.954 *; top m=0.000 x=0.000 iou=1.000
-    [PASS] [STRICT LOD2] IronTeeth Basic vs Top: PASS via front,side | front m=0.064 x=0.188 iou=0.934 *; side m=0.075 x=0.219 iou=0.925 *; top m=0.000 x=0.000 iou=1.000
-    [PASS] [STRICT LOD2] IronTeeth Intermediate vs Advanced: PASS via side | front m=0.022 x=0.031 iou=0.977; side m=0.016 x=0.125 iou=0.982 *; top m=0.000 x=0.000 iou=1.000
-    [PASS] [STRICT LOD2] IronTeeth Intermediate vs Top: PASS via front,side | front m=0.026 x=0.188 iou=0.977 *; side m=0.050 x=0.188 iou=0.951 *; top m=0.000 x=0.000 iou=1.000
-    [PASS] [STRICT LOD2] IronTeeth Advanced vs Top: PASS via front,side | front m=0.004 x=0.188 iou=0.999 *; side m=0.036 x=0.188 iou=0.966 *; top m=0.000 x=0.000 iou=1.000
-    [INFO] [report LOD0] PASS Folktails Basic vs Intermediate: PASS via front,side | front m=0.036 x=0.688 iou=0.976 *; side m=0.038 x=0.156 iou=0.964 *; top m=0.000 x=0.000 iou=1.000
-    [INFO] [report LOD0] PASS Folktails Basic vs Advanced: PASS via front,side | front m=0.040 x=0.188 iou=0.959 *; side m=0.038 x=0.188 iou=0.959 *; top m=0.000 x=0.000 iou=1.000
-    [INFO] [report LOD0] PASS Folktails Basic vs Top: PASS via front,side | front m=0.049 x=0.500 iou=0.956 *; side m=0.057 x=0.188 iou=0.941 *; top m=0.000 x=0.000 iou=1.000
-    [INFO] [report LOD0] PASS Folktails Intermediate vs Advanced: PASS via front | front m=0.038 x=0.688 iou=0.974 *; side m=0.021 x=0.094 iou=0.974; top m=0.000 x=0.000 iou=1.000
-    [INFO] [report LOD0] PASS Folktails Intermediate vs Top: PASS via front,side | front m=0.033 x=0.688 iou=0.971 *; side m=0.028 x=0.156 iou=0.965 *; top m=0.000 x=0.000 iou=1.000
-    [INFO] [report LOD0] PASS Folktails Advanced vs Top: PASS via front,side | front m=0.009 x=0.500 iou=0.997 *; side m=0.025 x=0.156 iou=0.974 *; top m=0.000 x=0.000 iou=1.000
-    [INFO] [report LOD0] PASS IronTeeth Basic vs Intermediate: PASS via front,side | front m=0.035 x=0.688 iou=0.978 *; side m=0.038 x=0.156 iou=0.964 *; top m=0.000 x=0.000 iou=1.000
-    [INFO] [report LOD0] PASS IronTeeth Basic vs Advanced: PASS via front,side | front m=0.039 x=0.188 iou=0.960 *; side m=0.038 x=0.188 iou=0.959 *; top m=0.000 x=0.000 iou=1.000
-    [INFO] [report LOD0] PASS IronTeeth Basic vs Top: PASS via front,side | front m=0.048 x=0.500 iou=0.957 *; side m=0.057 x=0.188 iou=0.941 *; top m=0.000 x=0.000 iou=1.000
-    [INFO] [report LOD0] PASS IronTeeth Intermediate vs Advanced: PASS via front | front m=0.038 x=0.688 iou=0.974 *; side m=0.021 x=0.094 iou=0.973; top m=0.000 x=0.000 iou=1.000
-    [INFO] [report LOD0] PASS IronTeeth Intermediate vs Top: PASS via front,side | front m=0.033 x=0.688 iou=0.971 *; side m=0.028 x=0.156 iou=0.965 *; top m=0.000 x=0.000 iou=1.000
-    [INFO] [report LOD0] PASS IronTeeth Advanced vs Top: PASS via front,side | front m=0.009 x=0.500 iou=0.997 *; side m=0.025 x=0.156 iou=0.974 *; top m=0.000 x=0.000 iou=1.000
-    [PASS] 12/12 tier pairs distinguishable at 50% scale under the outline rule (LOD2 strict; mean|dh|>=0.04 or max|dh|>=0.12 grid or area IoU<=0.85)
-  end of report
-==============================================================================
+report written by art/validate_models.py (offline validation, not an in-game check)

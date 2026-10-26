@@ -1,36 +1,114 @@
 {
-  "generated_by": "art/gen_models.py (ART-04 flat-roof / flat-patch revision)",
-  "art_revision": "ART-04",
+  "generated_by": "art/gen_models_v2.py (HDBF v2 3x3x1 indoor farm)",
+  "art_revision": "v2",
+  "envelope": {
+    "description": "strict block-object envelope in asset space (X width, Y up, Z depth; front -Z; pivot at footprint bottom centre)",
+    "size": [
+      3.0,
+      1.0,
+      3.0
+    ],
+    "min": [
+      -1.5,
+      0.0,
+      -1.5
+    ],
+    "max": [
+      1.5,
+      1.0,
+      1.5
+    ],
+    "tolerance": 0.02
+  },
   "roof_platform": {
-    "description": "ONE empty flat platform per model; no crop slots, no soil, no roof objects. Thin curb is the envelope apex.",
-    "top_contract": 0.96,
-    "curb_top_contract": 1.0,
-    "curb_height": 0.04,
-    "curb_width": 0.04,
-    "clear_above": 0.06,
+    "description": "ONE flat empty platform per model. The WALKING SURFACE is the model apex at y = 1.00; nothing exists above it; the 30 cm above it is empty (stacking safe). The perimeter fascia is a flush 0.04 band whose top is the walking surface (protrusion above the top = 0.00).",
+    "top": 1.0,
+    "walking_surface_is_model_apex": true,
+    "fascia_height": 0.04,
+    "fascia_width": 0.04,
+    "fascia_protrusion_above_top": 0.0,
+    "clear_above": 0.3,
     "plans": {
       "Basic": {
-        "size_x": 2.05,
-        "size_z": 1.25
+        "size_x": 2.84,
+        "size_z": 2.84
       },
       "Intermediate": {
-        "size_x": 2.45,
-        "size_z": 1.55
+        "size_x": 2.92,
+        "size_z": 2.92
       },
       "Advanced": {
-        "size_x": 2.78,
-        "size_z": 1.82
+        "size_x": 2.96,
+        "size_z": 2.96
       },
       "Top": {
-        "size_x": 2.96,
-        "size_z": 1.96
+        "size_x": 2.98,
+        "size_z": 2.98
       },
       "ConstructionStage0": {
-        "size_x": 2.86,
-        "size_z": 1.86
+        "size_x": 2.9,
+        "size_z": 2.9
       }
     }
   },
+  "indoor": {
+    "shelf_levels": 3,
+    "shelf_min_levels_checked": 2,
+    "glass_area_min": {
+      "Basic": 0.0,
+      "Intermediate": 0.35,
+      "Advanced": 0.6,
+      "Top": 0.85
+    },
+    "open_front_bays": {
+      "Basic": 3,
+      "Intermediate": 0,
+      "Advanced": 0,
+      "Top": 0
+    }
+  },
+  "ports": [
+    {
+      "name": "#Port#Power",
+      "asset_position": [
+        1.0,
+        0.85,
+        1.5
+      ],
+      "outward": [
+        0,
+        0,
+        1
+      ]
+    },
+    {
+      "name": "#Port#Pipe",
+      "asset_position": [
+        -1.5,
+        0.4,
+        0.0
+      ],
+      "outward": [
+        -1,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "#Port#Logistics",
+      "asset_position": [
+        -1.0,
+        0.35,
+        1.5
+      ],
+      "outward": [
+        0,
+        0,
+        1
+      ]
+    }
+  ],
+  "slots_markers": [],
   "atlas": {
     "size": 2048,
     "files": {
@@ -44,7 +122,7 @@
       "mask": "linear RGBA: R=metallic, G=roughness, A=smoothness, B=metallic duplicate (glTF metallicRoughness packing)"
     },
     "padding_px": 4,
-    "uv_space": "ART-04: every face of one material is mapped into that material's fixed flat patch (no per-face unique packing); all uv0 in [0,1]",
+    "uv_space": "flat patch: every face of one material is mapped into that material's fixed patch (all uv0 in [0,1])",
     "patch_texels_per_grid": 64
   },
   "material_order": [
@@ -759,7 +837,22 @@
           "M_HDBF_Wood",
           "M_HDBF_Fabric"
         ],
-        "triangles": 5944,
+        "triangles": 5942,
+        "bounds_size": [
+          3.0,
+          1.0,
+          3.0
+        ],
+        "bounds_min": [
+          -1.5,
+          0.0,
+          -1.5
+        ],
+        "bounds_max": [
+          1.5,
+          1.0,
+          1.5
+        ],
         "material_patches": {
           "M_HDBF_Wood": {
             "id": "wood_plain",
@@ -807,10 +900,17 @@
           }
         },
         "roof_platform": {
-          "size_x": 2.05,
-          "size_z": 1.25,
-          "top": 0.96,
-          "curb_top": 1.0
+          "size_x": 2.84,
+          "size_z": 2.84,
+          "top": 1.0,
+          "curb_h": 0.04,
+          "clear_above": 0.3,
+          "fascia_protrusion_above_top": 0.0
+        },
+        "facade": {
+          "openings": 5,
+          "shelf_levels": 3,
+          "glass_area_hint": 0.0
         }
       },
       "LOD1": {
@@ -820,6 +920,21 @@
           "M_HDBF_Fabric"
         ],
         "triangles": 2382,
+        "bounds_size": [
+          3.0,
+          1.0,
+          3.0
+        ],
+        "bounds_min": [
+          -1.5,
+          0.0,
+          -1.5
+        ],
+        "bounds_max": [
+          1.5,
+          1.0,
+          1.5
+        ],
         "material_patches": {
           "M_HDBF_Wood": {
             "id": "wood_plain",
@@ -867,10 +982,17 @@
           }
         },
         "roof_platform": {
-          "size_x": 2.05,
-          "size_z": 1.25,
-          "top": 0.96,
-          "curb_top": 1.0
+          "size_x": 2.84,
+          "size_z": 2.84,
+          "top": 1.0,
+          "curb_h": 0.04,
+          "clear_above": 0.3,
+          "fascia_protrusion_above_top": 0.0
+        },
+        "facade": {
+          "openings": 5,
+          "shelf_levels": 3,
+          "glass_area_hint": 0.0
         }
       },
       "LOD2": {
@@ -879,7 +1001,22 @@
           "M_HDBF_Wood",
           "M_HDBF_Fabric"
         ],
-        "triangles": 796,
+        "triangles": 794,
+        "bounds_size": [
+          3.0,
+          1.0,
+          3.0
+        ],
+        "bounds_min": [
+          -1.5,
+          0.0,
+          -1.5
+        ],
+        "bounds_max": [
+          1.5,
+          1.0,
+          1.5
+        ],
         "material_patches": {
           "M_HDBF_Wood": {
             "id": "wood_plain",
@@ -927,10 +1064,17 @@
           }
         },
         "roof_platform": {
-          "size_x": 2.05,
-          "size_z": 1.25,
-          "top": 0.96,
-          "curb_top": 1.0
+          "size_x": 2.84,
+          "size_z": 2.84,
+          "top": 1.0,
+          "curb_h": 0.04,
+          "clear_above": 0.3,
+          "fascia_protrusion_above_top": 0.0
+        },
+        "facade": {
+          "openings": 5,
+          "shelf_levels": 3,
+          "glass_area_hint": 0.0
         }
       }
     },
@@ -941,7 +1085,22 @@
           "M_HDBF_Wood",
           "M_HDBF_Fabric"
         ],
-        "triangles": 5944,
+        "triangles": 5942,
+        "bounds_size": [
+          3.0,
+          1.0,
+          3.0
+        ],
+        "bounds_min": [
+          -1.5,
+          0.0,
+          -1.5
+        ],
+        "bounds_max": [
+          1.5,
+          1.0,
+          1.5
+        ],
         "material_patches": {
           "M_HDBF_Wood": {
             "id": "wood_plain",
@@ -989,10 +1148,17 @@
           }
         },
         "roof_platform": {
-          "size_x": 2.05,
-          "size_z": 1.25,
-          "top": 0.96,
-          "curb_top": 1.0
+          "size_x": 2.84,
+          "size_z": 2.84,
+          "top": 1.0,
+          "curb_h": 0.04,
+          "clear_above": 0.3,
+          "fascia_protrusion_above_top": 0.0
+        },
+        "facade": {
+          "openings": 5,
+          "shelf_levels": 3,
+          "glass_area_hint": 0.0
         }
       },
       "LOD1": {
@@ -1002,6 +1168,21 @@
           "M_HDBF_Fabric"
         ],
         "triangles": 2382,
+        "bounds_size": [
+          3.0,
+          1.0,
+          3.0
+        ],
+        "bounds_min": [
+          -1.5,
+          0.0,
+          -1.5
+        ],
+        "bounds_max": [
+          1.5,
+          1.0,
+          1.5
+        ],
         "material_patches": {
           "M_HDBF_Wood": {
             "id": "wood_plain",
@@ -1049,10 +1230,17 @@
           }
         },
         "roof_platform": {
-          "size_x": 2.05,
-          "size_z": 1.25,
-          "top": 0.96,
-          "curb_top": 1.0
+          "size_x": 2.84,
+          "size_z": 2.84,
+          "top": 1.0,
+          "curb_h": 0.04,
+          "clear_above": 0.3,
+          "fascia_protrusion_above_top": 0.0
+        },
+        "facade": {
+          "openings": 5,
+          "shelf_levels": 3,
+          "glass_area_hint": 0.0
         }
       },
       "LOD2": {
@@ -1061,7 +1249,22 @@
           "M_HDBF_Wood",
           "M_HDBF_Fabric"
         ],
-        "triangles": 796,
+        "triangles": 794,
+        "bounds_size": [
+          3.0,
+          1.0,
+          3.0
+        ],
+        "bounds_min": [
+          -1.5,
+          0.0,
+          -1.5
+        ],
+        "bounds_max": [
+          1.5,
+          1.0,
+          1.5
+        ],
         "material_patches": {
           "M_HDBF_Wood": {
             "id": "wood_plain",
@@ -1109,10 +1312,17 @@
           }
         },
         "roof_platform": {
-          "size_x": 2.05,
-          "size_z": 1.25,
-          "top": 0.96,
-          "curb_top": 1.0
+          "size_x": 2.84,
+          "size_z": 2.84,
+          "top": 1.0,
+          "curb_h": 0.04,
+          "clear_above": 0.3,
+          "fascia_protrusion_above_top": 0.0
+        },
+        "facade": {
+          "openings": 5,
+          "shelf_levels": 3,
+          "glass_area_hint": 0.0
         }
       }
     },
@@ -1124,7 +1334,22 @@
           "M_HDBF_Glass",
           "M_HDBF_Fabric"
         ],
-        "triangles": 5944,
+        "triangles": 5950,
+        "bounds_size": [
+          3.0,
+          1.0,
+          3.0
+        ],
+        "bounds_min": [
+          -1.5,
+          0.0,
+          -1.5
+        ],
+        "bounds_max": [
+          1.5,
+          1.0,
+          1.5
+        ],
         "material_patches": {
           "M_HDBF_Wood": {
             "id": "planks_light",
@@ -1194,10 +1419,17 @@
           }
         },
         "roof_platform": {
-          "size_x": 2.45,
-          "size_z": 1.55,
-          "top": 0.96,
-          "curb_top": 1.0
+          "size_x": 2.92,
+          "size_z": 2.92,
+          "top": 1.0,
+          "curb_h": 0.04,
+          "clear_above": 0.3,
+          "fascia_protrusion_above_top": 0.0
+        },
+        "facade": {
+          "openings": 6,
+          "shelf_levels": 3,
+          "glass_area_hint": 0.35
         }
       },
       "LOD1": {
@@ -1208,6 +1440,21 @@
           "M_HDBF_Fabric"
         ],
         "triangles": 2382,
+        "bounds_size": [
+          3.0,
+          1.0,
+          3.0
+        ],
+        "bounds_min": [
+          -1.5,
+          0.0,
+          -1.5
+        ],
+        "bounds_max": [
+          1.5,
+          1.0,
+          1.5
+        ],
         "material_patches": {
           "M_HDBF_Wood": {
             "id": "planks_light",
@@ -1277,10 +1524,17 @@
           }
         },
         "roof_platform": {
-          "size_x": 2.45,
-          "size_z": 1.55,
-          "top": 0.96,
-          "curb_top": 1.0
+          "size_x": 2.92,
+          "size_z": 2.92,
+          "top": 1.0,
+          "curb_h": 0.04,
+          "clear_above": 0.3,
+          "fascia_protrusion_above_top": 0.0
+        },
+        "facade": {
+          "openings": 6,
+          "shelf_levels": 3,
+          "glass_area_hint": 0.35
         }
       },
       "LOD2": {
@@ -1290,7 +1544,22 @@
           "M_HDBF_Glass",
           "M_HDBF_Fabric"
         ],
-        "triangles": 820,
+        "triangles": 822,
+        "bounds_size": [
+          3.0,
+          1.0,
+          3.0
+        ],
+        "bounds_min": [
+          -1.5,
+          0.0,
+          -1.5
+        ],
+        "bounds_max": [
+          1.5,
+          1.0,
+          1.5
+        ],
         "material_patches": {
           "M_HDBF_Wood": {
             "id": "planks_light",
@@ -1360,10 +1629,17 @@
           }
         },
         "roof_platform": {
-          "size_x": 2.45,
-          "size_z": 1.55,
-          "top": 0.96,
-          "curb_top": 1.0
+          "size_x": 2.92,
+          "size_z": 2.92,
+          "top": 1.0,
+          "curb_h": 0.04,
+          "clear_above": 0.3,
+          "fascia_protrusion_above_top": 0.0
+        },
+        "facade": {
+          "openings": 6,
+          "shelf_levels": 3,
+          "glass_area_hint": 0.35
         }
       }
     },
@@ -1375,7 +1651,22 @@
           "M_HDBF_Glass",
           "M_HDBF_Fabric"
         ],
-        "triangles": 5944,
+        "triangles": 5950,
+        "bounds_size": [
+          3.0,
+          1.0,
+          3.0
+        ],
+        "bounds_min": [
+          -1.5,
+          0.0,
+          -1.5
+        ],
+        "bounds_max": [
+          1.5,
+          1.0,
+          1.5
+        ],
         "material_patches": {
           "M_HDBF_Wood": {
             "id": "planks_light",
@@ -1445,10 +1736,17 @@
           }
         },
         "roof_platform": {
-          "size_x": 2.45,
-          "size_z": 1.55,
-          "top": 0.96,
-          "curb_top": 1.0
+          "size_x": 2.92,
+          "size_z": 2.92,
+          "top": 1.0,
+          "curb_h": 0.04,
+          "clear_above": 0.3,
+          "fascia_protrusion_above_top": 0.0
+        },
+        "facade": {
+          "openings": 6,
+          "shelf_levels": 3,
+          "glass_area_hint": 0.35
         }
       },
       "LOD1": {
@@ -1459,6 +1757,21 @@
           "M_HDBF_Fabric"
         ],
         "triangles": 2382,
+        "bounds_size": [
+          3.0,
+          1.0,
+          3.0
+        ],
+        "bounds_min": [
+          -1.5,
+          0.0,
+          -1.5
+        ],
+        "bounds_max": [
+          1.5,
+          1.0,
+          1.5
+        ],
         "material_patches": {
           "M_HDBF_Wood": {
             "id": "planks_light",
@@ -1528,10 +1841,17 @@
           }
         },
         "roof_platform": {
-          "size_x": 2.45,
-          "size_z": 1.55,
-          "top": 0.96,
-          "curb_top": 1.0
+          "size_x": 2.92,
+          "size_z": 2.92,
+          "top": 1.0,
+          "curb_h": 0.04,
+          "clear_above": 0.3,
+          "fascia_protrusion_above_top": 0.0
+        },
+        "facade": {
+          "openings": 6,
+          "shelf_levels": 3,
+          "glass_area_hint": 0.35
         }
       },
       "LOD2": {
@@ -1541,7 +1861,22 @@
           "M_HDBF_Glass",
           "M_HDBF_Fabric"
         ],
-        "triangles": 820,
+        "triangles": 822,
+        "bounds_size": [
+          3.0,
+          1.0,
+          3.0
+        ],
+        "bounds_min": [
+          -1.5,
+          0.0,
+          -1.5
+        ],
+        "bounds_max": [
+          1.5,
+          1.0,
+          1.5
+        ],
         "material_patches": {
           "M_HDBF_Wood": {
             "id": "planks_light",
@@ -1611,10 +1946,17 @@
           }
         },
         "roof_platform": {
-          "size_x": 2.45,
-          "size_z": 1.55,
-          "top": 0.96,
-          "curb_top": 1.0
+          "size_x": 2.92,
+          "size_z": 2.92,
+          "top": 1.0,
+          "curb_h": 0.04,
+          "clear_above": 0.3,
+          "fascia_protrusion_above_top": 0.0
+        },
+        "facade": {
+          "openings": 6,
+          "shelf_levels": 3,
+          "glass_area_hint": 0.35
         }
       }
     },
@@ -1627,7 +1969,22 @@
           "M_HDBF_Glass",
           "M_HDBF_Fabric"
         ],
-        "triangles": 5944,
+        "triangles": 5950,
+        "bounds_size": [
+          3.0,
+          1.0,
+          3.0
+        ],
+        "bounds_min": [
+          -1.5,
+          0.0,
+          -1.5
+        ],
+        "bounds_max": [
+          1.5,
+          1.0,
+          1.5
+        ],
         "material_patches": {
           "M_HDBF_Wood": {
             "id": "wood_light",
@@ -1719,10 +2076,17 @@
           }
         },
         "roof_platform": {
-          "size_x": 2.78,
-          "size_z": 1.82,
-          "top": 0.96,
-          "curb_top": 1.0
+          "size_x": 2.96,
+          "size_z": 2.96,
+          "top": 1.0,
+          "curb_h": 0.04,
+          "clear_above": 0.3,
+          "fascia_protrusion_above_top": 0.0
+        },
+        "facade": {
+          "openings": 13,
+          "shelf_levels": 3,
+          "glass_area_hint": 0.6
         }
       },
       "LOD1": {
@@ -1733,7 +2097,22 @@
           "M_HDBF_Glass",
           "M_HDBF_Fabric"
         ],
-        "triangles": 2382,
+        "triangles": 2394,
+        "bounds_size": [
+          3.0,
+          1.0,
+          3.0
+        ],
+        "bounds_min": [
+          -1.5,
+          0.0,
+          -1.5
+        ],
+        "bounds_max": [
+          1.5,
+          1.0,
+          1.5
+        ],
         "material_patches": {
           "M_HDBF_Wood": {
             "id": "wood_light",
@@ -1825,10 +2204,17 @@
           }
         },
         "roof_platform": {
-          "size_x": 2.78,
-          "size_z": 1.82,
-          "top": 0.96,
-          "curb_top": 1.0
+          "size_x": 2.96,
+          "size_z": 2.96,
+          "top": 1.0,
+          "curb_h": 0.04,
+          "clear_above": 0.3,
+          "fascia_protrusion_above_top": 0.0
+        },
+        "facade": {
+          "openings": 13,
+          "shelf_levels": 3,
+          "glass_area_hint": 0.6
         }
       },
       "LOD2": {
@@ -1839,7 +2225,22 @@
           "M_HDBF_Glass",
           "M_HDBF_Fabric"
         ],
-        "triangles": 832,
+        "triangles": 818,
+        "bounds_size": [
+          3.0,
+          1.0,
+          3.0
+        ],
+        "bounds_min": [
+          -1.5,
+          0.0,
+          -1.5
+        ],
+        "bounds_max": [
+          1.5,
+          1.0,
+          1.5
+        ],
         "material_patches": {
           "M_HDBF_Wood": {
             "id": "wood_light",
@@ -1931,10 +2332,17 @@
           }
         },
         "roof_platform": {
-          "size_x": 2.78,
-          "size_z": 1.82,
-          "top": 0.96,
-          "curb_top": 1.0
+          "size_x": 2.96,
+          "size_z": 2.96,
+          "top": 1.0,
+          "curb_h": 0.04,
+          "clear_above": 0.3,
+          "fascia_protrusion_above_top": 0.0
+        },
+        "facade": {
+          "openings": 13,
+          "shelf_levels": 3,
+          "glass_area_hint": 0.6
         }
       }
     },
@@ -1947,7 +2355,22 @@
           "M_HDBF_Glass",
           "M_HDBF_Fabric"
         ],
-        "triangles": 5944,
+        "triangles": 5950,
+        "bounds_size": [
+          3.0,
+          1.0,
+          3.0
+        ],
+        "bounds_min": [
+          -1.5,
+          0.0,
+          -1.5
+        ],
+        "bounds_max": [
+          1.5,
+          1.0,
+          1.5
+        ],
         "material_patches": {
           "M_HDBF_Wood": {
             "id": "wood_light",
@@ -2039,10 +2462,17 @@
           }
         },
         "roof_platform": {
-          "size_x": 2.78,
-          "size_z": 1.82,
-          "top": 0.96,
-          "curb_top": 1.0
+          "size_x": 2.96,
+          "size_z": 2.96,
+          "top": 1.0,
+          "curb_h": 0.04,
+          "clear_above": 0.3,
+          "fascia_protrusion_above_top": 0.0
+        },
+        "facade": {
+          "openings": 13,
+          "shelf_levels": 3,
+          "glass_area_hint": 0.6
         }
       },
       "LOD1": {
@@ -2053,7 +2483,22 @@
           "M_HDBF_Glass",
           "M_HDBF_Fabric"
         ],
-        "triangles": 2382,
+        "triangles": 2394,
+        "bounds_size": [
+          3.0,
+          1.0,
+          3.0
+        ],
+        "bounds_min": [
+          -1.5,
+          0.0,
+          -1.5
+        ],
+        "bounds_max": [
+          1.5,
+          1.0,
+          1.5
+        ],
         "material_patches": {
           "M_HDBF_Wood": {
             "id": "wood_light",
@@ -2145,10 +2590,17 @@
           }
         },
         "roof_platform": {
-          "size_x": 2.78,
-          "size_z": 1.82,
-          "top": 0.96,
-          "curb_top": 1.0
+          "size_x": 2.96,
+          "size_z": 2.96,
+          "top": 1.0,
+          "curb_h": 0.04,
+          "clear_above": 0.3,
+          "fascia_protrusion_above_top": 0.0
+        },
+        "facade": {
+          "openings": 13,
+          "shelf_levels": 3,
+          "glass_area_hint": 0.6
         }
       },
       "LOD2": {
@@ -2159,7 +2611,22 @@
           "M_HDBF_Glass",
           "M_HDBF_Fabric"
         ],
-        "triangles": 832,
+        "triangles": 818,
+        "bounds_size": [
+          3.0,
+          1.0,
+          3.0
+        ],
+        "bounds_min": [
+          -1.5,
+          0.0,
+          -1.5
+        ],
+        "bounds_max": [
+          1.5,
+          1.0,
+          1.5
+        ],
         "material_patches": {
           "M_HDBF_Wood": {
             "id": "wood_light",
@@ -2251,10 +2718,17 @@
           }
         },
         "roof_platform": {
-          "size_x": 2.78,
-          "size_z": 1.82,
-          "top": 0.96,
-          "curb_top": 1.0
+          "size_x": 2.96,
+          "size_z": 2.96,
+          "top": 1.0,
+          "curb_h": 0.04,
+          "clear_above": 0.3,
+          "fascia_protrusion_above_top": 0.0
+        },
+        "facade": {
+          "openings": 13,
+          "shelf_levels": 3,
+          "glass_area_hint": 0.6
         }
       }
     },
@@ -2267,7 +2741,22 @@
           "M_HDBF_Glass",
           "M_HDBF_Fabric"
         ],
-        "triangles": 5948,
+        "triangles": 5958,
+        "bounds_size": [
+          3.0,
+          1.0,
+          3.0
+        ],
+        "bounds_min": [
+          -1.5,
+          0.0,
+          -1.5
+        ],
+        "bounds_max": [
+          1.5,
+          1.0,
+          1.5
+        ],
         "material_patches": {
           "M_HDBF_Wood": {
             "id": "planks_brown",
@@ -2359,10 +2848,17 @@
           }
         },
         "roof_platform": {
-          "size_x": 2.96,
-          "size_z": 1.96,
-          "top": 0.96,
-          "curb_top": 1.0
+          "size_x": 2.98,
+          "size_z": 2.98,
+          "top": 1.0,
+          "curb_h": 0.04,
+          "clear_above": 0.3,
+          "fascia_protrusion_above_top": 0.0
+        },
+        "facade": {
+          "openings": 17,
+          "shelf_levels": 3,
+          "glass_area_hint": 0.85
         }
       },
       "LOD1": {
@@ -2373,7 +2869,22 @@
           "M_HDBF_Glass",
           "M_HDBF_Fabric"
         ],
-        "triangles": 2382,
+        "triangles": 2402,
+        "bounds_size": [
+          3.0,
+          1.0,
+          3.0
+        ],
+        "bounds_min": [
+          -1.5,
+          0.0,
+          -1.5
+        ],
+        "bounds_max": [
+          1.5,
+          1.0,
+          1.5
+        ],
         "material_patches": {
           "M_HDBF_Wood": {
             "id": "planks_brown",
@@ -2465,10 +2976,17 @@
           }
         },
         "roof_platform": {
-          "size_x": 2.96,
-          "size_z": 1.96,
-          "top": 0.96,
-          "curb_top": 1.0
+          "size_x": 2.98,
+          "size_z": 2.98,
+          "top": 1.0,
+          "curb_h": 0.04,
+          "clear_above": 0.3,
+          "fascia_protrusion_above_top": 0.0
+        },
+        "facade": {
+          "openings": 17,
+          "shelf_levels": 3,
+          "glass_area_hint": 0.85
         }
       },
       "LOD2": {
@@ -2479,7 +2997,22 @@
           "M_HDBF_Glass",
           "M_HDBF_Fabric"
         ],
-        "triangles": 832,
+        "triangles": 822,
+        "bounds_size": [
+          3.0,
+          1.0,
+          3.0
+        ],
+        "bounds_min": [
+          -1.5,
+          0.0,
+          -1.5
+        ],
+        "bounds_max": [
+          1.5,
+          1.0,
+          1.5
+        ],
         "material_patches": {
           "M_HDBF_Wood": {
             "id": "planks_brown",
@@ -2571,10 +3104,17 @@
           }
         },
         "roof_platform": {
-          "size_x": 2.96,
-          "size_z": 1.96,
-          "top": 0.96,
-          "curb_top": 1.0
+          "size_x": 2.98,
+          "size_z": 2.98,
+          "top": 1.0,
+          "curb_h": 0.04,
+          "clear_above": 0.3,
+          "fascia_protrusion_above_top": 0.0
+        },
+        "facade": {
+          "openings": 17,
+          "shelf_levels": 3,
+          "glass_area_hint": 0.85
         }
       }
     },
@@ -2587,7 +3127,22 @@
           "M_HDBF_Glass",
           "M_HDBF_Fabric"
         ],
-        "triangles": 5948,
+        "triangles": 5958,
+        "bounds_size": [
+          3.0,
+          1.0,
+          3.0
+        ],
+        "bounds_min": [
+          -1.5,
+          0.0,
+          -1.5
+        ],
+        "bounds_max": [
+          1.5,
+          1.0,
+          1.5
+        ],
         "material_patches": {
           "M_HDBF_Wood": {
             "id": "wood_plain",
@@ -2679,10 +3234,17 @@
           }
         },
         "roof_platform": {
-          "size_x": 2.96,
-          "size_z": 1.96,
-          "top": 0.96,
-          "curb_top": 1.0
+          "size_x": 2.98,
+          "size_z": 2.98,
+          "top": 1.0,
+          "curb_h": 0.04,
+          "clear_above": 0.3,
+          "fascia_protrusion_above_top": 0.0
+        },
+        "facade": {
+          "openings": 17,
+          "shelf_levels": 3,
+          "glass_area_hint": 0.85
         }
       },
       "LOD1": {
@@ -2693,7 +3255,22 @@
           "M_HDBF_Glass",
           "M_HDBF_Fabric"
         ],
-        "triangles": 2382,
+        "triangles": 2402,
+        "bounds_size": [
+          3.0,
+          1.0,
+          3.0
+        ],
+        "bounds_min": [
+          -1.5,
+          0.0,
+          -1.5
+        ],
+        "bounds_max": [
+          1.5,
+          1.0,
+          1.5
+        ],
         "material_patches": {
           "M_HDBF_Wood": {
             "id": "wood_plain",
@@ -2785,10 +3362,17 @@
           }
         },
         "roof_platform": {
-          "size_x": 2.96,
-          "size_z": 1.96,
-          "top": 0.96,
-          "curb_top": 1.0
+          "size_x": 2.98,
+          "size_z": 2.98,
+          "top": 1.0,
+          "curb_h": 0.04,
+          "clear_above": 0.3,
+          "fascia_protrusion_above_top": 0.0
+        },
+        "facade": {
+          "openings": 17,
+          "shelf_levels": 3,
+          "glass_area_hint": 0.85
         }
       },
       "LOD2": {
@@ -2799,7 +3383,22 @@
           "M_HDBF_Glass",
           "M_HDBF_Fabric"
         ],
-        "triangles": 832,
+        "triangles": 822,
+        "bounds_size": [
+          3.0,
+          1.0,
+          3.0
+        ],
+        "bounds_min": [
+          -1.5,
+          0.0,
+          -1.5
+        ],
+        "bounds_max": [
+          1.5,
+          1.0,
+          1.5
+        ],
         "material_patches": {
           "M_HDBF_Wood": {
             "id": "wood_plain",
@@ -2891,10 +3490,17 @@
           }
         },
         "roof_platform": {
-          "size_x": 2.96,
-          "size_z": 1.96,
-          "top": 0.96,
-          "curb_top": 1.0
+          "size_x": 2.98,
+          "size_z": 2.98,
+          "top": 1.0,
+          "curb_h": 0.04,
+          "clear_above": 0.3,
+          "fascia_protrusion_above_top": 0.0
+        },
+        "facade": {
+          "openings": 17,
+          "shelf_levels": 3,
+          "glass_area_hint": 0.85
         }
       }
     },
@@ -2905,7 +3511,22 @@
           "M_HDBF_Wood",
           "M_HDBF_Metal"
         ],
-        "triangles": 348,
+        "triangles": 372,
+        "bounds_size": [
+          3.0,
+          1.0,
+          3.0
+        ],
+        "bounds_min": [
+          -1.5,
+          0.0,
+          -1.5
+        ],
+        "bounds_max": [
+          1.5,
+          1.0,
+          1.5
+        ],
         "material_patches": {
           "M_HDBF_Wood": {
             "id": "wood_plain",
@@ -2953,10 +3574,17 @@
           }
         },
         "roof_platform": {
-          "size_x": 2.86,
-          "size_z": 1.86,
-          "top": 0.96,
-          "curb_top": 1.0
+          "size_x": 2.9,
+          "size_z": 2.9,
+          "top": 1.0,
+          "curb_h": 0.04,
+          "clear_above": 0.3,
+          "fascia_protrusion_above_top": 0.0
+        },
+        "facade": {
+          "openings": 0,
+          "shelf_levels": 0,
+          "glass_area_hint": 0.0
         }
       }
     }

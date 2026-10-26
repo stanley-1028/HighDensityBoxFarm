@@ -1,5 +1,13 @@
 # HDBF 盒子農場 — ART-04 `.timbermesh` 匯出與材質貼片交接（`art/`）
 
+> **v2 更新（2026-10-26）：本文件是 ART-04（3×2×1）歷史交接文檔。**
+> 現行交付是 v2 **3×3×1** 室內高密度農場：生成器 `art/gen_models_v2.py`、驗證器
+> `art/validate_models.py` / `art/validate_timbermesh.py`、匯出器 `art/export_timbermesh.py`
+> （v2 已更新）、契約文檔 `data/ART_PLACEHOLDER.md`。本文件中的 3×2 座標、平台尺寸、
+> 節點/材質表與 ART-02/04 報告數字**已過時**，僅作歷史記錄保留；v2 量測值以
+> `art/validation-report.txt`、`art/timbermesh-validation.txt`、`art/timbermesh/export-manifest.json`
+> 與 `data/ART_PLACEHOLDER.md` 為準。
+
 狀態：**離線匯出 + 純 Python 驗證完成**（16/16 檔 PASS、128/128 檢查 PASS、exit 0）。
 **未在遊戲中驗證**：本輪沒有部署、沒有啟動 Timberborn、沒有跑 `build.ps1`、沒有碰 Unity；
 所有「看起來如何」的敘述都是 `待實機確認`。
