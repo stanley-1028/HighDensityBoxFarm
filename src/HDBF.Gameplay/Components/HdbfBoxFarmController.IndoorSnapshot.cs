@@ -73,8 +73,7 @@ namespace HDBF.Gameplay.Components
                 string.Empty, 0, false, true, false, false, IndoorWarningFlags.None, string.Empty);
         }
 
-        private void CountSlots(out int empty, out int growing, out int mature)
-        {
+        private void CountSlots(out int empty, out int growing, out int mature)        {
             empty = 0;
             growing = 0;
             mature = 0;
@@ -226,6 +225,19 @@ namespace HDBF.Gameplay.Components
             catch (Exception)
             {
                 return string.Empty;
+            }
+        }
+
+        /// <summary>Workers currently on duty; a broken workplace counts as unstaffed.</summary>
+        private int WorkerCount()
+        {
+            try
+            {
+                return _workplace is null ? 0 : Math.Max(0, _workplace.NumberOfAssignedWorkers);
+            }
+            catch (Exception)
+            {
+                return 0;
             }
         }
     }

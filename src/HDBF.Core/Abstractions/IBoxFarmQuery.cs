@@ -1,24 +1,24 @@
 using System;
-using System.Collections.Generic;
+using HDBF.Core.Indoor;
 
 namespace HDBF.Core.Abstractions
 {
     /// <summary>
-    /// Read-only farm query contract (chapter 9.2 "IBoxFarmQuery"). Implemented by gameplay,
-    /// consumed by UI and diagnostics; the implementation type must never leak through this seam.
+    /// Read-only farm query contract (chapter 9.2/19.11). Implemented by gameplay, consumed by UI
+    /// and diagnostics; the implementation type must never leak through this seam.
     ///
-    /// The identifier is the entity id because UI lookups start from a selected entity. Save
-    /// records keep their own numeric id, so this contract never dictates save layout.
+    /// The identifier is the runtime entity id because UI lookups start from a selected entity.
+    /// The returned DTO is the frozen Core <see cref="IndoorFarmSnapshot"/>; v2 has no world plot
+    /// snapshot and no plot registry (REQ-V2-CORE-03).
     /// </summary>
     public interface IBoxFarmQuery
     {
-        /// <summary>Returns false (and a default snapshot) when the entity is not a box farm.</summary>
-        bool TryGetSnapshot(Guid entityId, out BoxFarmSnapshot snapshot);
-
         /// <summary>
-        /// Snapshot of every live box farm. Implementations may cache; callers must treat the
-        /// returned list as read-only and may hold it only for the current frame.
+        /// Returns the Core panel snapshot of one live indoor farm, or <c>null</c> when the entity
+        /// is unknown, not registered or its snapshot failed (the panel hides its rows then).
         /// </summary>
-        IReadOnlyList<BoxFarmSnapshot> AllSnapshots();
+        /// <param name="entityId">Runtime entity id of the selected building.</param>
+        /// <returns>Immutable snapshot, or null when no data is available right now.</returns>
+        IndoorFarmSnapshot? GetIndoorSnapshot(Guid entityId);
     }
 }

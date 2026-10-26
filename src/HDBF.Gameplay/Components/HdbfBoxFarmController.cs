@@ -11,7 +11,7 @@ using HDBF.Core;
 using HDBF.Core.Balance;
 using HDBF.Core.Indoor;
 using HDBF.Core.Logging;
-using HDBF.Gameplay.Persistence;
+using HDBF.Persistence.Indoor;
 using HDBF.Gameplay.Specs;
 using Timberborn.BaseComponentSystem;
 using Timberborn.BlockSystem;
@@ -40,7 +40,7 @@ namespace HDBF.Gameplay.Components
     ///   command/snapshot partials.
     /// </summary>
     public partial class HdbfBoxFarmController : BaseComponent, IAwakableComponent, IFinishedStateListener,
-        IPersistentEntity, IPostLoadableEntity, IDeletableEntity, IHdbfBoxFarmSnapshotSource
+        IPersistentEntity, IPostLoadableEntity, IDeletableEntity, IHdbfIndoorFarmSource
     {
         private const string LogKeyEntity = "indoor.entity";
         private const float DayTriggerDelayDays = 1f;

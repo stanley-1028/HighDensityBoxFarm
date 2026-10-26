@@ -1,5 +1,5 @@
 // ============================================================================
-// HDBF v2 | Layer: Gameplay/Persistence | Owner: V2-GAMEPLAY-01
+// HDBF v2 | Layer: Persistence/Indoor | Owner: V2-GAMEPLAY-01
 // Purpose: Diagnostic/logging helpers of the entity save bridge. Split from the bridge
 //          payload path to keep both files small and readable.
 // Requirements: REQ-V2-READ-03, REQ-V2-SAFE-01, REQ-V2-MAINT-02
@@ -9,7 +9,7 @@ using HDBF.Core;
 using HDBF.Core.Indoor;
 using HDBF.Core.Logging;
 
-namespace HDBF.Gameplay.Persistence
+namespace HDBF.Persistence.Indoor
 {
     public static partial class IndoorEntitySaveBridge
     {

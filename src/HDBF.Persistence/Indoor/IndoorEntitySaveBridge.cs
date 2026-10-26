@@ -1,5 +1,5 @@
 // ============================================================================
-// HDBF v2 | Layer: Gameplay/Persistence | Owner: V2-GAMEPLAY-01
+// HDBF v2 | Layer: Persistence/Indoor | Owner: V2-GAMEPLAY-01
 // Purpose: Entity-scoped schema-v2 save bridge: clone -> validate -> encode -> one
 //          stable string key. Never throws into the game save/load callbacks and never
 //          writes a record whose pre-write validation failed (REQ-V2-SAVE-04/06).
@@ -12,13 +12,13 @@ using HDBF.Core.Logging;
 using Timberborn.Persistence;
 using Timberborn.WorldPersistence;
 
-namespace HDBF.Gameplay.Persistence
+namespace HDBF.Persistence.Indoor
 {
     /// <summary>
-    /// The v2 indoor-farm save bridge. V2-SAVE-01 delivered the game-free codec, validator and
-    /// migrator in <c>HDBF.Core.Indoor</c> but no concrete entity bridge ships in
-    /// <c>HDBF.Persistence</c>; this class is the Gameplay-side adapter that binds those pure
-    /// functions to the entity's <see cref="IEntitySaver"/> / <see cref="IEntityLoader"/>.
+    /// The v2 indoor-farm save bridge (section 19.18.2 module map: HDBF.Persistence/Indoor owns
+    /// schema-v2 encoding, v1-to-v2 migration and field repair; Gameplay calls it from its
+    /// entity Save/Load callbacks). It binds the pure Core functions to the entity's
+    /// <see cref="IEntitySaver"/> / <see cref="IEntityLoader"/>. [Corrected by v2 closure card.]
     ///
     /// The whole record is stored as one deterministic schema-v2 string under a single property on
     /// its own component. That keeps the game's transactional entity save as the only writer, so a

@@ -57,18 +57,13 @@
     v1 world-plot/planting chain (REQ-V2-CORE-03, REQ-V2-MAINT-02/03, REQ-V2-SAFE-01).
   -->
   <ItemGroup>
-    <EmbeddedResource Include="..\..\src\HDBF.Gameplay\Components\HdbfBoxFarmController*.cs"
-                      Exclude="..\..\src\HDBF.Gameplay\Components\HdbfBoxFarmController.Diagnostics.cs">
+    <EmbeddedResource Include="..\..\src\HDBF.Gameplay\Components\HdbfBoxFarmController*.cs">
       <LogicalName>HDBF.Tests.Source.Controller.%(Filename)%(Extension)</LogicalName>
-    </EmbeddedResource>
-    <!-- Release-gate G-08 keeps its stable resource name for the compile-time diagnostics source. -->
-    <EmbeddedResource Include="..\..\src\HDBF.Gameplay\Components\HdbfBoxFarmController.Diagnostics.cs">
-      <LogicalName>HDBF.Tests.Source.Diagnostics.cs</LogicalName>
     </EmbeddedResource>
     <EmbeddedResource Include="..\..\src\HDBF.Gameplay\Components\GameCropCatalog*.cs">
       <LogicalName>HDBF.Tests.Source.Catalog.%(Filename)%(Extension)</LogicalName>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\..\src\HDBF.Gameplay\Persistence\IndoorEntitySaveBridge*.cs">
+    <EmbeddedResource Include="..\..\src\HDBF.Persistence\Indoor\IndoorEntitySaveBridge*.cs">
       <LogicalName>HDBF.Tests.Source.Bridge.%(Filename)%(Extension)</LogicalName>
     </EmbeddedResource>
     <EmbeddedResource Include="..\..\src\HDBF.Gameplay\Farming\IndoorFarmWorkplaceBehavior.cs">
@@ -80,9 +75,7 @@
     <EmbeddedResource Include="..\..\src\HDBF.Gameplay\Components\IndoorMaintenanceMaterialSource.cs">
       <LogicalName>HDBF.Tests.Source.IndoorMaintenanceMaterialSource.cs</LogicalName>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\..\src\HDBF.Gameplay\Components\ReadOnlyGrowthRateProvider.cs">
-      <LogicalName>HDBF.Tests.Source.ReadOnlyGrowthRateProvider.cs</LogicalName>
-    </EmbeddedResource>
+
     <EmbeddedResource Include="..\..\src\HDBF.Gameplay\HdbfGameConfigurator.cs">
       <LogicalName>HDBF.Tests.Source.HdbfGameConfigurator.cs</LogicalName>
     </EmbeddedResource>
@@ -97,33 +90,10 @@
     </EmbeddedResource>
   </ItemGroup>
 
-  <!--
-    ADR-009 growth patch source contract: HDBF.Integration references Timberborn assemblies and
-    cannot be loaded into this game-free test assembly, so the shipped patch sources are embedded
-    as text. `GrowthMultiplierPatchTests` pins the single-Postfix / no-IL-rewrite / one-Harmony-
-    instance contract and the feature-switch wiring; deleting or duplicating the patch fails L1.
-  -->
-  <ItemGroup>
-    <EmbeddedResource Include="..\..\src\HDBF.Integration\Harmony\HdbfPatchCatalog.cs">
-      <LogicalName>HDBF.Tests.Source.GrowthPatchCatalog.cs</LogicalName>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\..\src\HDBF.Integration\Harmony\BoxFarmGrowthPatch.cs">
-      <LogicalName>HDBF.Tests.Source.GrowthPatch.cs</LogicalName>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\..\src\HDBF.Integration\Harmony\HdbfHarmonyInstaller.cs">
-      <LogicalName>HDBF.Tests.Source.HarmonyInstaller.cs</LogicalName>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\..\src\HDBF.Integration\Harmony\HarmonyBootstrap.cs">
-      <LogicalName>HDBF.Tests.Source.HarmonyBootstrap.cs</LogicalName>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\..\src\HDBF.Integration\Harmony\HdbfGrowthPatchBridge.cs">
-      <LogicalName>HDBF.Tests.Source.GrowthPatchBridge.cs</LogicalName>
-    </EmbeddedResource>
-  </ItemGroup>
 
   <!--
-    REL-01 release-gate contract resources. The gate manifest, the single dev-diagnostics
-    build property and the shipped data config are embedded so ReleaseGateContractTests can
+    REL-01 release-gate contract resources. The gate manifest, the build props file and the
+    shipped data config are embedded so ReleaseGateContractTests can
     assert that build.ps1's gate list still matches the shipped code/data (a drifted gate list
     fails L1, not just a manual review). No game assembly is referenced.
   -->

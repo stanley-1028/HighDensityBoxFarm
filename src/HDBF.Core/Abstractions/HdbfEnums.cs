@@ -1,5 +1,3 @@
-using System;
-
 namespace HDBF.Core
 {
     /// <summary>Four box-farm tiers, ordered from cheapest to most dense (REQ-CORE-01).</summary>
@@ -62,30 +60,5 @@ namespace HDBF.Core
         Warn = 1,
         Error = 2,
         Compat = 3,
-    }
-
-    /// <summary>Comparable, allocation-free stand-in for a plot coordinate id.</summary>
-    public readonly struct HdbfPlotId : IEquatable<HdbfPlotId>, IComparable<HdbfPlotId>
-    {
-        public HdbfPlotId(int value)
-        {
-            Value = value;
-        }
-
-        public int Value { get; }
-
-        public bool Equals(HdbfPlotId other) => Value == other.Value;
-
-        public override bool Equals(object? obj) => obj is HdbfPlotId other && Equals(other);
-
-        public override int GetHashCode() => Value;
-
-        public int CompareTo(HdbfPlotId other) => Value.CompareTo(other.Value);
-
-        public static bool operator ==(HdbfPlotId left, HdbfPlotId right) => left.Equals(right);
-
-        public static bool operator !=(HdbfPlotId left, HdbfPlotId right) => !left.Equals(right);
-
-        public override string ToString() => Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
     }
 }

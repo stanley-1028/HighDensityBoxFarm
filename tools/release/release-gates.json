@@ -33,44 +33,35 @@
     "devCommands"
   ],
 
-  "devDiagnostics": {
-    "defaultEnabled": false,
-    "buildProperty": "HdbfDevDiagnostics",
-    "define": "HDBF_DEV_DIAGNOSTICS",
-    "marker": "HDBF.DevDiagnostics",
-    "assembly": "HDBF.Gameplay",
-    "propertyFile": "Directory.Build.props",
-    "sourceFile": "src/HDBF.Gameplay/Components/HdbfBoxFarmController.Diagnostics.cs",
-    "forbiddenStrings": [
-      "diag.",
-      "scan.probe",
-      "DescribeDryPlots",
-      "dryCells",
-      "farm.plan",
-      "compat.harmony-patch-applied",
-      "HDBF.DevDiagnostics",
-      "HDBF_DEV_DIAGNOSTICS"
-    ]
+  "harmony": {
+    "maxPatches": 0,
+    "forbiddenSourceDirectory": "src/HDBF.Integration/Harmony",
+    "stagedAssembly": "HDBF.Integration.dll",
+    "forbiddenTokens": ["HarmonyLib", "HarmonyInstance", "[HarmonyPatch]", "Transpiler"],
+    "sourceScanRoot": "src",
+    "forbiddenSourceTokens": ["HarmonyLib", "HarmonyInstance", "[HarmonyPatch]", "ReportHarmonyPatchCount"],
+    "nonzeroPatchCountPattern": "HarmonyPatchCount\\s*=\\s*[1-9]",
+    "configFile": "data/HDBF_Config.json",
+    "forbiddenConfigKeys": ["growthMultiplierPatch"],
+    "reportField": "harmonyPatchCount",
+    "compatReportSource": "src/HDBF.Core/Compat/CompatReport.cs"
   },
 
-  "patches": {
-    "maxCount": 1,
-    "patchKind": "Postfix",
-    "harmonyInstanceId": "hdbf.highdensityboxfarm",
-    "catalogSource": "src/HDBF.Integration/Harmony/HdbfPatchCatalog.cs",
-    "implementationSources": [
-      "src/HDBF.Integration/Harmony/HdbfPatchCatalog.cs",
-      "src/HDBF.Integration/Harmony/BoxFarmGrowthPatch.cs",
-      "src/HDBF.Integration/Harmony/HdbfHarmonyInstaller.cs",
-      "src/HDBF.Integration/Harmony/HarmonyBootstrap.cs",
-      "src/HDBF.Integration/Harmony/HdbfGrowthPatchBridge.cs"
-    ],
-    "installerSource": "src/HDBF.Integration/Harmony/HdbfHarmonyInstaller.cs",
-    "bootstrapSource": "src/HDBF.Integration/Harmony/HarmonyBootstrap.cs",
-    "stagedAssembly": "HDBF.Integration.dll",
-    "disableSwitch": "growthMultiplierPatch",
-    "configSource": "data/HDBF_Config.json",
-    "forbiddenTokens": ["Transpiler"]
+  "configContract": {
+    "stagedFile": "HDBF_Config.json",
+    "schemaVersion": 2,
+    "schemaVersionKey": "configSchemaVersion",
+    "requiredSections": ["features", "perf", "ui", "balance"],
+    "forbiddenKeys": [
+      "growthMultiplierPatch",
+      "scanBudgetPerFrame",
+      "scanIntervalSeconds",
+      "irrigationSampleInterval",
+      "cropVisibilityIntervalSeconds",
+      "cropVisibilityCellsPerFrame",
+      "warningAggregateTtlSeconds",
+      "hideManagedCrops"
+    ]
   },
 
   "compatReport": {
@@ -107,7 +98,7 @@
   },
 
   "l1": {
-    "minTests": 460,
+    "minTests": 480,
     "mustContain": "FAILED 0",
     "project": "tests/HDBF.Tests/HDBF.Tests.csproj"
   }

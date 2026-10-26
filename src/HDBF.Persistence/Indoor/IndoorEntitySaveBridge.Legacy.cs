@@ -1,5 +1,5 @@
 // ============================================================================
-// HDBF v2 | Layer: Gameplay/Persistence | Owner: V2-GAMEPLAY-01
+// HDBF v2 | Layer: Persistence/Indoor | Owner: V2-GAMEPLAY-01
 // Purpose: Best-effort v1 "HDBF.BoxFarm" entity read feeding IndoorSaveMigrator. Kept in
 //          a partial beside the v2 bridge so the v2 path stays short and readable.
 // Requirements: REQ-V2-SAVE-02, REQ-V2-SAVE-05, REQ-V2-SAFE-01
@@ -13,11 +13,11 @@ using HDBF.Core.Logging;
 using Timberborn.Persistence;
 using Timberborn.WorldPersistence;
 
-namespace HDBF.Gameplay.Persistence
+namespace HDBF.Persistence.Indoor
 {
     public static partial class IndoorEntitySaveBridge
     {
-        /// <summary>The v1 component key shipped by <c>HDBF.Persistence.HdbfEntitySaveBridge</c>.</summary>
+        /// <summary>The v1 component key shipped by the former v1 entity bridge.</summary>
         public const string LegacyComponentKeyName = "HDBF.BoxFarm";
 
         private static readonly ComponentKey LegacyComponent = new ComponentKey(LegacyComponentKeyName);

@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Dev-only fixture helper (never shipped, not in HDBF.sln). Prints or writes a schema-v2
+    IndoorFarmRecord payload that tools/dev/fixtures/craft-farm-fixture.py embeds into a save,
+    so an automated in-game round can start from pre-planted slots instead of waiting days 1..N.
+
+    Build output is redirected by Directory.Build.props to %TEMP%\hdbf-<tag>, so this project does
+    not break the "no stray DLL below the workspace" release gate.
+  -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <AssemblyName>CraftIndoorFixture</AssemblyName>
+    <RootNamespace>CraftIndoorFixture</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\HDBF.Core\HDBF.Core.csproj" />
+  </ItemGroup>
+
+</Project>

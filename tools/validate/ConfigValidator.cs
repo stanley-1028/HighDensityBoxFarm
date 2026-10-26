@@ -22,23 +22,16 @@ internal sealed class ConfigValidator
         ("pipeConnection", true),
         ("logisticsOutput", false),
         ("soilFatigue", true),
-        // ADR-009: one approved Postfix; on by default (docs/ARCHITECTURE.md, HdbfConfig).
-        ("growthMultiplierPatch", true),
+        // v2 ships 0 Harmony patches (section 19.18.3-B5): no growthMultiplierPatch key.
     };
 
     private static readonly (string Key, bool Integer)[] PerfKeys =
     {
-        ("scanBudgetPerFrame", true),
-        ("scanIntervalSeconds", false),
-        ("irrigationSampleInterval", false),
         ("uiRefreshHz", true),
         ("reducedBuildingThreshold", true),
         ("steadyFrameBudgetMs", false),
         ("warnFrameMs", false),
         ("pauseFrameMs", false),
-        // BUILD-05: managed-crop visual refresh (low-frequency interval + per-frame cell slice).
-        ("cropVisibilityIntervalSeconds", false),
-        ("cropVisibilityCellsPerFrame", true),
     };
 
     /// <summary>
@@ -53,14 +46,11 @@ internal sealed class ConfigValidator
         ("worldIconMaxDistance", true),
         ("worldIconIntervalSeconds", false),
         ("worldIconFarmsPerTick", true),
-        ("warningAggregateTtlSeconds", false),
-        // BUILD-05: hide the crop models on managed plots (default true, user design 2026-10-25).
-        ("hideManagedCrops", false),
     };
 
     /// <summary>Boolean <c>ui.*</c> keys; every other <see cref="UiKeys"/> entry is numeric.</summary>
     private static readonly HashSet<string> UiBooleanKeys =
-        new(StringComparer.Ordinal) { "worldIcons", "worldIconBlink", "hideManagedCrops" };
+        new(StringComparer.Ordinal) { "worldIcons", "worldIconBlink" };
 
     private static readonly (string Key, double Expected)[] BalanceDefaults =
     {
@@ -83,11 +73,10 @@ internal sealed class ConfigValidator
     /// </summary>
     private static readonly (string Key, bool Integer, double Min, double Max)[] TierOverrideRanges =
     {
-        ("plotCapacity", true, 1, 600),
+        ("slotCapacity", true, 1, 600),
         ("maxWorkers", true, 1, 16),
-        ("workRange", true, 1, 27),
         ("minIrrigationCoverage", false, 0, 1),
-        ("waterPerPlotPerDay", false, 0, 1),
+        ("waterPerSlotPerDay", false, 0, 1),
         ("tankCapacityDays", true, 1, 7),
         ("soilFatigueFactor", false, 0.5, 3),
         ("scienceCost", true, 0, 10000),
@@ -149,7 +138,7 @@ internal sealed class ConfigValidator
     {
         if (!root.TryGetProperty("configSchemaVersion", out var value))
         {
-            _report.Error("config", "missing 'configSchemaVersion' (expected 1)");
+            _report.Error("config", "missing 'configSchemaVersion' (expected 2)");
             return;
         }
 
@@ -159,9 +148,9 @@ internal sealed class ConfigValidator
             return;
         }
 
-        if (version != 1)
+        if (version != 2)
         {
-            _report.Error("config", $"'configSchemaVersion' must be 1 (found {version})");
+            _report.Error("config", $"'configSchemaVersion' must be 2 (found {version})");
         }
     }
 

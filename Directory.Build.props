@@ -47,25 +47,6 @@
     <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
 
-  <!--
-    REL-01 release gate: dev-only diagnostics are a COMPILE-TIME switch, not a runtime config
-    flag. Default off, so the release package contains no diag.* strings, no dev diagnostics
-    types and no HDBF.DevDiagnostics assembly marker (build.ps1 G-08 asserts the staged files
-    byte-for-byte). Enable an evidence build with either:
-        powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1 -DevDiagnostics
-        dotnet build src\HDBF.Gameplay\HDBF.Gameplay.csproj -c Release -p:HdbfDevDiagnostics=true
-
-    The property is declared here (once) so HDBF.Gameplay (controller diagnostics) and
-    HDBF.Integration (ADR-009 growth-patch evidence lines) share exactly one switch. Why
-    compile-time instead of HDBF_Config.json: docs/OPS.md §4.
-  -->
-  <PropertyGroup>
-    <HdbfDevDiagnostics Condition=" '$(HdbfDevDiagnostics)' == '' ">false</HdbfDevDiagnostics>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(HdbfDevDiagnostics)' == 'true' ">
-    <DefineConstants>$(DefineConstants);HDBF_DEV_DIAGNOSTICS</DefineConstants>
-  </PropertyGroup>
-
   <!-- Game-facing projects set TargetFramework=netstandard2.1 in their own csproj
        (a props file is imported before the project body, so it cannot branch on a
        property that the project body defines later). -->

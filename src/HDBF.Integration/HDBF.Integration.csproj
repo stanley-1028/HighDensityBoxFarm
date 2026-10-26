@@ -1,15 +1,13 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <!--
     HDBF.Integration: the only assembly allowed to touch third-party mod types.
     Five soft-dependency adapters (Conveyor Belts V2, More Mines, Hooman Stairs,
-    Power Lines, Timber Pipes) plus detection caching and the single Harmony gate.
+    Power Lines, Timber Pipes) plus detection caching.
 
-    Harmony is reached through reflection only (HarmonyProxy): no compile-time
-    0Harmony reference and no bundled 0Harmony.dll, exactly like ExternalProxy.
-    That keeps this assembly loadable when the Harmony mod is absent, which matters
-    because Bindito enumerates Assembly.GetTypes() of every mod assembly at container
-    creation: a type carrying a HarmonyLib attribute would break the whole game.
+    v2 ships 0 Harmony patches (section 19.18.3-B5): the ADR-009 patch sources and
+    their patch session/bootstrap were deleted, so no HarmonyLib type or attribute
+    can appear in this assembly (which Bindito scans at container creation).
   -->
 
   <PropertyGroup>
@@ -23,15 +21,6 @@
     <ProjectReference Include="..\HDBF.Core\HDBF.Core.csproj" />
   </ItemGroup>
 
-  <!--
-    ADR-009's Postfix targets Timberborn.Growing.Growable. The game assemblies are
-    Private=false (Directory.Build.targets): they are referenced for compilation only.
-  -->
-  <ItemGroup>
-    <Reference Include="Timberborn.Growing">
-      <HintPath>$(TimberbornManagedDir)\Timberborn.Growing.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
-  </ItemGroup>
+
 
 </Project>

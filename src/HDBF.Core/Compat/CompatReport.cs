@@ -23,11 +23,11 @@ namespace HDBF.Core.Compat
         /// <summary>Timberborn version string used to reproduce the environment.</summary>
         public string GameVersion { get; init; } = "1.1.2.8";
 
-        /// <summary>Save schema version read from the loaded save (REQ-SAVE-05).</summary>
-        public int SchemaVersion { get; init; } = 1;
+        /// <summary>Save schema version read from the loaded save (REQ-V2-SAVE-01).</summary>
+        public int SchemaVersion { get; init; } = 2;
 
-        /// <summary>Config schema version read from <c>HDBF_Config.json</c> (REQ-ARCH-10).</summary>
-        public int ConfigSchemaVersion { get; init; } = 1;
+        /// <summary>Config schema version read from <c>HDBF_Config.json</c> (REQ-V2-EXT-04).</summary>
+        public int ConfigSchemaVersion { get; init; } = 2;
 
         /// <summary>External mods discovered by the detector; environment snapshot.</summary>
         public IReadOnlyList<string> DetectedMods { get; init; } = Array.Empty<string>();
@@ -44,7 +44,7 @@ namespace HDBF.Core.Compat
         /// <summary>Detection wall time in milliseconds, for timeout diagnostics (chapter 8.2).</summary>
         public int DetectionDurationMs { get; init; }
 
-        /// <summary>Number of Harmony patches still registered; zero is the design target.</summary>
+        /// <summary>Number of Harmony patches still registered; always 0 (0 Harmony, section 19.18.3-B5).</summary>
         public int HarmonyPatchCount { get; init; }
 
         /// <summary>Performance protection mode: <c>Normal</c> or <c>Reduced</c> (REQ-SAFE-19).</summary>

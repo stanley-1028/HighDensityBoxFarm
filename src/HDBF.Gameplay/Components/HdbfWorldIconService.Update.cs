@@ -6,16 +6,9 @@
 // Requirements: REQ-V2-BAL-03, REQ-V2-WATER-03, REQ-V2-SAFE-01, REQ-V2-READ-02
 // ============================================================================
 using System;
-using System.Collections.Generic;
 using HDBF.Core;
-using HDBF.Core.Abstractions;
 using HDBF.Core.Indoor;
 using HDBF.Core.Logging;
-using HDBF.Core.Warnings;
-using Timberborn.BaseComponentSystem;
-using Timberborn.CameraSystem;
-using Timberborn.Localization;
-using Timberborn.SingletonSystem;
 using Timberborn.StatusSystem;
 using UnityEngine;
 
@@ -23,6 +16,7 @@ namespace HDBF.Gameplay.Components
 {
     public sealed partial class HdbfWorldIconService
     {
+        /// <inheritdoc />
         public void UpdateSingleton()
         {
             if (_handles.Count == 0)
@@ -34,10 +28,6 @@ namespace HDBF.Gameplay.Components
             {
                 var config = _configProvider.Config;
                 var ui = config.Ui;
-                // The world icons are optional (chapter 14.2 allows hiding them), but the
-                // cross-building aggregation is part of the warning list and must keep running;
-                // with icons off the pass still evaluates on-screen farms and publishes to the
-                // board, it just leaves every status toggle inactive.
                 var iconsEnabled = ui.WorldIcons;
 
                 EnsureCamera();
@@ -50,15 +40,14 @@ namespace HDBF.Gameplay.Components
                 var now = Time.unscaledTime;
                 var interval = ui.WorldIconIntervalSeconds > 0f
                     ? ui.WorldIconIntervalSeconds
-                    : WorldIconPolicy.DefaultIconIntervalSeconds;
-                // v2 budget: world icons update at most once per second (the configured interval may
-                // be smaller for the retained v1 warning framework; the icon pass itself is capped).
+                    : IndoorIconPolicy.DefaultIconIntervalSeconds;
+                // v2 budget: world icons update at most once per second.
                 if (interval < MinIconIntervalSeconds)
                 {
                     interval = MinIconIntervalSeconds;
                 }
 
-                if (!WorldIconPolicy.IsDue(now, _nextIconPass, interval))
+                if (!IndoorIconPolicy.IsDue(now, _nextIconPass, interval))
                 {
                     return;
                 }
@@ -66,10 +55,10 @@ namespace HDBF.Gameplay.Components
                 _nextIconPass = now + interval;
                 var maxDistance = ui.WorldIconMaxDistance > 0
                     ? ui.WorldIconMaxDistance
-                    : WorldIconPolicy.DefaultMaxDistance;
+                    : IndoorIconPolicy.DefaultMaxDistance;
                 var budget = ui.WorldIconFarmsPerTick > 0
                     ? ui.WorldIconFarmsPerTick
-                    : WorldIconPolicy.DefaultFarmsPerPass;
+                    : IndoorIconPolicy.DefaultFarmsPerPass;
                 var focus = _cameraService.Target;
 
                 var count = _order.Count;
@@ -98,10 +87,9 @@ namespace HDBF.Gameplay.Components
                     // camera-distance budget would hide every icon when zoomed out.
                     var distance = Vector3.Distance(focus, worldPosition);
 
-                    if (!WorldIconPolicy.IsWorldIconVisible(onScreen, distance, maxDistance))
+                    if (!IndoorIconPolicy.IsWorldIconVisible(onScreen, distance, maxDistance))
                     {
                         SetCullingHidden(handle, true);
-                        _board.Remove(handle.EntityId);
                         continue;
                     }
 
@@ -153,13 +141,9 @@ namespace HDBF.Gameplay.Components
             _cursor = 0;
             _nextIconPass = 0d;
             _camera = null;
-            _board.Unload();
         }
 
         // ------------------------------------------------------------------ internals
-
-        /// <summary>Localization key of the world-icon hover tooltip.</summary>
-        private const string TooltipWorldIcon = "HDBF.Tooltip.WorldIcon";
 
         private void RegisterToggle(Guid entityId, StatusSubject subject, StatusToggle?[] toggles,
             IndoorWarningIconKind kind, string spriteName, bool isPriority)
@@ -192,27 +176,12 @@ namespace HDBF.Gameplay.Components
             // text is passed as {0} and the distance setting as {1}. Localized once at registration.
             try
             {
-                return _loc.T(TooltipWorldIcon, _loc.T(WarningKeyOf(kind)),
+                return _loc.T(TooltipWorldIcon, _loc.T(IndoorWarningMap.WarningKeyOf(kind)),
                     _configProvider.Config.Ui.WorldIconMaxDistance);
             }
             catch (Exception)
             {
                 return _loc.T(TooltipWorldIcon);
-            }
-        }
-
-        private static string WarningKeyOf(IndoorWarningIconKind kind)
-        {
-            switch (kind)
-            {
-                case IndoorWarningIconKind.Water:
-                    return HdbfWarningKeys.NoWater;
-                case IndoorWarningIconKind.Maintenance:
-                    return HdbfWarningKeys.MaintenanceOverdue;
-                case IndoorWarningIconKind.NoPower:
-                    return HdbfWarningKeys.NoPower;
-                default:
-                    return IndoorWarningMap.EntranceBlockedKey;
             }
         }
     }

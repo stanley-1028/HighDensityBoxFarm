@@ -137,8 +137,8 @@ namespace HDBF.UI.Localization
         public const string ActionModeChanged = "HDBF.Action.ModeChanged";
         public const string ActionCropPolicyChanged = "HDBF.Action.CropPolicyChanged";
 
-        // The four v2 warning categories. Maintenance and entrance blocking are also the text of
-        // the two frozen icon slots (Shutdown / AdapterFailed); see HdbfFarmQueryService.
+        // The four v2 warning categories; the world icons map them through
+        // HDBF.Core.Indoor.IndoorWarningMap (no v1 warning aggregation remains).
         public const string WarningNoWater = "HDBF.Warning.NoWater";
         public const string WarningIrrigationLow = "HDBF.Warning.IrrigationLow";
         public const string WarningMaintenanceOverdue = "HDBF.Warning.MaintenanceOverdue";
@@ -153,8 +153,8 @@ namespace HDBF.UI.Localization
         public const string WarningMoreWarnings = "HDBF.Warning.MoreWarnings";
         public const string WarningGeneric = "HDBF.Warning.Generic";
 
-        // Cross-building aggregation + world-icon settings (retained; the panel no longer renders
-        // the aggregation rows, but the world icons and the settings labels still ship).
+        // World-icon settings labels. The v1 cross-building aggregation rows were deleted with
+        // their warning framework; only the icon switches remain.
         public const string PanelWarningAggregate = "HDBF.Panel.WarningAggregate";
         public const string PanelWarningAggregateHint = "HDBF.Panel.WarningAggregateHint";
         public const string PanelSettingWorldIcons = "HDBF.Panel.SettingWorldIcons";

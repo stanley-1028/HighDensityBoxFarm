@@ -5,31 +5,31 @@ using HDBF.Core.Balance;
 namespace HDBF.Core.Config
 {
     /// <summary>
-    /// Optional per-tier balance override (chapters 9.3, 18). Every property is nullable:
+    /// Optional per-tier balance override (chapter 9.3, 18). Every property is nullable:
     /// <c>null</c> keeps the compiled-in <see cref="TierCatalog"/> value, so a partial config
     /// file can never silently import values a player did not write (chapter 10.3).
+    ///
+    /// Schema 2 uses the v2 slot terminology (<c>slotCapacity</c>, <c>waterPerSlotPerDay</c>);
+    /// a schema-1 file's plot-named keys are renamed during migration (REQ-V2-EXT-04).
     /// </summary>
     public sealed record TierOverride
     {
-        /// <summary><c>balance.tier[n].maxPlots</c>; null keeps the tier default.</summary>
-        public int? PlotCapacity { get; init; }
+        /// <summary><c>balance.tier[n].slotCapacity</c>; null keeps the tier default.</summary>
+        public int? SlotCapacity { get; init; }
 
         /// <summary><c>balance.tier[n].maxWorkers</c>; null keeps the tier default.</summary>
         public int? MaxWorkers { get; init; }
 
-        /// <summary><c>balance.tier[n].range</c> square work-range edge; null keeps the tier default.</summary>
-        public int? WorkRange { get; init; }
-
-        /// <summary><c>balance.tier[n].minIrrigation</c>; null keeps the tier default.</summary>
+        /// <summary><c>balance.tier[n].minIrrigationCoverage</c>; null keeps the tier default.</summary>
         public float? MinIrrigationCoverage { get; init; }
 
-        /// <summary><c>balance.tier[n].waterPerPlotDay</c>; null keeps the tier default.</summary>
-        public float? WaterPerPlotPerDay { get; init; }
+        /// <summary><c>balance.tier[n].waterPerSlotPerDay</c>; null keeps the tier default.</summary>
+        public float? WaterPerSlotPerDay { get; init; }
 
-        /// <summary><c>balance.tier[n].tankDays</c>; null keeps the tier default.</summary>
+        /// <summary><c>balance.tier[n].tankCapacityDays</c>; null keeps the tier default.</summary>
         public int? TankCapacityDays { get; init; }
 
-        /// <summary><c>balance.tier[n].fatigueRate</c>; null keeps the tier default.</summary>
+        /// <summary><c>balance.tier[n].soilFatigueFactor</c>; null keeps the tier default.</summary>
         public float? SoilFatigueFactor { get; init; }
 
         /// <summary><c>balance.tier[n].scienceCost</c>; null keeps the tier default.</summary>
@@ -42,7 +42,8 @@ namespace HDBF.Core.Config
     /// (table 10-3, REQ-SAFE-10).
     ///
     /// Toggles must never delete saved fields: disabling then re-enabling a feature restores the
-    /// same behaviour (REQ-ARCH-09).
+    /// same behaviour (REQ-ARCH-09). The v1 <c>growthMultiplierPatch</c> toggle was deleted with
+    /// the ADR-009 patch (section 19.18.3-B5: v2 ships 0 Harmony patches).
     /// </summary>
     public sealed record FeatureFlags
     {
@@ -66,32 +67,15 @@ namespace HDBF.Core.Config
 
         /// <summary>Soil fatigue accumulation (chapter 6.4).</summary>
         public bool SoilFatigue { get; init; } = true;
-
-        /// <summary>
-        /// The one approved Harmony Postfix of ADR-009 / deviation D-2: makes
-        /// <c>G_irr × G_fat × G_maint × G_power</c> stretch the growth time of crops on
-        /// HDBF-managed plots. Default on; when off the patch is never installed and the mod runs
-        /// exactly the pre-patch D-2 behaviour (dispatch gates + the existing growth channel).
-        /// </summary>
-        public bool GrowthMultiplierPatch { get; init; } = true;
     }
 
     /// <summary>
-    /// Performance budget knobs, defaults from chapters 18.7/18.8 and table 10-5.
-    /// All budgets are configurable (REQ-SAFE-18); exceeding one defers work instead of blocking
-    /// the main thread (REQ-SAFE-17).
+    /// Performance budget knobs of the v2 mod (chapters 18.7/18.8 and table 10-5). The v1
+    /// scan/irrigation/crop-visibility budgets were deleted with the world-plot chain (section
+    /// 19.2); the remaining keys are the general frame/building-count budgets.
     /// </summary>
     public sealed record PerfSettings
     {
-        /// <summary>Cells scanned per frame by the plot scan (chapter 18.2).</summary>
-        public int ScanBudgetPerFrame { get; init; } = 128;
-
-        /// <summary>Fallback plot re-scan interval in seconds (table 10-5).</summary>
-        public float ScanIntervalSeconds { get; init; } = 2f;
-
-        /// <summary>Irrigation coverage sample interval in seconds (table 10-5).</summary>
-        public float IrrigationSampleInterval { get; init; } = 0.5f;
-
         /// <summary>UI panel refresh rate; bounded for REQ-UI-12.</summary>
         public int UiRefreshHz { get; init; } = 4;
 
@@ -106,70 +90,36 @@ namespace HDBF.Core.Config
 
         /// <summary>Frame time that pauses non-core systems (chapter 18.8).</summary>
         public float PauseFrameMs { get; init; } = 5f;
-
-        /// <summary>
-        /// <c>perf.cropVisibilityIntervalSeconds</c>: how often (in seconds) a full sweep over the
-        /// farm's known managed-plot cells starts to discover worker-planted crops (BUILD-05).
-        /// Workers plant through the vanilla planting executor without notifying the mod, so the
-        /// controller polls its own registered cells; the sweep is sliced by
-        /// <see cref="CropVisibilityCellsPerFrame"/>, never run in one pass.
-        /// </summary>
-        public float CropVisibilityIntervalSeconds { get; init; } = 2f;
-
-        /// <summary>
-        /// <c>perf.cropVisibilityCellsPerFrame</c>: maximum number of registered plot cells whose
-        /// crop is inspected in one frame by the BUILD-05 refresh (chapter 10.5/14.6 frame
-        /// budget). A 600-plot farm therefore takes at most 10 frames per sweep at the default 64.
-        /// </summary>
-        public int CropVisibilityCellsPerFrame { get; init; } = 64;
     }
 
     /// <summary>
-    /// Presentation switches and budgets of the chapter-14 UI (14.2 head-top warning icons,
-    /// 14.6 performance). Defaults are the requirement's first-version values: icons on, P0 blink
-    /// on, hide beyond 40 cells, aggregate every 0.5 s. Chapter 14.2 explicitly allows turning the
-    /// blink off ("可在设置中关闭"); the shipped switch is this file section, not a second in-game
-    /// settings screen.
+    /// Presentation switches of the four v2 world warning icons (section 19.11/19.13). Defaults
+    /// are the requirement's first-version values: icons on, P0 blink on, hide beyond 40 cells,
+    /// refresh at most once per second. Section 14.2 explicitly allows turning the blink off
+    /// ("可在设置中关闭"); the shipped switch is this file section, not an in-game settings screen.
     ///
-    /// These keys are additive: existing <c>perf.*</c> keys keep their meaning, and a file without
-    /// a <c>ui</c> section parses to exactly these defaults.
+    /// The v1 managed-crop visibility switch and the cross-building warning TTL were deleted with
+    /// their subsystems (sections 19.2/19.18.1).
     /// </summary>
     public sealed record UiSettings
     {
         /// <summary><c>ui.worldIcons</c>: master switch for the world-space P0/P1 icons.</summary>
         public bool WorldIcons { get; init; } = true;
 
-        /// <summary><c>ui.worldIconBlink</c>: chapter 14.5 P0 blink (≤1 Hz) on/off.</summary>
+        /// <summary><c>ui.worldIconBlink</c>: chapter 14.5 P0 blink (&lt;=1 Hz) on/off.</summary>
         public bool WorldIconBlink { get; init; } = true;
 
         /// <summary><c>ui.worldIconMaxDistance</c>: hide the icon beyond this many cells.</summary>
         public int WorldIconMaxDistance { get; init; } = 40;
 
-        /// <summary><c>ui.worldIconIntervalSeconds</c>: head-top icon aggregation interval.</summary>
+        /// <summary><c>ui.worldIconIntervalSeconds</c>: head-top icon refresh interval (capped at 1 s).</summary>
         public float WorldIconIntervalSeconds { get; init; } = 0.5f;
 
         /// <summary>
         /// <c>ui.worldIconFarmsPerTick</c>: farm snapshots rebuilt per icon pass (round-robin), so
-        /// a screen full of farms stays inside the chapter-14.6 warning budget.
+        /// a screen full of farms stays inside the warning budget.
         /// </summary>
         public int WorldIconFarmsPerTick { get; init; } = 24;
-
-        /// <summary>
-        /// <c>ui.warningAggregateTtlSeconds</c>: how long an on-screen farm remains in the
-        /// cross-building aggregation cache after its last evaluation (chapter 14.6 processes
-        /// on-screen buildings only, so entries expire instead of covering the whole map).
-        /// </summary>
-        public float WarningAggregateTtlSeconds { get; init; } = 3f;
-
-        /// <summary>
-        /// <c>ui.hideManagedCrops</c>: BUILD-05 user design decision (2026-10-25) — the crops on
-        /// this mod's managed plots are grown and harvested by the real vanilla crop entities but
-        /// their models are hidden, so only the building's internal slots are visible from the
-        /// ground. Default <c>true</c> (the design); <c>false</c> restores every managed crop
-        /// visual and the mod looks exactly like the pre-BUILD-05 build. Only visibility is
-        /// affected: growth, yield, harvesting, irrigation, fatigue and power are untouched.
-        /// </summary>
-        public bool HideManagedCrops { get; init; } = true;
     }
 
     /// <summary>
@@ -182,8 +132,11 @@ namespace HDBF.Core.Config
     /// </summary>
     public sealed record HdbfConfig
     {
-        /// <summary>Current configuration schema version (chapter 9.4 / REQ-ARCH-10).</summary>
-        public const int CurrentSchemaVersion = 1;
+        /// <summary>Current configuration schema version (chapter 9.4 / REQ-V2-EXT-04).</summary>
+        public const int CurrentSchemaVersion = 2;
+
+        /// <summary>Legacy schema version this build can migrate from (REQ-V2-SAFE-06).</summary>
+        public const int MigratableSchemaVersion = 1;
 
         /// <summary>Config schema version stored in the file; independent of mod and save versions.</summary>
         public int ConfigSchemaVersion { get; init; } = CurrentSchemaVersion;
@@ -197,7 +150,7 @@ namespace HDBF.Core.Config
         /// <summary>Performance budgets (chapters 18.7/18.8).</summary>
         public PerfSettings Perf { get; init; } = new PerfSettings();
 
-        /// <summary>UI presentation switches/budgets (chapter 14.2/14.6); additive section.</summary>
+        /// <summary>World warning icon switches (section 19.11); additive section.</summary>
         public UiSettings Ui { get; init; } = new UiSettings();
 
         /// <summary>Dense mode yield multiplier (chapter 6.7).</summary>

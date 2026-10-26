@@ -227,8 +227,8 @@ namespace HDBF.Tests
             TestAssert.Equal("Maintenance overdue", data.StatusRows[1].Text);
             TestAssert.Equal("No power", data.StatusRows[2].Text);
             TestAssert.Equal("Entrance blocked", data.StatusRows[3].Text);
-            TestAssert.Equal(FarmWarningSeverity.Critical, data.StatusRows[0].Severity);
-            TestAssert.Equal(FarmWarningSeverity.Critical, data.StatusRows[1].Severity);
+            TestAssert.Equal(IndoorWarningSeverity.Critical, data.StatusRows[0].Severity);
+            TestAssert.Equal(IndoorWarningSeverity.Critical, data.StatusRows[1].Severity);
 
             // Colours must not be the only carrier: every row carries a text marker, and the pure
             // read model has no colour property at all.
@@ -251,7 +251,7 @@ namespace HDBF.Tests
             var data = CreateData(IntermediateFixture() with { Warnings = IndoorWarningFlags.LowWater }, out _);
             TestAssert.Equal(1, data.StatusRows.Count);
             TestAssert.Equal("Water low", data.StatusRows[0].Text);
-            TestAssert.Equal(FarmWarningSeverity.High, data.StatusRows[0].Severity);
+            TestAssert.Equal(IndoorWarningSeverity.High, data.StatusRows[0].Severity);
         }
 
         public static void TestProblemRowsListConcreteReasons()

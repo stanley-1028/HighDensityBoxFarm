@@ -13,7 +13,6 @@ using HDBF.Core;
 using HDBF.Core.Abstractions;
 using HDBF.Core.Indoor;
 using HDBF.Core.Logging;
-using HDBF.Core.Warnings;
 using Timberborn.BaseComponentSystem;
 using Timberborn.CameraSystem;
 using Timberborn.Localization;
@@ -39,7 +38,11 @@ namespace HDBF.Gameplay.Components
     ///   <see cref="StatusVisibilityToggle"/>, so the status itself stays active for the vanilla
     ///   status aggregation while only the floating icon disappears.
     ///
-    /// Performance (chapter 19.13): one pass at most once per second (the v2 icon budget), only
+    /// The icon class comes straight from the daily <see cref="IndoorWarningFlags"/> through the
+    /// pure <see cref="IndoorWarningMap"/>; the v1 warning evaluator/aggregation chain was deleted
+    /// with the world-plot chain (section 19.2).
+    ///
+    /// Performance (section 19.13): one pass at most once per second (the v2 icon budget), only
     /// farms inside the camera viewport and within <c>ui.worldIconMaxDistance</c> cells of the
     /// camera focus; at most <c>ui.worldIconFarmsPerTick</c> farms per pass (round-robin). No
     /// per-frame work in <c>Update</c>, no Find/GetComponent in the update path.
@@ -60,14 +63,16 @@ namespace HDBF.Gameplay.Components
         private const float FloatingIconDelayHours = 0f;
 
         /// <summary>v2 world icons refresh at most once per second (section 19.11/19.13).</summary>
-        private const float MinIconIntervalSeconds = 1f;
+        private const float MinIconIntervalSeconds = IndoorIconPolicy.DefaultIconIntervalSeconds;
+
+        /// <summary>Localization key of the world-icon hover tooltip.</summary>
+        private const string TooltipWorldIcon = "HDBF.Tooltip.WorldIcon";
 
         private readonly IBoxFarmQuery _query;
         private readonly IHdbfGameConfigProvider _configProvider;
         private readonly IHdbfLog _log;
         private readonly ILoc _loc;
         private readonly CameraService _cameraService;
-        private readonly HdbfWarningBoard _board;
 
         private readonly Dictionary<Guid, IconHandle> _handles = new Dictionary<Guid, IconHandle>();
         private readonly List<Guid> _order = new List<Guid>();
@@ -82,21 +87,18 @@ namespace HDBF.Gameplay.Components
         /// <param name="log">Throttled mod log.</param>
         /// <param name="loc">Game localization for the icon tooltip.</param>
         /// <param name="cameraService">Camera service (focus + viewport culling).</param>
-        /// <param name="board">Cross-building warning aggregation cache.</param>
         public HdbfWorldIconService(
             IBoxFarmQuery query,
             IHdbfGameConfigProvider configProvider,
             IHdbfLog log,
             ILoc loc,
-            CameraService cameraService,
-            HdbfWarningBoard board)
+            CameraService cameraService)
         {
             _query = query ?? throw new ArgumentNullException(nameof(query));
             _configProvider = configProvider ?? throw new ArgumentNullException(nameof(configProvider));
             _log = log ?? throw new ArgumentNullException(nameof(log));
             _loc = loc ?? throw new ArgumentNullException(nameof(loc));
             _cameraService = cameraService ?? throw new ArgumentNullException(nameof(cameraService));
-            _board = board ?? throw new ArgumentNullException(nameof(board));
         }
 
         /// <summary>Number of farms with registered icon handles; diagnostics/tests only.</summary>
@@ -107,6 +109,9 @@ namespace HDBF.Gameplay.Components
         /// components and registers one toggle per v2 icon class. Returns false (and logs) when the
         /// entity lacks the vanilla pipeline; the farm stays fully functional without icons.
         /// </summary>
+        /// <param name="entityId">Runtime entity id of the farm.</param>
+        /// <param name="entity">Finished farm component (status pipeline owner).</param>
+        /// <returns>True when the farm is tracked for icons.</returns>
         public bool Register(Guid entityId, BaseComponent entity)
         {
             if (entityId == Guid.Empty || entity is null)
@@ -125,10 +130,6 @@ namespace HDBF.Gameplay.Components
 
             try
             {
-                // The cross-building aggregation (chapter 14.2) must keep working even when the
-                // optional world icons are switched off, so the entity is always tracked. The
-                // vanilla status pipeline is only needed to draw the icon; when it is missing the
-                // farm is still a valid aggregation source.
                 StatusSubject? subject = null;
                 StatusIconCycler? cycler = null;
                 try
@@ -140,8 +141,8 @@ namespace HDBF.Gameplay.Components
                 {
                     _log.Error(HdbfLogCategory.Warn,
                         HdbfLogKeys.WorldIconsUnavailable + ":" + entityId,
-                        "vanilla status components could not be resolved; this farm contributes to "
-                        + "the aggregation but gets no head-top icons", exception, entityId.ToString());
+                        "vanilla status components could not be resolved; this farm gets no head-top "
+                        + "icons (panel unaffected)", exception, entityId.ToString());
                 }
 
                 if (subject is null || cycler is null)
@@ -149,8 +150,7 @@ namespace HDBF.Gameplay.Components
                     _log.Write(HdbfLogCategory.Warn,
                         HdbfLogKeys.WorldIconsUnavailable + ":" + entityId,
                         "vanilla StatusSubject/StatusIconCycler missing; head-top warning icons "
-                        + "disabled for this farm (panel and aggregation unaffected), entityId="
-                        + entityId);
+                        + "disabled for this farm (panel unaffected), entityId=" + entityId);
                 }
 
                 var toggles = new StatusToggle?[IndoorWarningMap.MaxWorldIconKind + 1];
@@ -190,6 +190,7 @@ namespace HDBF.Gameplay.Components
         /// <see cref="StatusSubject"/> offers no "unregister status" API, so creating new toggles
         /// on every finished-state toggle would duplicate them).
         /// </summary>
+        /// <param name="entityId">Runtime entity id of the farm.</param>
         public void Deactivate(Guid entityId)
         {
             if (entityId == Guid.Empty || !_handles.TryGetValue(entityId, out var handle))
@@ -200,7 +201,6 @@ namespace HDBF.Gameplay.Components
             handle.Active = false;
             handle.CullingHidden = true;
             handle.BlinkHidden = false;
-            _board.Remove(entityId);
             TryDeactivateToggles(handle);
         }
 
@@ -208,6 +208,7 @@ namespace HDBF.Gameplay.Components
         /// Drops all references to a farm. Called from <c>DeleteEntity</c>: the entity tree is going
         /// away, so keeping its components would leak them. Idempotent.
         /// </summary>
+        /// <param name="entityId">Runtime entity id of the farm.</param>
         public void Forget(Guid entityId)
         {
             if (entityId == Guid.Empty || !_handles.TryGetValue(entityId, out var handle))

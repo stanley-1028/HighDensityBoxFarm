@@ -7,7 +7,6 @@
 // ============================================================================
 using System;
 using System.Collections.Generic;
-using HDBF.Core.Abstractions;
 using HDBF.Core.Indoor;
 
 namespace HDBF.UI.Panels
@@ -25,7 +24,7 @@ namespace HDBF.UI.Panels
         public string Text { get; init; } = string.Empty;
 
         /// <summary>P0..P4 priority used for ordering.</summary>
-        public FarmWarningSeverity Severity { get; init; }
+        public IndoorWarningSeverity Severity { get; init; }
     }
 
     /// <summary>One entry of the fixed-crop dropdown. An empty <see cref="Id"/> means auto rotation.</summary>

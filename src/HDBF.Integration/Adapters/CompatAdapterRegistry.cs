@@ -30,11 +30,11 @@ namespace HDBF.Integration.Adapters
         /// <summary>Verified game version of this build (API_FACTS.md header).</summary>
         public const string GameVersion = "1.1.2.8";
 
-        /// <summary>Save schema version known to this build (REQ-SAVE-05).</summary>
-        public const int SchemaVersion = 1;
+        /// <summary>Save schema version known to this build (REQ-V2-SAVE-01).</summary>
+        public const int SchemaVersion = 2;
 
-        /// <summary>Config schema version known to this build (REQ-ARCH-10).</summary>
-        public const int ConfigSchemaVersion = 1;
+        /// <summary>Config schema version known to this build (REQ-V2-EXT-04).</summary>
+        public const int ConfigSchemaVersion = 2;
 
         private readonly IHdbfLog _log;
         private readonly CompatDetector _detector;
@@ -44,13 +44,6 @@ namespace HDBF.Integration.Adapters
         private IReadOnlyList<string> _enabled = Array.Empty<string>();
         private IReadOnlyList<string> _failed = Array.Empty<string>();
         private string? _lastError;
-
-        /// <summary>
-        /// Harmony patches currently installed, reported by the patch bootstrap
-        /// (<see cref="HdbfIntegrationConfigurator"/> / <c>HDBF.Integration.HarmonyBootstrap</c>).
-        /// Zero is the design target of REQ-IMPL-15; ADR-009 allows exactly one.
-        /// </summary>
-        private int _harmonyPatchCount;
 
         /// <summary>
         /// Creates the registry and registers the five built-in adapters. Bindito resolves this
@@ -229,58 +222,6 @@ namespace HDBF.Integration.Adapters
             }
         }
 
-        /// <inheritdoc />
-        public void ReportHarmonyPatchCount(int patchCount)
-        {
-            try
-            {
-                _harmonyPatchCount = patchCount < 0 ? 0 : patchCount;
-            }
-            catch (Exception exception)
-            {
-                RecordError("harmony-count-failed", exception);
-            }
-        }
-
-        /// <summary>
-        /// Builds the exportable compatibility report with every field of chapter 10.4 table 10-4
-        /// (REQ-SAFE-16). Exported to JSON by <see cref="CompatReport.ToJson"/>.
-        /// </summary>
-        public CompatReport BuildReport()
-        {
-            try
-            {
-                return new CompatReport
-                {
-                    ReportVersion = 1,
-                    ModVersion = ModVersion,
-                    GameVersion = GameVersion,
-                    SchemaVersion = SchemaVersion,
-                    ConfigSchemaVersion = ConfigSchemaVersion,
-                    DetectedMods = _detector.DetectedMods,
-                    EnabledAdapters = _enabled,
-                    FailedAdapters = _failed,
-                    DetectionSource = _detector.LastDetectionSource,
-                    DetectionDurationMs = _detector.LastDetectionDurationMs,
-                    HarmonyPatchCount = _harmonyPatchCount,
-                    PerformanceMode = "Normal",
-                    LastError = _lastError,
-                };
-            }
-            catch (Exception exception)
-            {
-                RecordError("report-failed", exception);
-                return new CompatReport
-                {
-                    DetectedMods = _detector.DetectedMods,
-                    EnabledAdapters = _enabled,
-                    FailedAdapters = _failed,
-                    DetectionSource = _detector.LastDetectionSource,
-                    DetectionDurationMs = _detector.LastDetectionDurationMs,
-                    LastError = _lastError ?? exception.GetType().Name,
-                };
-            }
-        }
 
         private void RegisterBuiltIns()
         {

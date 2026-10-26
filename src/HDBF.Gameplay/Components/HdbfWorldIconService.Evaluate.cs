@@ -2,17 +2,15 @@
 // HDBF v2 | Layer: Gameplay/Components | Owner: V2-GAMEPLAY-02
 // Purpose: Per-farm icon evaluation, culling/blink visibility and camera resolution of the
 //          world-warning icon coordinator, plus its private handle state. The icon class is
-//          derived from the retained warning rows through the pure Core IndoorWarningMap so
-//          only four v2 visuals can ever appear (section 19.11).
+//          derived directly from the daily IndoorWarningFlags through the pure Core
+//          IndoorWarningMap, so only four v2 visuals can ever appear (section 19.11).
 // Requirements: REQ-V2-BAL-03, REQ-V2-UI-02, REQ-V2-SAFE-01, REQ-V2-READ-02
 // ============================================================================
 using System;
 using System.Collections.Generic;
 using HDBF.Core;
-using HDBF.Core.Abstractions;
 using HDBF.Core.Indoor;
 using HDBF.Core.Logging;
-using HDBF.Core.Warnings;
 using Timberborn.BaseComponentSystem;
 using Timberborn.CameraSystem;
 using Timberborn.Localization;
@@ -27,15 +25,9 @@ namespace HDBF.Gameplay.Components
         private void Evaluate(IconHandle handle, double now, HDBF.Core.Config.UiSettings ui,
             bool iconsEnabled)
         {
-            if (!_query.TryGetSnapshot(handle.EntityId, out var snapshot))
-            {
-                return;
-            }
-
-            var subject = FarmWarningSubject.FromSnapshot(snapshot);
-            // Aggregation is independent of the icon switch: always publish the subject.
-            _board.Report(subject);
-            var target = HighestIconKind(subject, out var severity);
+            var snapshot = _query.GetIndoorSnapshot(handle.EntityId);
+            var flags = snapshot?.Warnings ?? IndoorWarningFlags.None;
+            var target = IndoorWarningMap.IconKindOf(flags);
             handle.TargetKind = target;
 
             if (!iconsEnabled || handle.Subject is null)
@@ -79,46 +71,11 @@ namespace HDBF.Gameplay.Components
                 }
             }
 
-            var blink = WorldIconPolicy.ShouldBlink(severity, ui.WorldIconBlink)
+            var blink = IndoorIconPolicy.ShouldBlink(IndoorWarningMap.IsCritical(flags), ui.WorldIconBlink)
                         && target != IndoorWarningIconKind.None;
             handle.Blinking = blink;
-            handle.BlinkHidden = blink && !WorldIconPolicy.IsBlinkOn(now, WorldIconPolicy.DefaultBlinkHz);
+            handle.BlinkHidden = blink && !IndoorIconPolicy.IsBlinkOn(now, IndoorIconPolicy.DefaultBlinkHz);
             ApplyVisibility(handle);
-        }
-
-        /// <summary>
-        /// First (highest-priority) warning row whose key belongs to one of the four v2 icon
-        /// classes. The shared mapper already sorts rows P0 first, then by key, so the first hit is
-        /// the highest-severity icon. Only the four classes can be returned.
-        /// </summary>
-        private static IndoorWarningIconKind HighestIconKind(FarmWarningSubject? subject,
-            out FarmWarningSeverity severity)
-        {
-            severity = FarmWarningSeverity.Info;
-            if (subject?.Warnings is null)
-            {
-                return IndoorWarningIconKind.None;
-            }
-
-            for (var index = 0; index < subject.Warnings.Count; index++)
-            {
-                var warning = subject.Warnings[index];
-                if (warning is null)
-                {
-                    continue;
-                }
-
-                var kind = IndoorWarningMap.IconKindOf(warning.CodeKey);
-                if (kind == IndoorWarningIconKind.None)
-                {
-                    continue;
-                }
-
-                severity = warning.Severity;
-                return kind;
-            }
-
-            return IndoorWarningIconKind.None;
         }
 
         private void SetCullingHidden(IconHandle handle, bool hidden)
@@ -212,13 +169,13 @@ namespace HDBF.Gameplay.Components
 
             public BaseComponent Entity { get; }
 
-            /// <summary>Null when the entity lacks the vanilla status pipeline (aggregation only).</summary>
+            /// <summary>Null when the entity lacks the vanilla status pipeline (icons only).</summary>
             public StatusSubject? Subject { get; }
 
-            /// <summary>Null when the entity lacks the vanilla status pipeline (aggregation only).</summary>
+            /// <summary>Null when the entity lacks the vanilla status pipeline (icons only).</summary>
             public StatusIconCycler? Cycler { get; }
 
-            /// <summary>Null when the entity lacks the vanilla status pipeline (aggregation only).</summary>
+            /// <summary>Null when the entity lacks the vanilla status pipeline (icons only).</summary>
             public StatusVisibilityToggle? Visibility { get; }
 
             public StatusToggle?[] Toggles { get; }

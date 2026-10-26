@@ -3,8 +3,6 @@
 #   powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1              # build, test, stage + release gates
 #   powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1 -SkipTests   # build + stage (L1 gate skipped)
 #   powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1 -Install     # + deploy to Mods\HDBF
-#   powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1 -DevDiagnostics
-#                                                                              # evidence build WITH diag.* (never deployable)
 #   powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1 -GateOnly -GateStage <dir>
 #                                                                              # re-audit an existing staged package only
 #   powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1 -WorkRoot <dir>
@@ -19,13 +17,14 @@
 #
 # REL-01 release gates (after staging, before install):
 #   * G-08  staged package: exactly the five assemblies, valid PE files, no test/debug/cheat/dev
-#           file names or config switches, no HDBF.DevDiagnostics marker and no diag.* strings
-#           (conditional compilation: Diagnostics.cs is compiled out unless -DevDiagnostics is set);
-#   * G-08  patch manifest: <= 1 patch (ADR-009), Postfix only, one verified Harmony instance id,
-#           0 Transpiler, feature-switchable off and uninstallable, feature switch present in the
-#           shipped HDBF_Config.json;
-#   * G-05  compatibility report: exactly the 13 chapter-10.4 fields, cross-checked against the
-#           machine-readable contract tools/release/release-gates.json;
+#           file names or config switches;
+#   * G-08  0 Harmony (section 19.18.3-B5): the v1 patch source directory does not exist, the
+#           staged HDBF.Integration.dll contains no Harmony token, no source file registers a
+#           patch (harmonyPatchCount stays 0) and the shipped config exposes no patch switch;
+#   * G-08  config schema 2: staged HDBF_Config.json has configSchemaVersion 2, the four required
+#           sections, and none of the deleted v1 scan/irrigation/crop-visibility keys;
+#   * G-05  compatibility report: exactly the 13 chapter-10.4 fields (harmonyPatchCount included,
+#           always 0), cross-checked against tools/release/release-gates.json;
 #   * G-09  localizations: enUS/zhCN/zhTW have identical key sets (missing = 0) and no empty text,
 #           plus tools/validate RESULT: OK and the 5/5 mod-assembly assertion;
 #   * G-01  L1 suite: "FAILED 0" and at least the manifest's minTests (P0/P1 unit evidence).
@@ -43,7 +42,6 @@ param(
     [switch]$SkipTests,
     [switch]$Install,
     [switch]$Clean,
-    [switch]$DevDiagnostics,
     [switch]$GateOnly,
     [string]$GateStage = '',
     [string]$ReleaseManifest = ''
@@ -140,6 +138,7 @@ function Get-OccurrenceCount {
     }
 }
 
+
 $script:gateChecks = 0
 $script:gateFailures = New-Object System.Collections.Generic.List[string]
 
@@ -161,7 +160,7 @@ function Assert-ReleaseGate {
 }
 
 # ---------------------------------------------------------------------------------------------
-# REL-01 release gates (staged package + patch manifest + report + localization + L1 summary)
+# REL-01 release gates (staged package + 0-Harmony + config schema 2 + report + localization + L1)
 # ---------------------------------------------------------------------------------------------
 
 function Invoke-ReleaseGates {
@@ -170,8 +169,7 @@ function Invoke-ReleaseGates {
         [string]$ManifestFile,
         [string]$ValidateLog = '',
         [string]$TestLog = '',
-        [string]$BuildLog = '',
-        [bool]$DevBuild = $false
+        [string]$BuildLog = ''
     )
 
     $script:gateChecks = 0
@@ -192,9 +190,6 @@ function Invoke-ReleaseGates {
     Write-Host ("  gate manifest  : {0}" -f (Resolve-Path -LiteralPath $ManifestFile).Path)
     Write-Host ("  staged package : {0}" -f (Resolve-Path -LiteralPath $StagedDir).Path)
     Write-Host ("  gate ids       : {0}" -f (@($gate.gateIds) -join ', '))
-    if ($DevBuild) {
-        Write-Host '  MODE           : DEV-DIAGNOSTICS (assertions inverted: the package must contain the evidence code)' -ForegroundColor Yellow
-    }
 
     $stagedRoot = (Resolve-Path -LiteralPath $StagedDir).Path
     $stagedFiles = @(Get-ChildItem -LiteralPath $stagedRoot -Recurse -File)
@@ -234,165 +229,151 @@ function Invoke-ReleaseGates {
     }
     Assert-ReleaseGate ($badPaths.Count -eq 0) 'G-08' 'no test/debug/cheat/dev file names in the package' ($badPaths -join '; ')
 
-    # ---- shipped config: no cheat/debug switches (G-08) -----------------------------------
-    $stagedConfigPath = Join-Path $stagedRoot 'HDBF_Config.json'
+    # ---- shipped config: schema 2, no cheat/debug/patch/v1 keys (G-08) ----------------------
+    $configContract = $gate.configContract
+    $stagedConfigPath = Join-Path $stagedRoot ([string]$configContract.stagedFile)
+    $stagedConfig = $null
     if (Test-Path -LiteralPath $stagedConfigPath) {
-        $stagedConfig = Get-Content -LiteralPath $stagedConfigPath -Raw | ConvertFrom-Json
-        $configBadKeys = @()
+        try {
+            $stagedConfig = Get-Content -LiteralPath $stagedConfigPath -Raw | ConvertFrom-Json
+        }
+        catch {
+            $stagedConfig = $null
+        }
+    }
+
+    Assert-ReleaseGate ($null -ne $stagedConfig) 'G-08' 'staged package contains a readable HDBF_Config.json'
+    if ($null -ne $stagedConfig) {
         $configKeySets = @(
             @($stagedConfig.PSObject.Properties.Name),
-            @($stagedConfig.features.PSObject.Properties.Name)
+            @($stagedConfig.features.PSObject.Properties.Name),
+            @($stagedConfig.perf.PSObject.Properties.Name),
+            @($stagedConfig.ui.PSObject.Properties.Name)
         )
+
+        $configBadKeys = @()
         foreach ($keySet in $configKeySets) {
             foreach ($forbidden in @($gate.forbiddenConfigKeys)) {
                 if ($keySet -contains [string]$forbidden) {
                     $configBadKeys += [string]$forbidden
                 }
             }
-        }
-        Assert-ReleaseGate ($configBadKeys.Count -eq 0) 'G-08' `
-            'shipped HDBF_Config.json exposes no debug/cheat/dev switch' ($configBadKeys -join ', ')
-    }
-    else {
-        Assert-ReleaseGate $false 'G-08' 'staged package contains HDBF_Config.json'
-    }
 
-    # ---- dev diagnostics: conditional compilation (G-08) ----------------------------------
-    $diag = $gate.devDiagnostics
-    $marker = [string]$diag.marker
-    $forbiddenStrings = @($diag.forbiddenStrings | ForEach-Object { [string]$_ })
+            foreach ($forbidden in @($configContract.forbiddenKeys)) {
+                if ($keySet -contains [string]$forbidden) {
+                    $configBadKeys += [string]$forbidden
+                }
+            }
 
-    $forbiddenHits = @()
-    $markerHits = @()
-    foreach ($file in $stagedFiles) {
-        $text = Read-BytesForTokenSearch $file.FullName
-        $relative = $file.FullName.Substring($stagedRoot.Length).TrimStart('\', '/')
-        foreach ($needle in $forbiddenStrings) {
-            if (Test-TextContains $text $needle) {
-                $forbiddenHits += ($relative + ' contains "' + $needle + '"')
+            foreach ($forbidden in @($gate.harmony.forbiddenConfigKeys)) {
+                if ($keySet -contains [string]$forbidden) {
+                    $configBadKeys += [string]$forbidden
+                }
             }
         }
 
-        if (Test-TextContains $text $marker) {
-            $markerHits += $relative
+        Assert-ReleaseGate ($configBadKeys.Count -eq 0) 'G-08' `
+            'shipped HDBF_Config.json exposes no debug/cheat/dev or deleted v1 switch' `
+            (($configBadKeys | Sort-Object -Unique) -join ', ')
+
+        $schemaKey = [string]$configContract.schemaVersionKey
+        $schemaValue = $stagedConfig.$schemaKey
+        Assert-ReleaseGate ($schemaValue -is [int] -and $schemaValue -eq [int]$configContract.schemaVersion) 'G-08' `
+            ('HDBF_Config.json declares config schema ' + [int]$configContract.schemaVersion) `
+            ('found: ' + [string]$schemaValue)
+
+        $missingSections = @()
+        foreach ($section in @($configContract.requiredSections)) {
+            if ($null -eq $stagedConfig.$section) {
+                $missingSections += [string]$section
+            }
+        }
+
+        Assert-ReleaseGate ($missingSections.Count -eq 0) 'G-08' `
+            'HDBF_Config.json contains the required v2 sections' ($missingSections -join ', ')
+    }
+
+    # ---- 0 Harmony (G-08, section 19.18.3-B5) ----------------------------------------------
+    $harmony = $gate.harmony
+    $maxPatches = [int]$harmony.maxPatches
+    Assert-ReleaseGate ($maxPatches -eq 0) 'G-08' `
+        'section 19.18.3-B5: the release contract allows exactly 0 Harmony patches'
+
+    $patchDirectory = Join-Path $root ([string]$harmony.forbiddenSourceDirectory)
+    Assert-ReleaseGate (-not (Test-Path -LiteralPath $patchDirectory)) 'G-08' `
+        ('the v1 patch source directory is deleted: ' + [string]$harmony.forbiddenSourceDirectory)
+
+    $sourceRoot = Join-Path $root ([string]$harmony.sourceScanRoot)
+    $sourceFiles = @()
+    if (Test-Path -LiteralPath $sourceRoot) {
+        $sourceFiles = @(Get-ChildItem -LiteralPath $sourceRoot -Recurse -File -Filter '*.cs')
+    }
+
+    $sourceTokenHits = @()
+    $patchCountHits = @()
+    $patchCountPattern = [string]$harmony.nonzeroPatchCountPattern
+    foreach ($file in $sourceFiles) {
+        $text = Read-TextFile $file.FullName
+        $relative = $file.FullName.Substring($root.Length).TrimStart('\', '/')
+        foreach ($token in @($harmony.forbiddenSourceTokens)) {
+            if (Test-TextContains $text ([string]$token)) {
+                $sourceTokenHits += ($relative + ' contains "' + [string]$token + '"')
+            }
+        }
+
+        if ($patchCountPattern -and [regex]::IsMatch($text, $patchCountPattern)) {
+            $patchCountHits += $relative
         }
     }
 
-    $diagSourcePath = Resolve-GateSource ([string]$diag.sourceFile)
-    $diagSource = Read-TextFile $diagSourcePath
-    # Line-anchored matches: a comment may legitimately mention "#else" without being the directive.
-    $devStartMatch = [regex]::Match($diagSource, '(?m)^#if HDBF_DEV_DIAGNOSTICS\s*$')
-    $releaseStartMatch = [regex]::Match($diagSource, '(?m)^#else\s*$')
-    $devEndMatch = [regex]::Match($diagSource, '(?m)^#endif\s*$')
-    Assert-ReleaseGate ($devStartMatch.Success -and $releaseStartMatch.Success -and $devEndMatch.Success -and
-                        $releaseStartMatch.Index -gt $devStartMatch.Index -and
-                        $devEndMatch.Index -gt $releaseStartMatch.Index) 'G-08' `
-        'diagnostics partial is guarded by #if HDBF_DEV_DIAGNOSTICS / #else / #endif'
-    if ($releaseStartMatch.Success -and $devEndMatch.Success -and
-        $devEndMatch.Index -gt $releaseStartMatch.Index) {
-        $releaseBranch = $diagSource.Substring($releaseStartMatch.Index,
-            $devEndMatch.Index - $releaseStartMatch.Index)
-        Assert-ReleaseGate (-not (Test-TextContains $releaseBranch 'diag.')) 'G-08' `
-            'release branch of the diagnostics partial contains no diag.* token'
-        Assert-ReleaseGate (-not (Test-TextContains $releaseBranch $marker)) 'G-08' `
-            'release branch of the diagnostics partial contains no dev marker'
+    Assert-ReleaseGate ($sourceTokenHits.Count -eq 0) 'G-08' `
+        'no source file references Harmony or the deleted patch session' ($sourceTokenHits -join '; ')
+    Assert-ReleaseGate ($patchCountHits.Count -eq 0) 'G-08' `
+        'no source file reports a non-zero harmonyPatchCount (the report always says 0)' ($patchCountHits -join ', ')
+
+    $compatSource = Read-TextFile (Resolve-GateSource ([string]$harmony.compatReportSource))
+    Assert-ReleaseGate ((Test-TextContains $compatSource ([string]$harmony.reportField)) -and
+                        (Test-TextContains $compatSource 'public int HarmonyPatchCount')) 'G-08' `
+        'the compatibility report keeps the harmonyPatchCount field (contract unchanged, value 0)'
+
+    $configSource = Read-TextFile (Resolve-GateSource ([string]$harmony.configFile))
+    $configSourceConfig = $null
+    try {
+        $configSourceConfig = $configSource | ConvertFrom-Json
+    }
+    catch {
+        $configSourceConfig = $null
     }
 
-    $propsText = Read-TextFile (Resolve-GateSource ([string]$diag.propertyFile))
-    Assert-ReleaseGate ((Test-TextContains $propsText '<HdbfDevDiagnostics Condition') -and
-                        (Test-TextContains $propsText '>false</HdbfDevDiagnostics>')) 'G-08' `
-        'HdbfDevDiagnostics defaults to false (dev diagnostics off in a release build)'
-    Assert-ReleaseGate ((Test-TextContains $propsText '$(DefineConstants);HDBF_DEV_DIAGNOSTICS') -and
-                        (Test-TextContains $propsText "Condition=`" '`$(HdbfDevDiagnostics)' == 'true' `"")) 'G-08' `
-        'HDBF_DEV_DIAGNOSTICS is only defined when the property is explicitly true'
-
-    if ($DevBuild) {
-        $gameplayDll = Join-Path $stagedRoot ([string]$diag.assembly + '.dll')
-        if (Test-Path -LiteralPath $gameplayDll) {
-            $gameplayText = Read-BytesForTokenSearch $gameplayDll
-            Assert-ReleaseGate (Test-TextContains $gameplayText $marker) 'G-08' `
-                'POSITIVE CONTROL: dev build carries the HDBF.DevDiagnostics assembly marker'
-            Assert-ReleaseGate (Test-TextContains $gameplayText 'diag.') 'G-08' `
-                'POSITIVE CONTROL: dev build contains diag.* evidence strings'
-        }
-        else {
-            Assert-ReleaseGate $false 'G-08' 'dev build staged the gameplay assembly'
-        }
-
-        Write-Host '  NOTE: dev-diagnostics package kept for evidence only; rebuild without -DevDiagnostics before release.' -ForegroundColor Yellow
-    }
-    else {
-        Assert-ReleaseGate ($forbiddenHits.Count -eq 0) 'G-08' `
-            'no dev diagnostics strings in any staged file (diag.*, scan.probe, dryCells, farm.plan, patch-applied)' `
-            ($forbiddenHits -join '; ')
-        Assert-ReleaseGate ($markerHits.Count -eq 0) 'G-08' `
-            'no HDBF.DevDiagnostics assembly marker in the release package' ($markerHits -join ', ')
-    }
-
-    # ---- patch manifest: <= 1 Postfix, one Harmony instance, switchable, no IL rewrite (G-08) ----
-    $patch = $gate.patches
-    $maxCount = [int]$patch.maxCount
-    $instanceId = [string]$patch.harmonyInstanceId
-    $catalogText = Read-TextFile (Resolve-GateSource ([string]$patch.catalogSource))
-
-    Assert-ReleaseGate ($maxCount -eq 1) 'G-08' 'ADR-009: at most one Harmony patch is allowed'
-    Assert-ReleaseGate ((Get-OccurrenceCount $catalogText ('HarmonyInstanceId = "' + $instanceId + '"')) -eq 1) 'G-08' `
-        ('exactly one Harmony instance id in the whitelist: ' + $instanceId)
-    Assert-ReleaseGate ((Get-OccurrenceCount $catalogText ('GrowthPatchKind = "' + [string]$patch.patchKind + '"')) -eq $maxCount) 'G-08' `
-        ('patch whitelist declares exactly ' + $maxCount + ' ' + [string]$patch.patchKind + ' patch')
-    Assert-ReleaseGate ((Get-OccurrenceCount $catalogText 'GrowthPatchTargetMethod') -eq $maxCount) 'G-08' `
-        'the patch whitelist targets exactly one method'
-
-    $implementation = ''
-    foreach ($source in @($patch.implementationSources)) {
-        $implementation += (Read-TextFile (Resolve-GateSource ([string]$source))) + "`n"
-    }
-
-    $forbiddenPatchTokens = @($patch.forbiddenTokens | ForEach-Object { [string]$_ })
-    $forbiddenPatchHits = @()
-    foreach ($token in $forbiddenPatchTokens) {
-        if (Test-TextContains $implementation $token) {
-            $forbiddenPatchHits += $token
+    $patchKeyHits = @()
+    if ($null -ne $configSourceConfig) {
+        $sourceFeatureNames = @($configSourceConfig.features.PSObject.Properties.Name)
+        foreach ($forbidden in @($harmony.forbiddenConfigKeys)) {
+            if ($sourceFeatureNames -contains [string]$forbidden) {
+                $patchKeyHits += [string]$forbidden
+            }
         }
     }
-    Assert-ReleaseGate ($forbiddenPatchHits.Count -eq 0) 'G-08' `
-        'patches contain no IL-rewriting kind (no Transpiler)' ($forbiddenPatchHits -join ', ')
-    Assert-ReleaseGate ((Get-OccurrenceCount $implementation 'public static void Postfix') -eq $maxCount) 'G-08' `
-        ('exactly ' + $maxCount + ' patch body exists in the shipped patch sources')
 
-    $bootstrapText = Read-TextFile (Resolve-GateSource ([string]$patch.bootstrapSource))
-    Assert-ReleaseGate ((Test-TextContains $bootstrapText 'IsPatchEnabled') -and
-                        (Test-TextContains $bootstrapText 'Unload(')) 'G-08' `
-        'the patch is feature-switched off before install and unregisterable on unload'
-    $installerText = Read-TextFile (Resolve-GateSource ([string]$patch.installerSource))
-    Assert-ReleaseGate ((Test-TextContains $installerText 'Unpatch') -and
-                        (Test-TextContains $installerText 'ReportHarmonyPatchCount(0)')) 'G-08' `
-        'the patch can be uninstalled and resets the reported patch count to 0'
+    Assert-ReleaseGate ($patchKeyHits.Count -eq 0) 'G-08' `
+        'the shipped data/HDBF_Config.json exposes no Harmony patch switch' ($patchKeyHits -join ', ')
 
-    $switchName = [string]$patch.disableSwitch
-    if (Test-Path -LiteralPath $stagedConfigPath) {
-        $featureNames = @($stagedConfig.features.PSObject.Properties.Name)
-        Assert-ReleaseGate ($featureNames -contains $switchName) 'G-08' `
-            ('shipped HDBF_Config.json exposes the disable switch features.' + $switchName)
-        $switchValue = $stagedConfig.features.$switchName
-        Assert-ReleaseGate ($switchValue -is [bool]) 'G-08' `
-            ('features.' + $switchName + ' is a boolean, so the patch can always be switched off')
-    }
-
-    $integrationDll = Join-Path $stagedRoot ([string]$patch.stagedAssembly)
+    $integrationDll = Join-Path $stagedRoot ([string]$harmony.stagedAssembly)
     if (Test-Path -LiteralPath $integrationDll) {
         $integrationText = Read-BytesForTokenSearch $integrationDll
-        Assert-ReleaseGate (Test-TextContains $integrationText $instanceId) 'G-08' `
-            'staged HDBF.Integration.dll carries the fixed Harmony instance id'
-        Assert-ReleaseGate (Test-TextContains $integrationText 'HdbfPatchCatalog') 'G-08' `
-            'staged HDBF.Integration.dll carries the patch whitelist type'
-        Assert-ReleaseGate (Test-TextContains $integrationText 'Postfix') 'G-08' `
-            'staged HDBF.Integration.dll carries the Postfix patch kind'
-        Assert-ReleaseGate (-not (Test-TextContains $integrationText $forbiddenPatchTokens[0])) 'G-08' `
-            ('staged HDBF.Integration.dll contains no ' + $forbiddenPatchTokens[0])
+        $integrationHits = @()
+        foreach ($token in @($harmony.forbiddenTokens)) {
+            if (Test-TextContains $integrationText ([string]$token)) {
+                $integrationHits += [string]$token
+            }
+        }
+
+        Assert-ReleaseGate ($integrationHits.Count -eq 0) 'G-08' `
+            ('staged ' + [string]$harmony.stagedAssembly + ' contains no Harmony/patch token') `
+            ($integrationHits -join ', ')
     }
     else {
-        Assert-ReleaseGate $false 'G-08' ('staged package is missing ' + [string]$patch.stagedAssembly)
+        Assert-ReleaseGate $false 'G-08' ('staged package is missing ' + [string]$harmony.stagedAssembly)
     }
 
     # ---- test seam confinement (G-08: no player-reachable test/cheat hook) ----------------
@@ -526,23 +507,12 @@ function Invoke-ReleaseGates {
     }
 
     Write-Host ("RELEASE GATES: PASSED ({0} checks)" -f $script:gateChecks) -ForegroundColor Green
-    if ($DevBuild) {
-        Write-Host 'DEV-DIAGNOSTICS BUILD: assertions passed, but this package is NOT releasable.' -ForegroundColor Yellow
-    }
     Write-Host '================================================================================' -ForegroundColor Cyan
 }
 
 # ---------------------------------------------------------------------------------------------
 # main
 # ---------------------------------------------------------------------------------------------
-
-if ($DevDiagnostics) {
-    Write-Host 'DEV DIAGNOSTICS ENABLED (-DevDiagnostics => -p:HdbfDevDiagnostics=true): this build must never be released.' -ForegroundColor Yellow
-}
-
-if ($DevDiagnostics -and $Install) {
-    throw '-Install is refused with -DevDiagnostics: the release package must not contain dev diagnostics (G-08). Rebuild without -DevDiagnostics to deploy.'
-}
 
 # Gate-only mode: re-audit an already staged package (CI / negative-control runs). No build, no
 # test, no validate, no deployment.
@@ -552,7 +522,7 @@ if ($GateOnly) {
     }
 
     $gateStagePath = (Resolve-Path -LiteralPath $GateStage).Path
-    Invoke-ReleaseGates -StagedDir $gateStagePath -ManifestFile $releaseManifestPath -DevBuild $DevDiagnostics.IsPresent
+    Invoke-ReleaseGates -StagedDir $gateStagePath -ManifestFile $releaseManifestPath
     exit 0
 }
 
@@ -598,9 +568,6 @@ $buildProperties = @(
     "-p:HdbfWorkRoot=$workRoot",
     "-p:TimberbornDir=$TimberbornDir"
 )
-if ($DevDiagnostics) {
-    $buildProperties += '-p:HdbfDevDiagnostics=true'
-}
 
 Write-Host ''
 Write-Host ("Build configuration: {0}; work root: {1}" -f $Configuration, $workRoot) -ForegroundColor DarkCyan
@@ -683,7 +650,7 @@ foreach ($languageFile in @('enUS.csv', 'zhCN.csv', 'zhTW.csv')) {
 
 # ---- REL-01 release gates: must pass before anything can be deployed ----------------------
 Invoke-ReleaseGates -StagedDir $stageDir -ManifestFile $releaseManifestPath `
-    -ValidateLog $validateLog -TestLog $testLog -BuildLog $buildLog -DevBuild $DevDiagnostics.IsPresent
+    -ValidateLog $validateLog -TestLog $testLog -BuildLog $buildLog
 
 $sizeBytes = (Get-ChildItem $stageDir -Recurse -File | Measure-Object -Sum Length).Sum
 Write-Host ''

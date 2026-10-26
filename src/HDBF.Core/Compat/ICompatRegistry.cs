@@ -35,12 +35,5 @@ namespace HDBF.Core.Compat
 
         /// <summary>Re-runs detection and refreshes adapter state for the current environment.</summary>
         void RefreshDetection();
-
-        /// <summary>
-        /// Records how many Harmony patches are currently installed by this mod. The value is the
-        /// <c>harmonyPatchCount</c> field of the chapter 10.4 compatibility report (REQ-COMPAT-17:
-        /// publish the total patch count); the patch bootstrap is the only writer.
-        /// </summary>
-        void ReportHarmonyPatchCount(int patchCount);
     }
 }

@@ -32,20 +32,20 @@ fragment never shows a raw localization key or a `NaN`/`Infinity`.
 
 ## Data path
 
-* `ShowFragment(entity)` resolves the `EntityComponent` runtime id and asks the panel bridge for
-  the Core DTO.
-* The gameplay singleton bound to `IBoxFarmQuery` exposes the v2 read model; the singleton bound
-  to `IBoxFarmCommand` exposes the two v2 write actions (refill, crop strategy) as public members
-  in addition to the frozen Core methods. Because this assembly may only reference `HDBF.Core`,
-  the `HdbfIndoorCommandBridge` resolves those three members **once** by name on the two injected
-  singletons and caches the `MethodInfo`; every call is isolated and degrades to "no data" /
-  generic failure. All payloads are Core DTOs (`IndoorFarmSnapshot`, `CropPolicy`); no gameplay
-  implementation type is named.
+* `ShowFragment(entity)` resolves the `EntityComponent` runtime id and asks the Core query
+  contract for the `IndoorFarmSnapshot` DTO.
+* The gameplay singleton bound to `IBoxFarmQuery` exposes the v2 read model
+  (`GetIndoorSnapshot`); the singleton bound to `IBoxFarmCommand` exposes the Core write actions.
+  The two panel-only commands (manual refill, crop strategy) are additional public members of the
+  command singleton: because this assembly may only reference `HDBF.Core`, the
+  `HdbfIndoorCommandBridge` resolves exactly those two members **once** by name and caches the
+  `MethodInfo`; every call is isolated and degrades to "no data" / generic failure. All payloads
+  are Core DTOs (`IndoorFarmSnapshot`, `CropPolicy`); no gameplay implementation type is named.
 * `UpdateFragment()` re-queries at most **4 times per second** (`RefreshIntervalSeconds = 0.25f`,
   REQ-V2-UI-01) and re-renders only when a value fingerprint changed, so an idle panel does not
   re-format or re-allocate its labels.
-* Actions: mode switch and maintenance go through the frozen Core `IBoxFarmCommand`; crop strategy
-  and manual refill go through the v2 members on the same command singleton. Every rejection shows
+* Actions: mode switch and maintenance go through the Core `IBoxFarmCommand`; crop strategy and
+  manual refill go through the two panel-only members on the same command singleton. Every rejection shows
   the specific localized reason returned by gameplay (REQ-V2-UI-02: no worker, blocked entrance,
   no/unreachable/contaminated water, empty action budget, pending trip, full output, missing
   material, invalid crop); rejected actions keep the authoritative snapshot values, never an
@@ -82,18 +82,19 @@ field term from the shipped texts.
 
 ## Known gaps / deviations (honest list)
 
-1. **Reflection bridge instead of a compile-time call.** The frozen Core interfaces expose only the
-   v1 snapshot and the v1 command surface, while this assembly may not reference
-   `HDBF.Gameplay`. The bridge is the documented seam until a v2 read/command contract moves into
-   `HDBF.Core`; it resolves members once, never per frame, and fails safe.
+1. **Reflection bridge for the two panel-only commands.** The v2 read model and the
+   mode/maintenance/port commands are compile-time Core interfaces; only the refill and crop-policy
+   commands live on the gameplay implementation, while this assembly may not reference
+   `HDBF.Gameplay`. The bridge is the documented seam for those two members; it resolves them once,
+   never per frame, and fails safe.
 2. **Maintenance material is derived from the tier profile, not carried by the DTO.** The snapshot
    only has a "material missing" flag, so the panel derives `Plank x8` / `metal block x15` from
    `TierCatalog` + the power state. Adding the material id/count to the Core DTO would remove the
    derivation.
-3. **World-icon slot reuse.** `FarmWarningIconKind` is a frozen Core enum, so the query service
-   emits maintenance under the Shutdown key and blocked entrance under the AdapterFailed key; the
-   shipped texts are the v2 sentences. A Core-side icon enum extension would remove the reuse.
-4. **Manual refill is a request.** Until the gameplay trip path fully lands, the action renders the
-   specific "not available in this build" reason instead of moving water.
+3. **World-icon keys are the v2 sentences.** The four icon classes map straight from
+   `IndoorWarningFlags` through `HDBF.Core.Indoor.IndoorWarningMap`; the hover tooltip reuses the
+   shipped `HDBF.Warning.*` sentences (no v1 warning/aggregation framework remains).
+4. **Manual refill is a queued request.** The button validates a real source and the daily action
+   budget, then the next daily tick performs the trip and spends the two farm actions.
 5. **UI assembly cannot run the game itself.** The panel is compile-verified and its game-free
    mapping is covered by L1; the in-game look/feel still needs TC-V2-05/06 verification.

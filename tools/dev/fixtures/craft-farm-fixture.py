@@ -22,6 +22,7 @@ Usage (PowerShell):
 """
 
 import argparse
+import io
 import json
 import os
 import shutil
@@ -55,7 +56,7 @@ def load_world(path):
     return world, infos, blobs
 
 
-def inject_entities(world, farm, path, tier="BoxFarm.Basic.Folktails"):
+def inject_entities(world, farm, path, tier="BoxFarm.Basic.Folktails", indoor_payload=None):
     entities = world.setdefault("Entities", [])
     if path is not None:
         entities.append({
@@ -82,6 +83,10 @@ def inject_entities(world, farm, path, tier="BoxFarm.Basic.Folktails"):
             "Emptiable": {"IsMarkedForEmptying": False, "StatusIsActive": False},
         },
     })
+    if indoor_payload is not None:
+        # v2 indoor state: same ComponentKey/PropertyKey the mod writes, so the loaded building
+        # starts with pre-planted slots instead of waiting days 1..N for growth (verification only).
+        entities[-1]["Components"]["HDBF.IndoorFarm"] = {"Payload": indoor_payload}
     return entities
 
 
@@ -138,6 +143,8 @@ def main():
     parser.add_argument("--camera-vangle", default="40")
     parser.add_argument("--path", default="")
     parser.add_argument("--tier", default="BoxFarm.Basic.Folktails")
+    parser.add_argument("--indoor-payload", default=None,
+                        help="schema-v2 payload file embedded as HDBF.IndoorFarm (v2 fixture)")
     args = parser.parse_args()
 
     if not os.path.isfile(args.source):
@@ -145,8 +152,16 @@ def main():
     farm = tuple(int(part) for part in args.farm.split(","))
     path = tuple(int(part) for part in args.path.split(",")) if args.path.strip() else None
 
+    indoor_payload = None
+    if args.indoor_payload:
+        if not os.path.isfile(args.indoor_payload):
+            raise SystemExit("indoor payload not found: %s" % args.indoor_payload)
+        with io.open(args.indoor_payload, encoding="utf-8") as handle:
+            indoor_payload = handle.read()
+        print("  indoor payload: %s (%d chars)" % (args.indoor_payload, len(indoor_payload)))
+
     world, infos, blobs = load_world(args.source)
-    inject_entities(world, farm, path, args.tier)
+    inject_entities(world, farm, path, args.tier, indoor_payload)
     if aim_camera(world, farm, args.camera_zoom, args.camera_hangle, args.camera_vangle):
         print("  camera aimed at farm %s" % (farm,))
     if args.all_moist.lower() == "true":

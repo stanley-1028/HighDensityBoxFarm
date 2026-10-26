@@ -1,121 +1,168 @@
 namespace HDBF.Core.Config
 {
     /// <summary>
-    /// Named clamp ranges for every configurable value, taken from chapter 18 "可调参数清单".
+    /// Named clamp ranges for every configurable value of config schema 2, taken from chapter 18
+    /// "可调参数清单".
     ///
     /// Public so the blueprint/spec validator, docs generation and UI tooltips can reference the
     /// same numbers as <see cref="HdbfConfigCodec"/> instead of duplicating literals.
     ///
-    /// Two values are tighter than the document's suggested range because a hard requirement
-    /// wins over a tuning hint:
-    /// * work range is capped at 27 cells (REQ-BAL-18 forbids configs that reach the whole map);
-    /// * plot capacity keeps chapter 18's 30–1000 window; the save codec uses the resolved
-    ///   per-tier capacity as its hard cap (chapter 10.5) — see the comment on
-    ///   <see cref="PlotCapacityMin"/>.
-    ///
-    /// Unit tests deliberately assert literal chapter-18 numbers instead of these constants, so
-    /// a typo here cannot make a test pass by comparing the constant with itself.
+    /// The v1 scan/irrigation/crop-visibility ranges were deleted with their keys (section 19.2);
+    /// the tier slot range keeps chapter 18's 30–1000 window, and the parameter values are
+    /// deliberately literals in the unit tests so a typo here cannot make a test pass by
+    /// comparing a constant with itself.
     /// </summary>
     public static class HdbfConfigRanges
     {
+        /// <summary>Lowest accepted schema version (0 is treated as legacy garbage).</summary>
         public const int SchemaVersionMin = 0;
+
+        /// <summary>Highest accepted schema version (the current one).</summary>
         public const int SchemaVersionMax = HdbfConfig.CurrentSchemaVersion;
 
-        // chapter 18.2 — maximum managed plots. Three independent constraints coexist here; do
-        // not collapse them into one number:
-        //   1. chapter 5 tier defaults: 60 / 150 / 300 / 600 (TierCatalog, acceptance baseline);
-        //   2. chapter 18.2 config override window: 30..1000 (the clamp below — a player may
-        //      tune within the documented window, up to 1000 for the v0.2 density experiment);
-        //   3. REQ-IMPL-02 blueprint validation: the four shipped blueprints must keep their
-        //      defaults inside 60..600 (Gameplay-side validator, not a config clamp).
-        public const int PlotCapacityMin = 30;
-        public const int PlotCapacityMax = 1000;
+        // chapter 5 tier defaults: 60 / 150 / 300 / 600 (TierCatalog, acceptance baseline);
+        // chapter 18.2 allows a player override inside the 30..1000 window.
+        /// <summary>Lowest accepted per-tier slot override.</summary>
+        public const int SlotCapacityMin = 30;
 
-        // chapter 18.2 — square work-range edge. The document suggests 7..35, but REQ-BAL-18
-        // hard-caps the range at 27x27 so a config can never scan the whole map.
-        public const int WorkRangeMin = 7;
-        public const int WorkRangeMax = 27;
+        /// <summary>Highest accepted per-tier slot override.</summary>
+        public const int SlotCapacityMax = 1000;
 
-        // chapter 18.2 — range scan budget per frame (table 10-5).
-        public const int ScanBudgetPerFrameMin = 32;
-        public const int ScanBudgetPerFrameMax = 512;
-
-        // chapter 18.3
+        /// <summary>Lowest accepted worker cap override.</summary>
         public const int MaxWorkersMin = 1;
+
+        /// <summary>Highest accepted worker cap override.</summary>
         public const int MaxWorkersMax = 40;
 
-        // chapter 18.4
+        /// <summary>Lowest accepted minimum coverage C_min.</summary>
         public const float MinIrrigationMin = 0.30f;
+
+        /// <summary>Highest accepted minimum coverage C_min.</summary>
         public const float MinIrrigationMax = 0.95f;
-        public const float WaterPerPlotPerDayMin = 0.005f;
-        public const float WaterPerPlotPerDayMax = 0.08f;
+
+        /// <summary>Lowest accepted water use per slot per day.</summary>
+        public const float WaterPerSlotPerDayMin = 0.005f;
+
+        /// <summary>Highest accepted water use per slot per day.</summary>
+        public const float WaterPerSlotPerDayMax = 0.08f;
+
+        /// <summary>Lowest accepted tank capacity in full-load days.</summary>
         public const int TankCapacityDaysMin = 1;
+
+        /// <summary>Highest accepted tank capacity in full-load days.</summary>
         public const int TankCapacityDaysMax = 10;
 
-        // chapter 18.5
+        /// <summary>Lowest accepted tier fatigue factor.</summary>
         public const float SoilFatigueFactorMin = 0.5f;
+
+        /// <summary>Highest accepted tier fatigue factor.</summary>
         public const float SoilFatigueFactorMax = 2.0f;
 
-        // chapter 18.1
+        /// <summary>Lowest accepted science cost override.</summary>
         public const int ScienceCostMin = 100;
+
+        /// <summary>Highest accepted science cost override.</summary>
         public const int ScienceCostMax = 5000;
 
         // chapter 18.7 balance multipliers
+        /// <summary>Lowest accepted dense yield multiplier.</summary>
         public const float DenseYieldMin = 1.10f;
+
+        /// <summary>Highest accepted dense yield multiplier.</summary>
         public const float DenseYieldMax = 1.60f;
+
+        /// <summary>Lowest accepted dense water multiplier.</summary>
         public const float DenseWaterMin = 1.10f;
+
+        /// <summary>Highest accepted dense water multiplier.</summary>
         public const float DenseWaterMax = 2.00f;
+
+        /// <summary>Lowest accepted dense fatigue multiplier.</summary>
         public const float DenseFatigueMin = 1.00f;
+
+        /// <summary>Highest accepted dense fatigue multiplier.</summary>
         public const float DenseFatigueMax = 2.00f;
+
+        /// <summary>Lowest accepted dense work multiplier.</summary>
         public const float DenseWorkMin = 1.00f;
+
+        /// <summary>Highest accepted dense work multiplier.</summary>
         public const float DenseWorkMax = 1.50f;
+
+        /// <summary>Lowest accepted fallow recovery per day.</summary>
         public const float FallowRecoveryMin = 0.01f;
+
+        /// <summary>Highest accepted fallow recovery per day.</summary>
         public const float FallowRecoveryMax = 0.10f;
+
+        /// <summary>Lowest accepted fatigue penalty coefficient.</summary>
         public const float FatiguePenaltyMin = 0.20f;
+
+        /// <summary>Highest accepted fatigue penalty coefficient.</summary>
         public const float FatiguePenaltyMax = 0.90f;
+
+        /// <summary>Lowest accepted rotation factor.</summary>
         public const float RotationFactorMin = 0.10f;
+
+        /// <summary>Highest accepted rotation factor.</summary>
         public const float RotationFactorMax = 1.00f;
+
+        /// <summary>Lowest accepted rotation recovery.</summary>
         public const float RotationRecoveryMin = 0.00f;
+
+        /// <summary>Highest accepted rotation recovery.</summary>
         public const float RotationRecoveryMax = 0.20f;
 
         // chapter 18.7 performance
-        public const float ScanIntervalSecondsMin = 1f;
-        public const float ScanIntervalSecondsMax = 5f;
-        public const float IrrigationSampleIntervalMin = 0.25f;
-        public const float IrrigationSampleIntervalMax = 2f;
+        /// <summary>Lowest accepted UI refresh rate.</summary>
         public const int UiRefreshHzMin = 1;
+
+        /// <summary>Highest accepted UI refresh rate.</summary>
         public const int UiRefreshHzMax = 10;
 
         // chapter 18.8 performance
+        /// <summary>Lowest accepted reduced-mode building threshold.</summary>
         public const int ReducedBuildingThresholdMin = 20;
+
+        /// <summary>Highest accepted reduced-mode building threshold.</summary>
         public const int ReducedBuildingThresholdMax = 300;
+
+        /// <summary>Lowest accepted steady-state frame budget.</summary>
         public const float SteadyFrameBudgetMsMin = 0.2f;
+
+        /// <summary>Highest accepted steady-state frame budget.</summary>
         public const float SteadyFrameBudgetMsMax = 2.0f;
+
+        /// <summary>Lowest accepted warning frame time.</summary>
         public const float WarnFrameMsMin = 1f;
+
+        /// <summary>Highest accepted warning frame time.</summary>
         public const float WarnFrameMsMax = 5f;
+
+        /// <summary>Lowest accepted pause frame time.</summary>
         public const float PauseFrameMsMin = 3f;
+
+        /// <summary>Highest accepted pause frame time.</summary>
         public const float PauseFrameMsMax = 10f;
 
-        // chapter 14.2/14.6 UI (world warning icons). The requirement calls the 40-cell distance,
-        // the 0.5 s icon interval and the ≤1 Hz blink first-version values ("初版可调"), so each is
-        // read from here instead of being a hard-coded literal in gameplay.
+        // section 19.11/19.13 world warning icons; the requirement calls the 40-cell distance and
+        // the <=1 Hz blink first-version values ("初版可调"), so gameplay reads them from config.
+        /// <summary>Lowest accepted icon culling distance in cells.</summary>
         public const int WorldIconMaxDistanceMin = 10;
-        public const int WorldIconMaxDistanceMax = 120;
-        public const float WorldIconIntervalSecondsMin = 0.25f;
-        public const float WorldIconIntervalSecondsMax = 2f;
-        public const int WorldIconFarmsPerTickMin = 1;
-        public const int WorldIconFarmsPerTickMax = 200;
-        public const float WarningAggregateTtlSecondsMin = 1f;
-        public const float WarningAggregateTtlSecondsMax = 30f;
 
-        // BUILD-05 managed-crop visual refresh. The interval matches the chapter-18 performance
-        // policy for the plot scan (1-5 s) and is widened to 10 s because the crop refresh is only
-        // discovery latency, not farm state: a worker-planted crop may stay visible for at most one
-        // interval plus one sliced sweep. The per-frame cell budget is capped at 512 so a single
-        // frame can still never walk a whole 600-plot top tier.
-        public const float CropVisibilityIntervalSecondsMin = 1f;
-        public const float CropVisibilityIntervalSecondsMax = 10f;
-        public const int CropVisibilityCellsPerFrameMin = 8;
-        public const int CropVisibilityCellsPerFrameMax = 512;
+        /// <summary>Highest accepted icon culling distance in cells.</summary>
+        public const int WorldIconMaxDistanceMax = 120;
+
+        /// <summary>Lowest accepted icon refresh interval (the pass caps at 1 s).</summary>
+        public const float WorldIconIntervalSecondsMin = 0.25f;
+
+        /// <summary>Highest accepted icon refresh interval.</summary>
+        public const float WorldIconIntervalSecondsMax = 2f;
+
+        /// <summary>Lowest accepted farms-per-icon-pass budget.</summary>
+        public const int WorldIconFarmsPerTickMin = 1;
+
+        /// <summary>Highest accepted farms-per-icon-pass budget.</summary>
+        public const int WorldIconFarmsPerTickMax = 200;
     }
 }

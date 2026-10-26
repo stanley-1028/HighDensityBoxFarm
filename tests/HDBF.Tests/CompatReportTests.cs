@@ -34,8 +34,8 @@ namespace HDBF.Tests
 
             TestAssert.Equal(1, report.ReportVersion);
             TestAssert.Equal("0.1.0", report.ModVersion);
-            TestAssert.Equal(1, report.SchemaVersion);
-            TestAssert.Equal(1, report.ConfigSchemaVersion);
+            TestAssert.Equal(2, report.SchemaVersion);
+            TestAssert.Equal(2, report.ConfigSchemaVersion);
             TestAssert.Equal("Normal", report.PerformanceMode);
             TestAssert.Equal(0, report.DetectionDurationMs);
             TestAssert.Equal(0, report.HarmonyPatchCount);
@@ -53,13 +53,13 @@ namespace HDBF.Tests
                 ModVersion = "0.1.0",
                 GameVersion = "1.1.2.8",
                 SchemaVersion = 2,
-                ConfigSchemaVersion = 3,
+                ConfigSchemaVersion = 2,
                 DetectedMods = new[] { "TimberPipes" },
                 EnabledAdapters = new[] { "HDBF.Adapter.TimberPipes" },
                 FailedAdapters = Array.Empty<string>(),
                 DetectionSource = "AssemblyScan",
                 DetectionDurationMs = 120,
-                HarmonyPatchCount = 2,
+                HarmonyPatchCount = 0,
                 PerformanceMode = "Reduced",
                 LastError = "boom",
             };
@@ -71,13 +71,13 @@ namespace HDBF.Tests
                 "  \"modVersion\": \"0.1.0\",",
                 "  \"gameVersion\": \"1.1.2.8\",",
                 "  \"schemaVersion\": 2,",
-                "  \"configSchemaVersion\": 3,",
+                "  \"configSchemaVersion\": 2,",
                 "  \"detectedMods\": [\"TimberPipes\"],",
                 "  \"enabledAdapters\": [\"HDBF.Adapter.TimberPipes\"],",
                 "  \"failedAdapters\": [],",
                 "  \"detectionSource\": \"AssemblyScan\",",
                 "  \"detectionDurationMs\": 120,",
-                "  \"harmonyPatchCount\": 2,",
+                "  \"harmonyPatchCount\": 0,",
                 "  \"performanceMode\": \"Reduced\",",
                 "  \"lastError\": \"boom\"",
                 "}",

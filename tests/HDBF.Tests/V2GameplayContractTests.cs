@@ -53,7 +53,9 @@ namespace HDBF.Tests
                 "INavigationService", "ITerrainService", "SetPlantingCoordinates", "PlantingAreaValidator",
                 "SoilIsMoist", "PlotRegistry", "HdbfPlotScanner", "HdbfPlotCellCodec", "HdbfPlotHighlight",
                 "HdbfManagedCropVisibility", "HdbfGrowthRateProvider", "FarmWorkPlanner",
-                "HdbfFarmWorkplaceBehavior",
+                "HdbfFarmWorkplaceBehavior", "BoxFarmSnapshot ", "BoxFarmSnapshot?", "BoxFarmSnapshot.", "FarmWarning", "HdbfWarningBoard",
+                "IGrowthMultiplierSource", "ReadOnlyGrowthRateProvider", "HdbfFarmLocator",
+                "IBoxFarmWarningQuery", "IBoxFarmLocator",
             };
             foreach (var token in forbidden)
             {
@@ -128,7 +130,7 @@ namespace HDBF.Tests
                          "Bind<GameCropCatalog>().AsSingleton()", "Bind<ICropCatalog>().ToExisting<GameCropCatalog>()",
                          "AddDecorator<HdbfBoxFarmSpec, HdbfBoxFarmController>()",
                          "AddDecorator<HdbfBoxFarmSpec, IndoorFarmWorkplaceBehavior>()",
-                         "Bind<ReadOnlyGrowthRateProvider>()" })
+                         "Bind<HdbfWorldIconService>().AsSingleton()" })
             {
                 TestAssert.True(configurator.Contains(token, StringComparison.Ordinal),
                     "configurator must contain: " + token);
@@ -141,17 +143,26 @@ namespace HDBF.Tests
         public static void TestQueryAndCommandServicesConsumeV2State()
         {
             var query = ReadSourceEnding("HdbfFarmQueryService.cs");
-            TestAssert.True(query.Contains("IHdbfBoxFarmSnapshotSource", StringComparison.Ordinal));
-            TestAssert.False(query.Contains("ApplyPlotSelection", StringComparison.Ordinal));
-            TestAssert.False(query.Contains("_plotOwners", StringComparison.Ordinal));
-            TestAssert.True(query.Contains("HdbWarningEvaluator", StringComparison.Ordinal),
-                "the retained warning framework must keep evaluating v2 snapshots");
+            TestAssert.True(query.Contains("IHdbfIndoorFarmSource", StringComparison.Ordinal));
+            TestAssert.True(query.Contains("GetIndoorSnapshot", StringComparison.Ordinal),
+                "the query singleton must expose the Core IndoorFarmSnapshot read model");
+            foreach (var deleted in new[] { "ApplyPlotSelection", "_plotOwners", "FarmWarning",
+                         "HdbWarningEvaluator", "HdbfWarningBoard" })
+            {
+                TestAssert.False(query.Contains(deleted, StringComparison.Ordinal),
+                    "the deleted v1 warning/plot chain must not be in the query service: " + deleted);
+            }
 
             var commands = ReadSourceEnding("HdbfFarmCommandService.cs");
             TestAssert.True(commands.Contains("HdbfBoxFarmController", StringComparison.Ordinal));
             TestAssert.True(commands.Contains("TryPerformMaintenance", StringComparison.Ordinal));
-            TestAssert.True(commands.Contains("HdbfCommandFailures.PlotNotRegistered", StringComparison.Ordinal),
-                "v1 plot commands must return an explicit failure reason");
+            TestAssert.True(commands.Contains("TryRequestManualRefill", StringComparison.Ordinal));
+            TestAssert.True(commands.Contains("TrySetCropPolicy", StringComparison.Ordinal));
+            foreach (var deleted in new[] { "Plot", "Highlight", "ExcludePlot", "IncludePlot" })
+            {
+                TestAssert.False(commands.Contains(deleted, StringComparison.Ordinal),
+                    "the deleted v1 plot command must not remain: " + deleted);
+            }
         }
 
         public static void TestEveryEmbeddedGameplaySourceKeepsTheHeaderAndLineLimit()
@@ -166,7 +177,8 @@ namespace HDBF.Tests
                     resource + " must stay within the 300-line limit (REQ-V2-MAINT-02)");
                 TestAssert.True(text.StartsWith("// ============================================================================",
                         StringComparison.Ordinal), resource + " is missing the fixed file header");
-                TestAssert.True(text.Contains("HDBF v2 | Layer: Gameplay", StringComparison.Ordinal),
+                TestAssert.True(text.Contains("HDBF v2 | Layer: Gameplay", StringComparison.Ordinal)
+                                || text.Contains("HDBF v2 | Layer: Persistence", StringComparison.Ordinal),
                     resource + " header must name its layer/owner");
             }
         }
@@ -250,7 +262,6 @@ namespace HDBF.Tests
                     || name.EndsWith("IndoorFarmWorkplaceBehavior.cs", StringComparison.Ordinal)
                     || name.EndsWith("IndoorInventorySink.cs", StringComparison.Ordinal)
                     || name.EndsWith("IndoorMaintenanceMaterialSource.cs", StringComparison.Ordinal)
-                    || name.EndsWith("ReadOnlyGrowthRateProvider.cs", StringComparison.Ordinal)
                     || name.EndsWith("HdbfGameConfigurator.cs", StringComparison.Ordinal)
                     || name.EndsWith("HdbfFarmCommandService.cs", StringComparison.Ordinal)
                     || name.EndsWith("HdbfFarmQueryService.cs", StringComparison.Ordinal)

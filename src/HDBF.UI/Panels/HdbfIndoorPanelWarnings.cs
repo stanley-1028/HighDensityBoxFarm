@@ -31,30 +31,30 @@ namespace HDBF.UI.Panels
             var flags = snapshot.Warnings;
             if ((flags & IndoorWarningFlags.NoWater) != 0)
             {
-                AddRow(rows, HdbfUiLocKeys.WarningNoWater, FarmWarningSeverity.Critical, localize);
+                AddRow(rows, HdbfUiLocKeys.WarningNoWater, IndoorWarningSeverity.Critical, localize);
             }
             else if ((flags & IndoorWarningFlags.LowWater) != 0)
             {
-                AddRow(rows, HdbfUiLocKeys.WarningIrrigationLow, FarmWarningSeverity.High, localize);
+                AddRow(rows, HdbfUiLocKeys.WarningIrrigationLow, IndoorWarningSeverity.High, localize);
             }
 
             if ((flags & IndoorWarningFlags.MaintenanceStalled) != 0)
             {
-                AddRow(rows, HdbfUiLocKeys.WarningMaintenanceOverdue, FarmWarningSeverity.Critical, localize);
+                AddRow(rows, HdbfUiLocKeys.WarningMaintenanceOverdue, IndoorWarningSeverity.Critical, localize);
             }
             else if ((flags & IndoorWarningFlags.MaintenanceDue) != 0)
             {
-                AddRow(rows, HdbfUiLocKeys.WarningMaintenanceOverdue, FarmWarningSeverity.High, localize);
+                AddRow(rows, HdbfUiLocKeys.WarningMaintenanceOverdue, IndoorWarningSeverity.High, localize);
             }
 
             if ((flags & IndoorWarningFlags.NoPower) != 0)
             {
-                AddRow(rows, HdbfUiLocKeys.WarningNoPower, FarmWarningSeverity.High, localize);
+                AddRow(rows, HdbfUiLocKeys.WarningNoPower, IndoorWarningSeverity.High, localize);
             }
 
             if ((flags & IndoorWarningFlags.EntranceBlocked) != 0)
             {
-                AddRow(rows, HdbfUiLocKeys.WarningEntranceBlocked, FarmWarningSeverity.High, localize);
+                AddRow(rows, HdbfUiLocKeys.WarningEntranceBlocked, IndoorWarningSeverity.High, localize);
             }
 
             return rows;
@@ -157,17 +157,17 @@ namespace HDBF.UI.Panels
         }
 
         /// <summary>Text severity marker: the second encoding that keeps colour from being the only carrier.</summary>
-        public static string MarkerFor(FarmWarningSeverity severity)
+        public static string MarkerFor(IndoorWarningSeverity severity)
         {
             switch (severity)
             {
-                case FarmWarningSeverity.Critical: return "▲";
-                case FarmWarningSeverity.High: return "!";
+                case IndoorWarningSeverity.Critical: return "▲";
+                case IndoorWarningSeverity.High: return "!";
                 default: return "•";
             }
         }
 
-        private static void AddRow(List<HdbfPanelStatusRow> rows, string key, FarmWarningSeverity severity,
+        private static void AddRow(List<HdbfPanelStatusRow> rows, string key, IndoorWarningSeverity severity,
             Func<string, string> localize)
         {
             var row = new HdbfPanelStatusRow

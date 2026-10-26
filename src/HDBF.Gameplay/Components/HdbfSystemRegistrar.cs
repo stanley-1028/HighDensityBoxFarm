@@ -182,7 +182,24 @@ namespace HDBF.Gameplay.Components
 
         private void WarnConfig(string message)
         {
-            _log.Write(HdbfLogCategory.Warn, HdbfLogKeys.ConfigInvalid, message);
+            // The codec prefixes each message with its log key (config.migrated, config.ignored-key,
+            // config.clamp, ...). Route it to that key so the 30 s throttle is per issue class and a
+            // support log names the exact problem; everything else stays config.invalid.
+            var key = HdbfLogKeys.ConfigInvalid;
+            if (!string.IsNullOrEmpty(message))
+            {
+                var colon = message.IndexOf(':');
+                if (colon > 0)
+                {
+                    var candidate = message.Substring(0, colon);
+                    if (candidate.StartsWith("config.", StringComparison.Ordinal))
+                    {
+                        key = candidate;
+                    }
+                }
+            }
+
+            _log.Write(HdbfLogCategory.Warn, key, message);
         }
 
         private static string? FindConfigPath()

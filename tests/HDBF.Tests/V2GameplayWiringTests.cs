@@ -13,7 +13,6 @@ using System.Reflection;
 using HDBF.Core;
 using HDBF.Core.Balance;
 using HDBF.Core.Indoor;
-using HDBF.Core.Warnings;
 
 namespace HDBF.Tests
 {
@@ -128,18 +127,22 @@ namespace HDBF.Tests
 
         public static void TestWorldIconMapHasExactlyFourClassesAndWaterFacts()
         {
-            var keys = new[]
+            var flags = new[]
             {
-                HdbfWarningKeys.NoWater, HdbfWarningKeys.IrrigationLow, HdbfWarningKeys.NoPower,
-                HdbfWarningKeys.Shutdown, HdbfWarningKeys.MaintenanceOverdue, HdbfWarningKeys.AdapterFailed,
-                IndoorWarningMap.EntranceBlockedKey,
+                IndoorWarningFlags.NoWater, IndoorWarningFlags.LowWater, IndoorWarningFlags.NoPower,
+                IndoorWarningFlags.MaintenanceStalled, IndoorWarningFlags.MaintenanceDue,
+                IndoorWarningFlags.EntranceBlocked,
             };
-            var kinds = keys.Select(IndoorWarningMap.IconKindOf)
+            var kinds = flags.Select(IndoorWarningMap.IconKindOf)
                 .Where(kind => kind != IndoorWarningIconKind.None).Distinct().ToArray();
             TestAssert.Equal(4, kinds.Length, "world icons keep exactly four classes");
-            TestAssert.Equal(IndoorWarningIconKind.Water, IndoorWarningMap.IconKindOf(HdbfWarningKeys.NoWater));
-            TestAssert.Equal(IndoorWarningIconKind.None, IndoorWarningMap.IconKindOf(HdbfWarningKeys.FatigueHigh));
-            TestAssert.Equal(IndoorWarningIconKind.None, IndoorWarningMap.IconKindOf("HDBF.Warning.OutputFull"));
+            TestAssert.Equal(IndoorWarningIconKind.Water, IndoorWarningMap.IconKindOf(IndoorWarningFlags.NoWater));
+            TestAssert.Equal(IndoorWarningIconKind.None,
+                IndoorWarningMap.IconKindOf(IndoorWarningFlags.OutputFull | IndoorWarningFlags.NoWorkers));
+            TestAssert.Equal(IndoorWarningKeys.NoWater,
+                IndoorWarningMap.WarningKeyOf(IndoorWarningIconKind.Water));
+            TestAssert.Equal(IndoorWarningKeys.EntranceBlocked,
+                IndoorWarningMap.WarningKeyOf(IndoorWarningIconKind.EntranceBlocked));
             TestAssert.Equal("Water", IndoorConstants.WaterGoodId);
             TestAssert.Equal(0.2f, IndoorConstants.WaterVolumeCubicMetersPerUnit, 1e-6f);
             TestAssert.Equal(12, IndoorConstants.ManualRefillRadiusCells);
@@ -159,7 +162,11 @@ namespace HDBF.Tests
             AssertTokens("HdbfManualWaterSource.Sources.cs", "IThreadSafeWaterMap", "RemoveCleanWater", "TakeExisting",
                 "catch (Exception");
             AssertTokens("HdbfFarmCommandService.cs", "TryPerformMaintenance", "TryRequestManualRefill",
-                "TrySetCropPolicy", "HdbfCommandFailures.PlotNotRegistered", "catch (Exception");
+                "TrySetCropPolicy", "catch (Exception");
+            AssertTokens("HdbfWorldIconService.Evaluate.cs", "IndoorWarningMap.IconKindOf",
+                "IndoorIconPolicy.ShouldBlink");
+            AssertTokens("HdbfWorldIconService.Update.cs", "IndoorIconPolicy.IsWorldIconVisible",
+                "IndoorIconPolicy.IsDue");
             AssertTokens("HdbfMaintenanceTransaction.cs", "IndoorLogKeys.MaintenanceMissing", "HasUnreservedStock",
                 "catch (Exception");
             AssertTokens("HdbfBoxFarmController.Tick.cs", "IndoorDayTick.Run", "UpdatePower", "UpdatePorts",

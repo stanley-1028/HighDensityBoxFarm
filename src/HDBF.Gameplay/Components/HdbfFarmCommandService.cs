@@ -119,8 +119,8 @@ namespace HDBF.Gameplay.Components
         /// <summary>
         /// Queues one manual water refill trip: validates workers, entrance, remaining daily action
         /// budget and a real 12-cell water source, then lets the next daily tick perform the draw and
-        /// spend the 2 farm actions (REQ-V2-WATER-04). Not part of the frozen v1 IBoxFarmCommand;
-        /// V2-UI-01 resolves it by name through its reflection bridge.
+        /// spend the 2 farm actions (REQ-V2-WATER-04). A panel-only command: it is resolved by the
+        /// UI command bridge by name, not part of the Core <see cref="IBoxFarmCommand"/> surface.
         /// </summary>
         /// <param name="entityId">Runtime entity id of the farm.</param>
         /// <param name="failureKey">Specific failure key when false.</param>
@@ -156,7 +156,7 @@ namespace HDBF.Gameplay.Components
         /// <summary>
         /// Applies the crop policy (auto rotation or one fixed faction crop). Invalid crops are
         /// rejected with <see cref="HdbfIndoorCommandFailures.CropNotAvailable"/> and change nothing
-        /// (REQ-V2-EXT-01). Not part of the frozen v1 IBoxFarmCommand; resolved by name by V2-UI-01.
+        /// (REQ-V2-EXT-01). A panel-only command resolved by the UI command bridge by name.
         /// </summary>
         /// <param name="entityId">Runtime entity id of the farm.</param>
         /// <param name="policy">Rotation or fixed.</param>
@@ -219,29 +219,6 @@ namespace HDBF.Gameplay.Components
                 failureKey = HdbfCommandFailures.Unknown;
                 return false;
             }
-        }
-
-        /// <inheritdoc />
-        public bool TrySetPlotHighlight(Guid entityId, bool active, out string? failureKey)
-        {
-            // REQ-V2-CORE-03: v2 has no world plot overlay. The command stays in the frozen UI
-            // contract for compilation, but it now reports the specific reason instead of acting.
-            failureKey = HdbfCommandFailures.PlotNotRegistered;
-            return false;
-        }
-
-        /// <inheritdoc />
-        public bool TryExcludePlot(Guid entityId, int plotId, out string? failureKey)
-        {
-            failureKey = HdbfCommandFailures.PlotNotRegistered;
-            return false;
-        }
-
-        /// <inheritdoc />
-        public bool TryIncludePlot(Guid entityId, int plotId, out string? failureKey)
-        {
-            failureKey = HdbfCommandFailures.PlotNotRegistered;
-            return false;
         }
 
         private bool TryGetController(Guid entityId, out HdbfBoxFarmController farm)

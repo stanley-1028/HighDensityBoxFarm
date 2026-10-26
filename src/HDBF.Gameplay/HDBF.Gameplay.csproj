@@ -2,8 +2,9 @@
 
   <!--
     HDBF.Gameplay: the in-game half of the mod. Shared components for all four
-    building tiers, the HdbfBoxFarmSpec blueprint spec, plot registration,
-    irrigation sampling, soil fatigue, maintenance, power/ports and the day tick.
+    building tiers, the HdbfBoxFarmSpec blueprint spec, the indoor controller and its
+    daily tick, water/maintenance/power/port wiring, warning icons and the workplace
+    behavior. The v1 world-plot scan/registration chain is gone (section 19.2).
 
     Compiles against the installed Timberborn assemblies; nothing from those
     assemblies is copied into the output.

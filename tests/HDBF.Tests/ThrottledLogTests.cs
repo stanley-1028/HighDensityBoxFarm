@@ -222,13 +222,13 @@ namespace HDBF.Tests
             // Log keys are part of the support contract (chapter 9.5 conventions).
             TestAssert.Equal("config.invalid", HdbfLogKeys.ConfigInvalid);
             TestAssert.Equal("config.missing", HdbfLogKeys.ConfigMissing);
-            TestAssert.Equal("save.degraded", HdbfLogKeys.SaveDegraded);
-            TestAssert.Equal("save.record-reset", HdbfLogKeys.SaveRecordReset);
+            TestAssert.Equal("config.migrated", HdbfLogKeys.ConfigMigrated);
+            TestAssert.Equal("config.ignored-key", HdbfLogKeys.ConfigIgnoredKey);
             TestAssert.Equal("compat.missing", HdbfLogKeys.CompatMissing);
             TestAssert.Equal("compat.failed", HdbfLogKeys.CompatFailed);
             TestAssert.Equal("port.fault", HdbfLogKeys.PortFault);
-            TestAssert.Equal("plot.scan-budget", HdbfLogKeys.PlotScanBudget);
-            TestAssert.Equal("perf.reduced", HdbfLogKeys.PerfReduced);
+            TestAssert.Equal("ui.world-icons", HdbfLogKeys.WorldIconsUnavailable);
+            TestAssert.Equal("ui.world-icon-toggle", HdbfLogKeys.WorldIconToggleFailed);
         }
 
         public static void TestThrottleWindowIsThirtySeconds()
