@@ -74,12 +74,24 @@ internal sealed class ConfigValidator
         ("rotationRecovery", 0.05),
     };
 
-    private static readonly HashSet<string> TierOverrideKeys =
-        new(StringComparer.Ordinal)
-        {
-            "plotCapacity", "maxWorkers", "workRange", "minIrrigationCoverage",
-            "waterPerPlotPerDay", "tankCapacityDays", "soilFatigueFactor", "scienceCost",
-        };
+    /// <summary>
+    /// Chapter-18 tier overrides the shipped <c>HdbfConfigCodec</c> consumes, with the accepted
+    /// numeric envelope for each. The shipped file keeps all four entries empty (tier defaults live
+    /// in <c>TierCatalog</c>/the blueprints); when a player supplies an override, a value outside
+    /// the envelope would silently break that tier (zero capacity/workers, coverage above 1, a
+    /// negative maintenance price, ...), so the validator rejects it instead of warning.
+    /// </summary>
+    private static readonly (string Key, bool Integer, double Min, double Max)[] TierOverrideRanges =
+    {
+        ("plotCapacity", true, 1, 600),
+        ("maxWorkers", true, 1, 16),
+        ("workRange", true, 1, 27),
+        ("minIrrigationCoverage", false, 0, 1),
+        ("waterPerPlotPerDay", false, 0, 1),
+        ("tankCapacityDays", true, 1, 7),
+        ("soilFatigueFactor", false, 0.5, 3),
+        ("scienceCost", true, 0, 10000),
+    };
 
     private readonly Report _report;
 
@@ -352,9 +364,41 @@ internal sealed class ConfigValidator
 
             foreach (var property in entry.EnumerateObject())
             {
-                if (!TierOverrideKeys.Contains(property.Name))
+                (string Key, bool Integer, double Min, double Max)? range = null;
+                foreach (var candidate in TierOverrideRanges)
+                {
+                    if (string.Equals(candidate.Key, property.Name, StringComparison.Ordinal))
+                    {
+                        range = candidate;
+                        break;
+                    }
+                }
+
+                if (range is null)
                 {
                     _report.Error("config", $"'balance.tier[{count}].{property.Name}' is not a known tier override key");
+                    continue;
+                }
+
+                if (property.Value.ValueKind != JsonValueKind.Number)
+                {
+                    _report.Error("config", $"'balance.tier[{count}].{property.Name}' must be a number");
+                    continue;
+                }
+
+                if (range.Value.Integer && !property.Value.TryGetInt32(out _))
+                {
+                    _report.Error("config", $"'balance.tier[{count}].{range.Value.Key}' must be an integer");
+                    continue;
+                }
+
+                var actual = property.Value.GetDouble();
+                if (double.IsNaN(actual) || actual < range.Value.Min || actual > range.Value.Max)
+                {
+                    _report.Error("config", $"'balance.tier[{count}].{range.Value.Key}' must be within "
+                                             + $"[{range.Value.Min.ToString("G9", System.Globalization.CultureInfo.InvariantCulture)}, "
+                                             + $"{range.Value.Max.ToString("G9", System.Globalization.CultureInfo.InvariantCulture)}] "
+                                             + $"(found {actual.ToString("G9", System.Globalization.CultureInfo.InvariantCulture)})");
                 }
             }
 

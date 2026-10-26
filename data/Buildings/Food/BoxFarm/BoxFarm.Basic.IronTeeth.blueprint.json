@@ -1,4 +1,4 @@
-﻿{
+{
   "BuildingSpec": {
     "SelectionSoundName": "Farmhouse",
     "LoopingSoundName": "",
@@ -37,49 +37,70 @@
   "BlockObjectSpec": {
     "Size": {
       "X": 3,
-      "Y": 2,
+      "Y": 3,
       "Z": 1
     },
     "Blocks": [
       {
         "MatterBelow": "GroundOrStackable",
         "Occupations": "Bottom, Top, Corners, Path, Middle",
-        "Stackable": "None",
+        "Stackable": "BlockObject",
         "OccupyAllBelow": false,
         "Underground": false
       },
       {
         "MatterBelow": "GroundOrStackable",
         "Occupations": "Bottom, Top, Corners, Path, Middle",
-        "Stackable": "None",
+        "Stackable": "BlockObject",
         "OccupyAllBelow": false,
         "Underground": false
       },
       {
         "MatterBelow": "GroundOrStackable",
         "Occupations": "Bottom, Top, Corners, Path, Middle",
-        "Stackable": "None",
+        "Stackable": "BlockObject",
         "OccupyAllBelow": false,
         "Underground": false
       },
       {
         "MatterBelow": "Any",
         "Occupations": "Floor, Bottom, Corners, Path, Middle",
-        "Stackable": "None",
+        "Stackable": "BlockObject",
         "OccupyAllBelow": false,
         "Underground": false
       },
       {
         "MatterBelow": "Any",
         "Occupations": "Floor, Bottom, Corners, Path, Middle",
-        "Stackable": "None",
+        "Stackable": "BlockObject",
         "OccupyAllBelow": false,
         "Underground": false
       },
       {
         "MatterBelow": "Any",
         "Occupations": "Floor, Bottom, Corners, Path, Middle",
-        "Stackable": "None",
+        "Stackable": "BlockObject",
+        "OccupyAllBelow": false,
+        "Underground": false
+      },
+      {
+        "MatterBelow": "Any",
+        "Occupations": "Floor, Bottom, Corners, Path, Middle",
+        "Stackable": "BlockObject",
+        "OccupyAllBelow": false,
+        "Underground": false
+      },
+      {
+        "MatterBelow": "Any",
+        "Occupations": "Floor, Bottom, Corners, Path, Middle",
+        "Stackable": "BlockObject",
+        "OccupyAllBelow": false,
+        "Underground": false
+      },
+      {
+        "MatterBelow": "Any",
+        "Occupations": "Floor, Bottom, Corners, Path, Middle",
+        "Stackable": "BlockObject",
         "OccupyAllBelow": false,
         "Underground": false
       }
@@ -95,6 +116,13 @@
     "BaseZ": 0,
     "Overridable": false,
     "Flippable": true
+  },
+  "BlockObjectNavMeshSettingsSpec": {
+    "NoAutoWalls": false,
+    "GenerateFloorsOnStackable": true,
+    "EdgeGroups": [],
+    "UnblockedCoordinates": [],
+    "BlockedEdges": []
   },
   "BuildingAccessibleSpec": {
     "LocalAccess": {
@@ -133,6 +161,9 @@
     "FlavorDescriptionLocKey": "",
     "Icon": "Icons/BoxFarmBasic"
   },
+  "ConstructionSiteBuildTimeSpec": {
+    "ConstructionTimeInHours": 48.0
+  },
   "ConstructionSiteProgressVisualizerSpec": {
     "ProgressThresholds": [
       0.0
@@ -144,10 +175,10 @@
     "PlotsPerFarmer": 38,
     "WorkRangeX": 11,
     "WorkRangeZ": 11,
-    "MinIrrigationCoverage": 0.50,
-    "WaterPerPlotPerDay": 0.020,
+    "MinIrrigationCoverage": 0.5,
+    "WaterPerPlotPerDay": 0.02,
     "TankCapacityDays": 3,
-    "SoilFatigueFactor": 1.00,
+    "SoilFatigueFactor": 1.0,
     "MaintenanceKind": 0,
     "MaintenanceCycleDays": 0.0,
     "MaintenanceMaterialAmount": 0,
@@ -164,7 +195,8 @@
   "WorkplaceIlluminatorSpec": {},
   "WorkplaceWorkerOutfitSpec": {
     "WorkerOutfit": "Farmer"
-  },  "Children": {
+  },
+  "Children": {
     "#Finished": {
       "TimbermeshSpec": {
         "Model": "Buildings/Food/BoxFarm/BoxFarm.Basic.IronTeeth.Model"
@@ -175,12 +207,12 @@
             "Center": {
               "X": 1.5,
               "Y": 0.5,
-              "Z": 1.0
+              "Z": 1.5
             },
             "Size": {
               "X": 3.0,
               "Y": 1.0,
-              "Z": 2.0
+              "Z": 3.0
             }
           }
         ],
@@ -190,8 +222,8 @@
     },
     "#Unfinished": {
       "Children": {
-        "ConstructionBase3x2#nested": {
-          "BlueprintPath": "ConstructionBases/ConstructionBase3x2/ConstructionBase3x2.blueprint"
+        "ConstructionBase3x3#nested": {
+          "BlueprintPath": "ConstructionBases/ConstructionBase3x3/ConstructionBase3x3.blueprint"
         },
         "ConstructionStage0": {
           "TimbermeshSpec": {
@@ -203,12 +235,12 @@
                 "Center": {
                   "X": 1.5,
                   "Y": 0.5,
-                  "Z": 1.0
+                  "Z": 1.5
                 },
                 "Size": {
                   "X": 3.0,
                   "Y": 1.0,
-                  "Z": 2.0
+                  "Z": 3.0
                 }
               }
             ],

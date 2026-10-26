@@ -22,7 +22,7 @@ namespace HDBF.Integration.Adapters
     /// one session move an adapter to <see cref="HdbfAdapterHealth.Failed"/> with no further
     /// retries (REQ-COMPAT-07). Nothing in this class throws out of a public member.
     /// </summary>
-    public sealed class CompatAdapterRegistry : ICompatRegistry
+    public sealed partial class CompatAdapterRegistry : ICompatRegistry
     {
         /// <summary>HDBF mod version written to the compatibility report (chapter 9.4).</summary>
         public const string ModVersion = "0.1.0";

@@ -7,9 +7,10 @@ namespace HDBF.Tools.Validate;
 
 /// <summary>
 /// Deliverable-specific checks that generic schema validation cannot express: manifest fields,
-/// the eight 3x2 BoxFarm blueprints (footprint / mixed block occupancy / entrance / costs / spec
-/// numbers / children), both template collections, the icons, the shipped custom .timbermesh
-/// assets (existence + zlib payload) and the art-placeholder notes.
+/// the eight v2 3x3x1 BoxFarm blueprints (footprint / mixed block occupancy / stackable roof /
+/// entrance / costs / spec numbers / construction time / children), both template collections,
+/// the icons, the shipped custom .timbermesh assets (existence + zlib payload) and the
+/// art-placeholder notes.
 /// </summary>
 internal sealed class DataChecks
 {
@@ -23,6 +24,26 @@ internal sealed class DataChecks
     // only contains the running faction's materials), so a blueprint must reference a model of
     // the same faction or prefab creation throws "Material <name> not found in repository".
     private static readonly string[] Factions = { "Folktails", "IronTeeth" };
+
+    // REQ-V2-BLD-01..04: the v2 footprint is 3 wide x 3 deep x 1 high with nine placeholder
+    // blocks; all nine blocks are `Stackable: BlockObject` (the roof is the stacking surface) and
+    // the root carries BlockObjectNavMeshSettingsSpec.GenerateFloorsOnStackable = true so walking
+    // floors are generated on the stackable roof. Reference blueprints (vanilla 1.1.2.8):
+    // Buildings/Paths/MetalPlatform3x3/*.blueprint.json (3x3x1, all Stackable BlockObject,
+    // GenerateFloorsOnStackable true) and Buildings/Food/HydroponicGarden/*.blueprint.json
+    // (3x3x1 workplace with entrance, nine solid Stackable BlockObject blocks).
+    private const int FootprintX = 3;
+    private const int FootprintY = 3;
+    private const int FootprintZ = 1;
+    private const string StackableBlockObject = "BlockObject";
+
+    // REQ-V2-BLD-01 + docs/v2/INTERFACES.md §2: construction time is 2/3/5/8 workdays (v2.1).
+    // The ONLY 1.1.2.8 blueprint field that controls construction duration is
+    // ConstructionSiteBuildTimeSpec.ConstructionTimeInHours (IL: ConstructionSiteBuildTimeCalculator
+    // .GetConstructionTimeInHours returns it verbatim; without the spec the game derives
+    // ceil(constructionInventoryCapacity / 20) hours, or its 1-hour default). The field unit is
+    // game hours, so a workday is converted with the documented 24 hours/workday factor.
+    private const int BuildHoursPerWorkday = 24;
 
     // Chapter 7 tech gate. Timberborn 1.1.2.8 ships no research-node blueprints at all (the
     // official Modding/Blueprints.zip has no Research/Tech folder, and the ScienceSystem assembly
@@ -89,14 +110,17 @@ internal sealed class DataChecks
 
     private static readonly TierExpectation[] Tiers =
     {
+        //                                                                    BuildWorkdays --.
+        //                    ScienceCost --.  MaxWorkers --.  PlotCapacity --.                 |
+        //                                  v               v                v                v
         new("Basic", new[] { ("Log", 40) }, 200, 2, 60, 38, 11, 11, 0.50, 0.020, 3, 1.00,
-            0, 0.0, 0, false, 0, true, false, false, 95),
+            0, 0.0, 0, false, 0, true, false, false, 95, 2),
         new("Intermediate", new[] { ("Plank", 40), ("Log", 20) }, 600, 4, 150, 38, 15, 15, 0.60, 0.024, 3, 1.10,
-            1, 10.0, 8, false, 0, true, true, false, 96),
+            1, 10.0, 8, false, 0, true, true, false, 96, 3),
         new("Advanced", new[] { ("Plank", 50), ("MetalBlock", 30) }, 1000, 8, 300, 38, 19, 19, 0.75, 0.028, 4, 1.25,
-            2, 10.0, 6, false, 0, true, true, false, 97),
+            2, 10.0, 6, false, 0, true, true, false, 97, 5),
         new("Top", new[] { ("MetalBlock", 100), ("Plank", 50) }, 3000, 16, 600, 38, 27, 27, 0.80, 0.032, 4, 1.50,
-            3, 8.0, 15, true, 150, true, true, true, 98),
+            3, 8.0, 15, true, 150, true, true, true, 98, 8),
     };
 
     private readonly Report _report;
@@ -123,6 +147,7 @@ internal sealed class DataChecks
     public void Validate()
     {
         CheckManifest();
+        CheckBlueprintInventory();
         CheckBoxFarmBlueprints();
         CheckTemplateCollections();
         CheckIcons();
@@ -130,6 +155,64 @@ internal sealed class DataChecks
         CheckTechGating();
         CheckMechanicalPower();
         CheckOutputInventory();
+    }
+
+    // ------------------------------------------------------------------ blueprint inventory
+
+    /// <summary>
+    /// REQ-V2-BLD-01/06: exactly the eight v2 blueprints ship (four tiers x two factions), no more
+    /// and no fewer. CheckBoxFarmBlueprints already fails a missing per-tier file; this check owns
+    /// the "8/8" count so a half-migrated data folder (e.g. one faction deleted) cannot pass.
+    /// </summary>
+    private void CheckBlueprintInventory()
+    {
+        const string category = "blueprint";
+        var folder = Path.Combine(_dataDir, "Buildings", "Food", "BoxFarm");
+        if (!Directory.Exists(folder))
+        {
+            _report.Error(category, "data/Buildings/Food/BoxFarm/ is missing");
+            return;
+        }
+
+        var expected = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var tier in BlueprintSuffixes)
+        {
+            foreach (var faction in Factions)
+            {
+                expected.Add($"BoxFarm.{tier}.{faction}.blueprint.json");
+            }
+        }
+
+        var actual = Directory
+            .GetFiles(folder, "*.blueprint.json", SearchOption.TopDirectoryOnly)
+            .Select(Path.GetFileName)
+            .Where(name => name is not null)
+            .Select(name => name!)
+            .OrderBy(name => name, StringComparer.Ordinal)
+            .ToList();
+
+        if (actual.Count != expected.Count)
+        {
+            _report.Error(category, $"data/Buildings/Food/BoxFarm/ must contain exactly {expected.Count} "
+                                     + $"BoxFarm blueprints for the v2 3x3x1 data set (found {actual.Count})");
+        }
+
+        foreach (var name in expected.OrderBy(name => name, StringComparer.Ordinal))
+        {
+            if (!actual.Contains(name, StringComparer.Ordinal))
+            {
+                _report.Error(category, $"expected v2 blueprint '{name}' is missing");
+            }
+        }
+
+        foreach (var name in actual)
+        {
+            if (!expected.Contains(name))
+            {
+                _report.Error(category, $"unexpected blueprint '{name}' under Buildings/Food/BoxFarm/ "
+                                         + "(the v2 data set is exactly eight tier/faction blueprints)");
+            }
+        }
     }
 
     // ------------------------------------------------------------------ manifest
@@ -227,6 +310,16 @@ internal sealed class DataChecks
     {
         const string category = "blueprint";
 
+        // REQ-V2-BLD-01 v2.1: construction time 2/3/5/8 workdays. The expectation table is the
+        // single source the per-blueprint hours are compared against, so pin it here as well.
+        var buildWorkdays = Tiers.Select(tier => tier.BuildWorkdays).ToArray();
+        var requiredBuildWorkdays = new[] { 2, 3, 5, 8 };
+        if (!buildWorkdays.SequenceEqual(requiredBuildWorkdays))
+        {
+            _report.Error(category, "v2 construction workdays must be exactly 2/3/5/8 for Basic/Intermediate/"
+                                     + $"Advanced/Top (REQ-V2-BLD-01 v2.1; found {string.Join("/", buildWorkdays)})");
+        }
+
         foreach (var expectation in Tiers)
         {
             foreach (var faction in Factions)
@@ -254,10 +347,11 @@ internal sealed class DataChecks
 
             foreach (var spec in new[]
                      {
-                         "BuildingSpec", "BuildingModelSpec", "BlockObjectSpec", "BuildingAccessibleSpec",
+                         "BuildingSpec", "BuildingModelSpec", "BlockObjectSpec",
+                         "BlockObjectNavMeshSettingsSpec", "BuildingAccessibleSpec",
                          "WorkplaceSpec", "PlaceableBlockObjectSpec", "LabeledEntitySpec", "TemplateSpec",
-                         "ConstructionSiteProgressVisualizerSpec", "HdbfBoxFarmSpec",
-                         "WorkplaceIlluminatorSpec", "WorkplaceWorkerOutfitSpec",
+                         "ConstructionSiteBuildTimeSpec", "ConstructionSiteProgressVisualizerSpec",
+                         "HdbfBoxFarmSpec", "WorkplaceIlluminatorSpec", "WorkplaceWorkerOutfitSpec",
                      })
             {
                 if (!TryGetObject(root, spec, out _))
@@ -267,6 +361,7 @@ internal sealed class DataChecks
             }
 
             CheckBlockObject(root, relative, category);
+            CheckBuildTime(root, relative, expectation, category);
             CheckBuilding(root, relative, expectation, category);
             CheckWorkplace(root, relative, expectation, category);
             CheckPlaceable(root, relative, expectation, category);
@@ -280,26 +375,72 @@ internal sealed class DataChecks
         }
     }
 
+    /// <summary>
+    /// REQ-V2-BLD-04: the roof must be a stacking surface. 1.1.2.8 realises that with
+    /// <c>BlockObjectNavMeshSettingsSpec.GenerateFloorsOnStackable = true</c> (the nav-mesh updater
+    /// creates walking floors on the cells above every block whose <c>Stackable</c> is
+    /// <c>BlockObject</c>, IL: <c>BlockSystemNavigation.NavMeshObjectUpdater.AddEdgesAddedByStackable</c>).
+    /// The vanilla references for the field shape and values are the 3x3x1
+    /// <c>MetalPlatform3x3</c>/<c>Roof3x2</c> and the 3x3x1 <c>HydroponicGarden</c> blueprints.
+    /// </summary>
+    private void CheckStackableRoofNavSettings(JsonElement root, string relative, string category)
+    {
+        if (!TryGetObject(root, "BlockObjectNavMeshSettingsSpec", out var nav))
+        {
+            _report.Error(category, $"{relative}: missing BlockObjectNavMeshSettingsSpec; without "
+                                     + "GenerateFloorsOnStackable the roof would not become a walkable/stackable floor "
+                                     + "(REQ-V2-BLD-04)");
+            return;
+        }
+
+        ExpectBool(nav, category, relative, "BlockObjectNavMeshSettingsSpec", "NoAutoWalls", false);
+        ExpectBool(nav, category, relative, "BlockObjectNavMeshSettingsSpec", "GenerateFloorsOnStackable", true);
+
+        foreach (var name in new[] { "EdgeGroups", "UnblockedCoordinates", "BlockedEdges" })
+        {
+            if (!nav.TryGetProperty(name, out var value) || value.ValueKind != JsonValueKind.Array)
+            {
+                _report.Error(category, $"{relative}: BlockObjectNavMeshSettingsSpec.{name} must be an array");
+            }
+            else if (value.GetArrayLength() != 0)
+            {
+                _report.Error(category, $"{relative}: BlockObjectNavMeshSettingsSpec.{name} must be empty for the "
+                                         + "plain flat roof (no manual edges/blocked edges; found "
+                                         + $"{value.GetArrayLength()} entrie(s))");
+            }
+        }
+    }
+
     private void CheckBlockObject(JsonElement root, string relative, string category)
     {
         if (!TryGetObject(root, "BlockObjectSpec", out var blockObject))
         {
+            _report.Error(category, $"{relative}: BlockObjectSpec is missing");
             return;
         }
 
-        var sizeX = 3;
-        var sizeY = 2;   // grid Y = depth
-        var sizeZ = 1;   // grid Z = height
+        var sizeX = FootprintX;
+        var sizeY = FootprintY;   // grid Y = depth
+        var sizeZ = FootprintZ;   // grid Z = height
         if (!TryGetObject(blockObject, "Size", out var size))
         {
             _report.Error(category, $"{relative}: BlockObjectSpec.Size is missing");
         }
         else
         {
-            sizeX = ExpectInt(size, category, relative, "BlockObjectSpec.Size", "X", 3) ?? sizeX;
-            sizeY = ExpectInt(size, category, relative, "BlockObjectSpec.Size", "Y", 2) ?? sizeY;
-            sizeZ = ExpectInt(size, category, relative, "BlockObjectSpec.Size", "Z", 1) ?? sizeZ;
+            sizeX = ExpectInt(size, category, relative, "BlockObjectSpec.Size", "X", FootprintX) ?? sizeX;
+            sizeY = ExpectInt(size, category, relative, "BlockObjectSpec.Size", "Y", FootprintY) ?? sizeY;
+            sizeZ = ExpectInt(size, category, relative, "BlockObjectSpec.Size", "Z", FootprintZ) ?? sizeZ;
         }
+
+        if (sizeX != FootprintX || sizeY != FootprintY || sizeZ != FootprintZ)
+        {
+            _report.Error(category, $"{relative}: BlockObjectSpec.Size must be exactly "
+                                     + $"{{X:{FootprintX}, Y:{FootprintY}, Z:{FootprintZ}}} for the v2 BoxFarm "
+                                     + $"(REQ-V2-BLD-01 3 wide x 3 deep x 1 high; found {sizeX}x{sizeY}x{sizeZ})");
+        }
+
+        var roofOccupations = new HashSet<string>(StringComparer.Ordinal);
 
         if (!blockObject.TryGetProperty("Blocks", out var blocks) || blocks.ValueKind != JsonValueKind.Array)
         {
@@ -308,11 +449,12 @@ internal sealed class DataChecks
         else
         {
             var count = blocks.GetArrayLength();
-            var expectedCount = sizeX * sizeY * sizeZ;
+            var expectedCount = FootprintX * FootprintY * FootprintZ;
             if (count != expectedCount)
             {
                 _report.Error(category, $"{relative}: BlockObjectSpec.Blocks must have {expectedCount} entries "
-                                         + $"for a {sizeX}x{sizeY}x{sizeZ} footprint (found {count})");
+                                         + $"for the {FootprintX}x{FootprintY}x{FootprintZ} footprint (found {count}); "
+                                         + "the v2 BoxFarm covers all nine placeholder blocks (REQ-V2-BLD-01)");
             }
 
             // The game enumerates blocks row-major in GRID coordinates, where X = width,
@@ -320,18 +462,19 @@ internal sealed class DataChecks
             // coordinates.z as the column height, and VectorExtensions.XY() takes X/Y as the
             // horizontal pair):
             //   index n -> (x = n % Size.X, y = (n / Size.X) % Size.Y, z = n / (Size.X * Size.Y))
-            // A 3 wide x 2 deep x 1 high building therefore has 6 blocks: Blocks[0..2] are the
-            // facade depth row (y = 0) and Blocks[3..5] the row behind it (y = 1), all on the only
+            // A 3 wide x 3 deep x 1 high building therefore has 9 blocks: Blocks[0..2] are the
+            // facade depth row (y = 0), Blocks[3..5] y = 1 and Blocks[6..8] y = 2, all on the only
             // height layer (z = 0). Vanilla keeps the facade row solid on the ground and the rows
-            // behind it as open floors; the game refuses to place a 3x2x1 workplace whose whole
-            // footprint needs solid ground (smoke test round 3: all four tiers were unplaceable).
+            // behind it as open floors (API_FACTS.md §3.2), and the v1 BoxFarm already used that
+            // pattern for the 3x2 footprint — the v2 change only adds the third depth row and the
+            // stackable roof.
             var solidOccupations = "Bottom, Top, Corners, Path, Middle";
             var floorOccupations = "Floor, Bottom, Corners, Path, Middle";
 
-            if (sizeZ != 1)
+            if (sizeZ != FootprintZ)
             {
                 _report.Error(category, $"{relative}: BlockObjectSpec.Size.Z is the building HEIGHT in grid "
-                                         + $"coordinates and must be 1 for the 3x2x1 BoxFarm (found {sizeZ})");
+                                         + $"coordinates and must be {FootprintZ} for the 3x3x1 BoxFarm (found {sizeZ})");
             }
 
             var index = 0;
@@ -359,18 +502,32 @@ internal sealed class DataChecks
                     }
 
                     var occupations = ExpectString(block, category, relative, location, "Occupations");
-                    if (occupations is not null && occupations != expectedOccupations)
+                    if (occupations is not null)
                     {
-                        _report.Error(category, $"{relative}: {location}.Occupations must be "
-                                                 + $"'{expectedOccupations}' for the y={depthRow} depth row "
-                                                 + $"(z={heightLayer}) of a 1-high building "
-                                                 + $"(found '{occupations}')");
+                        if (occupations != expectedOccupations)
+                        {
+                            _report.Error(category, $"{relative}: {location}.Occupations must be "
+                                                     + $"'{expectedOccupations}' for the y={depthRow} depth row "
+                                                     + $"(z={heightLayer}) of a 1-high building "
+                                                     + $"(found '{occupations}')");
+                        }
+
+                        foreach (var token in occupations.Split(',',
+                                     StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                        {
+                            roofOccupations.Add(token);
+                        }
                     }
 
+                    // REQ-V2-BLD-04: the top layer (Z is the only height layer here) must be
+                    // stackable with the real BlockStackable member value used by vanilla
+                    // platforms/platform roofs/housing and by the 3x3x1 HydroponicGarden.
                     var stackable = ExpectString(block, category, relative, location, "Stackable");
-                    if (stackable is not null && stackable != "None")
+                    if (stackable is not null && stackable != StackableBlockObject)
                     {
-                        _report.Error(category, $"{relative}: {location}.Stackable must be 'None' (found '{stackable}')");
+                        _report.Error(category, $"{relative}: {location}.Stackable must be "
+                                                 + $"'{StackableBlockObject}' (REQ-V2-BLD-04: the roof must support "
+                                                 + $"an upper building; found '{stackable}')");
                     }
 
                     ExpectBool(block, category, relative, location, "OccupyAllBelow", false);
@@ -379,7 +536,20 @@ internal sealed class DataChecks
 
                 index++;
             }
+
+            // The roof blocks must carry both occupation placeholders REQ-V2-BLD-04 asks for:
+            // the entrance row is the vanilla solid stackable row (Bottom/Top/...), the depth rows
+            // behind it are the vanilla open-floor rows (Floor/Bottom/...), so the union of the
+            // nine top-layer blocks provides both `Top` and `Floor`.
+            if (!roofOccupations.Contains("Top") || !roofOccupations.Contains("Floor"))
+            {
+                _report.Error(category, $"{relative}: the BlockObjectSpec.Blocks occupations must provide both "
+                                         + "the 'Top' and the 'Floor' placeholder flags on the top layer "
+                                         + $"(REQ-V2-BLD-04; found [{string.Join(", ", roofOccupations.OrderBy(t => t, StringComparer.Ordinal))}])");
+            }
         }
+
+        CheckStackableRoofNavSettings(root, relative, category);
 
         if (!TryGetObject(blockObject, "Entrance", out var entrance))
         {
@@ -398,6 +568,56 @@ internal sealed class DataChecks
             {
                 _report.Error(category, $"{relative}: BlockObjectSpec.Entrance.Coordinates is missing");
             }
+        }
+    }
+
+    /// <summary>
+    /// REQ-V2-BLD-01 + docs/v2/INTERFACES.md §2: construction time is 2/3/5/8 workdays (v2.1).
+    /// In 1.1.2.8 the only blueprint field that controls construction duration is
+    /// <c>ConstructionSiteBuildTimeSpec.ConstructionTimeInHours</c> (float, game hours):
+    /// <c>ConstructionSiteBuildTimeCalculator.GetConstructionTimeInHours</c> returns it verbatim
+    /// when the construction site has the spec, otherwise it derives
+    /// <c>ceil(inventoryCapacity / MaterialToHourRatio)</c> (ratio 20) or the 1-hour default.
+    /// Vanilla users of the spec: <c>EarthRecultivator</c> / <c>EarthRepopulator</c>. The card
+    /// converts workdays with the documented 24 h/workday factor, so 2/3/5/8 workdays are
+    /// 48/72/120/192 hours; both representations are checked.
+    /// </summary>
+    private void CheckBuildTime(JsonElement root, string relative, TierExpectation expectation, string category)
+    {
+        var location = "ConstructionSiteBuildTimeSpec";
+        if (!TryGetObject(root, location, out var spec))
+        {
+            return;
+        }
+
+        if (!spec.TryGetProperty("ConstructionTimeInHours", out var value) || value.ValueKind != JsonValueKind.Number)
+        {
+            _report.Error(category, $"{relative}: {location}.ConstructionTimeInHours must be a number "
+                                     + "(the game field is a float in game hours)");
+            return;
+        }
+
+        var hours = value.GetDouble();
+        var expectedHours = expectation.BuildTimeInHours;
+        if (Math.Abs(hours - expectedHours) > 1e-3)
+        {
+            _report.Error(category, $"{relative}: {location}.ConstructionTimeInHours must be "
+                                     + $"{expectedHours.ToString("G9", System.Globalization.CultureInfo.InvariantCulture)} "
+                                     + $"({expectation.BuildWorkdays} workdays x {BuildHoursPerWorkday} h/workday, "
+                                     + $"REQ-V2-BLD-01 v2.1 2/3/5/8) for the {expectation.Tier} tier "
+                                     + $"(found {hours.ToString("G9", System.Globalization.CultureInfo.InvariantCulture)})");
+            return;
+        }
+
+        var workdays = hours / BuildHoursPerWorkday;
+        var roundedWorkdays = Math.Round(workdays);
+        if (Math.Abs(workdays - roundedWorkdays) > 1e-6 || (int)roundedWorkdays != expectation.BuildWorkdays)
+        {
+            _report.Error(category, $"{relative}: construction time must be exactly {expectation.BuildWorkdays} "
+                                     + $"workdays (REQ-V2-BLD-01 v2.1 2/3/5/8); "
+                                     + $"{hours.ToString("G9", System.Globalization.CultureInfo.InvariantCulture)} hours is "
+                                     + $"{workdays.ToString("G9", System.Globalization.CultureInfo.InvariantCulture)} "
+                                     + $"workdays at {BuildHoursPerWorkday} h/workday");
         }
     }
 
@@ -565,15 +785,18 @@ internal sealed class DataChecks
             return;
         }
 
-        if (!TryGetObject(unfinishedChildren, "ConstructionBase3x2#nested", out var constructionBase))
+        // REQ-V2-BLD-01: the construction base must match the 3x3 footprint (vanilla HydroponicGarden,
+        // also 3x3x1, nests ConstructionBase3x3). The v1 3x2 base is a release regression.
+        if (!TryGetObject(unfinishedChildren, "ConstructionBase3x3#nested", out var constructionBase))
         {
-            _report.Error(category, $"{relative}: Children.#Unfinished must nest ConstructionBase3x2#nested");
+            _report.Error(category, $"{relative}: Children.#Unfinished must nest ConstructionBase3x3#nested "
+                                     + "(the 3x3 footprint needs the 3x3 construction base; the 3x2 base is the v1 shape)");
         }
         else
         {
             var blueprintPath = ExpectString(constructionBase, category, relative,
-                "Children.#Unfinished.Children.ConstructionBase3x2#nested", "BlueprintPath");
-            const string expectedPath = "ConstructionBases/ConstructionBase3x2/ConstructionBase3x2.blueprint";
+                "Children.#Unfinished.Children.ConstructionBase3x3#nested", "BlueprintPath");
+            const string expectedPath = "ConstructionBases/ConstructionBase3x3/ConstructionBase3x3.blueprint";
             if (blueprintPath is not null && blueprintPath != expectedPath)
             {
                 _report.Error(category, $"{relative}: construction base BlueprintPath must be '{expectedPath}' (found '{blueprintPath}')");
@@ -631,12 +854,16 @@ internal sealed class DataChecks
             return;
         }
 
+        // REQ-V2-BLD-01: the collision box must match the 3x3x1 model envelope. Colliders use
+        // Unity local space (Y = height, Z = depth), so the v2 box is 3.0 wide x 1.0 high x 3.0
+        // deep with its centre at the footprint middle (1.5, 0.5, 1.5). Vanilla HydroponicGarden
+        // (3x3x1) uses the same 3x3 collider span.
         var first = boxColliders[0];
         if (TryGetObject(first, "Center", out var center))
         {
             ExpectFloat(center, category, relative, $"Children.{location}.CollidersSpec.Center", "X", 1.5);
             ExpectFloat(center, category, relative, $"Children.{location}.CollidersSpec.Center", "Y", 0.5);
-            ExpectFloat(center, category, relative, $"Children.{location}.CollidersSpec.Center", "Z", 1.0);
+            ExpectFloat(center, category, relative, $"Children.{location}.CollidersSpec.Center", "Z", 1.5);
         }
         else
         {
@@ -647,7 +874,7 @@ internal sealed class DataChecks
         {
             ExpectFloat(size, category, relative, $"Children.{location}.CollidersSpec.Size", "X", 3.0);
             ExpectFloat(size, category, relative, $"Children.{location}.CollidersSpec.Size", "Y", 1.0);
-            ExpectFloat(size, category, relative, $"Children.{location}.CollidersSpec.Size", "Z", 2.0);
+            ExpectFloat(size, category, relative, $"Children.{location}.CollidersSpec.Size", "Z", 3.0);
         }
         else
         {
@@ -1533,10 +1760,12 @@ internal sealed class DataChecks
     /// cell the connection is made towards, so the geometry can be proven from JSON alone.
     ///
     /// Only the two Top blueprints may carry mechanical specs; every Top transput must sit inside
-    /// the 3x2x1 footprint, must not point through the front face (the HDBF entrance and worker
-    /// access live there; front = grid -Y = direction "Down") and must not point up/down
-    /// ("Top"/"Bottom", the vertical faces; REQ-IMPL-05 forbids roof connection points). The back
-    /// face is grid +Y = direction "Up".
+    /// the 3x3x1 footprint, must sit on the rear depth row (y = Size.Y - 1 = 2) so the socket set
+    /// mirrors the v1 "full rear row" contract on the 3-deep model, must not point through the front
+    /// face (the HDBF entrance and worker access live there; front = grid -Y = direction "Down") and
+    /// must not point up/down ("Top"/"Bottom", the vertical faces; REQ-IMPL-05 forbids roof
+    /// connection points). The back face is grid +Y = direction "Up"; IL: Direction3DExtensions.ToOffset
+    /// maps Up to +Y, Left/Right to -/+X and Top to +Z (grid Z is the vertical axis).
     /// The Top tier also has to keep the off-grid fallback fields (RequiresPower/PowerDemand), so
     /// the check ties PowerDemand to PowerInput instead of replacing it.
     /// </summary>
@@ -1640,16 +1869,16 @@ internal sealed class DataChecks
         }
 
         // 3. Footprint-local connection faces.
-        var sizeX = 3;
-        var sizeY = 2;   // grid Y = depth
-        var sizeZ = 1;   // grid Z = height
+        var sizeX = FootprintX;
+        var sizeY = FootprintY;   // grid Y = depth
+        var sizeZ = FootprintZ;   // grid Z = height
         if (TryGetObject(root, "BlockObjectSpec", out var blockObject))
         {
             if (TryGetObject(blockObject, "Size", out var size))
             {
-                sizeX = ExpectInt(size, category, relative, "BlockObjectSpec.Size", "X", 3) ?? sizeX;
-                sizeY = ExpectInt(size, category, relative, "BlockObjectSpec.Size", "Y", 2) ?? sizeY;
-                sizeZ = ExpectInt(size, category, relative, "BlockObjectSpec.Size", "Z", 1) ?? sizeZ;
+                sizeX = ExpectInt(size, category, relative, "BlockObjectSpec.Size", "X", FootprintX) ?? sizeX;
+                sizeY = ExpectInt(size, category, relative, "BlockObjectSpec.Size", "Y", FootprintY) ?? sizeY;
+                sizeZ = ExpectInt(size, category, relative, "BlockObjectSpec.Size", "Z", FootprintZ) ?? sizeZ;
             }
         }
 
@@ -1668,6 +1897,15 @@ internal sealed class DataChecks
         {
             _report.Error(category, $"{relative}: TransputProviderSpec.Transputs must be a non-empty array");
             return;
+        }
+
+        // v1 contract carried as-is onto the 3-deep model: the socket set spans the full rear row,
+        // one transput per rear cell (x = 0..2, y = Size.Y - 1).
+        if (transputs.GetArrayLength() != sizeX)
+        {
+            _report.Error(category, $"{relative}: TransputProviderSpec.Transputs must have exactly {sizeX} "
+                                     + "entries for the v1 rear-row socket contract (one per cell on the rear "
+                                     + $"depth row; found {transputs.GetArrayLength()})");
         }
 
         var signature = new List<string>();
@@ -1699,6 +1937,13 @@ internal sealed class DataChecks
                 _report.Error(category, $"{relative}: {location}.Coordinates ({x},{y},{z}) is outside the "
                                          + $"{sizeX}x{sizeY}x{sizeZ} footprint; power geometry must stay on-grid "
                                          + "inside the building's own blocks");
+            }
+            else if (y != sizeY - 1)
+            {
+                _report.Error(category, $"{relative}: {location}.Coordinates ({x},{y},{z}) must sit on the rear "
+                                         + $"depth row (y = Size.Y - 1 = {sizeY - 1}) so the socket set mirrors the "
+                                         + "v1 rear-row contract on the 3-deep model and stays away from the entrance "
+                                         + "front and the worker approach");
             }
 
             var directions = ExpectString(transput, category, relative, location, "Directions");
@@ -2028,8 +2273,16 @@ internal sealed class DataChecks
         bool HasPipePort,
         bool HasLogisticsPort,
         bool HasPowerPort,
-        int ToolOrder)
+        int ToolOrder,
+        int BuildWorkdays)
     {
+        /// <summary>
+        /// REQ-V2-BLD-01 v2.1 build time in game hours. The blueprint field
+        /// <c>ConstructionSiteBuildTimeSpec.ConstructionTimeInHours</c> is expressed in hours, so the
+        /// documented workday value is converted with 24 hours/workday (see CheckBuildTime).
+        /// </summary>
+        public double BuildTimeInHours => BuildWorkdays * (double)BuildHoursPerWorkday;
+
         /// <summary>
         /// ART-03: the custom finished model this tier/faction ships, data-relative and without the
         /// `.timbermesh` extension (the game resolves the extension itself).

@@ -282,6 +282,19 @@ namespace HDBF.Integration.Adapters
             _boundTypes = Array.Empty<Type>();
         }
 
+        /// <summary>
+        /// Counts one runtime failure of an initialized adapter against the same three-strike
+        /// machine used by <see cref="Initialize"/>/<see cref="Tick"/> (REQ-V2-SAFE-02). The v2
+        /// pipe water source calls this through
+        /// <see cref="CompatAdapterRegistry.ReportRuntimeFailure"/> when a reflected mod call
+        /// throws, so a broken external API eventually disables just this adapter and the farm
+        /// keeps running on manual refill (REQ-V2-COMPAT-02).
+        /// </summary>
+        internal void NoteRuntimeFailure(string reason)
+        {
+            RecordFailure(reason, null);
+        }
+
         private void RecordFailure(string reason, Exception? exception)
         {
             _state.Fail(reason);

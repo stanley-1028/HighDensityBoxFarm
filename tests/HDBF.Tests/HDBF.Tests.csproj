@@ -126,4 +126,27 @@
     </EmbeddedResource>
   </ItemGroup>
 
+  <!--
+    V2-INTEG-01 indoor adaptor host source contract: HDBF.Integration references Timberborn and
+    Bindito assemblies and cannot be loaded into this game-free test assembly, so the v2 host,
+    the Timber Pipes water source and the reflection binding are embedded as text.
+    V2AdapterHostContractTests pins the Core contracts, the degradation paths, the verified real
+    anchors and the "no Harmony / no v1 plot calls / no per-frame water" rules (REQ-V2-WATER-02,
+    REQ-V2-COMPAT-01/02, REQ-V2-SAFE-05).
+  -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\src\HDBF.Integration\Adapters\IndoorAdapterHost.cs">
+      <LogicalName>HDBF.Tests.Source.IndoorAdapterHost.cs</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\src\HDBF.Integration\Adapters\TimberPipesWaterSource.cs">
+      <LogicalName>HDBF.Tests.Source.TimberPipesWaterSource.cs</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\src\HDBF.Integration\Adapters\TimberPipesWaterBinding.cs">
+      <LogicalName>HDBF.Tests.Source.TimberPipesWaterBinding.cs</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\src\HDBF.Core\Compat\IIndoorAdapterHost.cs">
+      <LogicalName>HDBF.Tests.Source.IIndoorAdapterHost.cs</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
 </Project>
