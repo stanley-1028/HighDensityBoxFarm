@@ -147,5 +147,17 @@
       <LogicalName>HDBF.Tests.Source.IIndoorAdapterHost.cs</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
+  <!--
+    V2-SAVE-01 keyed schema-v2 persistence bridge: HDBF.Persistence references Timberborn and
+    cannot be loaded into this game-free L1 assembly, so the new key table is embedded as text
+    for V2PersistenceBridgeContractTests. The new IndoorEntitySaveBridge.Keyed*.cs partials are
+    already embedded by the existing IndoorEntitySaveBridge*.cs resource above; the key table is
+    the one new file, appended here without changing any existing resource.
+  -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\src\HDBF.Persistence\Indoor\IndoorSaveKeys.cs">
+      <LogicalName>HDBF.Tests.Source.Keyed.IndoorSaveKeys.cs</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
 
 </Project>

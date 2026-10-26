@@ -1,6 +1,6 @@
 # HDBF v2 架构
 
-> **状态**：draft（阶段 1）｜**日期**：2026-10-26｜**适用版本**：0.2.0 / schema 2
+> **状态**：0.2.0 已实现（层/日 tick/数据流与代码一致；实机证据见 VERIFICATION §26）｜**日期**：2026-10-26｜**适用版本**：0.2.0 / schema 2
 > **变更摘要**：v2 用室内槽位模型替换 v1 世界地块扫描；本文记录分层、数据流、日 tick 固定顺序与关键决策摘要。
 
 ## 1. 分层与依赖
@@ -85,6 +85,7 @@
 | `save.*` | 读写/校验/迁移 | `save.write`, `save.validation-failed`, `save.migrated` |
 | `ui.*` | 面板/命令 | `ui.command-failed`, `ui.snapshot` |
 | `compat.*` | 适配器 | `compat.failed`, `compat.degraded` |
+| `config.*` | 配置迁移/忽略键 | `config.migrated`, `config.ignored-key` |
 
 同一 key 30 秒节流；日志带 entityId/槽位号，不带完整堆栈刷屏（`ThrottledLog`）。
 

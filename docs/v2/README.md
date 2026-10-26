@@ -1,8 +1,8 @@
 # HDBF v2 — 室内高密度盒子农场（v2.1）
 
-> **状态**：draft（阶段 1 进行中）
+> **状态**：阶段 1–3 完成；阶段 4 部分完成（离线门禁全绿，实机证据见 `docs/VERIFICATION.md` §26）
 > **日期**：2026-10-26
-> **适用版本**：模组 0.2.0 / 游戏 Timberborn 1.1.2.8 / 存档 schema 2 / 配置 schema 2
+> **适用版本**：模组 **0.2.0** / 游戏 Timberborn 1.1.2.8 / 存档 schema 2 / 配置 schema 2
 > **变更摘要**：v2 以需求 `docs/REQ_V2_SECTION_19.md`（唯一事实来源）为蓝本，替换 v1 的外部农田实现；本文件是 v2 文档集的一页索引。
 
 ## 1. 目标（一句话）
@@ -46,14 +46,15 @@ powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1 -WorkRoot "$env:TE
 
 | 阶段 | 内容 | 自动化任务卡 | 状态 |
 |---|---|---|---|
-| W1 | v2 Core 纯逻辑 + 存档 | `V2-CORE-01`, `V2-CORE-02` | 进行中 |
-| W2 | 3×3×1 美术模型 + 蓝图/规格/配置 | `V2-ART-01`, `V2-DATA-01` | 进行中 |
-| W3 | 存档桥 + 室内控制器 + 净删 v1 地块链路 | `V2-SAVE-01`, `V2-GAMEPLAY-01/02` | 待 W1 |
-| W4 | UI 面板 v2 + 三语本地化 + 世界图标 | `V2-UI-01` | 待 W3 |
-| W5 | 适配器（管道水/动力/物流） | `V2-INTEG-01` | 待 W2 |
-| W6 | NFR 门禁 + 文档收敛 + 实机验证 | `V2-GATE-01`, Lead | 待 W5 |
+| W1 | v2 Core 纯逻辑 + 存档 | `V2-CORE-01`, `V2-CORE-02` | **完成**（L1 全绿） |
+| W2 | 3×3×1 美术模型 + 蓝图/规格/配置 | `V2-ART-01`, `V2-DATA-01` | **完成**（128 项美术校验 PASS） |
+| W3 | 存档桥 + 室内控制器 + 净删 v1 地块链路 | `V2-SAVE-01`, `V2-GAMEPLAY-01/02`, `V2-CLEANUP-01` | **完成** |
+| W4 | UI 面板 v2 + 三语本地化 + 世界图标 | `V2-UI-01` | **完成**（L1 契约） |
+| W5 | 适配器（管道水/动力/物流） | `V2-INTEG-01` | **完成**（反射锚点 + 降级） |
+| W6 | NFR 门禁 + 文档收敛 + 实机验证 | `V2-GATE-01`, Lead | **离线完成；实机部分见 VERIFICATION §26** |
 
-每张卡由 Host 在独立会话执行；Lead 逐波执行 `build.ps1`、核对 L1/validate、git 提交。
+最终门禁（本机实测）：5 程序集 0/0、**L1 PASSED 529 / FAILED 0**、`tools/validate RESULT: OK`、
+**RELEASE GATES: PASSED (44 checks)**（0 Harmony）、`NFR GATE MATRIX: PASSED`。
 
 ## 5. 需求入口
 

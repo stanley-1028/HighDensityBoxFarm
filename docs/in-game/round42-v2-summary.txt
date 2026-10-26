@@ -1,0 +1,28 @@
+﻿round        : round42-v2
+finished     : 2026-10-26T21:45:48
+save         : 2026-10-24 18h28m, Day 1-1.autosave
+settlement   : HDBFTest
+log          : C:\Users\user\Documents\Timberborn\Mods\HighDensityBoxFarm\docs\in-game\round42-v2-Player.log
+
+[HDBF/Info] start HDBF version=0.2.0 modPath=C:\Users\user\Documents\Timberborn\Mods\HDBF
+HDBF/Compat: compat.missing:HDBF.Adapter.TimberPipes: HDBF.Adapter.TimberPipes not detected (not-installed); capability unavailable
+HDBF/Compat: compat.missing:HDBF.Adapter.PowerLines: HDBF.Adapter.PowerLines not detected (not-installed); capability unavailable
+HDBF/Compat: compat.missing:HDBF.Adapter.ConveyorBeltsV2: HDBF.Adapter.ConveyorBeltsV2 not detected (not-installed); capability unavailable
+HDBF/Compat: compat.missing:HDBF.Adapter.MoreMines: HDBF.Adapter.MoreMines not detected (not-installed); capability unavailable
+HDBF/Compat: compat.missing:HDBF.Adapter.HoomanStairs: HDBF.Adapter.HoomanStairs not detected (not-installed); capability unavailable
+Opening file: C:\Users\user\Documents\Timberborn\Saves\HDBFTest\2026-10-24 18h28m, Day 1-1.autosave.timber
+[HDBF/Info] startup: HDBF 0.2.0 ready; tiers=4; modPath=C:\Users\user\Documents\Timberborn\Mods\HDBF; config=C:\Users\user\Documents\Timberborn\Mods\HDBF\HDBF_Config.json
+[HDBF/Info] save.migrated: schema-v2 record repaired on load (repaired=True trimmed=0 padded=0 clamped=1 notes=1)
+[HDBF/Warn] water.pipe-unavailable: pipe port unavailable (adapter=Disabled); degrading to manual refill, entityId=29f93827-7244-4a3b-adb8-b329c95444a8
+[HDBF/Compat] indoor.port: indoor port availability refreshed: pipe=False, logistics=False, power=False, adapter=Disabled, entityId=29f93827-7244-4a3b-adb8-b329c95444a8
+[HDBF/Warn] water.manual-refill: farm has no walk access; manual refill cannot start
+[HDBF/Info] indoor.entity: indoor farm active, entityId=29f93827-7244-4a3b-adb8-b329c95444a8, tier=Basic, faction=Folktails, blueprint=BoxFarm.Basic.Folktails
+Load time: 30029ms (scene index: 2)
+[HDBF/Info] water.settle: indoor water settled: coverage=1.000, tank=2.400, entityId=29f93827-7244-4a3b-adb8-b329c95444a8
+[HDBF/Info] indoor.day: indoor actions: harvested=16, planted=10, actionsUsed=26, blockedByOutput=44, growthMultiplier=1.000, entityId=29f93827-7244-4a3b-adb8-b329c95444a8
+[HDBF/Info] indoor.action-backlog: indoor harvest backlog (output full), entityId=29f93827-7244-4a3b-adb8-b329c95444a8
+[HDBF/Warn] water.manual-refill: farm has no walk access; manual refill cannot start
+[HDBF/Info] water.settle: indoor water settled: coverage=1.000, tank=1.200, entityId=29f93827-7244-4a3b-adb8-b329c95444a8
+[HDBF/Info] indoor.day: indoor actions: harvested=5, planted=11, actionsUsed=16, blockedByOutput=39, growthMultiplier=1.000, entityId=29f93827-7244-4a3b-adb8-b329c95444a8
+[HDBF/Info] indoor.action-backlog: indoor harvest backlog (output full), entityId=29f93827-7244-4a3b-adb8-b329c95444a8
+[HDBF/Warn] water.manual-refill: farm has no walk access; manual refill cannot start

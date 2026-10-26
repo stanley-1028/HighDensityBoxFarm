@@ -1,8 +1,10 @@
 # HDBF v2 需求追溯矩阵
 
-> **状态**：draft（阶段 4 门禁收敛）｜**日期**：2026-10-26｜**适用版本**：0.2.0 / 存档 schema 2 / 配置 schema 2
+> **状态**：0.2.0 已实现（离线 L1 全绿；实机覆盖见 VERIFICATION §26，未跑到的 TC 保持 pending）｜**日期**：2026-10-26｜**适用版本**：0.2.0 / 存档 schema 2 / 配置 schema 2
 > **变更摘要**：`REQ-V2-*` ↔ 代码文件/类 ↔ L1/实机测试 的唯一矩阵；v1 地块链路已删除（§12）。
 > 状态：`pending`（未实现）/ `L1`（离线自动化绿）/ `GAME`（实机已验）。没有测试映射的需求不得标已实现。
+> 实机证据（round41/42）：模组 0.2.0 加载、v2 记录读档修复、室内日循环（水耗/覆盖率一次/日）、
+> 收获/播种/动作预算、输出满积压、缺 Timber Pipes 降级；见 `docs/VERIFICATION.md` §26。
 
 路径约定：`C:` = `src/HDBF.Core/Indoor/`，`P:` = `src/HDBF.Persistence/Indoor/`，
 `G:` = `src/HDBF.Gameplay/`，`U:` = `src/HDBF.UI/`，`I:` = `src/HDBF.Integration/`，
@@ -42,8 +44,8 @@
 
 | 需求 | 实现文件/类 | L1 测试 | 状态 |
 |---|---|---|---|
-| REQ-V2-WATER-01 覆盖率纯函数 | `C:IndoorWaterMath.cs` | `T:V2WaterTests`（含除零/负值） | L1 |
-| REQ-V2-WATER-02 每日一次扣水/有源补水 | `C:IndoorWaterMath.cs`, `C:IndoorDayTick.cs` | `T:V2WaterTests`, `T:V2GameplayWiringTests` | L1 |
+| REQ-V2-WATER-01 覆盖率纯函数 | `C:IndoorWaterMath.cs` | `T:V2WaterTests`（含除零/负值） | L1 + GAME(部分) |
+| REQ-V2-WATER-02 每日一次扣水/有源补水 | `C:IndoorWaterMath.cs`, `C:IndoorDayTick.cs` | `T:V2WaterTests`, `T:V2GameplayWiringTests` | L1 + GAME(部分) |
 | REQ-V2-WATER-03 面板水字段 | `C:IndoorFarmSnapshot.cs`, `U:Panels/HdbfIndoorPanel*` | `T:V2PanelContractTests` | L1 |
 | REQ-V2-WATER-04 人工补水动作/可达 | `C:IndoorDayTick.cs`, `G:Components/HdbfBoxFarmController.ManualRefill.cs` | `T:V2GameplayWiringTests` | L1 |
 
@@ -51,7 +53,7 @@
 
 | 需求 | 实现文件/类 | L1 测试 | 状态 |
 |---|---|---|---|
-| REQ-V2-LABOR-01 动作预算/收获优先 | `C:IndoorLaborMath.cs` | `T:V2LaborTests` | L1 |
+| REQ-V2-LABOR-01 动作预算/收获优先 | `C:IndoorLaborMath.cs` | `T:V2LaborTests` | L1 + GAME(部分) |
 | REQ-V2-LABOR-02 无路径工时 | `C:IndoorLaborMath.cs`（`WorkDaysPerAction` 无路径项） | `T:V2LaborTests` | L1 |
 | REQ-V2-LABOR-03 原版工作位门禁 | `G:Components/HdbfBoxFarmController.Tick.cs`, `G:Farming/IndoorFarmWorkplaceBehavior.cs` | `T:V2GameplayContractTests` | L1 |
 | REQ-V2-LABOR-04 室内工作/无外部农田 | 同上；无地块扫描/种植派发 | `T:V2GameplayContractTests` | L1（实机 TC-V2-03 pending） |
@@ -60,7 +62,7 @@
 
 | 需求 | 实现文件/类 | L1 测试 | 状态 |
 |---|---|---|---|
-| REQ-V2-BAL-01 单一汇总乘算 | `C:IndoorMultipliers.cs`（唯一乘法点） | `T:V2BalanceTests`, `T:V2GrowthTests` | L1 |
+| REQ-V2-BAL-01 单一汇总乘算 | `C:IndoorMultipliers.cs`（唯一乘法点） | `T:V2BalanceTests`, `T:V2GrowthTests` | L1 + GAME(部分) |
 | REQ-V2-BAL-02 停摆只停农事 | `C:IndoorDayTick.cs`（生长继续，动作暂停） | `T:V2MaintenancePowerTests` | L1 |
 | REQ-V2-BAL-03 世界警告图标/面板原因 | `G:Components/HdbfWarnings.cs`, `HdbfWorldIconService*.cs` | `T:V2WarningIconContractTests` | L1 |
 
@@ -73,7 +75,7 @@
 | REQ-V2-SAVE-03 读档一致性/帧率无关 | `C:IndoorDayTick.cs`（日触发） | `T:V2NfrPerformanceTests` | L1 |
 | REQ-V2-SAVE-04 写前校验 | `C:IndoorSaveValidator.cs`, `P:IndoorEntitySaveBridge.cs` | `T:V2SaveValidatorTests`, `T:V2SaveFaultInjectionTests` | L1 |
 | REQ-V2-SAVE-05 迁移失败安全 | `C:IndoorSaveMigrator.cs` | `T:V2SaveMigrationTests` | L1 |
-| REQ-V2-SAVE-06 读档不因坏字段失败 | `P:IndoorEntitySaveBridge.cs` | `T:V2SaveFaultInjectionTests` | L1 |
+| REQ-V2-SAVE-06 读档不因坏字段失败 | `P:IndoorEntitySaveBridge.cs` | `T:V2SaveFaultInjectionTests` | L1 + GAME(部分) |
 | REQ-V2-SAVE-07 损坏/迁移/往返/预算全绿 | 上述 + `T:V2SaveBudgetTests` | `T:V2SaveFaultInjectionTests`, `T:V2SaveBudgetTests` | L1 |
 
 ## 8. UI（UI）
@@ -99,13 +101,13 @@
 | 需求 | 实现文件/类 | L1 测试 | 实机 | 状态 |
 |---|---|---|---|---|
 | REQ-V2-COMPAT-01 适配器契约 | `I:Adapters/*`, `C:Compat/*` | `T:CompatAnchorTableTests`, `T:V2AdapterHostContractTests` | TC-V2-09 | L1 |
-| REQ-V2-COMPAT-02 缺模组隐藏/置灰 | `I:Adapters/IndoorAdapterHost.cs`, `U:Panels/` | `T:V2AdapterHostContractTests`, `T:V2PanelContractTests` | TC-V2-09 | L1 |
+| REQ-V2-COMPAT-02 缺模组隐藏/置灰 | `I:Adapters/IndoorAdapterHost.cs`, `U:Panels/` | `T:V2AdapterHostContractTests`, `T:V2PanelContractTests` | TC-V2-09 | L1 + GAME(部分) |
 | REQ-V2-COMPAT-03 叠放+Hooman Stairs | 蓝图叠放 + 适配器降级 | `T:V2BlueprintContractTests` | TC-V2-09 | L1（实机 pending） |
 | REQ-V2-PERF-01 100×600 稳定 | `C:IndoorDayTick.cs`（纯数组遍历） | `T:V2PerformanceTests`, `T:V2NfrPerformanceTests` | TC-V2-08 | L1（实机 Profiler pending） |
 | REQ-V2-PERF-02 日 tick 无临时分配 | `C:IndoorDayTick.cs`（0 bytes 实测） | `T:V2PerformanceTests` | — | L1 |
 | REQ-V2-PERF-03 叠放不抖动 | 蓝图/游戏行为 | —（实机项） | TC-V2-08 | pending |
-| REQ-V2-TEST-01 L1 全自动零游戏依赖 | `T:` 全部（501 条，tests 只引用 Core） | 门禁 `build.ps1 -G-01` | — | L1 |
-| REQ-V2-TEST-02 实机证据留档 | `docs/VERIFICATION.md` | — | TC-V2-01..10 | pending |
+| REQ-V2-TEST-01 L1 全自动零游戏依赖 | `T:` 全部（529 条，tests 只引用 Core） | 门禁 `build.ps1 -G-01` | — | L1 |
+| REQ-V2-TEST-02 实机证据留档 | `docs/VERIFICATION.md` §26 | — | TC-V2-01..10 | GAME(部分，见 §26.3) |
 
 ## 11. NFR（READ/MAINT/EXT/SAFE/NFR）
 

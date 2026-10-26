@@ -1,153 +1,163 @@
 # 高密度盒子农场（HDBF）— Timberborn 模组
 
-> 按《[高密度盒子农场模组需求文档](../../../deepseek-harness/default-workspace/high-density-box-farm/高密度盒子农场模组需求文档.md)》蓝图实现的 Timberborn 1.1.2.8 模组。
-> 本工程不是文档的摘要，而是可构建、可测试、可安装的代码与数据。
+> 按需求蓝图 §19（v2.1）实现的 Timberborn 1.1.2.8 模组：**3×3×1 室内高密度农场**。
+> 本工程不是文档摘要，而是可构建、可测试、可安装的代码与数据。
 >
-> **v2 室内版设计（2026-10-26，v2.1-draft）**：需求文档 **§19** 与 [docs/REQ_V2_SECTION_19.md](docs/REQ_V2_SECTION_19.md) 已改为 **3×3×1 室内高密度农场 + 平屋顶可叠建筑**，并新增 §19.18 非功能需求（可读性 / 可维护性 / 可扩展性 / 安全性）。
-> **注意：当前安装与部署的 `0.1.0` 仍是 v1 外部农田实现；v2 代码/模型尚未开始迁移，以需求文档 §19 为设计基线。**
+> **当前版本 0.2.0（v2 室内版）**：四档 3×3×1 建筑，内部 60/150/300/600 个抽象槽位，
+> 平屋顶可叠放，内部水罐 + 管道/人工补水；v1 的世界地块扫描、托管格、原版种植派发、
+> 地块高亮、作物可见性补丁与 Harmony 补丁**已全部删除（0 Harmony）**。
+> v2 设计入口：[docs/v2/README.md](docs/v2/README.md)、需求唯一来源 [§19](docs/REQ_V2_SECTION_19.md)。
 
 | 项目 | 值 |
 |---|---|
-| 模组版本 | 0.1.0（v1 已实现） / 0.2.0-draft（v2 目标） |
+| 模组版本 | **0.2.0（v2）** |
 | 目标游戏 | Timberborn 1.1.2.8（`1.1.2.8-ffc2de0-sw`，Unity 6000.5.11f1） |
-| 存档 schema | 1（v1，随建筑实体持久化，见 ADR-001） / 2（v2 设计，§19.10） |
-| 配置 schema | 1（v1） / 2（v2 设计） |
-| v2 设计 | 3×3×1 室内槽位、无外部农田、平屋顶可叠建筑（[需求 §19](docs/REQ_V2_SECTION_19.md)） |
+| 存档 schema | **2**（每建筑一条原生持久化记录，含 v1→v2 迁移；见 ADR-V2-003） |
+| 配置 schema | **2**（v1 配置可读并迁移；未知键忽略） |
 | 程序集 | `HDBF.Core` / `HDBF.Persistence` / `HDBF.Gameplay` / `HDBF.Integration` / `HDBF.UI` |
-| Harmony 补丁 | 0 |
+| Harmony 补丁 | **0** |
+| L1 测试 | **529**（零游戏依赖，`FAILED 0`） |
+| 发布门禁 | **PASSED (44 checks)** + `NFR GATE MATRIX: PASSED` |
 
 ## 1. 这是什么
 
-四档 3×2×1 的「盒子农场」建筑：用中后期科技把大量分散农田压缩进有限工作范围集中管理，
-但必须持续支付**劳动力、灌溉、维护、土壤疲劳**四类代价。建筑本身不产作物，只改变
-「哪些格被管理、以什么效率被管理」。
+四档「盒子农场」建筑（基础/中级/高级/顶级），把大量分散农田压缩进一栋 **3×3×1** 的建筑内部：
 
-- 基础版 60 格 / 2 农民 / 11×11 范围 / 无材料维护
-- 中级版 150 格 / 4 农民 / 15×15 / 每 10 日 8 木板
-- 高级版 300 格 / 8 农民 / 19×19 / 每 10 日 6 金属
-- 顶级版 600 格 / 16 农民 / 27×27 / 150 动力或离网 15 金属每 8 日
+- 基础版 60 槽 / 2 工人 / C_min 50% / 水罐 3.6
+- 中级版 150 槽 / 4 工人 / 60% / 10.8
+- 高级版 300 槽 / 8 工人 / 75% / 33.6
+- 顶级版 600 槽 / 16 工人 / 80% / 76.8 + 150 动力（或离网 15 金属/8 日）
 
-全部数值集中在 `src/HDBF.Core/Balance/TierCatalog.cs` 与八份（四档 × 两阵营）蓝图 JSON，改数值不需要改代码。
+作物在建筑**内部槽位**模拟生长（读取原版作物 spec 的生长天数/产量/产物），
+农民只占建筑工作位；水由**内部水罐**提供（管道自动补水或工人人工补水）；
+产物进入建筑输出库存后由原版搬运/传送带送出。模型屋顶是**平的、可通行、可叠放建筑**。
+
+代价（防作弊门禁）：无工人不作业、无水不生长、无维护会减产/停摆、无动力顶级减产；
+产物只能来自成熟槽位的模拟收获。
 
 ## 2. 目录
 
 ```
 mod/
-├── HDBF.sln                    # 7 个工程（5 个游戏程序集 + 测试 + API 索引工具）
+├── HDBF.sln                    # 5 个游戏程序集 + 测试 + API 索引工具
 ├── src/
-│   ├── HDBF.Core/              # 纯逻辑：公式、档位表、配置、日志、兼容契约、存档记录
-│   ├── HDBF.Persistence/       # 建筑存档读写（Timberborn 实体持久化）
-│   ├── HDBF.Gameplay/          # Spec、控制器组件、日 tick、模组入口、DI 注册
-│   ├── HDBF.Integration/       # 五个软依赖适配器 + 检测缓存 + 反射代理
-│   └── HDBF.UI/                # 建筑面板数据与状态警告
-├── tests/HDBF.Tests/           # L1 测试（零 NuGet 依赖，自带 runner）
-├── data/                       # 随包发布：manifest、8 份阵营蓝图、本地化、配置、图标、美术契约
-├── tools/ApiIndex/             # 读取游戏程序集元数据/IL 的离线工具（本工程的事实来源）
-├── tools/validate/             # 数据一致性校验器（蓝图/本地化/配置/manifest）
-├── docs/                       # API 事实、接口契约、架构决策、验证报告
-└── build.ps1                   # 构建 + 测试 + 校验 + 打包（产物在 %USERPROFILE%\.hdbf\work）
+│   ├── HDBF.Core/Indoor/       # v2 纯逻辑：槽位/生长/水/劳动力/维护/动力/存档/快照
+│   ├── HDBF.Persistence/Indoor/# v2 实体持久化桥（写前校验/失败安全/v1 迁移）
+│   ├── HDBF.Gameplay/          # 室内控制器、日 tick 编排、作物目录、工作位、仓库桥
+│   ├── HDBF.Integration/       # 5 个软依赖适配器 + IIndoorAdapterHost（管道补水）
+│   └── HDBF.UI/                # v2 面板（槽位/水罐/维护/动力/策略）+ 三语本地化
+├── tests/HDBF.Tests/           # L1 测试（零 NuGet，自带 runner；含 NFR 门禁矩阵）
+├── data/                       # 8 份蓝图、16 个 .timbermesh、三语系、配置、图标
+├── art/                        # Blender 程序化模型生成器 + 验证/预览报告
+├── tools/                      # ApiIndex / validate / release gates / 实机回合脚本
+├── docs/v2/                    # v2 文档集（架构/接口/ADR/追溯/变更）
+└── docs/VERIFICATION.md        # 实际验证记录（含 v2 §26 实机证据）
 ```
 
 ## 3. 构建
 
-> **工作区不是安装目录**：本仓库只放源码/数据/文档。`build.ps1` 把 obj/bin 与暂存包写到
-> `%USERPROFILE%\.hdbf\work`，把安装包部署到 `%USERPROFILE%\Documents\Timberborn\Mods\HDBF`。
-> 原因：游戏会递归加载 mod 目录下**所有** `*.dll` 与 `*.blueprint.json`，源码、原版参考蓝图和
-> 构建产物一旦混进 mod 目录就会重复注册/重复加载。`build.ps1` 末尾有硬门禁检查这一点。
+> **工作区不是安装目录**：仓库只放源码/数据/文档，构建产物与 staged 包写到工作根；
+> 安装包部署到 `%USERPROFILE%\Documents\Timberborn\Mods\HDBF`。
+>
+> 本机沙箱下 `%USERPROFILE%\.hdbf\work` 不可写，使用 `%TEMP%\hdbf-<tag>` 作为工作根（ADR-V2-005）。
 
-前置：.NET SDK 9（已验证 9.0.305）、游戏已安装（默认路径
-`C:\Program Files (x86)\Steam\steamapps\common\Timberborn`，可用 `-TimberbornDir` 覆盖）。
-原版参考蓝图/UI 解包在 `%USERPROFILE%\.hdbf\ref`（可用 `-RefDir` 覆盖），供校验器交叉核对，
-不会随包发布。
+前置：.NET SDK 9（已验证 9.0.305）、游戏已安装（默认
+`C:\Program Files (x86)\Steam\steamapps\common\Timberborn`）。
 
 ```powershell
-# 完整构建 + 测试 + 数据校验 + 打包（本机没有 pwsh，且执行策略默认阻止未签名脚本）
-powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1
+# 全量门禁：5 程序集 → L1 529 → data 校验 → 打包 → 44 条 release gates
+powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1 -WorkRoot "$env:TEMP\hdbf-work"
 
-# 构建 + 测试 + 校验 + 打包 + 部署到 Documents\Timberborn\Mods\HDBF
-powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1 -Install
+# + 部署到 Documents\Timberborn\Mods\HDBF
+powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1 -WorkRoot "$env:TEMP\hdbf-work" -Install
 
-# 或逐工程
-dotnet build src/HDBF.Core/HDBF.Core.csproj -c Release -m:1
-dotnet run   --project tests/HDBF.Tests -c Release -m:1
+# 逐工程（任何工程都不得声明 2 个以上 ProjectReference；必须 -m:1）
+dotnet build src/HDBF.Core/HDBF.Core.csproj -c Release -m:1 -p:HdbfWorkRoot="$env:TEMP\hdbf-work"
+dotnet run   --project tests/HDBF.Tests -c Release -m:1 -p:HdbfWorkRoot="$env:TEMP\hdbf-work"
 ```
 
-> **必须带 `-m:1`（单节点 MSBuild）**。这台机器上并行 MSBuild 会在 NuGet restore 阶段
-> 静默失败（退出码 1、无任何错误信息），且任何工程不得声明 2 个以上 `ProjectReference`。
-> 两个环境限制都记录在 [docs/API_FACTS.md](docs/API_FACTS.md) §6，装配链因此设计成
-> `Core ← Persistence ← Gameplay`，`Integration`/`UI` 各自只引用 `Core`。
+> `-m:1` 是硬要求：本机并行 MSBuild 会在 NuGet restore 阶段静默失败（退出码 1、无错误信息）。
 
-## 4. 安装
+## 4. 安装与实机验证
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1 -Install
-# 等价于复制 %USERPROFILE%\.hdbf\work\stage\HDBF\* 到
-# %USERPROFILE%\Documents\Timberborn\Mods\HDBF\
+powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1 -WorkRoot "$env:TEMP\hdbf-work" -Install
 ```
 
-然后在游戏主菜单 → Mods 启用 **High Density Box Farm**，重启游戏。
-四档建筑出现在建造菜单 **Food（食物）** 分类末尾（ToolOrder 90–93）。
+游戏主菜单 → Mods 启用 **High Density Box Farm** 并重启；四档建筑在 **Food** 分类末尾。
+自动化实机回合（无合成输入，`-skipModManager` + 存档副本）：
 
-> 本工作区目录（`Documents\Timberborn\Mods\HighDensityBoxFarm`）没有 `manifest.json`，游戏会把它
-> 当作普通目录忽略；真正加载的是同级 `Mods\HDBF`。这是刻意的：工作区里既有源码也有原版参考数据，
-> 不能被当作 mod 递归加载。
+```powershell
+.\tools\dev\Invoke-GameRound.ps1 -Action Prepare -Tag round
+.\tools\dev\Invoke-GameRound.ps1 -Action Launch  -Tag round
+.\tools\dev\Invoke-GameRound.ps1 -Action SpeedUp -Seconds 240 -Tag round
+.\tools\dev\Invoke-GameRound.ps1 -Action Stop    -Tag round
+```
+
+> 本机执行策略会阻止未签名脚本，实际命令需用
+> `powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\dev\Invoke-GameRound.ps1 ...`。
+
+v2 fixture（预植槽位 + schema-v2 payload）：
+
+```powershell
+dotnet run --project tools/dev/CraftIndoorFixture -c Release --property:HdbfWorkRoot="$env:TEMP\hdbf-fixture" -- `
+  --tier Basic --crop Carrot --growth 3.9 --planted 60 --tank full --out "$env:USERPROFILE\.hdbf\round\indoor-payload.txt"
+python .\tools\dev\fixtures\craft-farm-fixture.py --out "$env:USERPROFILE\Documents\Timberborn\Saves\HDBFTest" `
+  --indoor-payload "$env:USERPROFILE\.hdbf\round\indoor-payload.txt" --tier BoxFarm.Basic.Folktails
+```
 
 ## 5. 验证边界（请务必读）
 
-本工程在**无 Unity 编辑器、无网络**的环境中完成；自 2026-10-25 起，窗口化游戏内验证已能**全自动**
-执行（`-skipModManager` + 存档副本 + `Invoke-GameRound.ps1`，无需任何鼠标/键盘注入），
-详见 `docs/VERIFICATION.md` §16–§18 与 `docs/NEXT_ROUND.md`。
-
-| 已验证 | 方式 |
+| 已验证（离线） | 方式 |
 |---|---|
-| 五个程序集能对真实游戏 1.1.2.8 程序集编译 | `build.ps1`：5 程序集 0 warning / 0 error |
-| 平衡公式、存档、配置、兼容、劳动力计划、面板数据契约 | `tests/HDBF.Tests`：**510 条** L1 断言全绿 |
-| 存档记录修复/迁移/幂等/损坏注入/单建筑隔离 | L1 测试（3 次往返、200 轮确定性损坏扫描） |
-| 蓝图/本地化/配置/manifest/科技门禁/并网 spec/输出库存 | `tools/validate`（660 个游戏程序集元数据 + 506 个 spec 类型 + **5/5 模块程序集断言**） |
-| 使用的游戏 API 名称与签名真实存在 | `tools/ApiIndex` 从程序集元数据/IL 读取，见 docs/API_FACTS.md |
-| 打包产物结构、部署完整性与“工作区不是 mod”门禁 | `build.ps1` staging + 安全门禁（本机产物 338 KB / 29 文件 / 5 dll / 10 蓝图 / 3 本地化，部署 SHA 一致） |
-| **托管格注册**：首次扫描 60/60、连续 16 游戏日重扫保留 | round12 实机：`diag.scan.end registeredNow=60 kept=60`（46 行日誌，`docs/in-game/round12-Player.log`） |
-| **P1 作物循环**：派工→播种→生长→收穫→產物入庫/搬運 | round12 实机：`gameplay.farm: harvested plot … crop Wheat rotation=True`（含 `suppressed=38/39` 的大量收穫）、截圖可見成熟麥田與頂部資源列產物 |
-| 灌溉覆蓋率即時重算 | round12：首次掃描 `coverageAfterScan=1.000`；之後隨水分衰減 `0.667` |
-| 模組載入、四檔藍圖轉換、注入建築實例化 | round 5–12 多輪 `[HDBF/Info]` 日誌，無 prefab/material 錯誤 |
+| 5 程序集对真实游戏 1.1.2.8 程序集编译 | `build.ps1`：0 warning / 0 error |
+| v2 Core 公式/日 tick/存档/迁移/损坏注入/性能预算 | `tests/HDBF.Tests`：**529 条** L1 断言全绿 |
+| 100×600 日 tick 0.0113 ms/栋、存档 1.05 MB、编码 34.8 ms、30/144 fps 一致 | `V2NfrPerformanceTests` |
+| 3×3×1 蓝图（9 块、Stackable、建造 2/3/5/8 工日） | `V2BlueprintContractTests` + `tools/validate` |
+| 16 个 `.timbermesh` 3.000×1.000×3.000、平屋顶、3 端口、无 slot 节点 | 128/128 美术校验 PASS + 契约测试 |
+| 0 Harmony、Core 无游戏引用、依赖方向、文件规模、文档 71/71 追溯 | `V2Nfr*Tests` + 44 条发布门禁 |
+| 三语 147 键一致、无 v1 术语、失败原因具体 | `V2LocalizationTests` / `V2PanelContractTests` |
+| v2 实机：加载、室内日循环、水耗/覆盖率、收获/播种/积压、缺模组降级 | round41/42（`docs/VERIFICATION.md` §26） |
 
-| 未验证（需真实建造/更多游戏会话或额外工具链） | 原因 | 下一步 |
-|---|---|---|
-| **真实建造菜单放置与建造完成** | 目前所有实机农場都是存档注入实体；入口/工作位的真实放置流程未走 | 用用户实机会话在建造菜单放置四档各 1 座（输入注入在本机不可用） |
-| 维护材料扣除 | 已实现“最近仓库库存事务”，但 Basic 档无材料维护，需中/高级档实机 | 建仓库放木板/金属后点“执行维护”，核对库存与倒计时 |
-| 顶级版并网供电 | 已补 mechanical spec，坐标/朝向仍可能需实机微调 | 顶级接电网：`G_power` 1.0；断电后 0.6 + 离网维护 |
-| 五个第三方模组适配器（实机矩阵） | 五个模组已从 Steam Workshop 定位并完成离线锚点核对（BUILD-03）；实机握手需安装后跑 `tools/dev/CompatMatrix.ps1` | 单载 + 逐一组合 + 全组合 + 缺失读档 |
-| 建筑实际外观 | **已实机观察**（round 30–33）：四档自定义 `.timbermesh` 均成功载入并渲染，3×2×1、屋顶 6 槽、四档材质/构型可辨（截图见 `docs/in-game/round30-Basic-run.png`、`round31-Int-loaded.png`、`round32-Adv-run.png`、`round33-Top-run.png`）；材质仍是原版 atlas 采样，自订 PBR 材质待 Unity | 施工阶段模型外观、LOD 切换距离、50% 同框 A/B、近看端口细节 |
-| 面板运行时与托管格高亮/世界警告图标 | 面板三数数据与契约已补（BUILD-01，L1 绿）；高亮/图标卡（BUILD-02/04）仍在待办 | 实机开面板核对四档数字；高亮/图标完成后看渲染 |
-| 存档往返（实机 AC-06）、100 建筑性能、30 日压力 | 需要真实存读档与 Profiler | TC-10/TC-13/TC-14 |
+| 未验证（需可互动游戏会话） | 原因 |
+|---|---|
+| 真实建造菜单放置/施工阶段/拆除 | 本机无法合成 UI 输入（已记录原因） |
+| **屋顶叠放 A/B（发布门槛）** | 蓝图已具备 Stackable 字段，但未在实机往屋顶放原版建筑 |
+| 面板打开/按钮/失败原因/三语显示 | 需要点击建筑面板 |
+| 人工补水正路径、维护材料扣料、顶级接电、管道实际供水 | 需对应档位/模组 + 可互动会话 |
+| 游戏内存档往返（AC-06）、100 栋 Profiler、五模组矩阵、50% 四档同框 A/B | 需更长的实机会话 |
+| 玩家 v1 存档实机迁移 | 已有 L1 迁移测试与 fixture payload 修复证据，缺真实旧档副本 |
 
-> 自動實機說明：`tools/dev/Invoke-GameRound.ps1`（`Fixture` → `Prepare` → `Launch` → `SpeedUp` →
-> `Stop`）用 `-skipModManager` 跳過首次載入的 Mods 對話框、以存檔副本自動讀檔、靜音並在結束後
-> 還原音訊、把 `Player.log` 與摘要寫進 `docs/in-game/`。本機的合成滑鼠/鍵盤輸入無法送達任何視窗
-> （`tools/dev/Test-InputInjection.ps1` 的可重現證據），所以整條流程刻意**不依賴 UI 點擊**；
-> 需要點擊的項目（建造菜單放置、面板操作）仍留給使用者實機會話。
-> 歷史 `tools/smoke/Invoke-GameSmoke.ps1` 仍可用於部署完整性與 log 分析。
+> 「编译通过」不等于「实机验证」；未实机项在 `docs/v2/TRACEABILITY.md` 与 `docs/VERIFICATION.md` 中
+> 明确标为 pending，不标完成。
 
 ## 6. 文档
 
 | 文档 | 内容 |
 |---|---|
-| [docs/API_FACTS.md](docs/API_FACTS.md) | 从真实程序集读出的模组加载/蓝图/组件/服务事实，以及本机两个构建限制 |
-| [docs/INTERFACES.md](docs/INTERFACES.md) | 五程序集之间冻结的接口契约 |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | 分层、依赖方向、七条架构决策（含与需求文档的偏离说明） |
-| [docs/REQ_TRACEABILITY.md](docs/REQ_TRACEABILITY.md) | 需求编号 → 代码/测试/数据 追溯矩阵（含 7 条记录在案的偏离） |
-| [docs/VERIFICATION.md](docs/VERIFICATION.md) | 本次交付的实际验证记录与证据（第 13 节为最终门禁） |
-| [docs/IN_GAME_VERIFICATION.md](docs/IN_GAME_VERIFICATION.md) | 用户实机验证清单（装载、放置、P1 作物、维护、存档、冒烟命令） |
-| [tools/smoke/README.md](tools/smoke/README.md) | 游戏冒烟脚本的三种模式、安全边界与 IL 取证 |
-| [docs/workstreams/](docs/workstreams/README.md) | 本轮四条工作流的证据报告（farm-loop / tech-data / ui-panel / verify） |
+| [docs/v2/README.md](docs/v2/README.md) | v2 一页索引：目标、模块地图、构建/测试、阶段与门禁 |
+| [docs/v2/ARCHITECTURE.md](docs/v2/ARCHITECTURE.md) | 分层、日 tick 固定顺序、数据流、日志键/性能预算 |
+| [docs/v2/INTERFACES.md](docs/v2/INTERFACES.md) | v2 Core 冻结接口、不变量、存档/安全契约 |
+| [docs/v2/ADRS.md](docs/v2/ADRS.md) | ADR-V2-001 室内农场 / 002 平屋顶叠放 / 003 存档 v2 / 004 水模型 / 005 构建沙箱 |
+| [docs/v2/TRACEABILITY.md](docs/v2/TRACEABILITY.md) | `REQ-V2-*` ↔ 代码 ↔ L1/实机测试 矩阵 |
+| [docs/v2/CHANGELOG.md](docs/v2/CHANGELOG.md) | v1→v2 行为/数据/迁移变更 |
+| [docs/VERIFICATION.md](docs/VERIFICATION.md) | 实际验证记录（§26 为 v2 实机证据与门禁结论） |
+| [docs/API_FACTS.md](docs/API_FACTS.md) | 从真实程序集读出的 API/构建限制事实 |
+| [docs/REQ_V2_SECTION_19.md](docs/REQ_V2_SECTION_19.md) | 需求唯一来源（§19 v2.1） |
 
-## 7. 已知偏离（摘要）
+## 7. 已知偏离（v2 摘要）
 
-1. **存档方式**：使用 Timberborn 原生实体持久化，而非需求文档 12.1 的独立 `HDBF` 节点。理由与等价性验证见 ADR-001。
-2. **装配链**：`Gameplay → Persistence`（文档写的是 Gameplay 只依赖 Core），原因是构建环境限制 + 组件必须自己实现 `IPersistentEntity`。见 ADR-002。
-3. **美术**：四档已随包交付自定义 `.timbermesh`（ART-02/03：8 个成品 LOD0 + 8 个施工阶段模型，位于 `data/Buildings/Food/BoxFarm/`，蓝图 `TimbermeshSpec.Model` 已指向自定义模型，四档图标已替换）；**round 30–33 实机确认四档都成功载入并渲染**（截图在 `docs/in-game/`）。路径/材质/LOD/slot spec/图标契约记录在 `data/ART_PLACEHOLDER.md`。**材质仍为原版 MaterialCollection 资产名**，由游戏以原版 atlas 采样 ART-01 的逐面 UV（远看材质类别正确、近看拼布），自订 PBR 材质/AssetBundle 待 Unity；施工阶段外观、LOD 切换与 50% 同框 A/B 仍待实机会话。见 ADR-003。
-4. **工作区/部署分离**：工作区不是 mod 目录，`build.ps1 -Install` 部署到 `Documents\Timberborn\Mods\HDBF`。见 ADR-006。
-5. **P1 作物循环（本轮接通）**：零 Harmony 补丁，自定义 workplace behavior 驱动原版 worker 侧种植/收获；产物进 `SimpleOutputInventory` 由原版搬运。**已知近似**：灌溉/疲劳/维护/动力四层以“派发门禁 + 生长通道”生效，密植 ×1.35 实现为真实生长加速；严惩“让原版作物变慢”需要私有 API 补丁，v0.1 不取（D-2/D-4）。见 ADR-004 与 `docs/workstreams/farm-loop.md`。
-6. **科技前置条件**：1.1.2.8 无 research node/前置机制，四档只由 `ScienceCost` 200/600/1000/3000 解锁；第 7 章前置链记录为文档级偏离 D-3。见 ADR-007。
-7. **构建命令**：本机没有 `pwsh`、且脚本执行策略默认阻止未签名脚本，请用
-   `powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1`（README §3 的命令已按此修正）。
+1. **存档落地**：每个建筑通过原生实体持久化保存一条 schema-v2 校验文本负载
+   （`HDBF.IndoorFarm.Payload`），而非全局 `HDBF` 节点；原因与等价性见 ADR-V2-003。
+2. **规格字段名**：`HdbfBoxFarmSpec` 的 JSON 字段沿用 v1 名称（`PlotCapacity` 等）以保证
+   数据/存档兼容；v2 语义由 XML 注释与 `TierProfile` 别名表达。
+3. **工作位表现**：v2 农事在建筑内部模拟，农民保持原版就业/工作位占用；不派发原版种植/收获任务，
+   因此没有世界农田动画（原版「工作」动画由通用工作位行为承担，近似项）。
+4. **人工补水的路径检查**：走原版可访问性组件；注入实体缺少这些组件时正路径无法验证
+   （fixture 限制，见 §26.3）。
+5. **构建工作根**：本机沙箱使用 `%TEMP%\hdbf-<tag>`（ADR-V2-005），不改变发布包结构。
+6. **v1 存档**：尽力迁移（槽位/水罐/维护/模式/端口）；旧外部田块/作物保留为普通原版农田，不删除。
+
+---
+
+构建/测试/验证事实与偏离记录以 `docs/VERIFICATION.md`、`docs/v2/TRACEABILITY.md` 为准。

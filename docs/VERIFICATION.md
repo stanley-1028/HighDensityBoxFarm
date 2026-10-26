@@ -1141,3 +1141,106 @@ gameplay.entity: box farm active, tier=Basic, blueprint=BoxFarm.Basic.Folktails
 * 未做：2 層（多層）版本。已定案「2 層時地塊容量 60→120」留給後續卡，且需先修需求 13.3 的
   3×2×1 硬約束與平衡表。
 
+## 26. v2（室內 3×3×1）交付驗證：離線門禁全綠 + 自動實機 round41/42（2026-10-26）
+
+本輪把需求 §19（v2.1）落成 task board 自動化任務卡（8 張實作卡 + 1 張門禁卡 + Lead 逐波驗證），
+v1 世界地塊實作已整體替換並刪除。**以下所有數字皆為本機實際輸出**；沒有實機證據的項目明確列在
+§26.4「未驗證」中，不標完成。
+
+### 26.1 離線門禁（最終狀態）
+
+```
+工作區      : C:\Users\user\Documents\Timberborn\Mods\HighDensityBoxFarm
+構建工作根  : %TEMP%\hdbf-<tag>（沙箱內唯一可寫；見 ADR-V2-005）
+指令        : powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1 -WorkRoot "$env:TEMP\hdbf-final"
+結果        : 5 程序集 0 warning / 0 error
+              L1 PASSED 529 FAILED 0（全部零遊戲依賴）
+              tools/validate RESULT: OK（mod assemblies 5/5、blueprints 10、三語鍵集一致）
+              RELEASE GATES: PASSED (44 checks)（含 0 Harmony、無 debug/diag 產物、無 55→44 漂移）
+              暫存包 1,698 KB（5 dll + 10 blueprint + 16 timbermesh + 3 語系）
+NFR 矩陣    : NFR GATE MATRIX: PASSED (6 checks)
+              [nfr-gate-01] docs/v2 六件套 + 71/71 REQ-V2 覆蓋 + 無未登記佔位符
+              [nfr-gate-02] 66 個 v2 檔頭模板、88 個公開型別 XML、40 個日誌鍵前綴、0 未登記標記
+              [nfr-gate-03] 依賴方向 Core←Persistence←Gameplay、Core 無遊戲引用、v2 檔案 ≤300 行
+              [nfr-perf] 100×600 日 tick 0.0113 ms/棟（預算 0.5）；存檔 1.05 MB（預算 1.5）；
+                         編碼 34.8 ms（預算 50）；30/144 fps 結果一致；日 tick 0 bytes 配置
+```
+
+### 26.2 實機回合（自動，無人手、無合成輸入）
+
+部署：`Mods\HDBF` = v2 建置，`manifest.json Version = 0.2.0`；fixture 由
+`tools/dev/fixtures/craft-farm-fixture.py --indoor-payload ...` 建立（注入 Basic 農場於
+(129,140,3)，並把 v2 schema-v2 payload 寫入 `HDBF.IndoorFarm.Payload`：60 槽全部預植 Carrot、
+growth=3.9/4 天、水罐滿 3.6）。payload 由 `tools/dev/CraftIndoorFixture` 以真實
+`IndoorSaveCodec` 產生，載入後 `save.migrated: ... repaired=True ... clamped=1`。
+
+**round42-v2（2026-10-26 21:42–21:45，日誌 `docs/in-game/round42-v2-Player.log`）**
+
+```
+[HDBF/Info] start HDBF version=0.2.0 modPath=...\Mods\HDBF
+HDBF/Compat: compat.missing:HDBF.Adapter.TimberPipes: ... not detected (not-installed)
+... PowerLines / ConveyorBeltsV2 / MoreMines / HoomanStairs 同樣 missing（乾淨環境）
+[HDBF/Info] startup: HDBF 0.2.0 ready; tiers=4; modPath=...\Mods\HDBF; config=...\HDBF_Config.json
+[HDBF/Info] save.migrated: schema-v2 record repaired on load (repaired=True trimmed=0 padded=0 clamped=1 notes=1)
+[HDBF/Warn] water.pipe-unavailable: pipe port unavailable (adapter=Disabled); degrading to manual refill, entityId=...
+[HDBF/Compat] indoor.port: indoor port availability refreshed: pipe=False, logistics=False, power=False, adapter=Disabled
+[HDBF/Info] indoor.entity: indoor farm active, tier=Basic, faction=Folktails, blueprint=BoxFarm.Basic.Folktails
+Load time: 30029ms (scene index: 2)
+[HDBF/Info] water.settle: indoor water settled: coverage=1.000, tank=2.400, entityId=...
+[HDBF/Info] indoor.day: indoor actions: harvested=16, planted=10, actionsUsed=26, blockedByOutput=44, growthMultiplier=1.000
+[HDBF/Info] indoor.action-backlog: indoor harvest backlog (output full), entityId=...
+[HDBF/Info] water.settle: indoor water settled: coverage=1.000, tank=1.200, entityId=...
+[HDBF/Info] indoor.day: indoor actions: harvested=5, planted=11, actionsUsed=16, blockedByOutput=39, growthMultiplier=1.000
+```
+
+**由日誌可證（實機）**
+1. 模組 0.2.0 在 Timberborn 1.1.2.8 載入，v2 藍圖（3×3×1、9 塊、可疊頂面）載入即 active，
+   無 prefab/spec/port 例外，無「不是向後兼容」刪除訊息。
+2. 存檔 schema v2 記錄可被讀取並修復（`repaired=True, clamped=1`），不中斷載入（REQ-V2-SAVE-06）。
+3. 日 tick 真的每天觸發且順序可觀察：`water.settle`（每日恰好一次扣水）→ `indoor.day`（動作）；
+   第 1 天 tank 3.6→2.4、第 2 天 2.4→1.2，coverage=1.000，與 `demand = 60 × 0.020 = 1.2/日` 完全一致
+   （REQ-V2-WATER-01/02）。
+4. 室內作物循環：第 1 天 `harvested=16, planted=10, actionsUsed=26`（2 工人 × 13 動作），
+   第 2 天 `harvested=5, planted=11, actionsUsed=16`；`blockedByOutput=44→39` 與
+   `indoor.action-backlog` 顯示輸出庫存滿時**不收穫、槽位保持成熟、面板積壓**（§19.5、REQ-V2-LABOR-01）。
+5. 適配器降級：無 Timber Pipes 時管道端口不可用 → 明確記載 `degrading to manual refill`，
+   不阻斷建築運作（REQ-V2-COMPAT-02）。
+6. `HDBF_Config.json`（schema 2）被載入，無 config 錯誤/遷移警告；五個外部模組的
+   `compat.missing` 只作能力探測，不報「缺少模組」錯誤。
+
+**證據文件**
+* `docs/in-game/round42-v2-Player.log`（6,450 B）、`round42-v2-summary.txt`
+* `docs/in-game/round42-v2-pre-small.jpg`、`round42-v2-run-small.jpg`（2560×1440 → 1280 缩图）
+* `docs/in-game/round41-v2-*`：同日第一次嘗試（被工具呼叫中斷，日 tick 證據相同；音訊已還原）
+
+### 26.3 實機未覆蓋 / fixture 限制（誠實記錄）
+
+* **真實建造菜單放置與施工階段**：本輪仍是「存檔注入實體」，沒有走建造/施工流程（TC-V2-01 的
+  放置/拆除部分、TC-V2-10 的施工灰盒）——需要可互動會話。
+* **屋頂疊放 A/B（REQ-V2-BLD-04 / REQ-V2-BLD-07）**：藍圖已有 `Stackable: BlockObject` +
+  `GenerateFloorsOnStackable`，但**尚未在實機放一座原版小建築到屋頂上**；這是發布門檻，仍待實機。
+* **面板 UI**：本機合成輸入不可用，無法點開面板；面板/失敗原因/三語只由 L1 契約測試支撐。
+* **人工補水正路徑**：注入實體缺少原版 `Accessible`/access 元件，日誌每次都說
+  `water.manual-refill: farm has no walk access`；這是 fixture 限制，不是產品行為結論。
+* **維護材料扣料**（Intermediate+）、**頂級接電/離網**、**管道實際供水**：本輪 Basic 檔、無材料維護、
+  無外部模組，只驗證了「缺模組降級」；正路徑需有對應檔位/模組的實機存檔。
+* **存檔往返（AC-06）**：本輪只驗證「載入 v2 payload + 修復」，沒有在遊戲內存檔再讀檔比對槽位/水罐。
+* **100×600 實機性能/Profiler、五模組兼容矩陣、50% 四檔同框 A/B**：未做（L1 預算與離線渲染已過）。
+
+### 26.4 v2 發布門禁結論
+
+| 門禁 | 狀態 | 依據 |
+|---|---|---|
+| NFR-GATE-01 文件集 | **PASS** | `docs/v2/` 六件套 + 71/71 traceability + 無佔位符（L1） |
+| NFR-GATE-02 標記/註釋/日誌/命名 | **PASS** | `V2NfrCodeContractTests`（88 型別、40 鍵、0 調試入口/未登記標記） |
+| NFR-GATE-03 架構/依賴/檔案規模 | **PASS** | `V2NfrCodeContractTests`（依賴方向、Core 無遊戲引用、≤300 行） |
+| NFR-GATE-04 存檔安全 | **PASS（離線）** | 往返/損壞注入/v1→v2/100×600 預算全綠；實機往返待 §26.3 |
+| NFR-GATE-05 崩潰安全 | **部分** | fault injection 套件全綠；實機單輪無未捕獲例外，矩陣未跑 |
+| NFR-GATE-06 性能 | **PASS（離線）** | 日 tick/存檔/編碼/幀率一致；實機 Profiler 待 |
+| NFR-GATE-07 可讀性/UI | **PASS（離線）** | 三語 147 鍵一致、無 v1 術語、失敗原因映射；實機面板待 |
+
+**判定**：v2 的**離線交付門禁全部通過**；實機部分只完成「載入 + 室內日循環 + 水/收穫/積壓 +
+缺少模組降級」，**尚不足以宣告 TC-V2-01..10 全部完成**。剩餘實機項在 §26.3，需下一步可互動
+遊戲會話（放置/疊放/面板/存檔往返）。
+
+

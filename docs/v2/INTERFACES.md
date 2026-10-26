@@ -74,15 +74,10 @@ namespace HDBF.Core.Indoor
 
 `TierCatalog.SlotsPerFarmer = 38`、`ActionsPerFarmerDay = 13` 保留常量。
 
-**过渡写法（阶段 1）**：v1 的 `PlotCapacity` / `WaterPerPlotPerDay` 字段在阶段 3 删除地块链路前
-仍被 v1 代码使用，因此阶段 1 **不重命名字段**，而是在 `TierProfile` 上增加只读别名：
-
-```csharp
-public int SlotCapacity => PlotCapacity;
-public float WaterPerSlotPerDay => WaterPerPlotPerDay;
-```
-
-新 v2 代码一律使用 `SlotCapacity` / `WaterPerSlotPerDay`；阶段 3 删除 v1 字段时同步完成真正的重命名。
+**实现定稿说明（2026-10-26）**：`PlotCapacity` / `WaterPerPlotPerDay` 这两个 **JSON/存档字段名**
+最终**没有重命名**（v1→v2 数据与蓝图兼容优先）；`TierProfile` 上的只读别名
+`SlotCapacity` / `WaterPerSlotPerDay` / `SlotsPerFarmer` 是 v2 代码使用的正式名字，
+XML 注释已改为 v2 语义。`WorkRange` 字段保留但 v2 不再读取（v1 地块链路已删除）。
 
 ## 3. 槽位模型
 
@@ -338,6 +333,12 @@ public static class IndoorSaveMigrator : ISaveMigrator
 v1→v2 映射（REQ-V2-SAVE-02）：v1 `plots.ids/crops/fatigue` 按顺序映射槽位，
 数量取 `min(v1 槽数, Capacity)`；`tank`/维护/模式/端口/适配器保留；失败 → 空槽 + 满水罐 +
 默认维护 + `save.migrated-failed` 警告；**不删除玩家原版地块/作物**。
+
+**实体持久化落地（实际实现）**：每个建筑通过原生 `IPersistentEntity` 保存**一条**校验后的
+schema-v2 文本负载（ComponentKey `HDBF.IndoorFarm`，属性 `Payload`），由
+`HDBF.Persistence.Indoor.IndoorEntitySaveBridge` 负责「深拷贝 → 校验 → Encode → 单键写入」。
+单键写入保证不会出现半条记录；读档走容错的 `TryDecode + ValidateAndRepair`；v1 的
+`HDBF.BoxFarm` 组件键仍可读并走迁移。100 栋 × 600 槽 = 1.05 MB / 编码 34.8 ms（预算内）。
 
 ## 9. 面板快照 DTO（UI 不读游戏对象）
 
