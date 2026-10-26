@@ -176,6 +176,20 @@ namespace HDBF.Gameplay.Components
                 "indoor water settled: coverage=" + Format(result.Coverage) + ", tank=" + Format(_record.Tank)
                 + ", entityId=" + _entityId);
 
+            // Daily action evidence line (in-game verification reads harvest/plant counters from
+            // the log; the panel is not clickable in unattended rounds).
+            if (result.Actions.Harvested > 0 || result.Actions.Planted > 0
+                || result.Actions.ActionsUsed > 0 || result.Actions.Backlog)
+            {
+                _log.Write(HdbfLogCategory.Info, IndoorLogKeys.Day,
+                    "indoor actions: harvested=" + result.Actions.Harvested
+                    + ", planted=" + result.Actions.Planted
+                    + ", actionsUsed=" + result.Actions.ActionsUsed
+                    + ", blockedByOutput=" + result.Actions.BlockedByOutput
+                    + ", growthMultiplier=" + Format(result.GrowthMultiplier)
+                    + ", entityId=" + _entityId);
+            }
+
             if ((result.Warnings & IndoorWarningFlags.NoWater) != 0)
             {
                 _log.Write(HdbfLogCategory.Warn, IndoorLogKeys.RefillFailed,
