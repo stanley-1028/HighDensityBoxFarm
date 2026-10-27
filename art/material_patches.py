@@ -1,4 +1,26 @@
-"""HDBF v2 - flat-patch UV contract (one fixed REAL-texture patch per material).
+"""HDBF v2 - real vanilla-material texture map accessors (+ ART-07 world UV helpers).
+
+ART-07 (2026-10-27, current)
+----------------------------
+The user asked for clear, high-quality textures.  ART-06's per-material real
+patch was correct but sampled a 32 px/m patch, so 3 m surfaces were blurry.
+ART-07 (``art/material_uv_policy.py`` + ``assign_world_tiled_uvs``) gives every
+material ONE frozen **world-scale planar projection** at its native-on-atlas
+texel density:
+
+  * ``mode == "tile"``  - the whole 1024^2 ``_D`` texture is a full-bleed
+    surface texture; canvas = the full texture, density 340.0-357.8 px/m;
+  * ``mode == "patch"`` - the texture is an atlas sheet; canvas = the largest
+    coherent region (wood plank field, plain sheet metal, framed detail panels,
+    flat glass pane), density 82.4-164.0 px/m.
+
+UVs never exceed the material canvas: the game's runtime
+``AutoAtlasingPrefabOptimizer`` remaps every mesh UV into the faction auto-atlas
+cell (``uv*(1/sizeMultiplier)+cell_offset``, native 1024^2 cells), so a UV
+component above 1 would sample another material - see
+``art/ART07_PROVENANCE.md``.  The accessors below
+(``mode_for`` / ``uv_canvas_for`` / ``px_per_m_for`` / ``expected_uv`` ...) are
+the shared API for generators, validators, previews and the L1 tests.
 
 ART-05 (2026-10-27) rewrite
 ---------------------------
@@ -68,11 +90,10 @@ import atlas_layout as A  # noqa: E402
 MAP_PATH = os.path.join(HERE, "material_texture_map.json")
 MAP_SCHEMA = "hdbf.material_texture_map/v1"
 
-#: fixed texel density used when a face is projected into its material patch.
-#: 32 px/grid on the real 1024 textures == the ART-04 64 px/grid on the old 2048
-#: atlas, i.e. the same normalized density (requirement: keep sub-rect density).
-#: The largest face is the 3.0 x 3.0 floor/roof at 96 x 96 px, which fits the
-#: smallest patch (>= 144 px) with the 4 px guard band.
+#: LEGACY (ART-06) fixed texel density of the retired flat-patch mapping; ART-07
+#: shipped models use the per-material world-scale ``px_per_m`` from the map
+#: (340.0-357.8 px/m tile / 82.4-164.0 px/m patch) and never call
+#: ``assign_flat_patch_uvs``.  Kept for the import-compatible legacy fallback.
 PATCH_TEXELS_PER_GRID = 32
 
 #: 4 px guard band between a packed face sub-rect and the patch border, so
@@ -147,6 +168,87 @@ def texture_name_for(material_name):
 
 def material_color_tint(material_name):
     return tuple(material_entry(material_name)["material_color_tint"])
+
+
+# --------------------------------------------------------------------------- #
+# ART-07 world-scale UV accessors
+# --------------------------------------------------------------------------- #
+def mode_for(material_name):
+    """``"tile"`` (full-bleed canvas) or ``"patch"`` (curated atlas region)."""
+    entry = material_entry(material_name)
+    if "mode" not in entry:
+        raise RuntimeError(
+            "%r has no ART-07 mode - regenerate art/material_texture_map.json "
+            "with art/material_texture_analysis.py" % (material_name,))
+    return entry["mode"]
+
+
+def is_tile_mode(material_name):
+    return mode_for(material_name) == "tile"
+
+
+def uv_canvas_for(material_name):
+    """§4 canvas record (pixel_rect / uv_rect / size_px / stats)."""
+    return dict(material_entry(material_name)["uv_canvas"])
+
+
+def canvas_uv_rect_for(material_name):
+    return tuple(uv_canvas_for(material_name)["uv_rect"])
+
+
+def canvas_pixel_rect_for(material_name):
+    return tuple(uv_canvas_for(material_name)["pixel_rect"])
+
+
+def canvas_size_px_for(material_name):
+    return tuple(uv_canvas_for(material_name)["size_px"])
+
+
+def px_per_m_for(material_name):
+    return float(material_entry(material_name)["px_per_m"])
+
+
+def coverage_for(material_name):
+    entry = material_entry(material_name)
+    return (float(entry["coverage_u_m"]), float(entry["coverage_v_m"]))
+
+
+def tile_meters_for(material_name):
+    return material_entry(material_name).get("tile_meters")
+
+
+def uv_mapping_record():
+    return dict(load_material_texture_map().get("uv_mapping") or {})
+
+
+_WORLD_AXIS_INDEX = {"x": 0, "y": 1, "z": 2}
+
+
+def expected_uv(material_name, world_xyz, dominant_axis, texture_size=None):
+    """Recompute the ART-07 UV of one vertex (contract §2).
+
+    ``world_xyz`` is the vertex in the Blender author space (Z up, front +Y,
+    model centred on x/y, z in 0..1); ``dominant_axis`` is ``"X"``/``"Y"``/``"Z"``
+    (the face normal's dominant axis, sign irrelevant).  This mirrors
+    ``gen_models_v2.assign_world_tiled_uvs`` exactly, so validators and the L1
+    tests can re-derive every shipped UV.
+    """
+    entry = material_entry(material_name)
+    width, height = (texture_size or entry["texture_size"])
+    projection = entry["projection"]
+    axes = projection["axes"]
+    key = "+%s" % (str(dominant_axis).upper(),)
+    if key not in axes:
+        raise KeyError("bad dominant axis %r for %r" % (dominant_axis, material_name))
+    u_axis, v_axis = axes[key]
+    center_u, center_v = projection["uv_center"]
+    center = projection["world_center"]
+    density = float(entry["px_per_m"])
+    u_index = _WORLD_AXIS_INDEX[u_axis]
+    v_index = _WORLD_AXIS_INDEX[v_axis]
+    u = center_u + (float(world_xyz[u_index]) - center[u_index]) * density / float(width)
+    v = center_v + (float(world_xyz[v_index]) - center[v_index]) * density / float(height)
+    return u, v
 
 
 def patch_class_of(material_name):
@@ -264,8 +366,51 @@ def validate_contract():
             "%s patch std %.2f exceeds its budget %.2f" % (material, std, std_max))
         assert std_max <= hard_cap + 1e-9, (
             "%s std_max %.2f exceeds the hard cap %.2f" % (material, std_max, hard_cap))
-        assert class_std.get(record["patch_class"], default_std) >= std_max - 1e-9, (
-            material, "patch_class budget smaller than the material budget")
+        if record.get("mode") != "patch" or not patch.get("art07_canvas"):
+            # ART-05 uniform small window: the class budget must stay tighter
+            # than the hard cap.  ART-07 curated PATCH canvases deliberately
+            # carry real surface detail, so their only std gate is the hard cap
+            # (checked above); their content safety is the hazard_fraction == 0.
+            assert class_std.get(record["patch_class"], default_std) >= std_max - 1e-9, (
+                material, "patch_class budget smaller than the material budget")
+        # ---- ART-07 world-scale UV contract ----
+        mode = record.get("mode")
+        assert mode in ("tile", "patch"), (material, "ART-07 mode", mode)
+        assert record.get("wrap") == ("repeat" if mode == "tile" else "clamp"), (
+            material, "ART-07 wrap", record.get("wrap"))
+        canvas = record.get("uv_canvas") or {}
+        cx0, cy0, cx1, cy1 = canvas.get("pixel_rect") or (0, 0, 0, 0)
+        assert 0 <= cx0 < cx1 <= width and 0 <= cy0 < cy1 <= height, (
+            material, "ART-07 uv_canvas outside the texture", canvas)
+        assert list(canvas.get("size_px") or []) == [cx1 - cx0, cy1 - cy0], (
+            material, "ART-07 canvas size_px")
+        cu0, cv0, cu1, cv1 = canvas.get("uv_rect") or (0.0, 0.0, 0.0, 0.0)
+        assert abs(cu0 - cx0 / float(width)) <= 1e-5
+        assert abs(cu1 - cx1 / float(width)) <= 1e-5
+        assert abs(cv0 - (1.0 - cy1 / float(height))) <= 1e-5
+        assert abs(cv1 - (1.0 - cy0 / float(height))) <= 1e-5
+        if mode == "patch":
+            assert [cx0, cy0, cx1, cy1] == list(patch["pixel_rect"]), (
+                material, "ART-07 patch canvas must equal the sampled patch rect")
+        else:
+            assert [cx0, cy0, cx1, cy1] == [0, 0, width, height], (
+                material, "ART-07 tile canvas must be the whole texture")
+            tile_meters = record.get("tile_meters")
+            assert tile_meters is not None and 1.0 < tile_meters < 4.0, (
+                material, "ART-07 tile_meters", tile_meters)
+        density = float(record["px_per_m"])
+        assert density > 0.0
+        usable_w = (cx1 - cx0) - 2 * 2
+        usable_h = (cy1 - cy0) - 2 * 2
+        fit = min(usable_w / float(record["coverage_u_m"]),
+                  usable_h / float(record["coverage_v_m"]))
+        assert abs(min(fit, density) - density) <= 0.11, (
+            material, "ART-07 px_per_m not reproducible", density, fit)
+        projection = record.get("projection") or {}
+        assert projection.get("world_center") == [0.0, 0.0, 0.5], (
+            material, "ART-07 projection centre")
+        assert len(projection.get("uv_center") or []) == 2, (
+            material, "ART-07 uv_center")
     forbidden = set(forbidden_materials())
     for mapping in TC.MATERIAL_MAP.values():
         overlap = forbidden & set(mapping.values())
@@ -276,19 +421,44 @@ def validate_contract():
         assert float(stats.get("std", 0.0)) > hard_cap, (
             "%s hazard reference std must exceed the hard cap (negative control)"
             % (material,))
-    # ART-05: the construction stage is ONE shared source mesh + ONE baked UV set
-    # exported for both factions, so the per-slot construction materials of the
-    # two factions MUST sample the same UV window (jointly searched, recorded in
-    # `construction_shared_patches`).  A regression here silently breaks the
+    # ART-05/ART-07: the construction stage is ONE shared source mesh + ONE baked
+    # UV set exported for both factions.  ART-07 bakes it from the Folktails
+    # construction materials, so the shared window is the Folktails material's
+    # canvas; the IronTeeth material of the same slot must resolve that window
+    # (its own canvas has to contain it).  A regression here silently breaks the
     # IronTeeth construction model in game.
     for slot, ft_material, it_material in construction_slot_pairs():
-        ft_uv = uv_rect_for(ft_material)
-        it_uv = uv_rect_for(it_material)
-        assert ft_uv == it_uv, (
-            "construction slot %s must share one UV window across factions: "
-            "%r -> %r vs %r -> %r" % (slot, ft_material, ft_uv,
-                                      it_material, it_uv))
+        ft_uv = canvas_uv_rect_for(ft_material)
+        it_uv = canvas_uv_rect_for(it_material)
+        assert _rect_contains(it_uv, ft_uv, 1e-6), (
+            "construction slot %s: the IronTeeth canvas must contain the shared "
+            "Folktails construction window: %r -> %r vs %r -> %r"
+            % (slot, ft_material, ft_uv, it_material, it_uv))
+    shared = construction_shared_patches()
+    for group, info in sorted(shared.items()):
+        ft_material = info.get("folktails_material")
+        it_material = info.get("ironteeth_material")
+        assert ft_material and it_material, (group, "ART-07 shared window pair")
+        window = tuple(round(float(v), 9) for v in info["uv_rect"])
+        assert window == tuple(round(float(v), 9)
+                               for v in canvas_uv_rect_for(ft_material)), (
+            group, "shared window must be the Folktails ART-07 canvas")
+        assert _rect_contains(canvas_uv_rect_for(it_material), window, 1e-6), (
+            group, "IronTeeth canvas must contain the shared construction window")
+        for name, stats in sorted((info.get("per_texture") or {}).items()):
+            std = float(stats["std"])
+            std_max = float(stats["std_max"])
+            assert 0.0 <= std <= std_max + 1e-9 <= hard_cap + 1e-9, (
+                group, name, "shared-window std budget", std, std_max)
+            assert float(stats.get("hazard_fraction", 0.0)) <= 0.005, (
+                group, name, "hazard content in the shared construction window")
     return True
+
+
+def _rect_contains(outer, inner, tol=0.0):
+    """True when ``inner`` uv/pixel rect lies inside ``outer`` (both 4-tuples)."""
+    return (inner[0] >= outer[0] - tol and inner[1] >= outer[1] - tol
+            and inner[2] <= outer[2] + tol and inner[3] <= outer[3] + tol)
 
 
 def construction_shared_patches():

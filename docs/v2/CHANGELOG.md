@@ -50,6 +50,10 @@
   黄黑警示条。改为**逐材质使用其真实原版 `_D` 贴图**的低方差 patch（`art/material_texture_map.json`
   记录材质→贴图→patch→mean/std），预览/图标改用同一真实贴图；禁止 `PaintedMetal` 用于大面积外壳。
   16 个 `.timbermesh` 重导出，验证器新增 C11–C14 + 负向对照；L1 577/577、44 gates PASS。
+* 【修复】贴图清晰度：大面（木/板/石膏/金属/屋面）改为**原生分辨率 world-scale 平铺** UV
+  （贴图 Repeat，按 `tile_meters` 控制每米纹素密度），玻璃/细节等 atlas 材质继续 patch；
+  预览/图标使用同源真实贴图并加 50%/100% 近景；验证器新增纹素密度/UV 契约与 6 个负向对照。
+  L1 585/585、44 gates PASS。
 * 门禁：L1 564/564、`build.ps1` 44 checks PASS。
 
 ## [0.2.0] — 2026-10-26（v2.1 实现完成；实机覆盖范围见 VERIFICATION §26.3）

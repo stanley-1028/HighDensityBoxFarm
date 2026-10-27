@@ -25,6 +25,14 @@ normal maps (they produce mottled shading artifacts; see preview_materials.py).
 A missing texture falls back to the documented slot colour with a recorded
 warning and fails the run (so a dishonest icon cannot ship).
 
+ART-07 (2026-10-27): the models now carry native-texel-density world UVs
+(tile materials 340-358 px/m, patch materials 82-164 px/m), and the shared
+`art/preview_materials.py` binds the real-texture image nodes with
+`extension = "REPEAT"` (interpolation stays Linear) to match the in-game
+sampler.  The 4 x 128 px sprites are re-rendered from those models with the
+same camera/lighting/framing as ART-05; names are unchanged and the existing
+`data/Icons/BoxFarm*.png.meta.json` sidecars are never touched.
+
 Camera / framing: perspective 85 mm (36 mm sensor), front three-quarter from
 the +Y facade side, offset in -X and raised in +Z, aimed at the centre of the
 3 x 2 x 1 contract box (Blender authoring space: X right, +Y front, Z up,
@@ -405,8 +413,12 @@ def _binding_summary(bind):
             "tint": entry.get("tint"),
             "normal_texture": entry.get("normal_texture"),
             "patch": entry.get("patch"),
+            "mode": entry.get("mode"),
+            "px_per_m": entry.get("px_per_m"),
             "uv_bbox": entry.get("uv_bbox"),
             "uv_inside_patch": entry.get("uv_inside_patch"),
+            "uv_inside_canvas": entry.get("uv_inside_canvas"),
+            "table_source": entry.get("table_source"),
         })
     context = bind.get("context") or {}
     return {
@@ -648,6 +660,9 @@ def main():
                "factions share icons)")
     book = PM.MaterialTextureBook()
     out.append(book.describe())
+    out.append("material sampler: image texture nodes REPEAT / Linear (matches "
+               "the in-game Repeat sampler); ART-07 world UVs stay inside the "
+               "material canvas")
     for warning in book.warnings:
         out.append("  MATERIAL WARNING: %s" % warning)
 
@@ -885,7 +900,10 @@ def main():
     manifest = {
         "asset": "HDBF (Timberborn High-Density Box Farm) tier building icons",
         "card": "ART-04",
-        "material_card": "ART-05 (icons render the real vanilla _D materials)",
+        "material_card": (
+            "ART-07 (icons render the real vanilla _D materials with the "
+            "native-texel-density ART-07 world UVs; image texture nodes are "
+            "REPEAT/Linear to match the in-game sampler)"),
         "generator": rel(os.path.abspath(__file__)),
         "command": ("blender.exe -b --factory-startup -noaudio "
                     "--python art\\render_icons.py"),
@@ -944,7 +962,20 @@ def main():
                      "NOT bound: the extracted Unity normal assets are not "
                      "valid Blender tangent-space normal maps and produce "
                      "mottled shading artifacts (evidence in the ART-05 "
-                     "report) - albedo * tint is the honest look."),
+                     "report) - albedo * tint is the honest look. ART-07: the "
+                     "image texture nodes use extension=REPEAT with Linear "
+                     "interpolation, matching the in-game Repeat sampler; the "
+                     "ART-07 world UVs stay inside the material canvas so this "
+                     "matches the game's half-texel edge filtering without any "
+                     "visible tiling."),
+            "sampler": {
+                "extension": "REPEAT",
+                "interpolation": "Linear",
+                "game_evidence": ("Texture2D.m_WrapMode = 0 (Repeat), "
+                                  "m_FilterMode = 2 (Trilinear), m_Aniso = 16; "
+                                  "UVs stay inside the material atlas cell "
+                                  "(ART07_UV_TILING.md sections 1 and 6)"),
+            },
             "binding": {
                 "map_path": _display_path(book.map_path),
                 "map_used": book.map_used,

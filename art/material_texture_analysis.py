@@ -113,6 +113,8 @@ REPO = os.path.dirname(HERE)
 if HERE not in sys.path:
     sys.path.insert(0, HERE)
 
+import material_uv_policy as UVP
+
 MAP_PATH = os.path.join(HERE, "material_texture_map.json")
 
 SCHEMA = "hdbf.material_texture_map/v1"
@@ -139,7 +141,12 @@ PROVENANCE = (
     "IL: a mesh UV is remapped as uv_atlas = uv_material * UVScale + UVOffset "
     "with UVScale = 1/sizeMultiplier, so normalized (u,v) inside the material's "
     "own _D texture is preserved (AutoAtlas or direct material, identical "
-    "sampling). The _Color tint multiplies the sampled albedo."
+    "sampling). The _Color tint multiplies the sampled albedo. ART-07 addition "
+    "(2026-10-27): AutoAtlaser.GenerateAutoAtlasFragments builds one atlas of "
+    "1024*sizeMultiplier and CombineFragments copies every fragment at its "
+    "native 1024x1024 resolution, so a UV component > 1 leaves the material's "
+    "own cell and samples another material - hence the ART-07 world UVs never "
+    "leave the material canvas (see art/ART07_UV_TILING.md)."
 )
 
 UV_CONVENTION = (
@@ -517,6 +524,98 @@ def _hazard_fraction(window):
     banner_green = (g >= r + 40) & (g >= b + 40) & (g >= 70)
     banner_crimson = (r >= g + 80) & (b >= g + 5) & (r >= 120)
     return float((hazard_yellow | banner_blue | banner_green | banner_crimson).mean())
+
+
+def _rect_stats(np, tex, pixel_rect, target):
+    """Decoded-PNG statistics of an arbitrary (non-square) canvas rect."""
+    x0, y0, x1, y1 = [int(v) for v in pixel_rect]
+    window = tex.arr[y0:y1, x0:x1, :]
+    flat = window.reshape(-1, 3).astype(np.float64)
+    means = flat.mean(axis=0)
+    stds = flat.std(axis=0)
+    dist = float(np.sqrt(((means - np.asarray(target, dtype=np.float64)) ** 2)
+                         .sum()))
+    return {
+        "mean_rgb": [round(float(v), 2) for v in means],
+        "std": round(float(stds.max()), 2),
+        "std_by_channel": [round(float(v), 2) for v in stds],
+        "color_distance": round(dist, 2),
+        "target_rgb": [float(v) for v in target],
+        "hazard_fraction": round(float(_hazard_fraction(window)), 5),
+    }
+
+
+def _canvas_stats_factory(np, materials, textures):
+    """Canvas-statistics callback for ``material_uv_policy.decorate_map_data``."""
+    cache = {}
+
+    def stats_for(material):
+        entry = materials[material]
+        texture = entry["texture"]
+        rect = tuple(UVP.canvas_pixel_rect(material, entry["texture_size"]))
+        key = (texture, rect)
+        if key in cache:
+            return dict(cache[key])
+        hint = TEXTURE_HINTS.get(texture, {})
+        target = hint.get("target", (128.0, 128.0, 128.0))
+        found = _rect_stats(np, textures[texture], rect, target)
+        if UVP.is_tile(material):
+            found["std_max"] = None      # full-bleed canvas: no uniformity gate
+        else:
+            found["std_max"] = float(UVP.PATCH_CANVAS_STD_MAX)
+        cache[key] = found
+        return dict(found)
+
+    return stats_for
+
+
+def _apply_canvas_patch_records(result):
+    """For patch-mode materials the sampled window IS the large canvas.
+
+    ``entry["patch"]`` documents what the shipped UVs actually sample (ART-07);
+    tile materials keep the legacy small uniform probe patch (texture identity /
+    C13 variance re-verification) because their canvas is the whole texture.
+    """
+    materials = result["materials"]
+    texture_patches = result["texture_patches"]
+    for material in sorted(materials):
+        if UVP.policy_for(material)["mode"] != "patch":
+            continue
+        entry = materials[material]
+        canvas = entry["uv_canvas"]
+        stats = canvas.get("stats") or {}
+        hint = TEXTURE_HINTS.get(entry["texture"], {})
+        tint = entry["material_color_tint"]
+        mean = stats.get("mean_rgb") or [0.0, 0.0, 0.0]
+        tinted = [round(max(0.0, min(255.0, m * t)), 2)
+                  for m, t in zip(mean, tint)]
+        patch = {
+            "pixel_rect": list(canvas["pixel_rect"]),
+            "size_px": list(canvas["size_px"]),
+            "uv_rect": list(canvas["uv_rect"]),
+            "mean_rgb": list(mean),
+            "mean_rgb_tinted": tinted,
+            "std": float(stats.get("std", 0.0)),
+            "std_by_channel": list(stats.get("std_by_channel") or []),
+            "std_max": float(UVP.PATCH_CANVAS_STD_MAX),
+            "hard_std_cap": float(HARD_STD_CAP),
+            "color_distance": float(stats.get("color_distance", 0.0)),
+            "color_distance_max": float(hint.get("max_color_distance",
+                                                 MAX_COLOR_DISTANCE)),
+            "target_rgb": list(stats.get("target_rgb") or hint.get("target") or []),
+            "hazard_fraction": float(stats.get("hazard_fraction", 0.0)),
+            "reason": ("ART-07 large canvas: %s" % entry["uv_reason"]),
+            "reject_tags": ["hazard-stripes", "faction-banner/logo", "text",
+                            "uv-margin/canvas", "repair-plate", "plank-seam",
+                            "grille/rib/pattern"],
+            "art07_canvas": True,
+        }
+        entry["patch"] = patch
+        texture = entry["texture"]
+        if texture in texture_patches:
+            texture_patches[texture]["patch"] = dict(patch)
+    return result
+
 
 
 def search_texture(tex, hint, size, std_max, step=8):
@@ -899,7 +998,68 @@ def build_map(roots):
         "texture_patches": texture_patches,
         "generation_warnings": warns,
     }
+    # ART-07: world-scale UV policy (mode / canvas / texel density).  The
+    # decoded textures are already in memory, so the canvas statistics are
+    # recomputed from the real PNG bytes here as well.
+    stats_for = _canvas_stats_factory(np, materials, textures)
+    warns.extend(UVP.decorate_map_data(result, stats_for))
+    _apply_canvas_patch_records(result)
+    _apply_construction_windows(result, np, textures, shared_groups)
     return result
+
+
+def _apply_construction_windows(result, np, textures, shared_groups):
+    """ART-07: the construction shared window is the Folktails material canvas.
+
+    The construction stage is ONE shared source mesh / ONE baked UV set exported
+    for both factions (unchanged ART-05 design).  ART-07 bakes it from the
+    Folktails construction materials, so the shared UV window is the Folktails
+    material's ART-07 canvas; the IronTeeth materials must be able to resolve
+    that same window (their own canvas has to contain it).  The recorded
+    per-texture statistics are recomputed inside that window from the real PNGs.
+    """
+    pairs = {
+        "construction_wood": ("BaseWood_Brown.Folktails", "RoofPlanks.IronTeeth"),
+        "construction_metal": ("BaseMetal.Folktails", "BaseMetal.IronTeeth"),
+    }
+    materials = result["materials"]
+    for group, info in shared_groups.items():
+        ft_material, it_material = pairs[group]
+        canvas = materials[ft_material]["uv_canvas"]
+        rect = list(canvas["pixel_rect"])
+        per_texture = {}
+        texture_uv_rect = {}
+        for name in info["textures"]:
+            tex = textures[name]
+            hint = TEXTURE_HINTS[name]
+            found = _rect_stats(np, tex, rect, hint["target"])
+            per_texture[name] = dict(
+                mean_rgb=found["mean_rgb"],
+                std=found["std"],
+                std_by_channel=found["std_by_channel"],
+                std_max=float(UVP.PATCH_CANVAS_STD_MAX),
+                hazard_fraction=found["hazard_fraction"],
+                color_distance=found["color_distance"],
+                target_rgb=found["target_rgb"],
+            )
+            texture_uv_rect[name] = [
+                round(v, 9) for v in UVP.uv_rect_from_pixel_rect(
+                    rect, tex.width, tex.height)]
+        info["pixel_rect"] = rect
+        info["size_px"] = list(canvas["size_px"])
+        info["uv_rect"] = list(canvas["uv_rect"])
+        info["texture_uv_rect"] = texture_uv_rect
+        info["per_texture"] = per_texture
+        info["folktails_material"] = ft_material
+        info["ironteeth_material"] = it_material
+        info["art07_shared_window"] = True
+        info["reason"] = (
+            "ART-07 shared construction-stage UV window: the construction stage "
+            "is one shared source mesh with ONE baked UV set (Folktails "
+            "materials), so both factions' materials must resolve the same UV "
+            "window; the window is the %s ART-07 canvas and %s's own canvas "
+            "contains it (full-bleed tile texture)." % (ft_material, it_material))
+    result["construction_shared_patches"] = shared_groups
 
 
 # --------------------------------------------------------------------------- #

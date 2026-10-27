@@ -158,6 +158,18 @@ namespace HDBF.Tests
             AssertTokens("HdbfBoxFarmController.ManualRefill.cs", "TryRequestManualRefill",
                 "IndoorConstants.ManualRefillActions", "catch (Exception");
             AssertTokens("HdbfManualWaterSource.cs", "INavigationService", "ClosestPositionOnNavMesh", "catch (Exception");
+            // BUG-09 fix (manual refill never found a walk start): a finished building owns two
+            // Accessible decorators, so the ambiguous single lookup must never come back. The walk
+            // start is enumerated from the access components, with the entrance doorstep and the
+            // nearest nav mesh position as fallbacks.
+            AssertTokens("HdbfManualWaterSource.WalkStart.cs", "GetComponents", "UnblockedSingleAccess",
+                "PositionedEntrance", "DoorstepCoordinates", "ClosestPositionOnNavMesh", "catch (Exception");
+            foreach (var walkStartFile in new[] { "HdbfManualWaterSource.cs", "HdbfManualWaterSource.WalkStart.cs" })
+            {
+                TestAssert.False(Read(Components + walkStartFile).Contains("GetComponent<Accessible>", StringComparison.Ordinal),
+                    walkStartFile + " must not use the ambiguous GetComponent<Accessible>() lookup");
+            }
+
             AssertTokens("HdbfManualWaterSource.Search.cs", "ManualRefillRadiusCells", "TryFindWaterInventory");
             AssertTokens("HdbfManualWaterSource.Sources.cs", "IThreadSafeWaterMap", "RemoveCleanWater", "TakeExisting",
                 "catch (Exception");
@@ -182,6 +194,7 @@ namespace HDBF.Tests
                      {
                          "HdbfBoxFarmController.ManualRefill.cs", "HdbfManualWaterSource.cs",
                          "HdbfManualWaterSource.Search.cs", "HdbfManualWaterSource.Sources.cs",
+                         "HdbfManualWaterSource.WalkStart.cs",
                          "HdbfMaintenanceTransaction.cs", "HdbfWorldIconService.Evaluate.cs",
                      })
             {

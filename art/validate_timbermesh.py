@@ -39,12 +39,15 @@ Checks per file (all eight must PASS):
      data length == vertexCount*dim*4.
   C8 topology: indices in [0, vertexCount); node parent == -1 or < own index;
      exactly one root node whose name == file stem; uv0 in [0,1] +-0.001.
-  C9 material patch UV containment (ART-05): every uv0 value used by a material's
-     faces lies inside that material's real ``_D`` texture patch rect from
-     ``art/material_texture_map.json`` (tolerance 1e-4); per-material uv0 min/max
-     is reported and a single escaping vertex FAILS.
+  C9 material canvas UV containment (ART-07): every uv0 value used by a
+     material's faces lies inside that material's ART-07 canvas: tile materials
+     inside the frozen 2-texel guard band (2/1024), patch materials inside
+     ``uv_canvas.uv_rect`` from ``art/material_texture_map.json`` (tolerance
+     1e-4); per-material uv0 min/max is reported and a single escaping vertex
+     FAILS.
 
-Cross-file checks (ART-05 material texture fix, 2026-10-27; reported separately):
+Cross-file checks (ART-05 material texture fix + ART-07 world-scale UVs,
+2026-10-27; reported separately):
   C10 material patch map coverage: ``art/material_texture_map.json`` exists, its
       schema is ``hdbf.material_texture_map/v1``, every material used by a shipped
       model (and every material in ``timbermesh_common.MATERIAL_MAP``) has an
@@ -60,13 +63,33 @@ Cross-file checks (ART-05 material texture fix, 2026-10-27; reported separately)
       ``PaintedMetal.IronTeeth``; no shipped/scheduled model may use one; a patch
       whose ``patch_class``/``reject_tags`` marks a hazard/logo/text region may
       not be used; usable patch rects must not overlap recorded exclusion rects.
+  C15 ART-07 world-UV texel density: the shipped positions are converted back to
+      the Blender author space (``author = (x-1.5, 1.5-z, y)``) and, per material
+      of every shipped file, ``sum(uv_area)/sum(projected world_area)`` (weighted
+      by ``texture_size``) must match the map ``px_per_m`` +-2 %, every triangle
+      above 0.05 m^2 must be within +-25 %, tile materials must be in the REQ
+      band 300-600 px/m, patch materials must stay >= 64 px/m (2x the retired
+      ART-06 density; the WindowsAtlas glass pane is 82.4 px/m by design), no
+      NaN/Inf is allowed and the exact UV recomputation (frozen projection
+      tie-break, +-1e-3) must pass for every non-ambiguous triangle (ambiguous
+      plane: top-two rounded |normal| components within 1e-3; <= 15 % of
+      triangles / <= 2 % of world area).  The 8 ConstructionStage0 files share
+      ONE baked Folktails UV set and are measured against the Folktails source
+      material of the ``construction_shared_patches`` window.
+  C16 ART-07 UV mapping contract / determinism: the map carries the sec.4 fields for
+      every used material, ``px_per_m`` reproduces from the usable canvas and
+      coverage, ``wrap``/``tile_meters``/``uv_canvas``/``patch`` are valid, the
+      construction shared windows resolve both factions, and the same
+      ``px_per_m``/canvas is used by every shipped file.
 
 NEGATIVE CONTROLS (requirement D) run at the end of every normal run *and* under
-``--self-test``: (1) a shipped uv0 shifted outside its patch must be rejected by
-C9; (2) a synthetic patch record over the real yellow-black hazard stripes of
-``PaintedMetal_D.Folktails.png`` must be rejected by C11; (3) removing one
-required material from an in-memory map copy must be rejected by C10.  The run
-exits nonzero if any control is NOT rejected.
+``--self-test``: (1) a shipped uv0 shifted outside its ART-07 canvas must be
+rejected by C9; (2) a synthetic patch record over the real yellow-black hazard
+stripes of ``PaintedMetal_D.Folktails.png`` must be rejected by C11; (3) removing
+one required material from an in-memory map copy must be rejected by C10; (4) a
+tile material's UVs scaled x0.5 and (5) x2.0 must be rejected by C15; (6) one
+large patch-mode face stretched to the full 0..1 UV square must be rejected by
+C9.  The run exits nonzero if any control is NOT rejected.
 
 The report (``art/timbermesh-validation.txt``) is deterministic: identical input
 files produce a byte-identical report (no timestamps, no elapsed times).
@@ -194,6 +217,53 @@ DEFAULT_TEXTURE_ROOTS = [
     os.path.join(os.path.expanduser("~"), ".hdbf", "sdk", "vanilla-tex-extra"),
 ]
 
+# --------------------------------------------------------------------------- #
+# ART-07 (2026-10-27) world-scale UV mapping contract (art/ART07_UV_TILING.md)
+#
+# The shipped UVs are a world-scale planar projection into each material's own
+# texture canvas (the game's runtime AutoAtlaser remaps every UV into the
+# material's atlas cell, so a UV component > 1 would sample another material).
+# The .timbermesh positions are in game/export space; the frozen mapping is
+# defined in the Blender author space, so this validator converts every vertex
+# back with export -> author = (x - 1.5, 1.5 - z, y) before re-deriving the UVs
+# and the texel density.  C9 becomes mode-aware, C15/C16 are the new cross-file
+# ART-07 checks (mirrored in art/validate_models.py).
+# --------------------------------------------------------------------------- #
+UV_POLICY_SCHEMA = "hdbf.world_uv/v1"
+UV_WORLD_CENTER = (0.0, 0.0, 0.5)
+UV_GUARD_TEXELS = 2
+TILE_GUARD_TOL = 2e-6
+DENSITY_AGG_TOL = 0.02
+DENSITY_TRI_TOL = 0.25
+DENSITY_TRI_MIN_WORLD_AREA = 0.05
+#: C15 regression floor for patch materials: 2x the retired ART-06 density
+#: (32 px/m) = 64 px/m.  sec.5 suggests 4x (128) but the WindowsAtlas glass pane is
+#: an intentionally small canvas at 82.4 px/m; the exact px/m is still checked
+#: against the map (+-2 %) and tile materials still need the 300-600 band.
+DENSITY_PATCH_MIN = 64.0
+TILE_DENSITY_BAND_DEFAULT = (300.0, 600.0)
+TILE_METERS_BAND_FALLBACK = {
+    "wood": (2.2, 2.6),
+    "planks": (2.2, 2.6),
+    "forged_planks": (2.2, 2.6),
+    "plaster": (2.4, 2.8),
+    "metal": (1.8, 2.2),
+    "roof_planks": (2.0, 2.4),
+    "moss": (2.0, 2.4),
+}
+PROJECTION_ROUND_DECIMALS = 4
+AMBIGUOUS_PLANE_TOL = 1e-3
+AMBIGUOUS_COUNT_MAX = 0.15
+AMBIGUOUS_AREA_MAX = 0.02
+EXACT_UV_TOL = 1e-3
+UV_CENTER_TOL = 1e-6
+PX_PER_M_ROUND = 0.101
+UV_CANVAS_ROUND_TOL = 1.5e-9
+#: export space -> Blender author space: export = (bx+1.5, bz, 1.5-by) (see
+#: art/timbermesh_common.py), so author = (export.x-1.5, 1.5-export.z, export.y).
+EXPORT_SIZE_HALF_X = 1.5
+EXPORT_DEPTH_HALF_Z = 1.5
+
 CHECK_DEFS = [
     ("C1", "parses (zlib + protobuf)"),
     ("C2", "model identity (name/version)"),
@@ -227,10 +297,11 @@ CHECK_DESCRIPTIONS = {
     "C8": "all mesh indices in [0, vertexCount); every node parent is -1 or < its own index; "
           "exactly one root node (parent == -1) and its name == file stem; uv0 values in "
           "[0, 1] +-%.3f" % UV_TOLERANCE,
-    "C9": "ART-05: for every material used by a mesh, every uv0 value referenced by that "
-          "material's faces lies inside the material's real-_D texture patch uv_rect from "
-          "art/material_texture_map.json (tolerance %.0e); per-material uv0 min/max is "
-          "reported and ONE escaping vertex FAILS" % 1e-4,
+    "C9": "ART-07: for every material used by a mesh, every uv0 value referenced by that "
+          "material's faces lies inside the material's ART-07 canvas: tile materials inside "
+          "the frozen 2-texel guard band (2/1024), patch materials inside "
+          "art/material_texture_map.json's uv_canvas.uv_rect (tolerance %.0e); per-material "
+          "uv0 min/max is reported and ONE escaping vertex FAILS" % 1e-4,
 }
 
 
@@ -979,16 +1050,16 @@ class Analysis(object):
     # -- C9 ----------------------------------------------------------------
 
     def _check_uv_containment(self):
-        """Every uv0 used by a material's faces must sit in that material's patch."""
+        """Mode-aware ART-07 uv0 bounds: every face inside its own canvas."""
         check = self.c("C9")
         map_data = self.patch_map.get("data")
         if map_data is None:
-            check.fail("material texture patch map unavailable",
-                       ["cannot test uv0 patch containment: %s"
+            check.fail("material texture map unavailable",
+                       ["cannot test the ART-07 uv0 canvas containment: %s"
                         % (self.patch_map.get("error") or "art/material_texture_map.json "
                            "not loaded")],
-                       ["C9 needs the ART-05 material_texture_map.json written by the "
-                        "Lead's material analysis; it is absent or unreadable"])
+                       ["C9 needs the ART-07 material_texture_map.json written by "
+                        "the Lead's material analysis; it is absent or unreadable"])
             return
         uv_samples = {}
         nodes_with_uv = 0
@@ -1007,8 +1078,8 @@ class Analysis(object):
                                         values[2 * vertex_index + 1]))
         if not uv_samples:
             check.fail("no uv0 data on any material mesh",
-                       ["the .timbermesh has no readable uv0 property, so the ART-05 "
-                        "patch containment cannot be verified"])
+                       ["the .timbermesh has no readable uv0 property, so the ART-07 "
+                        "canvas containment cannot be verified"])
             return
         rows, reasons = containment_report(uv_samples, map_data)
         notes = []
@@ -1016,14 +1087,17 @@ class Analysis(object):
             notes.append(container_row_text(row))
         bad_rows = [row for row in rows if row["status"] != "PASS"]
         total_values = sum(row["count"] for row in rows)
-        text = ("%d material(s) / %s uv0 value(s) checked against their real-_D texture "
-                "patch (tolerance %.0e): %s"
-                % (len(rows), _num(total_values), PATCH_UV_TOL,
+        tile_count = len([row for row in rows if row.get("mode") == "tile"])
+        text = ("%d material(s) (%d tile / %d patch) / %s uv0 value(s) checked "
+                "against their ART-07 canvases (tile: 2-texel guard band; patch: "
+                "uv_canvas): %s"
+                % (len(rows), tile_count, len(rows) - tile_count,
+                   _num(total_values),
                    "all inside" if not bad_rows
-                   else "%d material(s) ESCAPE their patch" % len(bad_rows)))
+                   else "%d material(s) ESCAPE their canvas" % len(bad_rows)))
         if reasons:
-            check.fail("uv0 escapes the material's real-texture patch", _capped(reasons),
-                       notes)
+            check.fail("uv0 escapes the material's ART-07 canvas",
+                       _capped(reasons), notes)
         else:
             check.pass_(text, notes)
 
@@ -1272,6 +1346,1058 @@ def patch_uv_rect(map_data, material):
         except Exception:  # noqa: BLE001 - unknown material / module still old
             return None
     return None
+
+
+# --------------------------------------------------------------------------- #
+# ART-07 (2026-10-27) world-scale UV mapping helpers (C9 upgrade + C15/C16)
+# --------------------------------------------------------------------------- #
+
+def material_uv_entry(map_data, material):
+    """ART-07 map entry of a vanilla material (``materials``/``unused_materials``)."""
+    entry, _section = patch_entry(map_data, material)
+    return entry if isinstance(entry, dict) else None
+
+
+def entry_mode(entry, reasons=None, where="entry"):
+    mode = entry.get("mode") if isinstance(entry, dict) else None
+    if mode in ("tile", "patch"):
+        return mode
+    if reasons is not None:
+        reasons.append("%s has no ART-07 mode ('tile'/'patch') in "
+                       "art/material_texture_map.json" % where)
+    return None
+
+
+def entry_texture_size(entry, reasons=None, where="entry"):
+    size = entry.get("texture_size") if isinstance(entry, dict) else None
+    if (isinstance(size, (list, tuple)) and len(size) == 2
+            and all(_is_number(v) and float(v) >= 16 for v in size)):
+        return [int(round(float(size[0]))), int(round(float(size[1])))]
+    if reasons is not None:
+        reasons.append("%s.texture_size must be [width, height] >= 16, got %r"
+                       % (where, size))
+    return None
+
+
+def entry_uv_canvas(entry):
+    canvas = entry.get("uv_canvas") if isinstance(entry, dict) else None
+    return canvas if isinstance(canvas, dict) else None
+
+
+def entry_canvas_uv_rect(entry):
+    canvas = entry_uv_canvas(entry)
+    rect = canvas.get("uv_rect") if isinstance(canvas, dict) else None
+    if (isinstance(rect, (list, tuple)) and len(rect) == 4
+            and all(_is_number(v) for v in rect)):
+        return [float(v) for v in rect]
+    return None
+
+
+def entry_canvas_pixel_rect(entry):
+    canvas = entry_uv_canvas(entry)
+    rect = canvas.get("pixel_rect") if isinstance(canvas, dict) else None
+    if (isinstance(rect, (list, tuple)) and len(rect) == 4
+            and all(_is_number(v) for v in rect)):
+        return [float(v) for v in rect]
+    return None
+
+
+def entry_px_per_m(entry):
+    value = entry.get("px_per_m") if isinstance(entry, dict) else None
+    return float(value) if _is_number(value) else None
+
+
+def entry_coverage(entry):
+    cu = entry.get("coverage_u_m") if isinstance(entry, dict) else None
+    cv = entry.get("coverage_v_m") if isinstance(entry, dict) else None
+    if _is_number(cu) and _is_number(cv) and float(cu) > 0.0 and float(cv) > 0.0:
+        return (float(cu), float(cv))
+    return None
+
+
+def tile_guard_uv(entry):
+    size = entry_texture_size(entry) or [1024, 1024]
+    guard_u = UV_GUARD_TEXELS / float(size[0])
+    guard_v = UV_GUARD_TEXELS / float(size[1])
+    return [guard_u, guard_v, 1.0 - guard_u, 1.0 - guard_v]
+
+
+def containment_bounds_for(map_data, material):
+    """(rect, tol, mode, reason) of the mode-aware ART-07 canvas bounds."""
+    entry = material_uv_entry(map_data, material)
+    if entry is None:
+        return (None, PATCH_UV_TOL, None,
+                "material %r has no entry in art/material_texture_map.json"
+                % (material,))
+    mode = entry_mode(entry)
+    if mode is None:
+        return (None, PATCH_UV_TOL, None,
+                "material %r has no ART-07 mode in art/material_texture_map.json"
+                % (material,))
+    if mode == "tile":
+        return tile_guard_uv(entry), TILE_GUARD_TOL, mode, None
+    rect = entry_canvas_uv_rect(entry)
+    if rect is None:
+        return (None, PATCH_UV_TOL, mode,
+                "material %r has no uv_canvas.uv_rect in "
+                "art/material_texture_map.json" % (material,))
+    return rect, PATCH_UV_TOL, mode, None
+
+
+def containment_report(uv_samples, map_data):
+    """(rows, reasons) for the mode-aware uv0 containment (C9).
+
+    ``uv_samples`` maps material -> [(source, u, v)].  A single sample outside the
+    material's ART-07 canvas +-tol is a FAIL: tile materials must stay inside the
+    frozen 2-texel guard band, patch materials inside their curated canvas.
+    """
+    rows = []
+    reasons = []
+    for material in sorted(uv_samples):
+        samples = uv_samples[material]
+        rect, tol, mode, why = containment_bounds_for(map_data, material)
+        row = {"material": material, "rect": tuple(rect) if rect else None,
+               "mode": mode, "tol": tol, "count": 0, "min_u": None,
+               "max_u": None, "min_v": None, "max_v": None, "bad_count": 0,
+               "bad": [], "status": "PASS"}
+        if rect is None:
+            row["status"] = "FAIL"
+            row["bad_count"] = len(samples)
+            row["bad"] = [(why or "no ART-07 canvas in the map", None, None)]
+            reasons.append(why or ("material %r has no ART-07 canvas" % material))
+            rows.append(row)
+            continue
+        u0, v0, u1, v1 = rect
+        min_u = min_v = math.inf
+        max_u = max_v = -math.inf
+        count = 0
+        non_finite = 0
+        bad = []
+        bad_count = 0
+        for source, u, v in samples:
+            if not (math.isfinite(u) and math.isfinite(v)):
+                non_finite += 1
+                continue
+            count += 1
+            if u < min_u:
+                min_u = u
+            if u > max_u:
+                max_u = u
+            if v < min_v:
+                min_v = v
+            if v > max_v:
+                max_v = v
+            if (u < u0 - tol or u > u1 + tol
+                    or v < v0 - tol or v > v1 + tol):
+                bad_count += 1
+                if len(bad) < 5:
+                    bad.append((source, round(u, 6), round(v, 6)))
+        row.update(count=count, min_u=min_u if count else None,
+                   max_u=max_u if count else None,
+                   min_v=min_v if count else None,
+                   max_v=max_v if count else None,
+                   bad_count=bad_count, bad=bad)
+        if non_finite:
+            row["status"] = "FAIL"
+            reasons.append("material %r: %d non-finite uv0 value(s)"
+                           % (material, non_finite))
+        if count == 0:
+            row["status"] = "FAIL"
+            reasons.append("material %r: no finite uv0 values on its faces"
+                           % material)
+        elif bad_count:
+            row["status"] = "FAIL"
+            what = ("2-texel guard band" if mode == "tile"
+                    else "ART-07 uv_canvas")
+            reasons.append("material %r: %d uv0 value(s) lie outside its %s "
+                           "[%.6f, %.6f, %.6f, %.6f] +-%.0e (first: %s)"
+                           % (material, bad_count, what, u0, v0, u1, v1, tol,
+                              bad[:3]))
+        rows.append(row)
+    return rows, reasons
+
+
+def container_row_text(row):
+    """One report/console line: per-material PASS/FAIL + uv0 min/max + canvas."""
+    rect = row["rect"]
+    mode = row.get("mode")
+    if rect is None:
+        return ("%-4s %-34s no ART-07 canvas in the map (%d uv0 value(s))"
+                % (row["status"], row["material"], row["count"]))
+    what = "tile guard" if mode == "tile" else "uv_canvas"
+    if row["count"]:
+        return ("%-4s %-34s mode=%-5s %s uv=[%.6f, %.6f, %.6f, %.6f]  uv0 "
+                "u=[%.6f, %.6f] v=[%.6f, %.6f]  values=%d%s"
+                % (row["status"], row["material"], mode or "-", what,
+                   rect[0], rect[1], rect[2], rect[3], row["min_u"], row["max_u"],
+                   row["min_v"], row["max_v"], row["count"],
+                   "" if not row["bad_count"]
+                   else "  ESCAPED=%d" % row["bad_count"]))
+    return ("%-4s %-34s mode=%-5s %s uv=[%.6f, %.6f, %.6f, %.6f]  no finite uv0"
+            % (row["status"], row["material"], mode or "-", what, rect[0],
+               rect[1], rect[2], rect[3]))
+
+
+# -- ART-07 world-UV density / mapping contract (C15/C16) ------------------- #
+
+def tile_density_band(map_data):
+    block = (map_data or {}).get("uv_mapping") if isinstance(map_data, dict) else None
+    value = block.get("texel_density_target_px_per_m") \
+        if isinstance(block, dict) else None
+    if (isinstance(value, (list, tuple)) and len(value) == 2
+            and all(_is_number(v) for v in value)
+            and float(value[0]) < float(value[1])):
+        return (float(value[0]), float(value[1]))
+    return TILE_DENSITY_BAND_DEFAULT
+
+
+def tile_meters_band(map_data, material, entry):
+    recorded = entry.get("tile_meters_band") if isinstance(entry, dict) else None
+    if (isinstance(recorded, (list, tuple)) and len(recorded) == 2
+            and all(_is_number(v) for v in recorded)):
+        return (float(recorded[0]), float(recorded[1]))
+    try:
+        import material_uv_policy as _UVP           # noqa: E402  (optional)
+        return tuple(float(v) for v in _UVP.tile_meters_band(material))
+    except Exception:                                # noqa: BLE001 - fallback table
+        pass
+    patch_class = entry.get("patch_class") if isinstance(entry, dict) else None
+    return TILE_METERS_BAND_FALLBACK.get(str(patch_class))
+
+
+def construction_groups(map_data):
+    groups = (map_data or {}).get("construction_shared_patches") \
+        if isinstance(map_data, dict) else None
+    return groups if isinstance(groups, dict) else {}
+
+
+def construction_group_for_material(map_data, material):
+    """Shared construction-window group of a material (None when not one)."""
+    for group_name in sorted(construction_groups(map_data)):
+        group = construction_groups(map_data)[group_name]
+        if not isinstance(group, dict):
+            continue
+        if material in (group.get("folktails_material"),
+                        group.get("ironteeth_material")):
+            return group
+    entry = material_uv_entry(map_data, material)
+    shared = entry.get("shared_uv_group") if isinstance(entry, dict) else None
+    groups = construction_groups(map_data)
+    if isinstance(shared, str) and isinstance(groups.get(shared), dict):
+        return groups[shared]
+    return None
+
+
+def effective_density_material(map_data, material, construction):
+    """Material whose ART-07 density the UVs were baked with (C15/C16).
+
+    The construction stage shares ONE baked UV set (from the Folktails
+    construction materials); the IronTeeth export only relabels the slots, so the
+    density/exact-UV checks of a construction file must use the Folktails source
+    material of the shared window, not the IronTeeth material that samples it.
+    """
+    if not construction:
+        return material
+    group = construction_group_for_material(map_data, material)
+    if isinstance(group, dict):
+        source = group.get("folktails_material")
+        if isinstance(source, str) and source:
+            return source
+    return material
+
+
+_WORLD_AXIS_INDEX = {"x": 0, "y": 1, "z": 2}
+_CANONICAL_UV_AXES = {0: (1, 2), 1: (0, 2), 2: (0, 1)}
+
+
+def _projection_axes_for(entry, axis_index):
+    axis_index = int(axis_index)
+    projection = entry.get("projection") if isinstance(entry, dict) else None
+    axes = projection.get("axes") if isinstance(projection, dict) else None
+    if isinstance(axes, dict):
+        pair = axes.get("+%s" % "XYZ"[axis_index])
+        if (isinstance(pair, (list, tuple)) and len(pair) == 2
+                and all(isinstance(name, str)
+                        and name.lower() in _WORLD_AXIS_INDEX for name in pair)):
+            return (_WORLD_AXIS_INDEX[pair[0].lower()],
+                    _WORLD_AXIS_INDEX[pair[1].lower()])
+    return _CANONICAL_UV_AXES[axis_index]
+
+
+def _projection_center(entry):
+    projection = entry.get("projection") if isinstance(entry, dict) else None
+    uv_center = projection.get("uv_center") \
+        if isinstance(projection, dict) else None
+    world_center = projection.get("world_center") \
+        if isinstance(projection, dict) else None
+    if (isinstance(uv_center, (list, tuple)) and len(uv_center) == 2
+            and all(_is_number(v) for v in uv_center)):
+        center_uv = (float(uv_center[0]), float(uv_center[1]))
+    else:
+        center_uv = (0.5, 0.5)
+    if (isinstance(world_center, (list, tuple)) and len(world_center) == 3
+            and all(_is_number(v) for v in world_center)):
+        center_world = tuple(float(v) for v in world_center)
+    else:
+        center_world = UV_WORLD_CENTER
+    return center_uv, center_world
+
+
+def _author_point(values, index):
+    """export-space vertex -> Blender author space (frozen inverse transform)."""
+    base = 3 * int(index)
+    return (float(values[base]) - EXPORT_SIZE_HALF_X,
+            EXPORT_DEPTH_HALF_Z - float(values[base + 2]),
+            float(values[base + 1]))
+
+
+def density_model_inputs(results):
+    """Per-file author-space geometry + construction flag for the C15 core."""
+    inputs = []
+    for result in results or []:
+        if not getattr(result, "present", False):
+            continue
+        spec = getattr(result, "spec", None) or {}
+        label = spec.get("stem") or "?"
+        construction = bool(spec.get("construction"))
+        nodes = []
+        for fact in getattr(result, "facts", None) or []:
+            if fact.vertex_count <= 0:
+                continue
+            pos = fact.props.get("position")
+            uv = fact.props.get("uv0")
+            if pos is None or pos.values is None or pos.dim != 3:
+                continue
+            if uv is None or uv.values is None or uv.dim != 2:
+                continue
+            verts = [_author_point(pos.values, index)
+                     for index in range(fact.vertex_count)]
+            nodes.append({"verts": verts, "uv": uv.values,
+                          "meshes": list(fact.meshes)})
+        if not nodes:
+            inputs.append({"label": label, "construction": construction,
+                           "error": "no usable position/uv0 vertex data"})
+            continue
+        inputs.append({"label": label, "construction": construction,
+                       "nodes": nodes})
+    return inputs
+
+
+def _density_analyze_inputs(inputs, map_data):
+    """Run the C15 core over ``inputs`` (author-space .timbermesh models)."""
+    report = {
+        "rows": {}, "reasons": [], "notes": [], "models": [],
+        "triangles": 0, "ambiguous_count": 0, "ambiguous_area": 0.0,
+        "total_area": 0.0, "exact_checked": 0, "exact_failed": 0,
+        "large_triangles": 0, "large_failed": 0, "missing": set(),
+    }
+    band = tile_density_band(map_data)
+    for model_input in inputs:
+        label = model_input.get("label", "?")
+        model_stats = {"label": label, "triangles": 0, "ambiguous": 0,
+                       "ambiguous_area": 0.0, "area": 0.0,
+                       "exact_checked": 0, "exact_failed": 0}
+        report["models"].append(model_stats)
+        if model_input.get("error"):
+            report["reasons"].append("%s: cannot measure world-UV density (%s)"
+                                     % (label, model_input["error"]))
+            continue
+        construction = bool(model_input.get("construction"))
+        for node in model_input.get("nodes") or []:
+            verts = node["verts"]
+            uv_values = node["uv"]
+            for material, indices in node["meshes"]:
+                material = str(material)
+                effective = effective_density_material(map_data, material,
+                                                       construction)
+                entry = material_uv_entry(map_data, effective)
+                if entry is None:
+                    report["missing"].add(effective)
+                    report["reasons"].append(
+                        "%s: material %r has no entry in "
+                        "art/material_texture_map.json" % (label, material))
+                    continue
+                mode = entry_mode(entry)
+                size = entry_texture_size(entry)
+                density_expected = entry_px_per_m(entry)
+                if mode is None or size is None or density_expected is None:
+                    report["reasons"].append(
+                        "%s: material %r has no complete ART-07 record in the map"
+                        % (label, material))
+                    continue
+                row = report["rows"].setdefault(str(effective), {
+                    "material": str(effective), "mode": mode,
+                    "canvas": entry_canvas_pixel_rect(entry),
+                    "texture_size": size, "px_expected": density_expected,
+                    "uv_area": 0.0, "proj_area": 0.0, "tri_count": 0,
+                    "min": math.inf, "max": -math.inf, "large": 0,
+                    "large_failed": 0, "exact_checked": 0, "exact_failed": 0,
+                    "ambiguous": 0, "models": {}, "reasons": [],
+                    "sources": set(),
+                })
+                row["sources"].add(material)
+                center_uv, center_world = _projection_center(entry)
+                texel = math.sqrt(float(size[0] * size[1]))
+                model_acc = row["models"].setdefault(
+                    label, [0.0, 0.0, 0, 0, 0])
+                vertex_count = len(verts)
+                uv_count = len(uv_values) // 2
+                for tri_start in range(0, len(indices) - 2, 3):
+                    i0 = int(indices[tri_start])
+                    i1 = int(indices[tri_start + 1])
+                    i2 = int(indices[tri_start + 2])
+                    if not (0 <= i0 < vertex_count and 0 <= i1 < vertex_count
+                            and 0 <= i2 < vertex_count):
+                        continue
+                    if not (0 <= i0 < uv_count and 0 <= i1 < uv_count
+                            and 0 <= i2 < uv_count):
+                        continue
+                    p0, p1, p2 = verts[i0], verts[i1], verts[i2]
+                    u0 = float(uv_values[2 * i0])
+                    v0 = float(uv_values[2 * i0 + 1])
+                    u1 = float(uv_values[2 * i1])
+                    v1 = float(uv_values[2 * i1 + 1])
+                    u2 = float(uv_values[2 * i2])
+                    v2 = float(uv_values[2 * i2 + 1])
+                    if not (math.isfinite(u0) and math.isfinite(v0)
+                            and math.isfinite(u1) and math.isfinite(v1)
+                            and math.isfinite(u2) and math.isfinite(v2)):
+                        report["reasons"].append(
+                            "%s: NaN/Inf UV0 value(s) on material %r"
+                            % (label, material))
+                        continue
+                    e1 = (p1[0] - p0[0], p1[1] - p0[1], p1[2] - p0[2])
+                    e2 = (p2[0] - p0[0], p2[1] - p0[1], p2[2] - p0[2])
+                    normal = (e1[1] * e2[2] - e1[2] * e2[1],
+                              e1[2] * e2[0] - e1[0] * e2[2],
+                              e1[0] * e2[1] - e1[1] * e2[0])
+                    length = math.sqrt(normal[0] * normal[0]
+                                       + normal[1] * normal[1]
+                                       + normal[2] * normal[2])
+                    if length < 1e-12:
+                        continue
+                    absn = [round(abs(component) / length,
+                                  PROJECTION_ROUND_DECIMALS)
+                            for component in normal]
+                    if absn[0] >= absn[1] and absn[0] >= absn[2]:
+                        axis = 0
+                    elif absn[1] >= absn[2]:
+                        axis = 1
+                    else:
+                        axis = 2
+                    ranked = sorted(absn, reverse=True)
+                    ambiguous = (ranked[0] - ranked[1]) <= AMBIGUOUS_PLANE_TOL
+                    world_area = 0.5 * length
+                    proj_area = world_area * absn[axis]
+                    if proj_area <= 0.0:
+                        continue
+                    uv_area = 0.5 * abs((u1 - u0) * (v2 - v0)
+                                        - (u2 - u0) * (v1 - v0))
+                    tri_density = math.sqrt(uv_area / proj_area) * texel
+                    row["uv_area"] += uv_area
+                    row["proj_area"] += proj_area
+                    row["tri_count"] += 1
+                    if tri_density < row["min"]:
+                        row["min"] = tri_density
+                    if tri_density > row["max"]:
+                        row["max"] = tri_density
+                    report["triangles"] += 1
+                    report["total_area"] += world_area
+                    model_stats["triangles"] += 1
+                    model_stats["area"] += world_area
+                    model_acc[0] += uv_area
+                    model_acc[1] += proj_area
+                    model_acc[2] += 1
+                    if ambiguous:
+                        row["ambiguous"] += 1
+                        report["ambiguous_count"] += 1
+                        report["ambiguous_area"] += world_area
+                        model_stats["ambiguous"] += 1
+                        model_stats["ambiguous_area"] += world_area
+                    # -- per-triangle density (+-25 % above 0.05 m^2) ----------
+                    if world_area >= DENSITY_TRI_MIN_WORLD_AREA:
+                        row["large"] += 1
+                        report["large_triangles"] += 1
+                        relative = abs(tri_density - density_expected) \
+                            / density_expected
+                        if relative > DENSITY_TRI_TOL:
+                            row["large_failed"] += 1
+                            report["large_failed"] += 1
+                            if len(row["reasons"]) < 8:
+                                row["reasons"].append(
+                                    "%s: triangle %d/%d has a texel density "
+                                    "%.2f px/m vs the map %.1f (+-%.0f %% "
+                                    "allowed; world area %.4f m^2)"
+                                    % (label, row["large_failed"], row["large"],
+                                       tri_density, density_expected,
+                                       DENSITY_TRI_TOL * 100.0, world_area))
+                    # -- exact UV recomputation ------------------------------
+                    if ambiguous:
+                        continue
+                    u_axis, v_axis = _projection_axes_for(entry, axis)
+                    report["exact_checked"] += 1
+                    row["exact_checked"] += 1
+                    model_stats["exact_checked"] += 1
+                    delta = 0.0
+                    for point, u, v in ((p0, u0, v0), (p1, u1, v1),
+                                        (p2, u2, v2)):
+                        expected_u = center_uv[0] + (
+                            point[u_axis] - center_world[u_axis]
+                        ) * density_expected / float(size[0])
+                        expected_v = center_uv[1] + (
+                            point[v_axis] - center_world[v_axis]
+                        ) * density_expected / float(size[1])
+                        delta = max(delta, abs(expected_u - u),
+                                    abs(expected_v - v))
+                    if delta > EXACT_UV_TOL:
+                        row["exact_failed"] += 1
+                        report["exact_failed"] += 1
+                        model_stats["exact_failed"] += 1
+                        if len(row["reasons"]) < 8:
+                            row["reasons"].append(
+                                "%s: exact UV recomputation differs by %.6f "
+                                "(tolerance %.0e) on material %r triangle %d"
+                                % (label, delta, EXACT_UV_TOL, material,
+                                   tri_start // 3))
+    # -- per-material aggregate density verdict ---------------------------- #
+    for material in sorted(report["rows"]):
+        row = report["rows"][material]
+        reasons = row["reasons"]
+        if row["proj_area"] <= 0.0 or not row["tri_count"]:
+            reasons.append("material %r has no non-degenerate triangle with a "
+                           "projected area" % material)
+            row["measured"] = None
+            row["status"] = "FAIL"
+            continue
+        texel = math.sqrt(float(row["texture_size"][0]
+                                * row["texture_size"][1]))
+        measured = math.sqrt(row["uv_area"] / row["proj_area"]) * texel
+        row["measured"] = measured
+        expected = row["px_expected"]
+        row["rel"] = (measured - expected) / expected
+        if abs(row["rel"]) > DENSITY_AGG_TOL:
+            reasons.append("material %r: aggregate texel density %.2f px/m is "
+                           "%+.3f %% off the map px_per_m %.1f (> +-%.0f%%)"
+                           % (material, measured, 100.0 * row["rel"], expected,
+                              DENSITY_AGG_TOL * 100.0))
+        if row["mode"] == "tile":
+            if not (band[0] - 1e-9 <= measured <= band[1] + 1e-9):
+                reasons.append("material %r: tile texel density %.2f px/m is "
+                               "outside the REQ band %s"
+                               % (material, measured, list(band)))
+        elif row["mode"] == "patch":
+            if measured < DENSITY_PATCH_MIN - 1e-9:
+                reasons.append("material %r: patch texel density %.2f px/m is "
+                               "below the %.0f px/m regression floor (2x ART-06)"
+                               % (material, measured, DENSITY_PATCH_MIN))
+        row["status"] = "FAIL" if reasons else "PASS"
+        row["sources"] = sorted(row["sources"])
+        report["reasons"].extend(reasons)
+    if report["triangles"]:
+        amb_fraction = report["ambiguous_count"] / float(report["triangles"])
+        area_fraction = (report["ambiguous_area"] / report["total_area"]
+                         if report["total_area"] > 0.0 else 0.0)
+        if amb_fraction > AMBIGUOUS_COUNT_MAX + 1e-12:
+            report["reasons"].append(
+                "ambiguous-plane triangles are %.2f %% of all triangles "
+                "(> %.0f %% allowed)"
+                % (100.0 * amb_fraction, 100.0 * AMBIGUOUS_COUNT_MAX))
+        if area_fraction > AMBIGUOUS_AREA_MAX + 1e-12:
+            report["reasons"].append(
+                "ambiguous-plane triangles cover %.3f %% of the world area "
+                "(> %.1f %% allowed)"
+                % (100.0 * area_fraction, 100.0 * AMBIGUOUS_AREA_MAX))
+    report["tile_band"] = band
+    report["amb_fraction"] = (report["ambiguous_count"]
+                              / float(report["triangles"])
+                              if report["triangles"] else 0.0)
+    report["amb_area_fraction"] = (
+        report["ambiguous_area"] / report["total_area"]
+        if report["total_area"] > 0.0 else 0.0)
+    return report
+
+
+def evaluate_world_uv_density(patch_info, results):
+    """C15: ART-07 world-UV texel density of the shipped .timbermesh files."""
+    check = Check("C15", "ART-07 world-UV texel density")
+    map_data = patch_info.get("data")
+    if map_data is None:
+        check.fail("material texture map unavailable: the ART-07 world-UV density "
+                   "cannot be verified",
+                   ["cannot measure the texel density: %s"
+                    % (patch_info.get("error") or "map not loaded")])
+        return check, {"rows": {}, "reasons": [], "notes": []}
+    report = _density_analyze_inputs(density_model_inputs(results), map_data)
+    band = report.get("tile_band") or tile_density_band(map_data)
+    reasons = _capped(report["reasons"], 25)
+    notes = []
+    for material in sorted(report["rows"]):
+        row = report["rows"][material]
+        if row["measured"] is None:
+            notes.append("%-4s %-38s %-5s no measurable triangle"
+                         % ("FAIL", material, row["mode"]))
+            continue
+        notes.append(
+            "%-4s %-38s mode=%-5s canvas=%-22s px_per_m expected %7.2f measured "
+            "min/mean/max %8.3f/%8.3f/%8.3f (%+.3f %%) tris=%d"
+            % (row["status"], material, row["mode"],
+               _rect_text(row["canvas"]) if row["canvas"] else "-",
+               row["px_expected"], row["min"], row["measured"], row["max"],
+               100.0 * row["rel"], row["tri_count"]))
+    notes.append("aggregate tolerance +-%.0f %% per material; per-triangle "
+                 "+-%.0f %% above %.2f m^2 world area (%d/%d failed); tile "
+                 "materials must be inside the REQ band %s; patch materials must "
+                 "be >= %.0f px/m (2x ART-06; the WindowsAtlas glass pane is 82.4 "
+                 "px/m by design)"
+                 % (DENSITY_AGG_TOL * 100.0, DENSITY_TRI_TOL * 100.0,
+                    DENSITY_TRI_MIN_WORLD_AREA, report["large_failed"],
+                    report["large_triangles"], list(band), DENSITY_PATCH_MIN))
+    notes.append("exact UV recomputation (frozen projection tie-break; export -> "
+                 "author space inverse): %d triangle(s) checked, %d mismatch(es) "
+                 "> %.0e; ambiguous-plane triangles %d/%d = %.2f %% of triangles / "
+                 "%.3f %% of world area (limits %.0f %% / %.1f %%)"
+                 % (report["exact_checked"], report["exact_failed"],
+                    EXACT_UV_TOL, report["ambiguous_count"],
+                    report["triangles"], 100.0 * report["amb_fraction"],
+                    100.0 * report["amb_area_fraction"],
+                    100.0 * AMBIGUOUS_COUNT_MAX, 100.0 * AMBIGUOUS_AREA_MAX))
+    notes.append("the 8 ConstructionStage0 files share ONE baked Folktails UV set: "
+                 "their density/exact UVs are measured against the Folktails source "
+                 "material of the shared window (the IronTeeth export samples that "
+                 "same window by contract)")
+    if reasons:
+        check.fail("%d material(s)/file(s) violate the ART-07 texel-density "
+                   "contract" % len(report["reasons"]), reasons, notes)
+    elif not report["rows"]:
+        check.fail("no material could be measured: no shipped .timbermesh file "
+                   "is available for the world-UV density check", [], notes)
+    else:
+        check.pass_("%d material(s) / %d triangle(s) keep the frozen ART-07 texel "
+                    "density (+-%.0f %% aggregate of the map px_per_m; tile %s "
+                    "px/m band; exact UV recompute %d/%d non-ambiguous triangles "
+                    "within %.0e)"
+                    % (len(report["rows"]), report["triangles"],
+                       DENSITY_AGG_TOL * 100.0, list(band),
+                       report["exact_checked"] - report["exact_failed"],
+                       report["exact_checked"], EXACT_UV_TOL), notes)
+    return check, report
+
+
+def _contract_reproduce_px(entry):
+    """(raw, fit, nominal) texel-density reproduction data of one map entry."""
+    size = entry_texture_size(entry)
+    coverage = entry_coverage(entry)
+    pixel = entry_canvas_pixel_rect(entry)
+    mode = entry.get("mode")
+    if size is None or coverage is None or pixel is None:
+        return None
+    canvas_w = pixel[2] - pixel[0]
+    canvas_h = pixel[3] - pixel[1]
+    usable_w = canvas_w - 2.0 * UV_GUARD_TEXELS
+    usable_h = canvas_h - 2.0 * UV_GUARD_TEXELS
+    if usable_w <= 0.0 or usable_h <= 0.0:
+        return None
+    fit = min(usable_w / coverage[0], usable_h / coverage[1])
+    tile_meters = entry.get("tile_meters")
+    if mode == "tile" and _is_number(tile_meters) and float(tile_meters) > 0.0:
+        nominal = float(size[0]) / float(tile_meters)
+    else:
+        nominal = fit
+    return min(nominal, fit), fit, nominal
+
+
+def evaluate_uv_contract(patch_info, results, density_report=None):
+    """C16: ART-07 ``uv_mapping`` contract / determinism over the exported files."""
+    check = Check("C16", "ART-07 UV mapping contract / determinism")
+    map_data = patch_info.get("data")
+    reasons = []
+    notes = []
+    if map_data is None:
+        check.fail("material texture map unavailable: the ART-07 UV mapping "
+                   "contract cannot be verified",
+                   ["cannot verify the UV mapping contract: %s"
+                    % (patch_info.get("error") or "map not loaded")])
+        return check
+    block = map_data.get("uv_mapping")
+    if not isinstance(block, dict):
+        reasons.append("art/material_texture_map.json has no top-level "
+                       "'uv_mapping' block (sec.4)")
+        block = {}
+    else:
+        if block.get("schema") != UV_POLICY_SCHEMA:
+            reasons.append("uv_mapping.schema = %r, expected %r"
+                           % (block.get("schema"), UV_POLICY_SCHEMA))
+        target = block.get("texel_density_target_px_per_m")
+        if not (isinstance(target, (list, tuple)) and len(target) == 2
+                and all(_is_number(v) for v in target)
+                and abs(float(target[0]) - TILE_DENSITY_BAND_DEFAULT[0]) < 1e-9
+                and abs(float(target[1]) - TILE_DENSITY_BAND_DEFAULT[1]) < 1e-9):
+            reasons.append("uv_mapping.texel_density_target_px_per_m = %r, "
+                           "expected %r"
+                           % (target, list(TILE_DENSITY_BAND_DEFAULT)))
+        world_center = block.get("world_center")
+        if not (isinstance(world_center, (list, tuple)) and len(world_center) == 3
+                and all(_is_number(v) for v in world_center)
+                and all(abs(float(world_center[i]) - UV_WORLD_CENTER[i]) < 1e-9
+                        for i in range(3))):
+            reasons.append("uv_mapping.world_center = %r, expected %r (frozen sec.2)"
+                           % (world_center, list(UV_WORLD_CENTER)))
+        if block.get("uv_guard_texels") != UV_GUARD_TEXELS:
+            reasons.append("uv_mapping.uv_guard_texels = %r, expected %d"
+                           % (block.get("uv_guard_texels"), UV_GUARD_TEXELS))
+        for flag in ("atlas_cell_safe", "no_uv_outside_canvas"):
+            if block.get(flag) is not True:
+                reasons.append("uv_mapping.%s is not true (%r)"
+                               % (flag, block.get(flag)))
+    densities = block.get("densities") if isinstance(block, dict) else None
+    if not isinstance(densities, dict) or not densities:
+        reasons.append("uv_mapping.densities is missing or empty (sec.4)")
+        densities = {}
+    used = sorted(required_materials(results))
+    field_names = ("mode", "tile_meters", "texture_size", "wrap", "uv_canvas",
+                   "projection", "px_per_m", "coverage_u_m", "coverage_v_m")
+    validated = 0
+    for material in used:
+        where = "materials[%r]" % material
+        entry = material_uv_entry(map_data, material)
+        if entry is None:
+            reasons.append("%s has no entry in art/material_texture_map.json but "
+                           "is used by a shipped/scheduled model" % where)
+            continue
+        validated += 1
+        for field in field_names:
+            if field not in entry:
+                reasons.append("%s: sec.4 field %r is missing" % (where, field))
+        mode = entry_mode(entry, reasons, where)
+        size = entry_texture_size(entry, reasons, where)
+        wrap = entry.get("wrap")
+        if mode is not None:
+            expected_wrap = "repeat" if mode == "tile" else "clamp"
+            if wrap != expected_wrap:
+                reasons.append("%s: wrap = %r, expected %r for mode %r"
+                               % (where, wrap, expected_wrap, mode))
+        canvas = entry_uv_canvas(entry)
+        if canvas is None:
+            reasons.append("%s: uv_canvas is missing (sec.4)" % where)
+        else:
+            pixel = _as_rect4(canvas.get("pixel_rect"),
+                              where + ".uv_canvas.pixel_rect", reasons)
+            uv_rect = _as_rect4(canvas.get("uv_rect"),
+                                where + ".uv_canvas.uv_rect", reasons)
+            size_px = canvas.get("size_px")
+            if pixel is not None and size is not None:
+                x0, y0, x1, y1 = pixel
+                if not (0.0 <= x0 < x1 <= size[0]
+                        and 0.0 <= y0 < y1 <= size[1]):
+                    reasons.append("%s: uv_canvas.pixel_rect %s is not inside the "
+                                   "%dx%d texture" % (where, _rect_text(pixel),
+                                                      size[0], size[1]))
+                want_size = [x1 - x0, y1 - y0]
+                if not (isinstance(size_px, (list, tuple)) and len(size_px) == 2
+                        and all(_is_number(v) for v in size_px)
+                        and all(abs(float(size_px[i]) - want_size[i]) < 1e-6
+                                for i in range(2))):
+                    reasons.append("%s: uv_canvas.size_px %r != pixel_rect size %r"
+                                   % (where, size_px, want_size))
+                if uv_rect is not None:
+                    want_uv = expected_uv_rect(pixel, size)
+                    for index, name in enumerate(("u0", "v0", "u1", "v1")):
+                        if abs(uv_rect[index] - want_uv[index]) \
+                                > UV_CANVAS_ROUND_TOL:
+                            reasons.append(
+                                "%s: uv_canvas.uv_rect[%s] = %.9f, expected %.9f"
+                                % (where, name, uv_rect[index], want_uv[index]))
+            if uv_rect is not None:
+                u0, v0, u1, v1 = uv_rect
+                if not (0.0 <= u0 < u1 <= 1.0 and 0.0 <= v0 < v1 <= 1.0):
+                    reasons.append("%s: uv_canvas.uv_rect %s must satisfy "
+                                   "0 <= u0 < u1 <= 1 and 0 <= v0 < v1 <= 1"
+                                   % (where, _uv_text(uv_rect)))
+        projection = entry.get("projection")
+        if not isinstance(projection, dict):
+            reasons.append("%s: projection is missing (sec.4)" % where)
+        else:
+            axes = projection.get("axes")
+            expected_axes = {"-X": ["y", "z"], "+X": ["y", "z"],
+                             "-Y": ["x", "z"], "+Y": ["x", "z"],
+                             "-Z": ["x", "y"], "+Z": ["x", "y"]}
+            if not isinstance(axes, dict):
+                reasons.append("%s: projection.axes is missing" % where)
+            else:
+                for key in sorted(expected_axes):
+                    pair = axes.get(key)
+                    if pair != expected_axes[key]:
+                        reasons.append("%s: projection.axes[%r] = %r, expected %r "
+                                       "(frozen sec.2)" % (where, key, pair,
+                                                        expected_axes[key]))
+            world_center = projection.get("world_center")
+            if not (isinstance(world_center, (list, tuple))
+                    and len(world_center) == 3
+                    and all(_is_number(v) for v in world_center)
+                    and all(abs(float(world_center[i]) - UV_WORLD_CENTER[i]) < 1e-9
+                            for i in range(3))):
+                reasons.append("%s: projection.world_center = %r, expected %r"
+                               % (where, world_center, list(UV_WORLD_CENTER)))
+            uv_center = projection.get("uv_center")
+            canvas_uv = entry_canvas_uv_rect(entry)
+            if not (isinstance(uv_center, (list, tuple)) and len(uv_center) == 2
+                    and all(_is_number(v) for v in uv_center)):
+                reasons.append("%s: projection.uv_center must be 2 numbers, got %r"
+                               % (where, uv_center))
+            elif canvas_uv is not None:
+                want_center = ((canvas_uv[0] + canvas_uv[2]) * 0.5,
+                               (canvas_uv[1] + canvas_uv[3]) * 0.5)
+                if abs(float(uv_center[0]) - want_center[0]) > UV_CENTER_TOL \
+                        or abs(float(uv_center[1]) - want_center[1]) > UV_CENTER_TOL:
+                    reasons.append("%s: projection.uv_center %r is not the centre "
+                                   "of uv_canvas %r" % (where, uv_center,
+                                                        list(canvas_uv)))
+        density_expected = entry_px_per_m(entry)
+        coverage = entry_coverage(entry)
+        if density_expected is None or density_expected <= 0.0:
+            reasons.append("%s: px_per_m must be a positive number, got %r"
+                           % (where, entry.get("px_per_m")))
+        elif not _is_number(entry.get("coverage_u_m")) \
+                or not _is_number(entry.get("coverage_v_m")):
+            reasons.append("%s: coverage_u_m/coverage_v_m must be numbers, got "
+                           "%r/%r" % (where, entry.get("coverage_u_m"),
+                                      entry.get("coverage_v_m")))
+        else:
+            reproduced = _contract_reproduce_px(entry)
+            if reproduced is None:
+                reasons.append("%s: px_per_m cannot be reproduced from the usable "
+                               "canvas and coverage (invalid canvas/coverage)"
+                               % where)
+            else:
+                raw, fit, nominal = reproduced
+                if abs(density_expected - raw) > PX_PER_M_ROUND:
+                    reasons.append(
+                        "%s: px_per_m %.4f does not reproduce from the usable "
+                        "canvas / coverage (fit %.4f, nominal %.4f -> raw %.4f)"
+                        % (where, density_expected, fit, nominal, raw))
+                if size is not None:
+                    span_u = size[0] / density_expected
+                    span_v = size[1] / density_expected
+                    if span_u < coverage[0] - 1e-6:
+                        reasons.append("%s: effective canvas span %.4f m < "
+                                       "required coverage_u_m %.4f m"
+                                       % (where, span_u, coverage[0]))
+                    if span_v < coverage[1] - 1e-6:
+                        reasons.append("%s: effective canvas span %.4f m < "
+                                       "required coverage_v_m %.4f m"
+                                       % (where, span_v, coverage[1]))
+        if mode == "tile":
+            tile_meters = entry.get("tile_meters")
+            if not _is_number(tile_meters) or float(tile_meters) <= 0.0:
+                reasons.append("%s: tile material needs a positive tile_meters, "
+                               "got %r" % (where, tile_meters))
+            else:
+                band = tile_meters_band(map_data, material, entry)
+                if band is None:
+                    reasons.append("%s: no REQ tile_meters band available for the "
+                                   "patch class %r"
+                                   % (where, entry.get("patch_class")))
+                elif not (band[0] - 1e-9 <= float(tile_meters) <= band[1] + 1e-9):
+                    reasons.append("%s: tile_meters %.3f is outside the REQ class "
+                                   "band %s" % (where, float(tile_meters),
+                                                list(band)))
+        elif mode == "patch":
+            if entry.get("tile_meters") is not None:
+                reasons.append("%s: patch material must record tile_meters = null, "
+                               "got %r" % (where, entry.get("tile_meters")))
+        patch = entry.get("patch")
+        if not isinstance(patch, dict):
+            reasons.append("%s: patch record is missing" % where)
+        else:
+            prect = _as_rect4(patch.get("pixel_rect"),
+                              where + ".patch.pixel_rect", reasons)
+            puv = _as_rect4(patch.get("uv_rect"), where + ".patch.uv_rect",
+                            reasons)
+            if prect is not None and size is not None:
+                if not (0.0 <= prect[0] < prect[2] <= size[0]
+                        and 0.0 <= prect[1] < prect[3] <= size[1]):
+                    reasons.append("%s: patch.pixel_rect %s is not inside the "
+                                   "%dx%d texture" % (where, _rect_text(prect),
+                                                      size[0], size[1]))
+                canvas_pixel = entry_canvas_pixel_rect(entry)
+                if mode == "patch" and canvas_pixel is not None \
+                        and any(abs(prect[i] - canvas_pixel[i]) > 1e-6
+                                for i in range(4)):
+                    reasons.append("%s: patch.pixel_rect %s != "
+                                   "uv_canvas.pixel_rect %s for a patch material"
+                                   % (where, _rect_text(prect),
+                                      _rect_text(canvas_pixel)))
+                if puv is not None:
+                    want_uv = expected_uv_rect(prect, size)
+                    for index, name in enumerate(("u0", "v0", "u1", "v1")):
+                        if abs(puv[index] - want_uv[index]) > UV_RECT_ROUND_TOL:
+                            reasons.append("%s: patch.uv_rect[%s] = %.9f, "
+                                           "expected %.9f"
+                                           % (where, name, puv[index],
+                                              want_uv[index]))
+        recorded_density = densities.get(material)
+        if not isinstance(recorded_density, dict):
+            reasons.append("uv_mapping.densities[%r] is missing" % material)
+        else:
+            if _is_number(recorded_density.get("px_per_m")) \
+                    and density_expected is not None \
+                    and abs(float(recorded_density["px_per_m"])
+                            - density_expected) > 1e-9:
+                reasons.append("uv_mapping.densities[%r].px_per_m = %r != "
+                               "materials[%r].px_per_m = %r"
+                               % (material, recorded_density.get("px_per_m"),
+                                  material, density_expected))
+            if recorded_density.get("mode") != mode:
+                reasons.append("uv_mapping.densities[%r].mode = %r != entry mode %r"
+                               % (material, recorded_density.get("mode"), mode))
+            canvas_pixel = entry_canvas_pixel_rect(entry)
+            recorded_pixels = recorded_density.get("canvas_pixels")
+            if canvas_pixel is not None:
+                want_pixels = [int(round(canvas_pixel[2] - canvas_pixel[0])),
+                               int(round(canvas_pixel[3] - canvas_pixel[1]))]
+                if not (isinstance(recorded_pixels, (list, tuple))
+                        and len(recorded_pixels) == 2
+                        and all(_is_number(v) for v in recorded_pixels)
+                        and [int(round(float(v))) for v in recorded_pixels]
+                        == want_pixels):
+                    reasons.append("uv_mapping.densities[%r].canvas_pixels = %r "
+                                   "!= the entry uv_canvas size %r"
+                                   % (material, recorded_pixels, want_pixels))
+    # -- construction shared windows --------------------------------------- #
+    groups = construction_groups(map_data)
+    construction_checked = 0
+    if not groups:
+        reasons.append("art/material_texture_map.json has no "
+                       "'construction_shared_patches' block")
+    else:
+        for group_name in sorted(groups):
+            group = groups[group_name]
+            where = "construction_shared_patches[%r]" % group_name
+            if not isinstance(group, dict):
+                reasons.append("%s must be an object" % where)
+                continue
+            rect = _as_rect4(group.get("pixel_rect"),
+                             where + ".pixel_rect", reasons)
+            uv_rect = _as_rect4(group.get("uv_rect"), where + ".uv_rect", reasons)
+            ft_material = group.get("folktails_material")
+            it_material = group.get("ironteeth_material")
+            ft_entry = material_uv_entry(map_data, ft_material) \
+                if isinstance(ft_material, str) else None
+            it_entry = material_uv_entry(map_data, it_material) \
+                if isinstance(it_material, str) else None
+            if ft_entry is None:
+                reasons.append("%s: folktails_material %r is not a material "
+                               "entry of the map" % (where, ft_material))
+            if it_entry is None:
+                reasons.append("%s: ironteeth_material %r is not a material "
+                               "entry of the map" % (where, it_material))
+            size = entry_texture_size(ft_entry) if ft_entry is not None else None
+            if rect is not None and size is not None:
+                if not (0.0 <= rect[0] < rect[2] <= size[0]
+                        and 0.0 <= rect[1] < rect[3] <= size[1]):
+                    reasons.append("%s: pixel_rect %s is not inside the %dx%d "
+                                   "texture" % (where, _rect_text(rect),
+                                                size[0], size[1]))
+                if uv_rect is not None:
+                    want_uv = expected_uv_rect(rect, size)
+                    for index, name in enumerate(("u0", "v0", "u1", "v1")):
+                        if abs(uv_rect[index] - want_uv[index]) \
+                                > UV_CANVAS_ROUND_TOL:
+                            reasons.append("%s: uv_rect[%s] = %.9f, expected %.9f"
+                                           % (where, name, uv_rect[index],
+                                              want_uv[index]))
+                    ft_canvas = entry_canvas_uv_rect(ft_entry)
+                    if ft_canvas is not None and any(
+                            abs(uv_rect[i] - ft_canvas[i]) > UV_CANVAS_ROUND_TOL
+                            for i in range(4)):
+                        reasons.append("%s: shared window %s != the Folktails "
+                                       "material's ART-07 canvas %s"
+                                       % (where, _uv_text(uv_rect),
+                                          _uv_text(ft_canvas)))
+                    it_rect, it_tol, _it_mode, _why = containment_bounds_for(
+                        map_data, it_material)
+                    if it_rect is not None and (
+                            uv_rect[0] < it_rect[0] - it_tol
+                            or uv_rect[1] < it_rect[1] - it_tol
+                            or uv_rect[2] > it_rect[2] + it_tol
+                            or uv_rect[3] > it_rect[3] + it_tol):
+                        reasons.append("%s: shared window %s is not inside the "
+                                       "IronTeeth material %r bounds %s"
+                                       % (where, _uv_text(uv_rect), it_material,
+                                          _uv_text(it_rect)))
+            per_texture = group.get("per_texture")
+            if not isinstance(per_texture, dict) or not per_texture:
+                reasons.append("%s: per_texture statistics are missing" % where)
+            else:
+                for texture_name in sorted(per_texture):
+                    stats = per_texture[texture_name]
+                    if not isinstance(stats, dict):
+                        reasons.append("%s: per_texture[%r] must be an object"
+                                       % (where, texture_name))
+                        continue
+                    mean = stats.get("mean_rgb")
+                    std = stats.get("std")
+                    std_max = stats.get("std_max")
+                    hazard = stats.get("hazard_fraction")
+                    if not (isinstance(mean, (list, tuple)) and len(mean) == 3
+                            and all(_is_number(v) for v in mean)):
+                        reasons.append("%s: per_texture[%r].mean_rgb must be 3 "
+                                       "numbers" % (where, texture_name))
+                    if not _is_number(std) or float(std) < 0.0:
+                        reasons.append("%s: per_texture[%r].std must be a "
+                                       "non-negative number"
+                                       % (where, texture_name))
+                    if not _is_number(std_max) or float(std_max) > 30.0 + 1e-9:
+                        reasons.append("%s: per_texture[%r].std_max must be <= "
+                                       "the hard cap 30.0, got %r"
+                                       % (where, texture_name, std_max))
+                    if _is_number(hazard) and float(hazard) > 0.005 + 1e-9:
+                        reasons.append("%s: per_texture[%r].hazard_fraction %.4f "
+                                       "> 0.005" % (where, texture_name,
+                                                    float(hazard)))
+            construction_checked += 1
+            notes.append("%s: shared window uv=%s (Folktails %r canvas, "
+                         "IronTeeth %r bounds OK)"
+                         % (where, _uv_text(uv_rect) if uv_rect else "-",
+                            ft_material, it_material))
+    # -- cross-file determinism from the measured C15 density -------------- #
+    drift_checked = 0
+    drift_failed = 0
+    if isinstance(density_report, dict):
+        for material in sorted(density_report.get("rows") or {}):
+            row = density_report["rows"][material]
+            expected = row.get("px_expected")
+            texel = math.sqrt(float(row["texture_size"][0]
+                                    * row["texture_size"][1]))
+            for label, acc in sorted((row.get("models") or {}).items()):
+                if len(acc) < 3 or acc[2] <= 0 or not expected:
+                    continue
+                drift_checked += 1
+                measured = math.sqrt(acc[0] / acc[1]) * texel
+                if abs(measured - expected) / expected > DENSITY_AGG_TOL:
+                    drift_failed += 1
+                    reasons.append(
+                        "cross-file drift: %s uses material %r at %.2f px/m "
+                        "(%+.2f %%) != the map's single density %.1f px/m"
+                        % (label, material, measured,
+                           100.0 * (measured - expected) / expected, expected))
+    notes.insert(0, "%d used material(s) checked against the sec.4 record; "
+                    "construction shared window(s): %d; per-file density uses "
+                    "cross-checked: %d (drift failures: %d)"
+                    % (validated, construction_checked, drift_checked,
+                       drift_failed))
+    if reasons:
+        check.fail("%d ART-07 UV mapping contract violation(s)" % len(reasons),
+                   _capped(reasons, 25), notes)
+    else:
+        check.pass_("%d used material(s) carry the frozen sec.4 ART-07 record "
+                    "(mode/tile_meters/texture_size/wrap/uv_canvas/projection/"
+                    "px_per_m/coverage); px_per_m reproduces from the usable "
+                    "canvas and coverage; wrap/tile_meters/uv_canvas/patch inside "
+                    "the texture; %d construction shared window(s) resolve both "
+                    "factions; the same density/canvas is used by every shipped file"
+                    % (validated, construction_checked), notes)
+    return check
 
 
 def actual_materials(results):
@@ -1584,95 +2710,6 @@ def evaluate_coverage(map_data, source, results, load_error=None):
                     "patch record (%d usable, %d unused/reference)"
                     % (MAP_SCHEMA, len(required), len(materials), len(unused)), notes)
     return check, details
-
-
-# -- UV containment (C9) ----------------------------------------------------- #
-
-def containment_report(uv_samples, map_data):
-    """(rows, reasons) for uv0-in-patch containment.
-
-    ``uv_samples`` maps material -> [(source, u, v)] (source is a human label).
-    A single sample outside the material's patch uv_rect +-PATCH_UV_TOL is a FAIL.
-    """
-    rows = []
-    reasons = []
-    for material in sorted(uv_samples):
-        samples = uv_samples[material]
-        rect = patch_uv_rect(map_data, material)
-        row = {"material": material, "rect": tuple(rect) if rect else None,
-               "count": 0, "min_u": None, "max_u": None, "min_v": None,
-               "max_v": None, "bad_count": 0, "bad": [], "status": "PASS"}
-        if rect is None:
-            row["status"] = "FAIL"
-            row["bad_count"] = len(samples)
-            row["bad"] = [("no patch uv_rect in art/material_texture_map.json",
-                           None, None)]
-            reasons.append("material %r has no real-texture patch uv_rect in "
-                           "art/material_texture_map.json" % material)
-            rows.append(row)
-            continue
-        u0, v0, u1, v1 = rect
-        min_u = min_v = math.inf
-        max_u = max_v = -math.inf
-        count = 0
-        non_finite = 0
-        bad = []
-        bad_count = 0
-        for source, u, v in samples:
-            if not (math.isfinite(u) and math.isfinite(v)):
-                non_finite += 1
-                continue
-            count += 1
-            if u < min_u:
-                min_u = u
-            if u > max_u:
-                max_u = u
-            if v < min_v:
-                min_v = v
-            if v > max_v:
-                max_v = v
-            if (u < u0 - PATCH_UV_TOL or u > u1 + PATCH_UV_TOL
-                    or v < v0 - PATCH_UV_TOL or v > v1 + PATCH_UV_TOL):
-                bad_count += 1
-                if len(bad) < 5:
-                    bad.append((source, round(u, 6), round(v, 6)))
-        row.update(count=count, min_u=min_u if count else None,
-                   max_u=max_u if count else None,
-                   min_v=min_v if count else None,
-                   max_v=max_v if count else None,
-                   bad_count=bad_count, bad=bad)
-        if non_finite:
-            row["status"] = "FAIL"
-            reasons.append("material %r: %d non-finite uv0 value(s)"
-                           % (material, non_finite))
-        if count == 0:
-            row["status"] = "FAIL"
-            reasons.append("material %r: no finite uv0 values on its faces" % material)
-        elif bad_count:
-            row["status"] = "FAIL"
-            reasons.append("material %r: %d uv0 value(s) lie outside its patch "
-                           "uv_rect [%.6f, %.6f, %.6f, %.6f] +-%.0e (first: %s)"
-                           % (material, bad_count, u0, v0, u1, v1, PATCH_UV_TOL,
-                              bad[:3]))
-        rows.append(row)
-    return rows, reasons
-
-
-def container_row_text(row):
-    """One report/notes line: per-material PASS/FAIL + uv0 min/max + patch uv_rect."""
-    rect = row["rect"]
-    if rect is None:
-        return ("%-4s %-34s no real-texture patch uv_rect in the map (%d uv0 value(s))"
-                % (row["status"], row["material"], row["count"]))
-    if row["count"]:
-        return ("%-4s %-34s patch uv=[%.6f, %.6f, %.6f, %.6f]  uv0 u=[%.6f, %.6f] "
-                "v=[%.6f, %.6f]  values=%d%s"
-                % (row["status"], row["material"], rect[0], rect[1], rect[2], rect[3],
-                   row["min_u"], row["max_u"], row["min_v"], row["max_v"],
-                   row["count"],
-                   "" if not row["bad_count"] else "  ESCAPED=%d" % row["bad_count"]))
-    return ("%-4s %-34s patch uv=[%.6f, %.6f, %.6f, %.6f]  no finite uv0"
-            % (row["status"], row["material"], rect[0], rect[1], rect[2], rect[3]))
 
 
 # -- C11 real-texture variance re-verification ------------------------------- #
@@ -2070,24 +3107,29 @@ def evaluate_hazard(patch_info, results):
 
 
 class GlobalChecks(object):
-    """The three cross-file ART-05 checks (C10-C12) + their report data."""
+    """The cross-file ART-05 checks (C10-C12) + ART-07 (C15/C16) + report data."""
 
-    __slots__ = ("coverage", "variance", "hazard", "variance_rows",
-                 "variance_skipped", "coverage_details", "map_source", "map_error")
+    __slots__ = ("coverage", "variance", "hazard", "density", "uv_contract",
+                 "variance_rows", "variance_skipped", "coverage_details",
+                 "density_report", "map_source", "map_error")
 
     def __init__(self):
         self.coverage = None
         self.variance = None
         self.hazard = None
+        self.density = None
+        self.uv_contract = None
         self.variance_rows = []
         self.variance_skipped = []
         self.coverage_details = {}
+        self.density_report = {}
         self.map_source = "-"
         self.map_error = None
 
     @property
     def checks(self):
-        return [check for check in (self.coverage, self.variance, self.hazard)
+        return [check for check in (self.coverage, self.variance, self.hazard,
+                                    self.density, self.uv_contract)
                 if check is not None]
 
     def failures(self):
@@ -2095,7 +3137,7 @@ class GlobalChecks(object):
 
 
 def evaluate_global_checks(patch_info, results):
-    """Run C10/C11/C12 over the whole shipped export."""
+    """Run C10/C11/C12 + the ART-07 C15/C16 checks over the shipped export."""
     globals_ = GlobalChecks()
     globals_.map_source = patch_info.get("source") or "-"
     globals_.map_error = patch_info.get("error")
@@ -2105,6 +3147,10 @@ def evaluate_global_checks(patch_info, results):
     globals_.variance, globals_.variance_rows, globals_.variance_skipped = \
         evaluate_variance(patch_info, results)
     globals_.hazard = evaluate_hazard(patch_info, results)
+    globals_.density, globals_.density_report = evaluate_world_uv_density(
+        patch_info, results)
+    globals_.uv_contract = evaluate_uv_contract(patch_info, results,
+                                                globals_.density_report)
     return globals_
 
 
@@ -2160,15 +3206,36 @@ def _rect_around(u, v, radius):
 
 
 def _synthetic_entry_for_uv(material, patch_rect):
+    """ART-07-shaped synthetic map entry (patch mode) for the uv-escape control."""
+    rect = [float(v) for v in patch_rect]
     return {
         "texture": "negative-control-synthetic.png",
         "texture_source": "synthetic",
         "texture_size": [1024, 1024],
         "patch_class": "wood",
+        "mode": "patch",
+        "wrap": "clamp",
+        "tile_meters": None,
+        "px_per_m": 128.0,
+        "coverage_u_m": 3.0,
+        "coverage_v_m": 3.0,
+        "uv_canvas": {
+            "pixel_rect": [0, 0, 64, 64],
+            "uv_rect": rect,
+            "size_px": [64, 64],
+            "meaning": "negative-control synthetic canvas",
+        },
+        "projection": {
+            "axes": {"-X": ["y", "z"], "+X": ["y", "z"],
+                     "-Y": ["x", "z"], "+Y": ["x", "z"],
+                     "-Z": ["x", "y"], "+Z": ["x", "y"]},
+            "world_center": list(UV_WORLD_CENTER),
+            "uv_center": [(rect[0] + rect[2]) * 0.5, (rect[1] + rect[3]) * 0.5],
+        },
         "patch": {
             "pixel_rect": [0, 0, 64, 64],
             "size_px": [64, 64],
-            "uv_rect": list(patch_rect),
+            "uv_rect": list(rect),
             "mean_rgb": [128.0, 128.0, 128.0],
             "mean_rgb_tinted": [128.0, 128.0, 128.0],
             "std": 0.0,
@@ -2201,9 +3268,9 @@ def _map_with_synthetic_patch(map_data, material, patch_rect):
 
 
 def control_uv_escape(patch_info, results):
-    """Negative control 1: shift one real shipped uv0 outside its patch -> C9 FAIL."""
-    control = NegativeControl(1, "one shipped uv0 shifted outside its patch "
-                                "(uv containment)")
+    """Negative control 1: shift one shipped uv0 outside its ART-07 canvas -> C9."""
+    control = NegativeControl(1, "one shipped uv0 shifted outside its ART-07 canvas "
+                                "(containment)")
     control.check_id = "C9"
     map_data = patch_info.get("data")
     sample = _first_shipped_uv(results)
@@ -2211,17 +3278,20 @@ def control_uv_escape(patch_info, results):
         source, material, u, v = sample
         real_uv = True
     else:
-        source, material, u, v = "synthetic fixture (no shipped model)", "Fixture.Wood", 0.30, 0.40
+        source, material, u, v = ("synthetic fixture (no shipped model)",
+                                  "Fixture.Wood", 0.30, 0.40)
         real_uv = False
-    rect = patch_uv_rect(map_data, material) if map_data is not None else None
+    rect, tol, mode, _why = containment_bounds_for(map_data, material) \
+        if map_data is not None else (None, PATCH_UV_TOL, None, None)
     inside = (rect is not None
-              and rect[0] - PATCH_UV_TOL <= u <= rect[2] + PATCH_UV_TOL
-              and rect[1] - PATCH_UV_TOL <= v <= rect[3] + PATCH_UV_TOL)
+              and rect[0] - tol <= u <= rect[2] + tol
+              and rect[1] - tol <= v <= rect[3] + tol)
     if inside:
         probe_map = map_data
     else:
         rect = _rect_around(u, v, 0.05)
         probe_map = _map_with_synthetic_patch(map_data, material, rect)
+        mode = "patch"
     rect = tuple(float(value) for value in rect)
     width = rect[2] - rect[0]
     bad_u = rect[2] + width + 0.05
@@ -2230,13 +3300,14 @@ def control_uv_escape(patch_info, results):
     rows, reasons = containment_report(samples, probe_map)
     rejected = bool(reasons)
     control.status = "REJECTED" if rejected else "NOT REJECTED"
-    control.detail = ("source=%s material=%r uv0=(%.6f, %.6f) -> (%.6f, %.6f): moved "
-                      "%.4f in u (> one patch width %.4f) outside patch uv=[%.6f, "
-                      "%.6f, %.6f, %.6f]; containment checker %s (%s)"
-                      % (source, material, u, v, bad_u, bad_v, bad_u - u, width,
-                         rect[0], rect[1], rect[2], rect[3],
-                         "REJECTED" if rejected else "ACCEPTED", rows[0]["status"]
-                         if rows else "no row"))
+    control.detail = ("source=%s material=%r mode=%r uv0=(%.6f, %.6f) -> "
+                      "(%.6f, %.6f): moved %.4f in u (> one canvas width %.4f) "
+                      "outside the ART-07 canvas uv=[%.6f, %.6f, %.6f, %.6f]; "
+                      "containment checker %s (%s)"
+                      % (source, material, mode, u, v, bad_u, bad_v, bad_u - u,
+                         width, rect[0], rect[1], rect[2], rect[3],
+                         "REJECTED" if rejected else "ACCEPTED",
+                         rows[0]["status"] if rows else "no row"))
     if rejected:
         first = reasons[0]
         control.note = "rejected by C9: %s" % first
@@ -2384,12 +3455,286 @@ def control_missing_material(patch_info, results):
     return control
 
 
+def _density_probe_input(results, map_data):
+    """(model input, actual material, effective material) of a tile material."""
+    for model_input in density_model_inputs(results):
+        if model_input.get("error"):
+            continue
+        construction = bool(model_input.get("construction"))
+        for node in model_input["nodes"]:
+            for material, indices in node["meshes"]:
+                material = str(material)
+                effective = effective_density_material(map_data, material,
+                                                       construction)
+                entry = material_uv_entry(map_data, effective)
+                if entry_mode(entry) != "tile":
+                    continue
+                if not indices:
+                    continue
+                return model_input, material, effective
+    return None, None, None
+
+
+def _density_fixture_input(map_data):
+    """Synthetic 3x3x1 author-space box with exact ART-07 UVs (control fallback)."""
+    if not isinstance(map_data, dict):
+        return None, None
+    material = None
+    for candidate in sorted(map_data.get("materials") or {}):
+        entry = material_uv_entry(map_data, candidate)
+        if entry_mode(entry) == "tile":
+            material = candidate
+            break
+    if material is None:
+        return None, None
+    entry = material_uv_entry(map_data, material)
+    size = entry_texture_size(entry)
+    density = entry_px_per_m(entry)
+    if size is None or density is None:
+        return None, None
+    center_uv, center_world = _projection_center(entry)
+    verts = [(-1.5, -1.5, 0.0), (1.5, -1.5, 0.0), (1.5, 1.5, 0.0),
+             (-1.5, 1.5, 0.0), (-1.5, -1.5, 1.0), (1.5, -1.5, 1.0),
+             (1.5, 1.5, 1.0), (-1.5, 1.5, 1.0)]
+    quads = [(0, 1, 2, 3), (4, 5, 6, 7), (0, 1, 5, 4), (1, 2, 6, 5),
+             (2, 3, 7, 6), (3, 0, 4, 7)]
+    tris = []
+    for quad in quads:
+        tris.append((quad[0], quad[1], quad[2]))
+        tris.append((quad[0], quad[2], quad[3]))
+    uv = [0.0] * (2 * len(verts))
+    for i0, i1, i2 in tris:
+        p0, p1, p2 = verts[i0], verts[i1], verts[i2]
+        e1 = (p1[0] - p0[0], p1[1] - p0[1], p1[2] - p0[2])
+        e2 = (p2[0] - p0[0], p2[1] - p0[1], p2[2] - p0[2])
+        normal = (e1[1] * e2[2] - e1[2] * e2[1],
+                  e1[2] * e2[0] - e1[0] * e2[2],
+                  e1[0] * e2[1] - e1[1] * e2[0])
+        length = math.sqrt(sum(component * component for component in normal))
+        if length < 1e-12:
+            continue
+        absn = [round(abs(component) / length, PROJECTION_ROUND_DECIMALS)
+                for component in normal]
+        if absn[0] >= absn[1] and absn[0] >= absn[2]:
+            axis = 0
+        elif absn[1] >= absn[2]:
+            axis = 1
+        else:
+            axis = 2
+        u_axis, v_axis = _projection_axes_for(entry, axis)
+        for index in (i0, i1, i2):
+            point = verts[index]
+            uv[2 * index] = center_uv[0] + (
+                point[u_axis] - center_world[u_axis]) * density / float(size[0])
+            uv[2 * index + 1] = center_uv[1] + (
+                point[v_axis] - center_world[v_axis]) * density / float(size[1])
+    model_input = {
+        "label": "synthetic ART-07 control box", "construction": False,
+        "nodes": [{"verts": verts, "uv": uv,
+                   "meshes": [(material, [index for tri in tris for index in tri])]}],
+    }
+    return model_input, material
+
+
+def control_uv_scale_density(patch_info, results, index, factor):
+    """Negative controls 4/5: scale a tile material's UVs -> C15 must FAIL."""
+    control = NegativeControl(index, "tile material UVs scaled x%.1f (world-UV "
+                                     "texel density)" % factor)
+    control.check_id = "C15"
+    map_data = patch_info.get("data")
+    if not isinstance(map_data, dict):
+        control.status = "NOT RUN"
+        control.detail = "art/material_texture_map.json unavailable"
+        control.note = "cannot exercise the C15 density checker"
+        return control
+    model_input, material, effective = _density_probe_input(results, map_data)
+    source = "parsed shipped .timbermesh file"
+    if model_input is None:
+        model_input, effective = _density_fixture_input(map_data)
+        material = effective
+        source = "synthetic ART-07 control box (no shipped model parsed)"
+    if model_input is None:
+        control.status = "NOT RUN"
+        control.detail = "no tile material available for the scale control"
+        control.note = "cannot exercise the C15 density checker"
+        return control
+    baseline = _density_analyze_inputs([model_input], map_data)
+    baseline_row = baseline["rows"].get(effective)
+    baseline_density = baseline_row["measured"] if baseline_row else None
+    baseline_ok = bool(baseline_row is not None
+                       and baseline_row["status"] == "PASS")
+    probe_nodes = []
+    for node in model_input["nodes"]:
+        uv = list(node["uv"])
+        for mesh_material, indices in node["meshes"]:
+            if str(mesh_material) != str(material):
+                continue
+            for vertex_index in set(int(value) for value in indices):
+                position = 2 * vertex_index
+                if 0 <= position and position + 1 < len(uv):
+                    uv[position] = 0.5 + (uv[position] - 0.5) * factor
+                    uv[position + 1] = 0.5 + (uv[position + 1] - 0.5) * factor
+        probe_nodes.append({"verts": node["verts"], "uv": tuple(uv),
+                            "meshes": node["meshes"]})
+    probe = {"label": model_input.get("label", "?"),
+             "construction": model_input.get("construction"), "nodes": probe_nodes}
+    report = _density_analyze_inputs([probe], map_data)
+    scaled_row = report["rows"].get(effective)
+    scaled_density = scaled_row["measured"] if scaled_row else None
+    rejected = bool(scaled_row is not None and scaled_row["status"] == "FAIL")
+    control.status = "REJECTED" if rejected else "NOT REJECTED"
+    expected = scaled_row["px_expected"] if scaled_row else None
+    control.detail = (
+        "source=%s material=%r (effective %r) UVs scaled x%.1f about uv=0.5; "
+        "baseline density %s px/m (map %s) -> scaled density %s px/m; C15 "
+        "aggregate tolerance +-%.0f%% -> %s"
+        % (source, material, effective, factor,
+           "n/a" if baseline_density is None else "%.2f" % baseline_density,
+           "-" if expected is None else "%.2f" % expected,
+           "n/a" if scaled_density is None else "%.2f" % scaled_density,
+           DENSITY_AGG_TOL * 100.0,
+           "REJECTED" if rejected else "ACCEPTED"))
+    reasons = (scaled_row or {}).get("reasons") or report.get("reasons") or []
+    if rejected:
+        control.note = "rejected by C15: %s" % (reasons[0] if reasons
+                                                else "density mismatch")
+        if not baseline_ok:
+            control.note += (" [WARNING: the unmodified baseline does not pass C15 "
+                             "either - check the control fixture]")
+        if factor > 1.5:
+            control.note += (" [the x%.1f UVs also leave the material canvas, so "
+                             "C9 would reject them too; the control is scored on "
+                             "the C15 density checker]" % factor)
+    else:
+        control.note = ("BUG: the C15 density checker accepted a tile material "
+                        "scaled x%.1f" % factor)
+    return control
+
+
+def control_patch_uv_stretch(patch_info, results):
+    """Negative control 6: stretch one large patch face to the full 0..1 square."""
+    control = NegativeControl(6, "one large patch-mode face stretched to the full "
+                                 "0..1 UV square (mode-aware canvas containment)")
+    control.check_id = "C9"
+    map_data = patch_info.get("data")
+    if not isinstance(map_data, dict):
+        control.status = "NOT RUN"
+        control.detail = "art/material_texture_map.json unavailable"
+        control.note = "cannot exercise the C9 containment checker"
+        return control
+    sample = None
+    for result in results or []:
+        if not getattr(result, "present", False):
+            continue
+        for fact in getattr(result, "facts", None) or []:
+            if fact.vertex_count <= 0:
+                continue
+            uv_prop = fact.props.get("uv0")
+            pos_prop = fact.props.get("position")
+            if uv_prop is None or uv_prop.values is None or uv_prop.dim != 2:
+                continue
+            if pos_prop is None or pos_prop.values is None:
+                continue
+            uv_values = uv_prop.values
+            for material, indices in fact.meshes:
+                material = str(material)
+                entry = material_uv_entry(map_data, material)
+                if entry_mode(entry) != "patch":
+                    continue
+                triangle = None
+                best_area = -1.0
+                for start in range(0, len(indices) - 2, 3):
+                    i0 = int(indices[start])
+                    i1 = int(indices[start + 1])
+                    i2 = int(indices[start + 2])
+                    if not (0 <= i0 < fact.vertex_count
+                            and 0 <= i1 < fact.vertex_count
+                            and 0 <= i2 < fact.vertex_count):
+                        continue
+                    p0 = _author_point(pos_prop.values, i0)
+                    p1 = _author_point(pos_prop.values, i1)
+                    p2 = _author_point(pos_prop.values, i2)
+                    e1 = (p1[0] - p0[0], p1[1] - p0[1], p1[2] - p0[2])
+                    e2 = (p2[0] - p0[0], p2[1] - p0[1], p2[2] - p0[2])
+                    cross = (e1[1] * e2[2] - e1[2] * e2[1],
+                             e1[2] * e2[0] - e1[0] * e2[2],
+                             e1[0] * e2[1] - e1[1] * e2[0])
+                    area = 0.5 * math.sqrt(sum(c * c for c in cross))
+                    if area > best_area:
+                        best_area = area
+                        triangle = (i0, i1, i2)
+                if triangle is None or best_area <= 0.0:
+                    continue
+                corners = set(triangle)
+                samples = []
+                for vertex_index in indices:
+                    vertex_index = int(vertex_index)
+                    if vertex_index in corners:
+                        continue
+                    if 0 <= vertex_index \
+                            and 2 * vertex_index + 1 < len(uv_values):
+                        samples.append((fact.name, uv_values[2 * vertex_index],
+                                        uv_values[2 * vertex_index + 1]))
+                samples.extend([(fact.name, 0.0, 0.0), (fact.name, 1.0, 0.0),
+                                (fact.name, 0.0, 1.0)])
+                sample = {"source": "parsed shipped .timbermesh file",
+                          "stem": getattr(result, "spec", {}).get("stem", "?"),
+                          "material": material, "triangle": triangle,
+                          "world_area": best_area, "samples": samples}
+                break
+            if sample is not None:
+                break
+        if sample is not None:
+            break
+    if sample is None:
+        material = None
+        for candidate in sorted(map_data.get("materials") or {}):
+            entry = material_uv_entry(map_data, candidate)
+            if entry_mode(entry) == "patch":
+                material = candidate
+                break
+        if material is None:
+            control.status = "NOT RUN"
+            control.detail = "no patch-mode material available"
+            control.note = "cannot exercise the C9 containment checker"
+            return control
+        sample = {"source": "synthetic fixture (no shipped model parsed)",
+                  "stem": "-", "material": material, "triangle": (0, 1, 2),
+                  "world_area": None,
+                  "samples": [(material, 0.0, 0.0), (material, 1.0, 0.0),
+                              (material, 0.0, 1.0)]}
+    rows, reasons = containment_report({sample["material"]: sample["samples"]},
+                                       map_data)
+    rejected = bool(reasons)
+    row = rows[0] if rows else None
+    control.status = "REJECTED" if rejected else "NOT REJECTED"
+    control.detail = (
+        "source=%s file=%s material=%r triangle=%s world_area=%s m^2; the face "
+        "UVs are replaced by (0,0)/(1,0)/(0,1) -> its %s canvas is uv=[%s]; "
+        "mode-aware containment %s"
+        % (sample["source"], sample["stem"], sample["material"],
+           str(sample["triangle"]), "n/a" if sample["world_area"] is None
+           else "%.4f" % sample["world_area"],
+           row["mode"] if row else "?",
+           _uv_text(row["rect"]) if row and row["rect"] else "-",
+           "REJECTED" if rejected else "ACCEPTED"))
+    if rejected:
+        control.note = "rejected by C9: %s" % reasons[0]
+    else:
+        control.note = ("BUG: the mode-aware canvas containment checker accepted "
+                        "a full 0..1 stretch of a patch face")
+    return control
+
+
 def run_negative_controls(patch_info, results):
-    """Run the three requirement-D negative controls; each MUST be rejected."""
+    """Run the six requirement-D negative controls; each MUST be rejected."""
     controls = [
         control_uv_escape(patch_info, results),
         control_hazard_patch(patch_info),
         control_missing_material(patch_info, results),
+        control_uv_scale_density(patch_info, results, 4, 0.5),
+        control_uv_scale_density(patch_info, results, 5, 2.0),
+        control_patch_uv_stretch(patch_info, results),
     ]
     return controls
 
@@ -2437,32 +3782,64 @@ def render_header(meta):
     lines.append("files:      %d expected (8 finished LOD0 + 8 ConstructionStage0), %d present"
                  % (meta["expected"], meta["present"]))
     lines.append("tolerances: bounds +-%.3f (strict 3.00 x 1.00 x 3.00 envelope), min corner "
-                 "+-%.3f, empty positions +-%.3f, uv0 [0,1] +-%.3f, uv0-in-material-patch "
-                 "+-%.0e" % (C.BOUNDS_TOLERANCE, C.BOUNDS_TOLERANCE,
-                             C.POSITION_TOLERANCE, UV_TOLERANCE, PATCH_UV_TOL))
+                 "+-%.3f, empty positions +-%.3f, uv0 [0,1] +-%.3f, mode-aware ART-07 "
+                 "canvas +-%.0e (tile guard bound +-%.0e)"
+                 % (C.BOUNDS_TOLERANCE, C.BOUNDS_TOLERANCE,
+                    C.POSITION_TOLERANCE, UV_TOLERANCE, PATCH_UV_TOL,
+                    TILE_GUARD_TOL))
     lines.append("tri budget: <= %d per file (timbermesh_common.TRI_BUDGET_LOD0 = LOD0 tier "
                  "budget)" % meta["budget"])
     lines.append("roof:       ONE flat empty platform; walking surface == model apex y = %.2f; "
                  "nothing above it; %d cm clearance above the surface"
                  % (C.PLATFORM_TOP, int(round(C.PLATFORM_CLEAR_ABOVE * 100))))
-    lines.append("materials:  ART-05 per-material real-_D texture patches "
-                 "(art/material_texture_map.json, schema %r); patch mean RGB / std "
-                 "re-verified from the vanilla PNG bytes with art/png_stats.py "
+    lines.append("materials:  ART-05 per-material real-_D texture patches + ART-07 world-scale "
+                 "UV mapping (art/material_texture_map.json, schema %r); patch mean RGB / "
+                 "std re-verified from the vanilla PNG bytes with art/png_stats.py "
                  "(mean +-%.1f, std +-%.1f, std <= std_max)"
                  % (MAP_SCHEMA, PATCH_MEAN_TOL, PATCH_STD_TOL))
+    lines.append("ART-07:     uv = uv_center + (world_uv - world_center) * px_per_m / "
+                 "texture_size in the Blender author space (the .timbermesh export is "
+                 "converted back with author = (x-%.1f, %.1f-z, y)); dominant face normal "
+                 "(unit Newell normal, |components| rounded to %d decimals, X > Y > Z) "
+                 "picks the projection plane; C15 density: aggregate +-%.0f %% per "
+                 "material, per-triangle +-%.0f %% above %.2f m^2, tile band %.0f-%.0f "
+                 "px/m, patch floor >= %.0f px/m (2x ART-06), exact UV recompute +-%.0e; "
+                 "ambiguous-plane triangles (top-two rounded |normal| components within "
+                 "%.0e) <= %.0f %% of triangles / %.1f %% of world area; C16 verifies the "
+                 "frozen mapping contract + per-file determinism"
+                 % (EXPORT_SIZE_HALF_X, EXPORT_DEPTH_HALF_Z,
+                    PROJECTION_ROUND_DECIMALS, DENSITY_AGG_TOL * 100.0,
+                    DENSITY_TRI_TOL * 100.0, DENSITY_TRI_MIN_WORLD_AREA,
+                    TILE_DENSITY_BAND_DEFAULT[0], TILE_DENSITY_BAND_DEFAULT[1],
+                    DENSITY_PATCH_MIN, EXACT_UV_TOL, AMBIGUOUS_PLANE_TOL,
+                    100.0 * AMBIGUOUS_COUNT_MAX, 100.0 * AMBIGUOUS_AREA_MAX))
     lines.append("")
     lines.append("-" * 104)
     lines.append("CHECKS (per file; all nine must PASS for the file to PASS)")
     for cid, _title in CHECK_DEFS:
         lines.append("  %-3s %s" % (cid, CHECK_DESCRIPTIONS[cid]))
     lines.append("")
-    lines.append("CROSS-FILE MATERIAL CHECKS (C10-C12; see RESULT and their own sections)")
+    lines.append("CROSS-FILE MATERIAL CHECKS (C10-C12 ART-05 + C15-C16 ART-07; see RESULT "
+                 "and their own sections)")
     lines.append("  C10 art/material_texture_map.json schema + coverage of every required "
                  "material")
     lines.append("  C11 real vanilla _D PNG patch mean RGB / std re-verification "
                  "(SKIP only when no texture root exists)")
     lines.append("  C12 hazard / large-shell policy (PaintedMetal.* forbidden, no hazard "
                  "patch shipped, exclusion rects respected)")
+    lines.append("  C15 ART-07 world-UV texel density: every material of every shipped "
+                 "file must keep the map px_per_m (aggregate +-%.0f %%, per-triangle "
+                 "+-%.0f %% above %.2f m^2, tile band %.0f-%.0f px/m, patch floor "
+                 "%.0f px/m, exact UV recompute +-%.0e, ambiguous planes <= %.0f %% "
+                 "of triangles / %.1f %% of area)"
+                 % (DENSITY_AGG_TOL * 100.0, DENSITY_TRI_TOL * 100.0,
+                    DENSITY_TRI_MIN_WORLD_AREA, TILE_DENSITY_BAND_DEFAULT[0],
+                    TILE_DENSITY_BAND_DEFAULT[1], DENSITY_PATCH_MIN, EXACT_UV_TOL,
+                    100.0 * AMBIGUOUS_COUNT_MAX, 100.0 * AMBIGUOUS_AREA_MAX))
+    lines.append("  C16 ART-07 UV mapping contract / determinism: sec.4 map fields, "
+                 "px_per_m reproduction from the usable canvas/coverage, wrap/tile_meters/"
+                 "uv_canvas/patch validation, construction shared windows and the same "
+                 "density/canvas in every shipped file")
     lines.append("NEGATIVE CONTROLS (requirement D) run after the checks; each must be "
                  "REJECTED or the run fails.")
     lines.append("")
@@ -2552,7 +3929,7 @@ def render_verdict(results, extras, meta, globals_=None, controls=None):
             lines.append("  %s -> %s" % (os.path.basename(result.path), result.verdict))
     global_failures = []
     if globals_ is not None:
-        lines.append("CROSS-FILE MATERIAL CHECKS (ART-05 real-texture patches):")
+        lines.append("CROSS-FILE MATERIAL CHECKS (C10-C12 ART-05 + C15-C16 ART-07):")
         for check in globals_.checks:
             lines.append("  %-3s %-58s %-6s %s"
                          % (check.cid, check.title, check.status, check.text))
@@ -2561,8 +3938,11 @@ def render_verdict(results, extras, meta, globals_=None, controls=None):
     control_verdict = None
     if controls is not None:
         control_verdict = negative_controls_verdict(controls)
+        rejected_controls = sum(1 for control in controls if control.rejected)
         lines.append("NEGATIVE CONTROLS: %s (each control must be REJECTED)"
                      % control_verdict)
+        lines.append("controls: %d/%d rejected"
+                     % (rejected_controls, len(controls)))
     if failed:
         lines.append("FAILING FILES:")
         for result in results:
@@ -2590,10 +3970,11 @@ def render_verdict(results, extras, meta, globals_=None, controls=None):
 
 
 def render_patch_checks(globals_):
-    """Report/console sections for the ART-05 cross-file material checks."""
+    """Report sections for the ART-05 patch + ART-07 world-UV cross-file checks."""
     lines = []
     lines.append("=" * 104)
-    lines.append("C10-C12: MATERIAL TEXTURE PATCH CHECKS (ART-05, cross-file)")
+    lines.append("C10-C12 + C15-C16: MATERIAL TEXTURE PATCH + ART-07 WORLD-UV CHECKS "
+                 "(cross-file)")
     lines.append("=" * 104)
     lines.append("map:        %s" % globals_.map_source)
     if globals_.map_error:
@@ -2603,6 +3984,10 @@ def render_patch_checks(globals_):
     lines.append("patch stats: mean RGB + std (max channel std, 0..255) re-measured from "
                  "the real vanilla _D PNG with art/png_stats.py; recorded mean +-%.1f, "
                  "std +-%.1f, std <= std_max" % (PATCH_MEAN_TOL, PATCH_STD_TOL))
+    lines.append("ART-07:     world-scale planar projection at the native-on-atlas "
+                 "texel density (art/ART07_UV_TILING.md); UVs inside the material "
+                 "canvas because the game AutoAtlaser remaps them into the material's "
+                 "own atlas cell (no UV>1 Repeat tiling)")
     lines.append("")
     for check in globals_.checks:
         lines.append("-" * 104)
@@ -2635,6 +4020,64 @@ def render_patch_checks(globals_):
         lines.append("  SKIPPED patches (no vanilla texture root on this machine):")
         for material, why in globals_.variance_skipped:
             lines.append("    - %s: %s" % (material, why))
+    lines.append("")
+    lines.extend(render_density_table(globals_))
+    return lines
+
+
+def render_density_table(globals_):
+    """C15 per-material ART-07 world-UV texel-density table + ambiguity evidence."""
+    lines = []
+    report = getattr(globals_, "density_report", None) or {}
+    lines.append("-" * 104)
+    lines.append("WORLD-UV TEXEL DENSITY TABLE (C15; per material of the 16 shipped "
+                 ".timbermesh files, author space)")
+    lines.append("  %-4s %-38s %-5s %-22s %10s %10s %10s %10s %7s"
+                 % ("RES", "MATERIAL", "MODE", "CANVAS", "PX/M(EXP)", "MIN",
+                    "MEAN", "MAX", "TRIS"))
+    rows = report.get("rows") or {}
+    if rows:
+        for material in sorted(rows):
+            row = rows[material]
+            if row.get("measured") is None:
+                lines.append("  %-4s %-38s %-5s %-22s %10.2f %10s %10s %10s %7d"
+                             % ("FAIL", material, row.get("mode") or "?",
+                                _rect_text(row["canvas"]) if row.get("canvas")
+                                else "-", row.get("px_expected") or 0.0,
+                                "-", "-", "-", row.get("tri_count") or 0))
+                continue
+            lines.append("  %-4s %-38s %-5s %-22s %10.2f %10.3f %10.3f %10.3f %7d"
+                         % (row["status"], material, row["mode"],
+                            _rect_text(row["canvas"]) if row["canvas"] else "-",
+                            row["px_expected"], row["min"], row["measured"],
+                            row["max"], row["tri_count"]))
+    else:
+        lines.append("  (no material could be measured)")
+    band = report.get("tile_band") or TILE_DENSITY_BAND_DEFAULT
+    lines.append("  tile band: %.0f-%.0f px/m; patch floor: %.0f px/m (2x the "
+                 "retired ART-06 density of 32 px/m; the WindowsAtlas glass pane is "
+                 "82.4 px/m by design); aggregate tolerance +-%.0f %% vs the map "
+                 "px_per_m"
+                 % (band[0], band[1], DENSITY_PATCH_MIN, DENSITY_AGG_TOL * 100.0))
+    if report.get("triangles"):
+        lines.append("  per-triangle tolerance +-%.0f %% above %.2f m^2 world area "
+                     "(%d/%d failed); exact UV recompute: %d triangle(s) checked, "
+                     "%d mismatch(es) > %.0e; ambiguous planes %d/%d = %.2f %% of "
+                     "triangles / %.3f %% of area (limits %.0f %% / %.1f %%)"
+                     % (DENSITY_TRI_TOL * 100.0, DENSITY_TRI_MIN_WORLD_AREA,
+                        report.get("large_failed", 0),
+                        report.get("large_triangles", 0),
+                        report.get("exact_checked", 0),
+                        report.get("exact_failed", 0), EXACT_UV_TOL,
+                        report.get("ambiguous_count", 0),
+                        report.get("triangles", 0),
+                        100.0 * report.get("amb_fraction", 0.0),
+                        100.0 * report.get("amb_area_fraction", 0.0),
+                        100.0 * AMBIGUOUS_COUNT_MAX,
+                        100.0 * AMBIGUOUS_AREA_MAX))
+    lines.append("  construction stage: the 8 ConstructionStage0 files share ONE baked "
+                 "Folktails UV set; their density/exact UVs are measured against the "
+                 "Folktails source material of the construction_shared_patches window")
     lines.append("")
     return lines
 
@@ -2669,7 +4112,7 @@ def render_console(results, extras, probes, meta, globals_=None, controls=None):
     lines.extend(render_table(results))
     if globals_ is not None:
         lines.append("")
-        lines.append("ART-05 MATERIAL PATCH CHECKS (C10-C12)")
+        lines.append("CROSS-FILE CHECKS (C10-C12 ART-05 + C15-C16 ART-07)")
         for check in globals_.checks:
             lines.append("  %-3s %-52s %-6s %s"
                          % (check.cid, check.title, check.status, check.text))
@@ -2686,6 +4129,35 @@ def render_console(results, extras, probes, meta, globals_=None, controls=None):
                                 _uv_text(row["uv_rect"]) if row["uv_rect"] else "-",
                                 _mean_text(row["mean_measured"]),
                                 row["std_measured"], row["std_max"]))
+        density_report = globals_.density_report or {}
+        density_rows = density_report.get("rows") or {}
+        if density_rows:
+            lines.append("  world-UV texel density table (material | mode | canvas | "
+                         "px/m expected | measured min/mean/max | tris):")
+            for material in sorted(density_rows):
+                row = density_rows[material]
+                if row.get("measured") is None:
+                    lines.append("    %-4s %-38s %-5s %-20s %8.2f %9s %9s %9s %6d"
+                                 % ("FAIL", material, row.get("mode") or "?",
+                                    _rect_text(row["canvas"])
+                                    if row.get("canvas") else "-",
+                                    row.get("px_expected") or 0.0, "-", "-", "-",
+                                    row.get("tri_count") or 0))
+                    continue
+                lines.append("    %-4s %-38s %-5s %-20s %8.2f %9.3f %9.3f %9.3f %6d"
+                             % (row["status"], material, row["mode"],
+                                _rect_text(row["canvas"]) if row["canvas"] else "-",
+                                row["px_expected"], row["min"], row["measured"],
+                                row["max"], row["tri_count"]))
+            band = density_report.get("tile_band") or TILE_DENSITY_BAND_DEFAULT
+            lines.append("    tile band %.0f-%.0f px/m; patch floor >= %.0f px/m "
+                         "(2x ART-06; WindowsAtlas glass pane 82.4 px/m by design); "
+                         "aggregate tolerance +-%.0f %%; ambiguous planes %.2f %% of "
+                         "triangles / %.3f %% of area"
+                         % (band[0], band[1], DENSITY_PATCH_MIN,
+                            DENSITY_AGG_TOL * 100.0,
+                            100.0 * density_report.get("amb_fraction", 0.0),
+                            100.0 * density_report.get("amb_area_fraction", 0.0)))
     lines.append("")
     lines.extend(render_verdict(results, extras, meta, globals_, controls))
     if controls is not None:
@@ -2750,6 +4222,41 @@ def build_report(results, extras, probes, meta, globals_=None, controls=None):
 # main
 # --------------------------------------------------------------------------- #
 
+def _script_argv(argv=None):
+    """Strip the host arguments when the script is launched by Blender.
+
+    The frozen verification pipeline runs this pure-python validator as
+    ``blender.exe -b --factory-startup -noaudio --python art\\validate_timbermesh.py``
+    (art/ART07_UV_TILING.md sec.8).  Blender then exposes its OWN command line in
+    ``sys.argv`` (and forwards script options after a ``--`` separator), so the
+    argparse parser must only see the validator's own options.
+    """
+    args = list(sys.argv[1:]) if argv is None else list(argv)
+    if "--" in args:
+        return args[args.index("--") + 1:]
+    known = {"--report", "--no-report", "--reference", "--probe", "--self-test"}
+    host_markers = ("-b", "--background", "--factory-startup", "-noaudio",
+                    "--python", "--python-exit-code", "-P")
+    looks_like_host = ("blender" in os.path.basename(sys.argv[0]).lower()
+                       or any(arg in host_markers for arg in args)
+                       or any(arg.lower().endswith(".py") for arg in args))
+    if not looks_like_host:
+        return args
+    filtered = []
+    index = 0
+    while index < len(args):
+        arg = args[index]
+        if arg in known:
+            filtered.append(arg)
+            index += 1
+            if arg in ("--report", "--probe") and index < len(args):
+                filtered.append(args[index])
+                index += 1
+        else:
+            index += 1
+    return filtered
+
+
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(
         description="Pure-Python ART-02 .timbermesh validator (no Blender).")
@@ -2764,10 +4271,11 @@ def parse_args(argv=None):
                         help="parse an arbitrary .timbermesh for diagnosis (non-scoring, "
                              "repeatable)")
     parser.add_argument("--self-test", action="store_true",
-                        help="run only the three requirement-D negative controls (UV escape, "
-                             "hazard-stripe patch, missing map record); exit 0 only when all "
-                             "three are rejected")
-    return parser.parse_args(argv)
+                        help="run only the six requirement-D negative controls (uv escape, "
+                             "hazard-stripe patch, missing map record, tile UV scale x0.5, "
+                             "tile UV scale x2.0, patch face stretched to the full 0..1 "
+                             "square); exit 0 only when all six are rejected")
+    return parser.parse_args(_script_argv(argv))
 
 
 def _emit(lines):
@@ -2799,16 +4307,18 @@ def _map_origin_text(patch_info):
 
 
 def _self_test(patch_info):
-    """Requirement D: run ONLY the three negative controls; each must be rejected."""
+    """Requirement D: run ONLY the six negative controls; each must be rejected."""
     _specs, results = _run_specs(patch_info)
     controls = run_negative_controls(patch_info, results)
     lines = []
-    lines.append("HDBF v2 ART-05 - negative controls (requirement D: every control "
-                 "MUST be rejected)")
+    lines.append("HDBF v2 ART-05/ART-07 - negative controls (requirement D: every "
+                 "control MUST be rejected)")
     lines.append("mode:       --self-test")
     lines.append("map:        %s" % _map_origin_text(patch_info))
     lines.append("controls:   (1) uv escape -> C9, (2) hazard-stripe patch -> C11, "
-                 "(3) missing map record -> C10")
+                 "(3) missing map record -> C10,")
+    lines.append("            (4) tile UV x0.5 -> C15, (5) tile UV x2.0 -> C15, "
+                 "(6) large patch face -> full 0..1 square -> C9")
     lines.append("")
     lines.extend(render_negative_controls(controls))
     verdict = negative_controls_verdict(controls)

@@ -17,17 +17,21 @@ generator (``art/gen_models.py``, 3x2x1) this generator:
   * carries EXACTLY the three ``#Port#Power/#Port#Pipe/#Port#Logistics`` empty
     markers and **no ``#Slot#`` node** (REQ-V2-ART-02);
   * keeps vanilla ``MaterialCollection`` material asset names (no custom PBR /
-    AssetBundle) and maps every face of a material into ONE fixed patch of that
-    material's **real 1024x1024 ``_D`` albedo texture** (ART-05, 2026-10-27).
-    The old ART-04 fake shared 2048 ART-01 atlas UVs caused the user's in-game
-    checkerboard / yellow-black hazard-stripe bug; the patch table is generated
-    by ``art/material_texture_analysis.py`` into
-    ``art/material_texture_map.json`` and carries the source texture, tint,
-    pixel/UV rect and measured mean RGB/std for every material;
+    AssetBundle) and gives every material ONE frozen world-scale planar UV
+    mapping at that material's native-on-atlas texel density (ART-07,
+    2026-10-27: ``assign_world_tiled_uvs``, ``art/material_uv_policy.py``).
+    ART-06 (2026-10-27) had fixed the ART-04 fake-atlas checkerboard /
+    yellow-black hazard-stripe bug with a real-texture flat patch per material,
+    but the 32 px/m patch density made 3 m surfaces blurry; ART-07 raises it to
+    340.0-357.8 px/m on full-bleed tile textures and 82.4-164.0 px/m on the
+    curated atlas-sheet canvases while keeping every UV inside the material
+    canvas (the game's runtime auto-atlas would otherwise sample another
+    material - see ``art/ART07_PROVENANCE.md``);
   * builds one shared construction-stage greybox, also a strict 3x3x1 with the
-    same flat empty roof platform (REQ-V2-ART-03).  Its UV set is baked once and
-    is valid for BOTH factions because the construction material pairs were
-    searched jointly to share one UV window (``construction_shared_patches``).
+    same flat empty roof platform (REQ-V2-ART-03).  Its UV set is baked once
+    (from the Folktails construction materials) and is valid for BOTH factions
+    because the IronTeeth material canvases contain the shared Folktails window
+    (``construction_shared_patches``).
 
 Output (deterministic, overwrite in place):
 
@@ -1543,7 +1547,14 @@ def _check_patch_coverage(mb, slot_materials, label):
 
 
 def assign_flat_patch_uvs(mb, slot_materials):
-    """Map every face of a material onto a deterministic sub-rect of its REAL patch.
+    """LEGACY (ART-06) flat-patch mapping - kept importable, no longer shipped.
+
+    ART-07 replaced the shipped pipeline with :func:`assign_world_tiled_uvs`
+    (native texel density, world-scale projection).  This function is retained
+    for the import-compatible preview fallback and historical call sites; it
+    maps every face of a material onto a deterministic sub-rect of that
+    material's real texture patch at ``PATCH_TEXELS_PER_GRID`` (32 px/m), which
+    the 2026-10-27 user feedback rejected as too blurry for 3 m surfaces.
 
     ``slot_materials`` maps the model's M_HDBF_* material slot to the vanilla
     material asset name it ships with.  For every face:
@@ -1597,6 +1608,123 @@ def assign_flat_patch_uvs(mb, slot_materials):
                         % (objname, fi, material, uu, vv, (u0, v0, u1, v1),
                            MP.pixel_rect_for(material)))
                 uvs.append((uu, vv))
+            f["uv"] = uvs
+
+
+def _face_normal_bl(verts_bl):
+    """Face normal (Newell method) in the Blender author space."""
+    n = Vector((0.0, 0.0, 0.0))
+    m = len(verts_bl)
+    for i in range(m):
+        a = Vector(verts_bl[i])
+        b = Vector(verts_bl[(i + 1) % m])
+        n.x += (a.y - b.y) * (a.z + b.z)
+        n.y += (a.z - b.z) * (a.x + b.x)
+        n.z += (a.x - b.x) * (a.y + b.y)
+    return n
+
+
+def _dominant_axis(normal):
+    """0/1/2 index of the dominant |normal| component (ties: x > y > z).
+
+    |components| are rounded to 4 decimals first, so a 45 deg bevel face
+    (components 1/sqrt(2) or 1/sqrt(3)) always lands on the same axis in the
+    generator and in the validators/tests (frozen tie-break).
+    """
+    ax, ay, az = _rounded_abs_normal(normal)
+    if ax >= ay and ax >= az:
+        return 0
+    if ay >= ax and ay >= az:
+        return 1
+    return 2
+
+
+#: ART-07 projection: dominant face normal -> (U world-axis index, V world-axis
+#: index) in the Blender author space (see art/ART07_UV_TILING.md §2).
+_WORLD_UV_AXES = {0: (1, 2), 1: (0, 2), 2: (0, 1)}
+
+#: The mesh data round-trips through float32 (FBX/GLB), so near-tied normal
+#: components must not flip the projection plane between the generator and the
+#: validators.  Both sides compare |n| components rounded to 4 decimals with the
+#: frozen tie-break X > Y > Z (45 deg bevel faces have 2-3 equal components).
+_AXIS_ROUND_DIGITS = 4
+
+
+def _rounded_abs_normal(normal):
+    return (round(abs(normal.x), _AXIS_ROUND_DIGITS),
+            round(abs(normal.y), _AXIS_ROUND_DIGITS),
+            round(abs(normal.z), _AXIS_ROUND_DIGITS))
+
+
+def _normalized(vector):
+    """Unit vector (zero stays zero) - the axis test must not depend on area."""
+    length = vector.length
+    if length <= 0.0:
+        return vector
+    return vector / length
+
+
+def assign_world_tiled_uvs(mb, slot_materials):
+    """ART-07 world-scale planar UV mapping at the native-on-atlas texel density.
+
+    ``slot_materials`` maps the model's M_HDBF_* material slot to the vanilla
+    material asset name it ships with.  For every face:
+
+    * the face normal (Newell) picks the projection plane: ``+-X -> U=y, V=z``,
+      ``+-Y -> U=x, V=z``, ``+-Z -> U=x, V=y`` (Blender Z-up author space);
+    * the projected world coordinates are mapped linearly into the material's
+      ART-07 canvas (``uv_canvas`` in art/material_texture_map.json) at that
+      material's frozen texel density ``px_per_m``:
+      ``uv = uv_center + (world_uv - world_center) * px_per_m / texture_size``;
+    * every resulting UV is asserted to be finite and inside the material canvas
+      (defence in depth for the validators and the in-game look).
+
+    Why not ``UV > 1`` Repeat tiling?  The game's runtime
+    ``AutoAtlasingPrefabOptimizer`` runs after the timbermesh importer and remaps
+    every mesh UV as ``uv * (1/sizeMultiplier) + cell_offset`` into the faction
+    auto atlas, where each fragment keeps its native 1024^2 cell: a UV component
+    above 1 leaves the material's own cell and samples another material.  The
+    shipped UVs therefore stay inside the material canvas; the density is the
+    maximum legal native-on-atlas density (1024 / 3 m = 341 px/m for a
+    full-bleed tile texture, canvas_px / 3 m for a curated patch canvas).
+    """
+    materials = {slot: MP.material_entry(material)
+                 for slot, material in slot_materials.items()}
+    for slot, material in slot_materials.items():
+        if materials[slot].get("mode") not in ("tile", "patch"):
+            raise RuntimeError(
+                "%s: material %r has no ART-07 mode in "
+                "art/material_texture_map.json" % (mb.body_name, material))
+    for objname, faces in mb.objects.items():
+        for fi, f in enumerate(faces):
+            material = slot_materials[f["material"]]
+            entry = materials[f["material"]]
+            tex_w, tex_h = entry["texture_size"]
+            density = float(entry["px_per_m"])
+            projection = entry["projection"]
+            cu, cv = projection["uv_center"]
+            wc = projection["world_center"]
+            u_index, v_index = _WORLD_UV_AXES[_dominant_axis(
+                _normalized(_face_normal_bl(f["verts"])))]
+            canvas_u0, canvas_v0, canvas_u1, canvas_v1 = \
+                entry["uv_canvas"]["uv_rect"]
+            uvs = []
+            for vert in f["verts"]:
+                u = cu + (vert[u_index] - wc[u_index]) * density / float(tex_w)
+                v = cv + (vert[v_index] - wc[v_index]) * density / float(tex_h)
+                if not (math.isfinite(u) and math.isfinite(v)):
+                    raise RuntimeError(
+                        "non-finite ART-07 UV for %s face %d material %r"
+                        % (objname, fi, material))
+                if not (canvas_u0 - UV_ASSERT_EPS <= u <= canvas_u1 + UV_ASSERT_EPS
+                        and canvas_v0 - UV_ASSERT_EPS <= v <= canvas_v1
+                        + UV_ASSERT_EPS):
+                    raise RuntimeError(
+                        "ART-07 UV escape for %s face %d material %r: uv=(%.6f,"
+                        "%.6f) canvas=%r"
+                        % (objname, fi, material, u, v,
+                           (canvas_u0, canvas_v0, canvas_u1, canvas_v1)))
+                uvs.append((u, v))
             f["uv"] = uvs
 
 
@@ -1994,7 +2122,7 @@ def build_tier_model(tier, faction, lod):
     slot_materials = material_slots_for(tier, faction, construction=False)
     _check_patch_coverage(mb, slot_materials,
                           "%s.%s.LOD%d" % (tier, faction, lod))
-    assign_flat_patch_uvs(mb, slot_materials)
+    assign_world_tiled_uvs(mb, slot_materials)
     lo, hi = _check_envelope(mb, "%s.%s.LOD%d" % (tier, faction, lod))
     facade = facade_metrics(style)
     info = {
@@ -2094,7 +2222,7 @@ def build_construction_model():
         mb.box(body, (0.88, 0.15, -0.30 + i * 0.34), (0.36, 0.06, 0.26), wood)
     slot_materials = material_slots_for("Basic", "Folktails", construction=True)
     _check_patch_coverage(mb, slot_materials, "ConstructionStage0")
-    assign_flat_patch_uvs(mb, slot_materials)
+    assign_world_tiled_uvs(mb, slot_materials)
     lo, hi = _check_envelope(mb, "ConstructionStage0")
     info = {
         "tier": tier, "faction": "shared", "lod": 0,
@@ -2163,6 +2291,14 @@ def write_material_slots(infos):
             "std_max": patch["std_max"],
             "material_color_tint": list(entry["material_color_tint"]),
             "used_by_slots": sorted(set(material_usage.get(material, []))),
+            "mode": entry.get("mode"),
+            "tile_meters": entry.get("tile_meters"),
+            "wrap": entry.get("wrap"),
+            "px_per_m": entry.get("px_per_m"),
+            "uv_canvas": dict(entry.get("uv_canvas") or {}),
+            "canvas_meters": list(entry.get("canvas_meters") or []),
+            "coverage_m": [entry.get("coverage_u_m"), entry.get("coverage_v_m")],
+            "uv_reason": entry.get("uv_reason"),
         }
 
     # top-level patch summary list (one row per used vanilla material)
@@ -2210,18 +2346,30 @@ def write_material_slots(infos):
             for spec in A.PORT_SPECS],
         "slots_markers": [],
         "uv_space": {
-            "model": "one fixed patch per VANILLA MATERIAL taken from that "
-                     "material's own real 1024x1024 _D albedo texture (ART-05); "
-                     "there is no shared 2048 ART-01 atlas any more",
+            "model": "ART-07 world-scale planar projection (one frozen density "
+                     "per VANILLA MATERIAL, mapped into that material's own real "
+                     "1024x1024 _D texture canvas); the ART-06 flat-patch density "
+                     "(32 px/grid) is retired and only kept as a legacy fallback "
+                     "in art/material_patches.assign_flat_patch_uvs",
             "map_file": "art/material_texture_map.json",
-            "patch_texels_per_grid": MP.PATCH_TEXELS_PER_GRID,
-            "patch_guard_px": MP.PATCH_GUARD_PX,
+            "contract": "art/ART07_UV_TILING.md",
+            "mapping": "uv = uv_center + (world_uv - world_center) * px_per_m / "
+                       "texture_size; dominant face normal picks the projection "
+                       "plane (+-X -> U=y,V=z; +-Y -> U=x,V=z; +-Z -> U=x,V=y) in "
+                       "the Blender author space (Z up, front +Y, world center "
+                       "[0,0,0.5])",
+            "legacy_patch_texels_per_grid": MP.PATCH_TEXELS_PER_GRID,
+            "legacy_patch_guard_px": MP.PATCH_GUARD_PX,
             "all_uv0_in_unit_square": True,
+            "uv_inside_material_canvas": True,
             "game_sampling": "AutoAtlaser remaps uv_atlas = uv * (1/sizeMultiplier) "
-                             "+ cell_offset, so the normalized position inside the "
-                             "material's own texture is preserved; material _Color "
-                             "multiplies the sampled albedo",
+                             "+ cell_offset and each fragment keeps its native "
+                             "1024x1024 cell, so a UV component > 1 would sample "
+                             "another material; ART-07 therefore keeps every UV "
+                             "inside the material canvas (no UV>1 Repeat tiling) and "
+                             "uses the maximum legal native-on-atlas density",
         },
+        "uv_mapping": dict(tex_map.get("uv_mapping") or {}),
         "material_order": A.MATERIAL_ORDER,
         "material_texture_map": {
             "schema": tex_map["schema"],
@@ -2287,6 +2435,18 @@ def write_material_slots(infos):
             "material_texture_patches": {
                 slot: material for slot, material
                 in sorted(info["slot_materials"].items())},
+            "uv_mapping": {
+                "model": "world_tiled",
+                "contract": "art/ART07_UV_TILING.md",
+                "materials": {
+                    slot: {
+                        "material": material,
+                        "mode": MP.mode_for(material),
+                        "px_per_m": MP.px_per_m_for(material),
+                        "canvas_px_rect": list(MP.canvas_pixel_rect_for(material)),
+                        "uv_canvas_rect": list(MP.canvas_uv_rect_for(material)),
+                    } for slot, material in sorted(info["slot_materials"].items())},
+            },
             "triangles": info["tris"],
             "bounds_size": info["bounds"],
             "bounds_min": info["min"],

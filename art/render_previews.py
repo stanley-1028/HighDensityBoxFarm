@@ -28,6 +28,20 @@ extracted Unity normal assets are not valid Blender tangent-space normal maps
 and would add mottled shading artifacts; see art/preview_materials.py.)
 See that module for the slot -> material -> texture chain.
 
+ART-07 (2026-10-27): the models now use native-texel-density world UVs
+(tile materials 340-359 px/m, patch materials 83-165 px/m; see
+``art/ART07_UV_TILING.md``).  The existing views are kept unchanged, and the
+script additionally renders close-up evidence at two screen scales and a
+four-tier one-frame lineup:
+    art/previews/closeups/<Tier>.<Faction>_iso_50.png / _iso_100.png
+    art/previews/closeups/<Tier>.<Faction>_front_50.png / _front_100.png
+    art/previews/tiers_lineup_iso_100.png  (4 Folktails tiers side by side)
+The close-up camera is orthographic; "100%" frames 2.0 m of real building
+surface across the 512 px frame (256 screen px/m), "50%" frames 4.0 m
+(128 screen px/m).  Every output (old and new) is verified by the script and
+summarised in ``art/previews/render-report.txt``; the close-up camera scales /
+look-at points are printed there too.
+
 Usage (from the workspace root):
     blender.exe -b --factory-startup -noaudio --python art\\render_previews.py
 
@@ -45,6 +59,9 @@ Outputs:
     art/previews/ConstructionStage0_front.png
     art/previews/ConstructionStage0_iso.png
     art/previews/*_50.png / *_scale50_grid.png (composed 50% A/B sheets)
+    art/previews/closeups/*.png     (32 close-ups: iso/front x 50%/100%)
+    art/previews/tiers_lineup_iso_100.png (1024x512 four-tier lineup)
+    art/previews/render-report.txt  (self-verification summary of this run)
 
 Exit codes: 0 all previews rendered and verified; 1 render/verify failure;
 2 blocked (bpy unavailable or required model files missing).
@@ -67,11 +84,13 @@ PREVIEW_DIR = os.path.join(HERE, "previews")
 try:
     import bpy
     from mathutils import Vector
+    from bpy_extras.object_utils import world_to_camera_view
 
     HAVE_BPY = True
 except Exception as exc:  # pragma: no cover - environment specific
     bpy = None
     Vector = None
+    world_to_camera_view = None
     HAVE_BPY = False
     BPY_ERR = "%s: %s" % (type(exc).__name__, exc)
 
@@ -102,6 +121,40 @@ SAMPLES = 24
 ORTHO_SCALE = 3.9          # 3x3 footprint + margin (facade fills the frame)
 ORTHO_SCALE_50 = 8.0       # 50% camera scale (one 3-grid building fills 3/8 of frame)
 ORTHO_SCALE_ISO = 5.2
+
+# --------------------------------------------------------------------------- #
+# ART-07 close-up evidence (see art/ART07_UV_TILING.md section 6)
+# --------------------------------------------------------------------------- #
+#: "100%" = 2.0 m of real building surface across the 512 px frame (256 px/m);
+#: "50%" = 4.0 m across (128 px/m).  Both are orthographic, so the number is a
+#: true world-space frame width (ortho_scale) and screen density is exact.
+CLOSEUP_SCALES = (("100", 2.0), ("50", 4.0))
+#: close-up look-at points in Blender authoring space.  Model bbox is
+#: X -1.5..1.5 / Y -1.5..1.5 / Z 0..1 (front facade = +Y, roof = Z 1.0), so the
+#: straight-on front close-up centres the 1 m-tall facade band, and the iso
+#: close-up centres the front-right roof edge (roof planks + corner post + top
+#: of both visible facades).
+CLOSEUP_FRONT_TARGET = (0.0, 0.0, 0.55)
+CLOSEUP_ISO_TARGET = (0.3, 0.3, 0.95)
+#: stand-off of the orthographic close-up camera along its view axis (for an
+#: ortho camera this does not change the image, only clipping distance).
+CLOSEUP_CAMERA_DISTANCE = 8.0
+#: the four-tier lineup: one 1024x512 frame with the four Folktails tiers side by
+#: side along the iso camera's horizontal axis.
+LINEUP_PATH_NAME = "tiers_lineup_iso_100.png"
+LINEUP_RESOLUTION = (1024, 512)
+LINEUP_SPACING = 4.4        # world metres between adjacent tier centres
+LINEUP_CAMERA_DISTANCE = 12.0
+LINEUP_FIT_FILL = 0.96      # projected bbox fills 96 % of the larger frame axis
+#: camera elevation of the lineup above the horizon: a slightly higher 3/4 angle
+#: than the single-model iso preview (24.7 deg) so the four 1 m-tall buildings
+#: put more of their roof (texture) surface into the 2:1 frame.
+LINEUP_ELEVATION_DEG = 38.0
+
+#: view-frame geometry of the existing (five-view) cameras, reused by the
+#: close-ups so iso close-ups keep the exact same 3/4 angle as ``_iso.png``.
+ISO_CAM_LOCATION = (6.2, 6.2, 4.4)
+ISO_VIEW_TARGET = (0.0, 0.0, 0.5)
 
 
 def _sun_rotation(elevation_deg, azimuth_deg):
@@ -239,6 +292,87 @@ def make_cameras():
                            (-iso_loc[0], -iso_loc[1], 0.5 - iso_loc[2]),
                            ORTHO_SCALE_ISO),
     }
+
+
+# --------------------------------------------------------------------------- #
+# ART-07 close-up + lineup cameras
+# --------------------------------------------------------------------------- #
+def _iso_back_dir():
+    """Unit vector from the iso look-at point towards the existing iso camera."""
+    vector = Vector(ISO_CAM_LOCATION) - Vector(ISO_VIEW_TARGET)
+    return vector.normalized()
+
+
+def make_closeup_camera(name, target, back_dir, ortho_scale):
+    """Orthographic camera at ``target + back_dir * distance`` looking at target."""
+    back = Vector(back_dir).normalized()
+    location = Vector(target) + back * CLOSEUP_CAMERA_DISTANCE
+    return make_camera(name, tuple(location), tuple(-back), ortho_scale)
+
+
+def make_closeup_cameras(ortho_scale):
+    """The two close-up views: straight-on front facade and the existing 3/4 iso.
+
+    Both are orthographic, so ``ortho_scale`` is exactly the world width of the
+    square frame: 2.0 m ("100%") / 4.0 m ("50%") of real building surface.
+    """
+    return {
+        "front": make_closeup_camera("cam_closeup_front",
+                                     CLOSEUP_FRONT_TARGET, (0.0, 1.0, 0.0),
+                                     ortho_scale),
+        "iso": make_closeup_camera("cam_closeup_iso",
+                                   CLOSEUP_ISO_TARGET, tuple(_iso_back_dir()),
+                                   ortho_scale),
+    }
+
+
+def closeup_dir():
+    """<previews>/closeups (computed at call time: PREVIEW_DIR can be overridden)."""
+    return os.path.join(PREVIEW_DIR, "closeups")
+
+
+def closeup_path(tier, faction, view, percent):
+    """Art/previews/closeups/<Tier>.<Faction>_<view>_<percent>.png"""
+    return os.path.join(closeup_dir(),
+                        "%s.%s_%s_%s.png" % (tier, faction, view, percent))
+
+
+def lineup_path():
+    return os.path.join(PREVIEW_DIR, LINEUP_PATH_NAME)
+
+
+def model_path(tier, faction):
+    """LOD0 model path for a tier/faction (FBX preferred, GLB fallback)."""
+    base = os.path.join(HERE, "models", "%s.%s" % (tier, faction))
+    fbx = os.path.join(base, "LOD0.fbx")
+    if os.path.isfile(fbx):
+        return fbx
+    return os.path.join(base, "LOD0.glb")
+
+
+def closeup_camera_report_lines():
+    """Printed report block: the exact close-up / lineup camera scales used."""
+    lines = [
+        "close-up cameras (new ART-07 evidence): orthographic, Cycles CPU, "
+        "512x512 per image",
+        "  front close-up: straight-on facade (view direction -Y), look-at "
+        "(%.2f, %.2f, %.2f) m"
+        % CLOSEUP_FRONT_TARGET,
+        "  iso close-up:   the existing 3/4 angle, look-at (%.2f, %.2f, %.2f) m, "
+        "camera stand-off %.2f m (ortho: clipping only)"
+        % (CLOSEUP_ISO_TARGET + (CLOSEUP_CAMERA_DISTANCE,)),
+    ]
+    for label, scale in CLOSEUP_SCALES:
+        lines.append(
+            '  scale "%s": ortho_scale %.2f m = %.2f m of building surface '
+            "across the 512 px frame -> %.0f screen px/m"
+            % (label, scale, scale, RESOLUTION / scale))
+    lines.append(
+        "four-tier lineup: one %dx%d frame, Folktails tiers side by side, "
+        "iso ortho at %.0f deg elevation; projected silhouette fills %.0f%% of "
+        "the frame"
+        % (LINEUP_RESOLUTION + (LINEUP_ELEVATION_DEG, LINEUP_FIT_FILL * 100)))
+    return lines
 
 
 # --------------------------------------------------------------------------- #
@@ -427,6 +561,181 @@ def build_ab_sheets(out):
     return sheets
 
 
+def _new_objects_since(before):
+    """Objects added to the scene since ``before`` (a set of bpy objects)."""
+    return [ob for ob in bpy.data.objects if ob not in before]
+
+
+def _rename_scene_materials(tag):
+    """Rename every M_HDBF_* material of the current model so it is unique.
+
+    The lineup imports four models into ONE scene; without this the next
+    ``preview_materials.bind_scene_materials`` call would find the previous
+    model's material by slot name and re-bind the wrong mesh.  The tag makes the
+    name stop matching ``preview_materials.slot_of_material`` (which only accepts
+    the exact slot or a ``<slot>.<suffix>`` name), so an already bound model is
+    never touched again.
+    """
+    for mat in list(bpy.data.materials):
+        if PM.slot_of_material(mat.name) is None:
+            continue
+        try:
+            mat.name = "%s__%s" % (mat.name, tag)
+        except Exception:  # noqa: BLE001 - rename collision is non-fatal
+            pass
+
+
+def _bbox_of_objects(objects):
+    """World-space bbox of the given mesh objects (min Vector, max Vector)."""
+    bpy.context.view_layer.update()
+    lo = [1e18, 1e18, 1e18]
+    hi = [-1e18, -1e18, -1e18]
+    for ob in objects:
+        if ob.type != "MESH":
+            continue
+        matrix = ob.matrix_world
+        for vertex in ob.data.vertices:
+            co = matrix @ vertex.co
+            for axis in range(3):
+                if co[axis] < lo[axis]:
+                    lo[axis] = co[axis]
+                if co[axis] > hi[axis]:
+                    hi[axis] = co[axis]
+    return Vector(lo), Vector(hi)
+
+
+def _mesh_world_bbox():
+    """World-space bbox of every *rendered* mesh in the scene (min, max Vector).
+
+    Helper objects that the FBX carries but the renderer never draws (e.g. the
+    ``#Port#*`` attachment markers, which sit outside the 3x3 envelope) are
+    excluded so the lineup camera frames the four buildings, not the markers.
+    """
+    return _bbox_of_objects([ob for ob in bpy.data.objects
+                             if ob.type == "MESH" and not ob.hide_render])
+
+
+def _projected_bbox(points, camera):
+    """(xmin, ymin, xmax, ymax) of world points in the camera frame, 0..1 NDC."""
+    scene = bpy.context.scene
+    xs = []
+    ys = []
+    for point in points:
+        view = world_to_camera_view(scene, camera, point)
+        xs.append(view.x)
+        ys.append(view.y)
+    return min(xs), min(ys), max(xs), max(ys)
+
+
+def build_tiers_lineup(renderer, book, out):
+    """Render the four Folktails tiers side by side in one 1024x512 frame.
+
+    The four LOD0 models are imported into ONE scene, spaced along the iso
+    camera's horizontal axis, re-bound to the real vanilla materials (each
+    model's materials renamed between imports so the binding stays per model)
+    and rendered with one orthographic iso camera.  Returns
+    ``(path, ok, bytes, detail)`` or ``None`` when the lineup cannot be built.
+    """
+    if np is None:
+        out.append("  lineup SKIP (numpy unavailable)")
+        return None
+    tier_paths = []
+    missing = []
+    for tier in A.TIERS:
+        path = model_path(tier, "Folktails")
+        if os.path.isfile(path):
+            tier_paths.append((tier, path))
+        else:
+            missing.append(path)
+    if missing:
+        out.append("  lineup SKIP (missing model(s): %s)"
+                   % ", ".join(os.path.basename(os.path.dirname(p))
+                               for p in missing))
+        return None
+    reset_scene()
+    lineup_warnings = []
+    lineup_bind = []
+    model_objects = []
+    spacing_axis = Vector((1.0, -1.0, 0.0)).normalized()
+    center_index = (len(tier_paths) - 1) / 2.0
+    for index, (tier, path) in enumerate(tier_paths):
+        before = set(bpy.data.objects)
+        import_model(path)
+        new_objects = _new_objects_since(before)
+        model_objects.append(new_objects)
+        report = bind_model_materials(tier, "Folktails", book)
+        lineup_bind.append(report)
+        lineup_warnings.extend(report["warnings"])
+        offset = spacing_axis * (LINEUP_SPACING * (index - center_index))
+        for ob in new_objects:
+            ob.location = ob.location + offset
+        _rename_scene_materials(tier)
+    setup_world_and_light()
+    setup_cycles()
+    scene = bpy.context.scene
+    scene.render.resolution_x = LINEUP_RESOLUTION[0]
+    scene.render.resolution_y = LINEUP_RESOLUTION[1]
+    scene.render.resolution_percentage = 100
+    lo, hi = _mesh_world_bbox()
+    center = (lo + hi) * 0.5
+    # a slightly higher 3/4 angle than the single-model iso preview so the
+    # 1 m-tall buildings show more (textured) roof inside the 2:1 frame
+    elevation = math.radians(LINEUP_ELEVATION_DEG)
+    back = Vector((math.cos(elevation) / math.sqrt(2.0),
+                   math.cos(elevation) / math.sqrt(2.0),
+                   math.sin(elevation))).normalized()
+    cam = make_camera("cam_lineup", tuple(center + back * LINEUP_CAMERA_DISTANCE),
+                      tuple(-back), 1.0)
+    # the camera was just created: flush its matrix_world before projecting
+    bpy.context.view_layer.update()
+    # fit: binary search the ortho scale so the projected silhouette fills
+    # LINEUP_FIT_FILL of the larger (horizontal) frame axis, then verify NDC.
+    # Use one tight world box per building (not the row's AABB, whose empty
+    # diagonal corners would be projected for a raised camera).
+    corners = []
+    for objects in model_objects:
+        model_lo, model_hi = _bbox_of_objects(objects)
+        corners.extend(Vector((x, y, z))
+                       for x in (model_lo.x, model_hi.x)
+                       for y in (model_lo.y, model_hi.y)
+                       for z in (model_lo.z, model_hi.z))
+    low, high = 0.5, 200.0
+    for _ in range(60):
+        mid = 0.5 * (low + high)
+        cam.data.ortho_scale = mid
+        box = _projected_bbox(corners, cam)
+        extent = max(box[2] - box[0], box[3] - box[1])
+        if extent > LINEUP_FIT_FILL:
+            low = mid
+        else:
+            high = mid
+    cam.data.ortho_scale = high
+    final_box = _projected_bbox(corners, cam)
+    extent = max(final_box[2] - final_box[0], final_box[3] - final_box[1])
+    dst = lineup_path()
+    ok, size, detail, err = renderer.render(cam, dst, high)
+    if ok:
+        header = png_header(dst)
+        if (header is None
+                or header["width"] != LINEUP_RESOLUTION[0]
+                or header["height"] != LINEUP_RESOLUTION[1]
+                or header["bit_depth"] != 8 or size < 8192):
+            ok, err = False, ("rendered file failed verification: %r %d bytes"
+                              % (header, size))
+    if ok and (final_box[0] < 0.0 or final_box[1] < 0.0
+               or final_box[2] > 1.0 or final_box[3] > 1.0):
+        ok, err = False, "tiers overflow the lineup frame: %r" % (final_box,)
+    out.append("  tiers_lineup_iso_100   %s  ortho_scale %.2f m, projected "
+               "extent %.3f (%s)"
+               % ("OK  " if ok else "FAIL", high, extent, detail if ok else err))
+    for warning in lineup_warnings:
+        out.append("  LINEUP MATERIAL WARNING: %s" % warning)
+    scene.render.resolution_x = RESOLUTION
+    scene.render.resolution_y = RESOLUTION
+    return (dst, ok, size, detail if ok else err, high, extent, final_box,
+            [report["counts"] for report in lineup_bind])
+
+
 def main():
     started = time.time()
     if not HAVE_BPY:
@@ -441,9 +750,12 @@ def main():
         PREVIEW_DIR = os.path.abspath(out_override)
         sys.stdout.write("DEBUG: HDBF_PREVIEW_OUT_DIR=%s\n" % PREVIEW_DIR)
     os.makedirs(PREVIEW_DIR, exist_ok=True)
+    os.makedirs(closeup_dir(), exist_ok=True)
     renderer = Renderer()
     book = PM.MaterialTextureBook()
     bind_reports = []
+    import_failures = []
+    expected_closeups = []
     missing = []
     jobs = []
     for tier in A.TIERS:
@@ -488,6 +800,9 @@ def main():
     if book.warnings:
         for warning in book.warnings:
             out.append("  MATERIAL WARNING: %s" % warning)
+    out.append("")
+    out.extend(closeup_camera_report_lines())
+    out.append("")
     views = [("front", "front", ORTHO_SCALE),
              ("side", "side", ORTHO_SCALE),
              ("top", "top", ORTHO_SCALE),
@@ -498,6 +813,9 @@ def main():
         try:
             import_model(path)      # also strips any imported cameras/lights
         except Exception as exc:
+            import_failures.append(
+                "%s.%s: FAILED to import %s: %s: %s"
+                % (tier, faction, path, type(exc).__name__, exc))
             out.append("  %-14s FAILED to import %s: %s: %s"
                        % (tier + "." + faction, path, type(exc).__name__, exc))
             continue
@@ -522,11 +840,34 @@ def main():
                        % (tier + "." + faction, view, "OK  " if ok else "FAIL",
                           detail if ok else err))
             renderer.results.append((dst, ok, size, detail if ok else err))
+        # ---- ART-07 close-ups: iso/front x 100% (2.0 m) / 50% (4.0 m) ----
+        close_cams = make_closeup_cameras(CLOSEUP_SCALES[0][1])
+        for percent, scale in CLOSEUP_SCALES:
+            for view in ("iso", "front"):
+                dst = closeup_path(tier, faction, view, percent)
+                ok, size, detail, err = renderer.render(close_cams[view], dst,
+                                                        scale)
+                if ok:
+                    hdr = png_header(dst)
+                    if (hdr is None or hdr["width"] != RESOLUTION
+                            or hdr["height"] != RESOLUTION
+                            or hdr["bit_depth"] != 8 or size < 4096):
+                        ok, err = False, (
+                            "rendered file failed verification: %r %d bytes"
+                            % (hdr, size))
+                out.append("  %-14s closeup %-4s %-4s %s  %s"
+                           % (tier + "." + faction, view, percent + "%",
+                              "OK  " if ok else "FAIL", detail if ok else err))
+                renderer.results.append((dst, ok, size, detail if ok else err))
+                expected_closeups.append((dst, "%s.%s" % (tier, faction),
+                                          view, percent))
     if construction:
         reset_scene()
         try:
             import_model(construction)
         except Exception as exc:
+            import_failures.append("Construction: FAILED to import %s: %s: %s"
+                                   % (construction, type(exc).__name__, exc))
             out.append("  Construction FAILED to import: %s: %s"
                        % (type(exc).__name__, exc))
         else:
@@ -561,6 +902,20 @@ def main():
                               detail if ok else err))
                 renderer.results.append((dst, ok, size, detail if ok else err))
     out.append("")
+    lineup_result = None
+    lineup_tiers = [job[0] for job in jobs if job[1] == "Folktails"]
+    if set(lineup_tiers) == set(A.TIERS):
+        out.append("four-tier iso close-up lineup (all four Folktails tiers in "
+                   "one frame):")
+        lineup_result = build_tiers_lineup(renderer, book, out)
+        if lineup_result is not None:
+            dst, ok, size, detail = lineup_result[0], lineup_result[1], \
+                lineup_result[2], lineup_result[3]
+            renderer.results.append((dst, ok, size, detail))
+    else:
+        out.append("tiers_lineup_iso_100: SKIP (%d/4 Folktails tiers in this "
+                   "debug subset run)" % len(set(lineup_tiers)))
+    out.append("")
     out.append("50%-camera A/B sheets (composed from the scale50 panels above):")
     for dst, ok, size, detail in build_ab_sheets(out):
         renderer.results.append((dst, ok, size, detail))
@@ -585,29 +940,97 @@ def main():
                   else "; %d used the documented slot-colour FALLBACK"
                   % material_fallbacks))
     fails = [r for r in renderer.results if not r[1]]
-    out.append("rendered %d/%d previews with %s engine%s"
+    out.append("rendered %d/%d preview image(s) with %s engine%s"
                % (len(renderer.results) - len(fails), len(renderer.results),
                   renderer.engine,
                   " (fallback)" if renderer.engine != "CYCLES" else ""))
-    if fails or fail_reports:
-        out.append("VERDICT: FAIL (%d preview problem(s), %d model context(s) "
-                   "with a material fallback/binding problem)"
-                   % (len(fails), fail_reports))
-        for path, _ok, _size, err in fails:
-            out.append("  bad: %s (%s)" % (path, err))
+    # ---- ART-07 close-up / lineup verification (fail loudly if missing) ----
+    result_ok = {path: ok for path, ok, _size, _detail in renderer.results}
+    closeup_expected = len(jobs) * len(CLOSEUP_SCALES) * 2
+    closeup_bad = []
+    for dst, context, view, percent in expected_closeups:
+        present = os.path.isfile(dst) and os.path.getsize(dst) >= 4096
+        if not (present and result_ok.get(dst)):
+            closeup_bad.append("%s (%s %s %s)"
+                               % (dst, context, view, percent))
+    if len(expected_closeups) != closeup_expected:
+        closeup_bad.append("only %d of %d close-up renders were attempted"
+                           % (len(expected_closeups), closeup_expected))
+    out.append("")
+    out.append("ART-07 close-ups: %d/%d rendered and verified as 512x512 8-bit "
+               "PNG (%d model(s) x iso/front x 100%%/50%%)"
+               % (closeup_expected - len(closeup_bad), closeup_expected,
+                  len(jobs)))
+    for bad in closeup_bad:
+        out.append("  MISSING/EMPTY CLOSE-UP: %s" % bad)
+    lineup_bad = []
+    if lineup_result is not None:
+        dst, ok, size, detail = (lineup_result[0], lineup_result[1],
+                                 lineup_result[2], lineup_result[3])
+        header = png_header(dst) if os.path.isfile(dst) else None
+        lineup_ok = bool(
+            ok and header is not None
+            and header["width"] == LINEUP_RESOLUTION[0]
+            and header["height"] == LINEUP_RESOLUTION[1]
+            and header["bit_depth"] == 8
+            and os.path.getsize(dst) >= 8192)
+        out.append("ART-07 lineup: %s %dx%d 8-bit PNG, ortho_scale %.2f m, "
+                   "projected extent %.3f (%.0f%% fill)"
+                   % ("OK  " if lineup_ok else "FAIL",
+                      header["width"] if header else 0,
+                      header["height"] if header else 0,
+                      lineup_result[4], lineup_result[5],
+                      LINEUP_FIT_FILL * 100))
+        if not lineup_ok:
+            lineup_bad.append("%s (%s)" % (dst, detail))
+            out.append("  MISSING/EMPTY LINEUP: %s" % dst)
+    expected_total = (len(jobs) * len(views)
+                      + len(jobs) * len(CLOSEUP_SCALES) * 2
+                      + (2 if construction else 0)
+                      + 6  # composed 50%-camera A/B sheets
+                      + (1 if lineup_result is not None else 0))
+    count_problems = []
+    if not only and len(renderer.results) != expected_total:
+        count_problems.append(
+            "verified %d output(s) but a full run expects %d"
+            % (len(renderer.results), expected_total))
+    problems = (["preview render failure: %s (%s)" % (path, err)
+                 for path, _ok, _size, err in fails]
+                + (["material binding problem in %d model context(s)"
+                    % fail_reports] if fail_reports else [])
+                + import_failures
+                + ["missing/empty close-up: %s" % bad for bad in closeup_bad]
+                + ["missing/empty lineup: %s" % bad for bad in lineup_bad]
+                + count_problems)
+    if problems:
+        out.append("VERDICT: FAIL (%d problem(s), %d model context(s) with a "
+                   "material fallback/binding problem)"
+                   % (len(problems), fail_reports))
+        for problem in problems:
+            out.append("  bad: %s" % problem)
     else:
-        out.append("VERDICT: PASS - %d preview image(s) rendered from the real "
-                   "vanilla materials and verified as 8-bit PNG"
-                   % len(renderer.results))
+        out.append("VERDICT: PASS - %d image(s) rendered from the real vanilla "
+                   "_D materials and verified as 8-bit PNG, including %d "
+                   "close-up(s) and the four-tier lineup"
+                   % (len(renderer.results), closeup_expected))
     out.append("elapsed: %.1fs" % (time.time() - started))
+    report_path = os.path.join(PREVIEW_DIR, "render-report.txt")
+    out.append("report: %s" % report_path)
     text = "\n".join(out)
+    report_error = None
+    try:
+        with open(report_path, "w", encoding="utf-8", newline="\n") as f:
+            f.write(text + "\n")
+    except OSError as exc:
+        report_error = "%s: %s" % (type(exc).__name__, exc)
+        text += "\nREPORT WRITE FAILED: %s" % report_error
     sys.stdout.write(text + "\n")
     try:
         sys.stdout.flush()
         sys.stderr.flush()
     except Exception:
         pass
-    return 1 if (fails or fail_reports) else 0
+    return 1 if (problems or report_error) else 0
 
 
 if __name__ == "__main__":

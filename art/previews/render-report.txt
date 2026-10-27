@@ -1,0 +1,142 @@
+HDBF preview render: 8 model(s) (tier x faction) -> C:\Users\user\Documents\Timberborn\Mods\HighDensityBoxFarm\art\previews
+material texture map: C:\Users\user\Documents\Timberborn\Mods\HighDensityBoxFarm\art\material_texture_map.json (17 materials, schema hdbf.material_texture_map/v1)
+
+close-up cameras (new ART-07 evidence): orthographic, Cycles CPU, 512x512 per image
+  front close-up: straight-on facade (view direction -Y), look-at (0.00, 0.00, 0.55) m
+  iso close-up:   the existing 3/4 angle, look-at (0.30, 0.30, 0.95) m, camera stand-off 8.00 m (ortho: clipping only)
+  scale "100": ortho_scale 2.00 m = 2.00 m of building surface across the 512 px frame -> 256 screen px/m
+  scale "50": ortho_scale 4.00 m = 4.00 m of building surface across the 512 px frame -> 128 screen px/m
+four-tier lineup: one 1024x512 frame, Folktails tiers side by side, iso ortho at 38 deg elevation; projected silhouette fills 96% of the frame
+
+    Basic.Folktails: materials bound to real vanilla _D textures: 2/2 slots (0 fallback) [normal maps off]
+      M_HDBF_Wood   BaseWood_Brown.Folktails           BaseWood_1K_D_Brown.png      1024x1024   tint=(1.000,1.000,1.000) normal=BaseWood_1K_N.png  uv=inside patch 145.3 px/m
+      M_HDBF_Fabric Moss.Folktails                     Moss_D.Folktails.png         1024x1024   tint=(1.000,1.000,1.000) normal=Plaster_N.Folktails.png  uv=inside tile 341.1 px/m
+  Basic.Folktails front   OK    2.9s CYCLES
+  Basic.Folktails side    OK    4.9s CYCLES
+  Basic.Folktails top     OK    6.1s CYCLES
+  Basic.Folktails scale50 OK    4.2s CYCLES
+  Basic.Folktails iso     OK    5.6s CYCLES
+  Basic.Folktails closeup iso  100% OK    8.3s CYCLES
+  Basic.Folktails closeup front 100% OK    6.9s CYCLES
+  Basic.Folktails closeup iso  50%  OK    6.1s CYCLES
+  Basic.Folktails closeup front 50%  OK    4.6s CYCLES
+    Basic.IronTeeth: materials bound to real vanilla _D textures: 2/2 slots (0 fallback) [normal maps off]
+      M_HDBF_Wood   BaseWood_DarkBrown.IronTeeth       BaseWood_1K_D_Grey.png       1024x1024   tint=(0.311,0.267,0.207) normal=BaseWood_1K_N.png  uv=inside patch 145.3 px/m
+      M_HDBF_Fabric RoofPlanks.IronTeeth               RoofPlanks_D.png             1024x1024   tint=(1.000,1.000,1.000) normal=RoofPlanks_N.png  uv=inside tile 357.8 px/m
+  Basic.IronTeeth front   OK    4.4s CYCLES
+  Basic.IronTeeth side    OK    4.5s CYCLES
+  Basic.IronTeeth top     OK    6.1s CYCLES
+  Basic.IronTeeth scale50 OK    3.8s CYCLES
+  Basic.IronTeeth iso     OK    5.2s CYCLES
+  Basic.IronTeeth closeup iso  100% OK    8.0s CYCLES
+  Basic.IronTeeth closeup front 100% OK    6.8s CYCLES
+  Basic.IronTeeth closeup iso  50%  OK    5.8s CYCLES
+  Basic.IronTeeth closeup front 50%  OK    4.5s CYCLES
+    Intermediate.Folktails: materials bound to real vanilla _D textures: 3/3 slots (0 fallback) [normal maps off]
+      M_HDBF_Wood   BaseWood_LightBrown.Folktails      BaseWood_1K_D_White.png      1024x1024   tint=(0.660,0.555,0.408) normal=BaseWood_1K_N.png  uv=inside patch 145.3 px/m
+      M_HDBF_Glass  WindowsAtlas.Folktails             WindowsAtlas_D.Folktails.png 1024x1024   tint=(1.000,1.000,1.000) normal=WindowsAtlas_N.Folktails.png  uv=inside patch 82.4 px/m
+      M_HDBF_Fabric Plaster_White.Folktails            Plaster_D_White.Folktails.png 1024x1024   tint=(1.000,1.000,1.000) normal=Plaster_N.Folktails.png  uv=inside tile 340.0 px/m
+  Intermediate.Folktails front   OK    4.5s CYCLES
+  Intermediate.Folktails side    OK    4.5s CYCLES
+  Intermediate.Folktails top     OK    6.2s CYCLES
+  Intermediate.Folktails scale50 OK    3.7s CYCLES
+  Intermediate.Folktails iso     OK    4.9s CYCLES
+  Intermediate.Folktails closeup iso  100% OK    7.8s CYCLES
+  Intermediate.Folktails closeup front 100% OK    6.1s CYCLES
+  Intermediate.Folktails closeup iso  50%  OK    5.7s CYCLES
+  Intermediate.Folktails closeup front 50%  OK    4.4s CYCLES
+    Intermediate.IronTeeth: materials bound to real vanilla _D textures: 3/3 slots (0 fallback) [normal maps off]
+      M_HDBF_Wood   BaseWood_Grey.IronTeeth            BaseWood_1K_D_Grey.png       1024x1024   tint=(0.623,0.580,0.526) normal=BaseWood_1K_N.png  uv=inside patch 145.3 px/m
+      M_HDBF_Glass  WindowsAtlas.IronTeeth             WindowsAtlas_D.IronTeeth.png 1024x1024   tint=(1.000,1.000,1.000) normal=WindowsAtlas_N.IronTeeth.png  uv=inside patch 82.4 px/m
+      M_HDBF_Fabric Plaster_Orange.IronTeeth           Plaster_D_White.IronTeeth.png 1024x1024   tint=(0.835,0.482,0.259) normal=Plaster_N.IronTeeth.png  uv=inside tile 340.0 px/m
+  Intermediate.IronTeeth front   OK    4.6s CYCLES
+  Intermediate.IronTeeth side    OK    4.5s CYCLES
+  Intermediate.IronTeeth top     OK    6.1s CYCLES
+  Intermediate.IronTeeth scale50 OK    3.7s CYCLES
+  Intermediate.IronTeeth iso     OK    4.9s CYCLES
+  Intermediate.IronTeeth closeup iso  100% OK    7.8s CYCLES
+  Intermediate.IronTeeth closeup front 100% OK    5.7s CYCLES
+  Intermediate.IronTeeth closeup iso  50%  OK    5.7s CYCLES
+  Intermediate.IronTeeth closeup front 50%  OK    4.1s CYCLES
+    Advanced.Folktails: materials bound to real vanilla _D textures: 4/4 slots (0 fallback) [normal maps off]
+      M_HDBF_Wood   BaseWood_White.Folktails           BaseWood_1K_D_White.png      1024x1024   tint=(0.887,0.864,0.832) normal=BaseWood_1K_N.png  uv=inside patch 145.3 px/m
+      M_HDBF_Metal  BaseMetal.Folktails                BaseMetal_D1.png             1024x1024   tint=(1.000,1.000,1.000) normal=BaseMetal_N.png  uv=inside patch 164.0 px/m
+      M_HDBF_Glass  WindowsAtlas.Folktails             WindowsAtlas_D.Folktails.png 1024x1024   tint=(1.000,1.000,1.000) normal=WindowsAtlas_N.Folktails.png  uv=inside patch 82.4 px/m
+      M_HDBF_Fabric Details.Folktails                  Details_D.Folktails.png      1024x1024   tint=(1.000,1.000,1.000) normal=Details_N.png  uv=inside patch 164.0 px/m
+  Advanced.Folktails front   OK    4.7s CYCLES
+  Advanced.Folktails side    OK    4.5s CYCLES
+  Advanced.Folktails top     OK    6.5s CYCLES
+  Advanced.Folktails scale50 OK    3.7s CYCLES
+  Advanced.Folktails iso     OK    5.0s CYCLES
+  Advanced.Folktails closeup iso  100% OK    8.2s CYCLES
+  Advanced.Folktails closeup front 100% OK    6.6s CYCLES
+  Advanced.Folktails closeup iso  50%  OK    5.9s CYCLES
+  Advanced.Folktails closeup front 50%  OK    4.7s CYCLES
+    Advanced.IronTeeth: materials bound to real vanilla _D textures: 4/4 slots (0 fallback) [normal maps off]
+      M_HDBF_Wood   IrregularPlanks_MetalForged.IronTeeth PlanksWithMetal_D.png        1024x1024   tint=(1.000,1.000,1.000) normal=PlanksWithMetal_N.png  uv=inside tile 340.0 px/m
+      M_HDBF_Metal  BaseMetal.IronTeeth                BaseMetal_D2.png             1024x1024   tint=(1.000,1.000,1.000) normal=BaseMetal_N.png  uv=inside patch 164.0 px/m
+      M_HDBF_Glass  WindowsAtlas.IronTeeth             WindowsAtlas_D.IronTeeth.png 1024x1024   tint=(1.000,1.000,1.000) normal=WindowsAtlas_N.IronTeeth.png  uv=inside patch 82.4 px/m
+      M_HDBF_Fabric Details.IronTeeth                  Details_D.IronTeeth.png      1024x1024   tint=(1.000,1.000,1.000) normal=Details_N.png  uv=inside patch 164.0 px/m
+  Advanced.IronTeeth front   OK    5.0s CYCLES
+  Advanced.IronTeeth side    OK    4.7s CYCLES
+  Advanced.IronTeeth top     OK    6.3s CYCLES
+  Advanced.IronTeeth scale50 OK    3.5s CYCLES
+  Advanced.IronTeeth iso     OK    4.4s CYCLES
+  Advanced.IronTeeth closeup iso  100% OK    7.3s CYCLES
+  Advanced.IronTeeth closeup front 100% OK    6.2s CYCLES
+  Advanced.IronTeeth closeup iso  50%  OK    7.2s CYCLES
+  Advanced.IronTeeth closeup front 50%  OK    5.7s CYCLES
+    Top.Folktails: materials bound to real vanilla _D textures: 4/4 slots (0 fallback) [normal maps off]
+      M_HDBF_Wood   IrregularPlanks_Brown.Folktails    IrregularPlanks_D_Brown.png  1024x1024   tint=(1.000,1.000,1.000) normal=IrregularPlanks_N.png  uv=inside tile 340.0 px/m
+      M_HDBF_Metal  Details.Folktails                  Details_D.Folktails.png      1024x1024   tint=(1.000,1.000,1.000) normal=Details_N.png  uv=inside patch 164.0 px/m
+      M_HDBF_Glass  WindowsAtlas.Folktails             WindowsAtlas_D.Folktails.png 1024x1024   tint=(1.000,1.000,1.000) normal=WindowsAtlas_N.Folktails.png  uv=inside patch 82.4 px/m
+      M_HDBF_Fabric BaseMetal.Folktails                BaseMetal_D1.png             1024x1024   tint=(1.000,1.000,1.000) normal=BaseMetal_N.png  uv=inside patch 164.0 px/m
+  Top.Folktails  front   OK    5.2s CYCLES
+  Top.Folktails  side    OK    4.2s CYCLES
+  Top.Folktails  top     OK    5.8s CYCLES
+  Top.Folktails  scale50 OK    3.6s CYCLES
+  Top.Folktails  iso     OK    4.6s CYCLES
+  Top.Folktails  closeup iso  100% OK    7.7s CYCLES
+  Top.Folktails  closeup front 100% OK    6.0s CYCLES
+  Top.Folktails  closeup iso  50%  OK    5.5s CYCLES
+  Top.Folktails  closeup front 50%  OK    4.3s CYCLES
+    Top.IronTeeth: materials bound to real vanilla _D textures: 4/4 slots (0 fallback) [normal maps off]
+      M_HDBF_Wood   BaseWood_DarkBrown.IronTeeth       BaseWood_1K_D_Grey.png       1024x1024   tint=(0.311,0.267,0.207) normal=BaseWood_1K_N.png  uv=inside patch 145.3 px/m
+      M_HDBF_Metal  Details.IronTeeth                  Details_D.IronTeeth.png      1024x1024   tint=(1.000,1.000,1.000) normal=Details_N.png  uv=inside patch 164.0 px/m
+      M_HDBF_Glass  WindowsAtlas.IronTeeth             WindowsAtlas_D.IronTeeth.png 1024x1024   tint=(1.000,1.000,1.000) normal=WindowsAtlas_N.IronTeeth.png  uv=inside patch 82.4 px/m
+      M_HDBF_Fabric IrregularPlanks_MetalForged.IronTeeth PlanksWithMetal_D.png        1024x1024   tint=(1.000,1.000,1.000) normal=PlanksWithMetal_N.png  uv=inside tile 340.0 px/m
+  Top.IronTeeth  front   OK    4.3s CYCLES
+  Top.IronTeeth  side    OK    4.2s CYCLES
+  Top.IronTeeth  top     OK    5.8s CYCLES
+  Top.IronTeeth  scale50 OK    3.3s CYCLES
+  Top.IronTeeth  iso     OK    4.3s CYCLES
+  Top.IronTeeth  closeup iso  100% OK    7.1s CYCLES
+  Top.IronTeeth  closeup front 100% OK    5.6s CYCLES
+  Top.IronTeeth  closeup iso  50%  OK    5.5s CYCLES
+  Top.IronTeeth  closeup front 50%  OK    4.3s CYCLES
+  ConstructionStage0: shared source mesh, preview uses the Folktails material set (both factions share the same geometry; the IronTeeth variant only differs in textures)
+    ConstructionStage0 [construction stage, Folktails materials]: materials bound to real vanilla _D textures: 2/2 slots (0 fallback) [normal maps off]
+      M_HDBF_Wood   BaseWood_Brown.Folktails           BaseWood_1K_D_Brown.png      1024x1024   tint=(1.000,1.000,1.000) normal=BaseWood_1K_N.png  uv=inside patch 145.3 px/m
+      M_HDBF_Metal  BaseMetal.Folktails                BaseMetal_D1.png             1024x1024   tint=(1.000,1.000,1.000) normal=BaseMetal_N.png  uv=inside patch 164.0 px/m
+  Construction front   OK    3.9s CYCLES
+  Construction iso     OK    4.5s CYCLES
+
+four-tier iso close-up lineup (all four Folktails tiers in one frame):
+  tiers_lineup_iso_100   OK    ortho_scale 18.17 m, projected extent 0.960 (8.1s CYCLES)
+
+50%-camera A/B sheets (composed from the scale50 panels above):
+  tier_ab_basic_vs_intermediate_50 OK    2 panels 1024x512
+  tier_ab_advanced_vs_top_50       OK    2 panels 1024x512
+  tiers_scale50_grid               OK    4 panels 1024x1024
+  faction_ab_basic_50              OK    2 panels 1024x512
+  faction_ab_top_50                OK    2 panels 1024x512
+  tiers_factions_scale50_grid      OK    8 panels 2048x1024
+
+material binding: 28/28 imported material slot(s) bound to the real vanilla _D texture
+rendered 81/81 preview image(s) with CYCLES engine
+
+ART-07 close-ups: 32/32 rendered and verified as 512x512 8-bit PNG (8 model(s) x iso/front x 100%/50%)
+ART-07 lineup: OK   1024x512 8-bit PNG, ortho_scale 18.17 m, projected extent 0.960 (96% fill)
+VERDICT: PASS - 81 image(s) rendered from the real vanilla _D materials and verified as 8-bit PNG, including 32 close-up(s) and the four-tier lineup
+elapsed: 412.6s
+report: C:\Users\user\Documents\Timberborn\Mods\HighDensityBoxFarm\art\previews\render-report.txt

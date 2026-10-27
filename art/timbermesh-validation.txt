@@ -8,14 +8,15 @@ mode:       pure-python / Blender-free (zlib + the vendored official plugin's
 contract:   art/timbermesh_common.py (single source of truth: tiers, factions,
             file naming, vanilla material whitelists, export-space coordinates)
 schema:     art/tools/timbermesh_blender_plugin/model_pb2.py
-python:     CPython 3.12.14 on Windows
+python:     CPython 3.11.7 on Windows
 workspace:  C:\Users\user\Documents\Timberborn\Mods\HighDensityBoxFarm
 output dir: art\timbermesh
 files:      16 expected (8 finished LOD0 + 8 ConstructionStage0), 16 present
-tolerances: bounds +-0.020 (strict 3.00 x 1.00 x 3.00 envelope), min corner +-0.020, empty positions +-0.020, uv0 [0,1] +-0.001, uv0-in-material-patch +-1e-04
+tolerances: bounds +-0.020 (strict 3.00 x 1.00 x 3.00 envelope), min corner +-0.020, empty positions +-0.020, uv0 [0,1] +-0.001, mode-aware ART-07 canvas +-1e-04 (tile guard bound +-2e-06)
 tri budget: <= 6000 per file (timbermesh_common.TRI_BUDGET_LOD0 = LOD0 tier budget)
 roof:       ONE flat empty platform; walking surface == model apex y = 1.00; nothing above it; 30 cm clearance above the surface
-materials:  ART-05 per-material real-_D texture patches (art/material_texture_map.json, schema 'hdbf.material_texture_map/v1'); patch mean RGB / std re-verified from the vanilla PNG bytes with art/png_stats.py (mean +-0.5, std +-0.5, std <= std_max)
+materials:  ART-05 per-material real-_D texture patches + ART-07 world-scale UV mapping (art/material_texture_map.json, schema 'hdbf.material_texture_map/v1'); patch mean RGB / std re-verified from the vanilla PNG bytes with art/png_stats.py (mean +-0.5, std +-0.5, std <= std_max)
+ART-07:     uv = uv_center + (world_uv - world_center) * px_per_m / texture_size in the Blender author space (the .timbermesh export is converted back with author = (x-1.5, 1.5-z, y)); dominant face normal (unit Newell normal, |components| rounded to 4 decimals, X > Y > Z) picks the projection plane; C15 density: aggregate +-2 % per material, per-triangle +-25 % above 0.05 m^2, tile band 300-600 px/m, patch floor >= 64 px/m (2x ART-06), exact UV recompute +-1e-03; ambiguous-plane triangles (top-two rounded |normal| components within 1e-03) <= 15 % of triangles / 2.0 % of world area; C16 verifies the frozen mapping contract + per-file determinism
 
 --------------------------------------------------------------------------------------------------------
 CHECKS (per file; all nine must PASS for the file to PASS)
@@ -27,12 +28,14 @@ CHECKS (per file; all nine must PASS for the file to PASS)
   C6  exactly the 3 nodes #Port#Power/#Port#Pipe/#Port#Logistics (vertexCount == 0, no meshes, position within +-0.02 of the contract), NO #Slot# node at all, and the roof is ONE flat empty platform: walking surface == model apex y == 1.00 inside the near-full plan, NOTHING above y == 1.00 (30 cm clearance), top face present
   C7  vertex property names subset of {position, normal, tangent, color, uv0, uv1, uv2}; 'position','normal','tangent' present on every node with vertexCount > 0; no NaN/Inf; scalarType FLOAT(4); dim 3/3/4/4/2/2/2; data length == vertexCount*dim*4
   C8  all mesh indices in [0, vertexCount); every node parent is -1 or < its own index; exactly one root node (parent == -1) and its name == file stem; uv0 values in [0, 1] +-0.001
-  C9  ART-05: for every material used by a mesh, every uv0 value referenced by that material's faces lies inside the material's real-_D texture patch uv_rect from art/material_texture_map.json (tolerance 1e-04); per-material uv0 min/max is reported and ONE escaping vertex FAILS
+  C9  ART-07: for every material used by a mesh, every uv0 value referenced by that material's faces lies inside the material's ART-07 canvas: tile materials inside the frozen 2-texel guard band (2/1024), patch materials inside art/material_texture_map.json's uv_canvas.uv_rect (tolerance 1e-04); per-material uv0 min/max is reported and ONE escaping vertex FAILS
 
-CROSS-FILE MATERIAL CHECKS (C10-C12; see RESULT and their own sections)
+CROSS-FILE MATERIAL CHECKS (C10-C12 ART-05 + C15-C16 ART-07; see RESULT and their own sections)
   C10 art/material_texture_map.json schema + coverage of every required material
   C11 real vanilla _D PNG patch mean RGB / std re-verification (SKIP only when no texture root exists)
   C12 hazard / large-shell policy (PaintedMetal.* forbidden, no hazard patch shipped, exclusion rects respected)
+  C15 ART-07 world-UV texel density: every material of every shipped file must keep the map px_per_m (aggregate +-2 %, per-triangle +-25 % above 0.05 m^2, tile band 300-600 px/m, patch floor 64 px/m, exact UV recompute +-1e-03, ambiguous planes <= 15 % of triangles / 2.0 % of area)
+  C16 ART-07 UV mapping contract / determinism: sec.4 map fields, px_per_m reproduction from the usable canvas/coverage, wrap/tile_meters/uv_canvas/patch validation, construction shared windows and the same density/canvas in every shipped file
 NEGATIVE CONTROLS (requirement D) run after the checks; each must be REJECTED or the run fails.
 
 PER-FILE RESULTS
@@ -41,10 +44,10 @@ PER-FILE RESULTS
 [ 1/16] BoxFarm.Basic.Folktails.Model
   tier=Basic        faction=Folktails  kind=finished (LOD0)
   file: art\timbermesh\BoxFarm.Basic.Folktails.Model.timbermesh
-  bytes: 137,112 bytes (zlib) -> 909,846 bytes (protobuf)
-  C1  parses (zlib + protobuf)          PASS    zlib ok: 137,112 bytes compressed -> 909,846 bytes protobuf; Model parsed; nodes=4
+  bytes: 115,647 bytes (zlib) -> 909,974 bytes (protobuf)
+  C1  parses (zlib + protobuf)          PASS    zlib ok: 115,647 bytes compressed -> 909,974 bytes protobuf; Model parsed; nodes=4
   C2  model identity (name/version)     PASS    Model.name='BoxFarm.Basic.Folktails.Model' version=0; root node name='BoxFarm.Basic.Folktails.Model'
-  C3  mesh bounds (3x1x3 @ corner)      PASS    size=(3.0000, 1.0000, 3.0000) min=(-0.0000, -0.0000, -0.0000) max=(3.0000, 1.0000, 3.0000); size_dev=0.0000 min_dev=0.0000 (tolerance 0.020, 13662 vertices)
+  C3  mesh bounds (3x1x3 @ corner)      PASS    size=(3.0000, 1.0000, 3.0000) min=(-0.0000, -0.0000, -0.0000) max=(3.0000, 1.0000, 3.0000); size_dev=0.0000 min_dev=0.0000 (tolerance 0.020, 13664 vertices)
   C4  triangles <= budget               PASS    5850 triangles (budget 6000, +150 spare); total index count 17,550
         - per-node triangles: BoxFarm.Basic.Folktails.Model=5850
   C5  materials (whitelist + count)     PASS    2 distinct material(s) across 2 mesh(es): ['BaseWood_Brown.Folktails', 'Moss.Folktails']; whitelist=Folktails whitelist
@@ -54,23 +57,23 @@ PER-FILE RESULTS
         - #Port#Pipe position=(0.0000, 0.4000, 1.5000) dev=0.0000
         - #Port#Logistics position=(0.5000, 0.3500, 3.0000) dev=0.0000
         - flat roof: apex=1.0000 top=1.0000 above_top=0 above_clearance=0 near_top_band_vertices=616
-  C7  vertex properties                 PASS    property names ['color', 'normal', 'position', 'tangent', 'uv0']; position/normal/tangent present on 1 vertex node(s); 0 NaN/Inf value(s) in 874,368 bytes of float32 data; scalarType/dimension/length checked
-        - node 'BoxFarm.Basic.Folktails.Model' vertexCount=13662 properties=[('position', 3), ('normal', 3), ('tangent', 4), ('color', 4), ('uv0', 2)] meshes=2
+  C7  vertex properties                 PASS    property names ['color', 'normal', 'position', 'tangent', 'uv0']; position/normal/tangent present on 1 vertex node(s); 0 NaN/Inf value(s) in 874,496 bytes of float32 data; scalarType/dimension/length checked
+        - node 'BoxFarm.Basic.Folktails.Model' vertexCount=13664 properties=[('position', 3), ('normal', 3), ('tangent', 4), ('color', 4), ('uv0', 2)] meshes=2
         - node '#Port#Power' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
         - node '#Port#Pipe' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
         - node '#Port#Logistics' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
-  C8  topology (indices/parents/uv0)    PASS    all 17,550 indices in [0, vertexCount); parent links valid; exactly 1 root node ('BoxFarm.Basic.Folktails.Model'); uv0 range u[0.0078, 0.4287] v[0.0166, 0.7109] over 13662 values (tolerance 0.001)
-        - total index count: 17,550; uv0 values checked: 13,662
-  C9  material patch UV containment     PASS    2 material(s) / 17,550 uv0 value(s) checked against their real-_D texture patch (tolerance 1e-04): all inside
-        - PASS BaseWood_Brown.Folktails           patch uv=[0.003906, 0.011719, 0.253906, 0.261719]  uv0 u=[0.007812, 0.249023] v=[0.016602, 0.257813]  values=15822
-        - PASS Moss.Folktails                     patch uv=[0.183594, 0.464844, 0.433594, 0.714844]  uv0 u=[0.187500, 0.428711] v=[0.469727, 0.710938]  values=1728
+  C8  topology (indices/parents/uv0)    PASS    all 17,550 indices in [0, vertexCount); parent links valid; exactly 1 root node ('BoxFarm.Basic.Folktails.Model'); uv0 range u[0.0037, 0.9963] v[0.0037, 0.9963] over 13664 values (tolerance 0.001)
+        - total index count: 17,550; uv0 values checked: 13,664
+  C9  material patch UV containment     PASS    2 material(s) (1 tile / 1 patch) / 17,550 uv0 value(s) checked against their ART-07 canvases (tile: 2-texel guard band; patch: uv_canvas): all inside
+        - PASS BaseWood_Brown.Folktails           mode=patch uv_canvas uv=[0.003906, 0.566406, 0.500000, 0.996094]  uv0 u=[0.039111, 0.464795] v=[0.568408, 0.994092]  values=15822
+        - PASS Moss.Folktails                     mode=tile  tile guard uv=[0.001953, 0.001953, 0.998047, 0.998047]  uv0 u=[0.003673, 0.996327] v=[0.003673, 0.996327]  values=1728
   RESULT: PASS
 --------------------------------------------------------------------------------------------------------
 [ 2/16] BoxFarm.Basic.IronTeeth.Model
   tier=Basic        faction=IronTeeth  kind=finished (LOD0)
   file: art\timbermesh\BoxFarm.Basic.IronTeeth.Model.timbermesh
-  bytes: 131,612 bytes (zlib) -> 908,320 bytes (protobuf)
-  C1  parses (zlib + protobuf)          PASS    zlib ok: 131,612 bytes compressed -> 908,320 bytes protobuf; Model parsed; nodes=4
+  bytes: 114,464 bytes (zlib) -> 908,320 bytes (protobuf)
+  C1  parses (zlib + protobuf)          PASS    zlib ok: 114,464 bytes compressed -> 908,320 bytes protobuf; Model parsed; nodes=4
   C2  model identity (name/version)     PASS    Model.name='BoxFarm.Basic.IronTeeth.Model' version=0; root node name='BoxFarm.Basic.IronTeeth.Model'
   C3  mesh bounds (3x1x3 @ corner)      PASS    size=(3.0000, 1.0000, 3.0000) min=(-0.0000, -0.0000, -0.0000) max=(3.0000, 1.0000, 3.0000); size_dev=0.0000 min_dev=0.0000 (tolerance 0.020, 13638 vertices)
   C4  triangles <= budget               PASS    5850 triangles (budget 6000, +150 spare); total index count 17,550
@@ -87,20 +90,20 @@ PER-FILE RESULTS
         - node '#Port#Power' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
         - node '#Port#Pipe' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
         - node '#Port#Logistics' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
-  C8  topology (indices/parents/uv0)    PASS    all 17,550 indices in [0, vertexCount); parent links valid; exactly 1 root node ('BoxFarm.Basic.IronTeeth.Model'); uv0 range u[0.0078, 0.4912] v[0.0254, 0.6953] over 13638 values (tolerance 0.001)
+  C8  topology (indices/parents/uv0)    PASS    all 17,550 indices in [0, vertexCount); parent links valid; exactly 1 root node ('BoxFarm.Basic.IronTeeth.Model'); uv0 range u[0.0353, 0.9647] v[0.0353, 0.9941] over 13638 values (tolerance 0.001)
         - total index count: 17,550; uv0 values checked: 13,638
-  C9  material patch UV containment     PASS    2 material(s) / 17,550 uv0 value(s) checked against their real-_D texture patch (tolerance 1e-04): all inside
-        - PASS BaseWood_DarkBrown.IronTeeth       patch uv=[0.355469, 0.558594, 0.496094, 0.699219]  uv0 u=[0.359375, 0.491211] v=[0.563477, 0.695313]  values=17268
-        - PASS RoofPlanks.IronTeeth               patch uv=[0.003906, 0.011719, 0.253906, 0.261719]  uv0 u=[0.007812, 0.242187] v=[0.025391, 0.257813]  values=282
+  C9  material patch UV containment     PASS    2 material(s) (1 tile / 1 patch) / 17,550 uv0 value(s) checked against their ART-07 canvases (tile: 2-texel guard band; patch: uv_canvas): all inside
+        - PASS BaseWood_DarkBrown.IronTeeth       mode=patch uv_canvas uv=[0.003906, 0.566406, 0.500000, 0.996094]  uv0 u=[0.039111, 0.464795] v=[0.568408, 0.994092]  values=17268
+        - PASS RoofPlanks.IronTeeth               mode=tile  tile guard uv=[0.001953, 0.001953, 0.998047, 0.998047]  uv0 u=[0.035279, 0.964721] v=[0.035279, 0.964721]  values=282
   RESULT: PASS
 --------------------------------------------------------------------------------------------------------
 [ 3/16] BoxFarm.Intermediate.Folktails.Model
   tier=Intermediate faction=Folktails  kind=finished (LOD0)
   file: art\timbermesh\BoxFarm.Intermediate.Folktails.Model.timbermesh
-  bytes: 131,560 bytes (zlib) -> 903,016 bytes (protobuf)
-  C1  parses (zlib + protobuf)          PASS    zlib ok: 131,560 bytes compressed -> 903,016 bytes protobuf; Model parsed; nodes=4
+  bytes: 110,351 bytes (zlib) -> 903,144 bytes (protobuf)
+  C1  parses (zlib + protobuf)          PASS    zlib ok: 110,351 bytes compressed -> 903,144 bytes protobuf; Model parsed; nodes=4
   C2  model identity (name/version)     PASS    Model.name='BoxFarm.Intermediate.Folktails.Model' version=0; root node name='BoxFarm.Intermediate.Folktails.Model'
-  C3  mesh bounds (3x1x3 @ corner)      PASS    size=(3.0000, 1.0000, 3.0000) min=(-0.0000, -0.0000, -0.0000) max=(3.0000, 1.0000, 3.0000); size_dev=0.0000 min_dev=0.0000 (tolerance 0.020, 13554 vertices)
+  C3  mesh bounds (3x1x3 @ corner)      PASS    size=(3.0000, 1.0000, 3.0000) min=(-0.0000, -0.0000, -0.0000) max=(3.0000, 1.0000, 3.0000); size_dev=0.0000 min_dev=0.0000 (tolerance 0.020, 13556 vertices)
   C4  triangles <= budget               PASS    5854 triangles (budget 6000, +146 spare); total index count 17,562
         - per-node triangles: BoxFarm.Intermediate.Folktails.Model=5854
   C5  materials (whitelist + count)     PASS    3 distinct material(s) across 3 mesh(es): ['BaseWood_LightBrown.Folktails', 'Plaster_White.Folktails', 'WindowsAtlas.Folktails']; whitelist=Folktails whitelist
@@ -110,24 +113,24 @@ PER-FILE RESULTS
         - #Port#Pipe position=(0.0000, 0.4000, 1.5000) dev=0.0000
         - #Port#Logistics position=(0.5000, 0.3500, 3.0000) dev=0.0000
         - flat roof: apex=1.0000 top=1.0000 above_top=0 above_clearance=0 near_top_band_vertices=318
-  C7  vertex properties                 PASS    property names ['color', 'normal', 'position', 'tangent', 'uv0']; position/normal/tangent present on 1 vertex node(s); 0 NaN/Inf value(s) in 867,456 bytes of float32 data; scalarType/dimension/length checked
-        - node 'BoxFarm.Intermediate.Folktails.Model' vertexCount=13554 properties=[('position', 3), ('normal', 3), ('tangent', 4), ('color', 4), ('uv0', 2)] meshes=3
+  C7  vertex properties                 PASS    property names ['color', 'normal', 'position', 'tangent', 'uv0']; position/normal/tangent present on 1 vertex node(s); 0 NaN/Inf value(s) in 867,584 bytes of float32 data; scalarType/dimension/length checked
+        - node 'BoxFarm.Intermediate.Folktails.Model' vertexCount=13556 properties=[('position', 3), ('normal', 3), ('tangent', 4), ('color', 4), ('uv0', 2)] meshes=3
         - node '#Port#Power' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
         - node '#Port#Pipe' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
         - node '#Port#Logistics' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
-  C8  topology (indices/parents/uv0)    PASS    all 17,562 indices in [0, vertexCount); parent links valid; exactly 1 root node ('BoxFarm.Intermediate.Folktails.Model'); uv0 range u[0.0234, 0.9912] v[0.0635, 0.9922] over 13554 values (tolerance 0.001)
-        - total index count: 17,562; uv0 values checked: 13,554
-  C9  material patch UV containment     PASS    3 material(s) / 17,562 uv0 value(s) checked against their real-_D texture patch (tolerance 1e-04): all inside
-        - PASS BaseWood_LightBrown.Folktails      patch uv=[0.019531, 0.574219, 0.207031, 0.761719]  uv0 u=[0.023437, 0.202148] v=[0.579102, 0.757813]  values=16164
-        - PASS Plaster_White.Folktails            patch uv=[0.457031, 0.683594, 0.769531, 0.996094]  uv0 u=[0.461914, 0.764648] v=[0.688477, 0.992188]  values=1146
-        - PASS WindowsAtlas.Folktails             patch uv=[0.808594, 0.058594, 0.996094, 0.246094]  uv0 u=[0.814453, 0.991211] v=[0.063477, 0.242188]  values=252
+  C8  topology (indices/parents/uv0)    PASS    all 17,562 indices in [0, vertexCount); parent links valid; exactly 1 root node ('BoxFarm.Intermediate.Folktails.Model'); uv0 range u[0.0023, 0.9977] v[0.0023, 0.9977] over 13556 values (tolerance 0.001)
+        - total index count: 17,562; uv0 values checked: 13,556
+  C9  material patch UV containment     PASS    3 material(s) (1 tile / 2 patch) / 17,562 uv0 value(s) checked against their ART-07 canvases (tile: 2-texel guard band; patch: uv_canvas): all inside
+        - PASS BaseWood_LightBrown.Folktails      mode=patch uv_canvas uv=[0.003906, 0.566406, 0.500000, 0.996094]  uv0 u=[0.039111, 0.464795] v=[0.568408, 0.994092]  values=16164
+        - PASS Plaster_White.Folktails            mode=tile  tile guard uv=[0.001953, 0.001953, 0.998047, 0.998047]  uv0 u=[0.002285, 0.997715] v=[0.002285, 0.997715]  values=1146
+        - PASS WindowsAtlas.Folktails             mode=patch uv_canvas uv=[0.753906, 0.003906, 0.996094, 0.246094]  uv0 u=[0.757677, 0.992323] v=[0.007677, 0.242323]  values=252
   RESULT: PASS
 --------------------------------------------------------------------------------------------------------
 [ 4/16] BoxFarm.Intermediate.IronTeeth.Model
   tier=Intermediate faction=IronTeeth  kind=finished (LOD0)
   file: art\timbermesh\BoxFarm.Intermediate.IronTeeth.Model.timbermesh
-  bytes: 128,163 bytes (zlib) -> 903,651 bytes (protobuf)
-  C1  parses (zlib + protobuf)          PASS    zlib ok: 128,163 bytes compressed -> 903,651 bytes protobuf; Model parsed; nodes=4
+  bytes: 110,078 bytes (zlib) -> 903,651 bytes (protobuf)
+  C1  parses (zlib + protobuf)          PASS    zlib ok: 110,078 bytes compressed -> 903,651 bytes protobuf; Model parsed; nodes=4
   C2  model identity (name/version)     PASS    Model.name='BoxFarm.Intermediate.IronTeeth.Model' version=0; root node name='BoxFarm.Intermediate.IronTeeth.Model'
   C3  mesh bounds (3x1x3 @ corner)      PASS    size=(3.0000, 1.0000, 3.0000) min=(-0.0000, -0.0000, -0.0000) max=(3.0000, 1.0000, 3.0000); size_dev=0.0000 min_dev=0.0000 (tolerance 0.020, 13564 vertices)
   C4  triangles <= budget               PASS    5854 triangles (budget 6000, +146 spare); total index count 17,562
@@ -144,21 +147,21 @@ PER-FILE RESULTS
         - node '#Port#Power' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
         - node '#Port#Pipe' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
         - node '#Port#Logistics' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
-  C8  topology (indices/parents/uv0)    PASS    all 17,562 indices in [0, vertexCount); parent links valid; exactly 1 root node ('BoxFarm.Intermediate.IronTeeth.Model'); uv0 range u[0.3594, 0.9912] v[0.0645, 0.9922] over 13564 values (tolerance 0.001)
+  C8  topology (indices/parents/uv0)    PASS    all 17,562 indices in [0, vertexCount); parent links valid; exactly 1 root node ('BoxFarm.Intermediate.IronTeeth.Model'); uv0 range u[0.0023, 0.9977] v[0.0023, 0.9977] over 13564 values (tolerance 0.001)
         - total index count: 17,562; uv0 values checked: 13,564
-  C9  material patch UV containment     PASS    3 material(s) / 17,562 uv0 value(s) checked against their real-_D texture patch (tolerance 1e-04): all inside
-        - PASS BaseWood_Grey.IronTeeth            patch uv=[0.355469, 0.558594, 0.496094, 0.699219]  uv0 u=[0.359375, 0.491211] v=[0.563477, 0.695313]  values=16164
-        - PASS Plaster_Orange.IronTeeth           patch uv=[0.457031, 0.683594, 0.769531, 0.996094]  uv0 u=[0.461914, 0.764648] v=[0.690430, 0.992188]  values=1146
-        - PASS WindowsAtlas.IronTeeth             patch uv=[0.808594, 0.058594, 0.996094, 0.246094]  uv0 u=[0.812500, 0.991211] v=[0.064453, 0.239258]  values=252
+  C9  material patch UV containment     PASS    3 material(s) (1 tile / 2 patch) / 17,562 uv0 value(s) checked against their ART-07 canvases (tile: 2-texel guard band; patch: uv_canvas): all inside
+        - PASS BaseWood_Grey.IronTeeth            mode=patch uv_canvas uv=[0.003906, 0.566406, 0.500000, 0.996094]  uv0 u=[0.039111, 0.464795] v=[0.568408, 0.994092]  values=16164
+        - PASS Plaster_Orange.IronTeeth           mode=tile  tile guard uv=[0.001953, 0.001953, 0.998047, 0.998047]  uv0 u=[0.002285, 0.997715] v=[0.002285, 0.997715]  values=1146
+        - PASS WindowsAtlas.IronTeeth             mode=patch uv_canvas uv=[0.753906, 0.003906, 0.996094, 0.246094]  uv0 u=[0.757677, 0.992323] v=[0.007677, 0.242323]  values=252
   RESULT: PASS
 --------------------------------------------------------------------------------------------------------
 [ 5/16] BoxFarm.Advanced.Folktails.Model
   tier=Advanced     faction=Folktails  kind=finished (LOD0)
   file: art\timbermesh\BoxFarm.Advanced.Folktails.Model.timbermesh
-  bytes: 133,058 bytes (zlib) -> 902,045 bytes (protobuf)
-  C1  parses (zlib + protobuf)          PASS    zlib ok: 133,058 bytes compressed -> 902,045 bytes protobuf; Model parsed; nodes=4
+  bytes: 111,588 bytes (zlib) -> 902,365 bytes (protobuf)
+  C1  parses (zlib + protobuf)          PASS    zlib ok: 111,588 bytes compressed -> 902,365 bytes protobuf; Model parsed; nodes=4
   C2  model identity (name/version)     PASS    Model.name='BoxFarm.Advanced.Folktails.Model' version=0; root node name='BoxFarm.Advanced.Folktails.Model'
-  C3  mesh bounds (3x1x3 @ corner)      PASS    size=(3.0000, 1.0000, 3.0000) min=(-0.0000, -0.0000, -0.0000) max=(3.0000, 1.0000, 3.0000); size_dev=0.0000 min_dev=0.0000 (tolerance 0.020, 13539 vertices)
+  C3  mesh bounds (3x1x3 @ corner)      PASS    size=(3.0000, 1.0000, 3.0000) min=(-0.0000, -0.0000, -0.0000) max=(3.0000, 1.0000, 3.0000); size_dev=0.0000 min_dev=0.0000 (tolerance 0.020, 13544 vertices)
   C4  triangles <= budget               PASS    5850 triangles (budget 6000, +150 spare); total index count 17,550
         - per-node triangles: BoxFarm.Advanced.Folktails.Model=5850
   C5  materials (whitelist + count)     PASS    4 distinct material(s) across 4 mesh(es): ['BaseMetal.Folktails', 'Details.Folktails', 'BaseWood_White.Folktails', 'WindowsAtlas.Folktails']; whitelist=Folktails whitelist
@@ -168,27 +171,27 @@ PER-FILE RESULTS
         - #Port#Pipe position=(0.0000, 0.4000, 1.5000) dev=0.0000
         - #Port#Logistics position=(0.5000, 0.3500, 3.0000) dev=0.0000
         - flat roof: apex=1.0000 top=1.0000 above_top=0 above_clearance=0 near_top_band_vertices=792
-  C7  vertex properties                 PASS    property names ['color', 'normal', 'position', 'tangent', 'uv0']; position/normal/tangent present on 1 vertex node(s); 0 NaN/Inf value(s) in 866,496 bytes of float32 data; scalarType/dimension/length checked
-        - node 'BoxFarm.Advanced.Folktails.Model' vertexCount=13539 properties=[('position', 3), ('normal', 3), ('tangent', 4), ('color', 4), ('uv0', 2)] meshes=4
+  C7  vertex properties                 PASS    property names ['color', 'normal', 'position', 'tangent', 'uv0']; position/normal/tangent present on 1 vertex node(s); 0 NaN/Inf value(s) in 866,816 bytes of float32 data; scalarType/dimension/length checked
+        - node 'BoxFarm.Advanced.Folktails.Model' vertexCount=13544 properties=[('position', 3), ('normal', 3), ('tangent', 4), ('color', 4), ('uv0', 2)] meshes=4
         - node '#Port#Power' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
         - node '#Port#Pipe' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
         - node '#Port#Logistics' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
-  C8  topology (indices/parents/uv0)    PASS    all 17,550 indices in [0, vertexCount); parent links valid; exactly 1 root node ('BoxFarm.Advanced.Folktails.Model'); uv0 range u[0.0234, 0.9902] v[0.0244, 0.8672] over 13539 values (tolerance 0.001)
-        - total index count: 17,550; uv0 values checked: 13,539
-  C9  material patch UV containment     PASS    4 material(s) / 17,550 uv0 value(s) checked against their real-_D texture patch (tolerance 1e-04): all inside
-        - PASS BaseMetal.Folktails                patch uv=[0.066406, 0.558594, 0.378906, 0.871094]  uv0 u=[0.070312, 0.374023] v=[0.563477, 0.867188]  values=14022
-        - PASS BaseWood_White.Folktails           patch uv=[0.019531, 0.574219, 0.207031, 0.761719]  uv0 u=[0.023437, 0.201172] v=[0.579102, 0.757813]  values=2268
-        - PASS Details.Folktails                  patch uv=[0.097656, 0.019531, 0.347656, 0.269531]  uv0 u=[0.103515, 0.341797] v=[0.024414, 0.265625]  values=972
-        - PASS WindowsAtlas.Folktails             patch uv=[0.808594, 0.058594, 0.996094, 0.246094]  uv0 u=[0.812500, 0.990235] v=[0.064453, 0.231446]  values=288
+  C8  topology (indices/parents/uv0)    PASS    all 17,550 indices in [0, vertexCount); parent links valid; exactly 1 root node ('BoxFarm.Advanced.Folktails.Model'); uv0 range u[0.0098, 0.9939] v[0.0077, 0.9935] over 13544 values (tolerance 0.001)
+        - total index count: 17,550; uv0 values checked: 13,544
+  C9  material patch UV containment     PASS    4 material(s) (0 tile / 4 patch) / 17,550 uv0 value(s) checked against their ART-07 canvases (tile: 2-texel guard band; patch: uv_canvas): all inside
+        - PASS BaseMetal.Folktails                mode=patch uv_canvas uv=[0.007812, 0.507812, 0.492188, 0.992188]  uv0 u=[0.009766, 0.490234] v=[0.509766, 0.990234]  values=14022
+        - PASS BaseWood_White.Folktails           mode=patch uv_canvas uv=[0.003906, 0.566406, 0.500000, 0.996094]  uv0 u=[0.042233, 0.464227] v=[0.571530, 0.993524]  values=2268
+        - PASS Details.Folktails                  mode=patch uv_canvas uv=[0.003906, 0.011719, 0.496094, 0.496094]  uv0 u=[0.009926, 0.490074] v=[0.013832, 0.493980]  values=972
+        - PASS WindowsAtlas.Folktails             mode=patch uv_canvas uv=[0.753906, 0.003906, 0.996094, 0.246094]  uv0 u=[0.757677, 0.993933] v=[0.007677, 0.243933]  values=288
   RESULT: PASS
 --------------------------------------------------------------------------------------------------------
 [ 6/16] BoxFarm.Advanced.IronTeeth.Model
   tier=Advanced     faction=IronTeeth  kind=finished (LOD0)
   file: art\timbermesh\BoxFarm.Advanced.IronTeeth.Model.timbermesh
-  bytes: 133,106 bytes (zlib) -> 902,698 bytes (protobuf)
-  C1  parses (zlib + protobuf)          PASS    zlib ok: 133,106 bytes compressed -> 902,698 bytes protobuf; Model parsed; nodes=4
+  bytes: 111,355 bytes (zlib) -> 902,890 bytes (protobuf)
+  C1  parses (zlib + protobuf)          PASS    zlib ok: 111,355 bytes compressed -> 902,890 bytes protobuf; Model parsed; nodes=4
   C2  model identity (name/version)     PASS    Model.name='BoxFarm.Advanced.IronTeeth.Model' version=0; root node name='BoxFarm.Advanced.IronTeeth.Model'
-  C3  mesh bounds (3x1x3 @ corner)      PASS    size=(3.0000, 1.0000, 3.0000) min=(-0.0000, -0.0000, -0.0000) max=(3.0000, 1.0000, 3.0000); size_dev=0.0000 min_dev=0.0000 (tolerance 0.020, 13549 vertices)
+  C3  mesh bounds (3x1x3 @ corner)      PASS    size=(3.0000, 1.0000, 3.0000) min=(-0.0000, -0.0000, -0.0000) max=(3.0000, 1.0000, 3.0000); size_dev=0.0000 min_dev=0.0000 (tolerance 0.020, 13552 vertices)
   C4  triangles <= budget               PASS    5850 triangles (budget 6000, +150 spare); total index count 17,550
         - per-node triangles: BoxFarm.Advanced.IronTeeth.Model=5850
   C5  materials (whitelist + count)     PASS    4 distinct material(s) across 4 mesh(es): ['BaseMetal.IronTeeth', 'Details.IronTeeth', 'IrregularPlanks_MetalForged.IronTeeth', 'WindowsAtlas.IronTeeth']; whitelist=IronTeeth whitelist
@@ -198,27 +201,27 @@ PER-FILE RESULTS
         - #Port#Pipe position=(0.0000, 0.4000, 1.5000) dev=0.0000
         - #Port#Logistics position=(0.5000, 0.3500, 3.0000) dev=0.0000
         - flat roof: apex=1.0000 top=1.0000 above_top=0 above_clearance=0 near_top_band_vertices=792
-  C7  vertex properties                 PASS    property names ['color', 'normal', 'position', 'tangent', 'uv0']; position/normal/tangent present on 1 vertex node(s); 0 NaN/Inf value(s) in 867,136 bytes of float32 data; scalarType/dimension/length checked
-        - node 'BoxFarm.Advanced.IronTeeth.Model' vertexCount=13549 properties=[('position', 3), ('normal', 3), ('tangent', 4), ('color', 4), ('uv0', 2)] meshes=4
+  C7  vertex properties                 PASS    property names ['color', 'normal', 'position', 'tangent', 'uv0']; position/normal/tangent present on 1 vertex node(s); 0 NaN/Inf value(s) in 867,328 bytes of float32 data; scalarType/dimension/length checked
+        - node 'BoxFarm.Advanced.IronTeeth.Model' vertexCount=13552 properties=[('position', 3), ('normal', 3), ('tangent', 4), ('color', 4), ('uv0', 2)] meshes=4
         - node '#Port#Power' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
         - node '#Port#Pipe' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
         - node '#Port#Logistics' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
-  C8  topology (indices/parents/uv0)    PASS    all 17,550 indices in [0, vertexCount); parent links valid; exactly 1 root node ('BoxFarm.Advanced.IronTeeth.Model'); uv0 range u[0.0703, 0.9883] v[0.0264, 0.8672] over 13549 values (tolerance 0.001)
-        - total index count: 17,550; uv0 values checked: 13,549
-  C9  material patch UV containment     PASS    4 material(s) / 17,550 uv0 value(s) checked against their real-_D texture patch (tolerance 1e-04): all inside
-        - PASS BaseMetal.IronTeeth                patch uv=[0.066406, 0.558594, 0.378906, 0.871094]  uv0 u=[0.070312, 0.374023] v=[0.563477, 0.867188]  values=14022
-        - PASS Details.IronTeeth                  patch uv=[0.191406, 0.019531, 0.441406, 0.269531]  uv0 u=[0.199218, 0.435547] v=[0.026367, 0.265625]  values=972
-        - PASS IrregularPlanks_MetalForged.IronTeeth patch uv=[0.621094, 0.417969, 0.839844, 0.636719]  uv0 u=[0.625000, 0.834961] v=[0.422852, 0.632813]  values=2268
-        - PASS WindowsAtlas.IronTeeth             patch uv=[0.808594, 0.058594, 0.996094, 0.246094]  uv0 u=[0.812500, 0.988281] v=[0.074219, 0.238282]  values=288
+  C8  topology (indices/parents/uv0)    PASS    all 17,550 indices in [0, vertexCount); parent links valid; exactly 1 root node ('BoxFarm.Advanced.IronTeeth.Model'); uv0 range u[0.0093, 0.9967] v[0.0077, 0.9967] over 13552 values (tolerance 0.001)
+        - total index count: 17,550; uv0 values checked: 13,552
+  C9  material patch UV containment     PASS    4 material(s) (1 tile / 3 patch) / 17,550 uv0 value(s) checked against their ART-07 canvases (tile: 2-texel guard band; patch: uv_canvas): all inside
+        - PASS BaseMetal.IronTeeth                mode=patch uv_canvas uv=[0.007812, 0.507812, 0.492188, 0.992188]  uv0 u=[0.009766, 0.490234] v=[0.509766, 0.990234]  values=14022
+        - PASS Details.IronTeeth                  mode=patch uv_canvas uv=[0.003906, 0.011719, 0.496094, 0.496094]  uv0 u=[0.009926, 0.490074] v=[0.013832, 0.493980]  values=972
+        - PASS IrregularPlanks_MetalForged.IronTeeth mode=tile  tile guard uv=[0.001953, 0.001953, 0.998047, 0.998047]  uv0 u=[0.009258, 0.996719] v=[0.009258, 0.996719]  values=2268
+        - PASS WindowsAtlas.IronTeeth             mode=patch uv_canvas uv=[0.753906, 0.003906, 0.996094, 0.246094]  uv0 u=[0.757677, 0.993933] v=[0.007677, 0.243933]  values=288
   RESULT: PASS
 --------------------------------------------------------------------------------------------------------
 [ 7/16] BoxFarm.Top.Folktails.Model
   tier=Top          faction=Folktails  kind=finished (LOD0)
   file: art\timbermesh\BoxFarm.Top.Folktails.Model.timbermesh
-  bytes: 131,620 bytes (zlib) -> 906,983 bytes (protobuf)
-  C1  parses (zlib + protobuf)          PASS    zlib ok: 131,620 bytes compressed -> 906,983 bytes protobuf; Model parsed; nodes=4
+  bytes: 110,104 bytes (zlib) -> 907,111 bytes (protobuf)
+  C1  parses (zlib + protobuf)          PASS    zlib ok: 110,104 bytes compressed -> 907,111 bytes protobuf; Model parsed; nodes=4
   C2  model identity (name/version)     PASS    Model.name='BoxFarm.Top.Folktails.Model' version=0; root node name='BoxFarm.Top.Folktails.Model'
-  C3  mesh bounds (3x1x3 @ corner)      PASS    size=(3.0000, 1.0000, 3.0000) min=(-0.0000, -0.0000, -0.0000) max=(3.0000, 1.0000, 3.0000); size_dev=0.0000 min_dev=0.0000 (tolerance 0.020, 13610 vertices)
+  C3  mesh bounds (3x1x3 @ corner)      PASS    size=(3.0000, 1.0000, 3.0000) min=(-0.0000, -0.0000, -0.0000) max=(3.0000, 1.0000, 3.0000); size_dev=0.0000 min_dev=0.0000 (tolerance 0.020, 13612 vertices)
   C4  triangles <= budget               PASS    5918 triangles (budget 6000, +82 spare); total index count 17,754
         - per-node triangles: BoxFarm.Top.Folktails.Model=5918
   C5  materials (whitelist + count)     PASS    4 distinct material(s) across 4 mesh(es): ['Details.Folktails', 'BaseMetal.Folktails', 'IrregularPlanks_Brown.Folktails', 'WindowsAtlas.Folktails']; whitelist=Folktails whitelist
@@ -228,25 +231,25 @@ PER-FILE RESULTS
         - #Port#Pipe position=(0.0000, 0.4000, 1.5000) dev=0.0000
         - #Port#Logistics position=(0.5000, 0.3500, 3.0000) dev=0.0000
         - flat roof: apex=1.0000 top=1.0000 above_top=0 above_clearance=0 near_top_band_vertices=910
-  C7  vertex properties                 PASS    property names ['color', 'normal', 'position', 'tangent', 'uv0']; position/normal/tangent present on 1 vertex node(s); 0 NaN/Inf value(s) in 871,040 bytes of float32 data; scalarType/dimension/length checked
-        - node 'BoxFarm.Top.Folktails.Model' vertexCount=13610 properties=[('position', 3), ('normal', 3), ('tangent', 4), ('color', 4), ('uv0', 2)] meshes=4
+  C7  vertex properties                 PASS    property names ['color', 'normal', 'position', 'tangent', 'uv0']; position/normal/tangent present on 1 vertex node(s); 0 NaN/Inf value(s) in 871,168 bytes of float32 data; scalarType/dimension/length checked
+        - node 'BoxFarm.Top.Folktails.Model' vertexCount=13612 properties=[('position', 3), ('normal', 3), ('tangent', 4), ('color', 4), ('uv0', 2)] meshes=4
         - node '#Port#Power' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
         - node '#Port#Pipe' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
         - node '#Port#Logistics' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
-  C8  topology (indices/parents/uv0)    PASS    all 17,754 indices in [0, vertexCount); parent links valid; exactly 1 root node ('BoxFarm.Top.Folktails.Model'); uv0 range u[0.0127, 0.9893] v[0.0244, 0.8652] over 13610 values (tolerance 0.001)
-        - total index count: 17,754; uv0 values checked: 13,610
-  C9  material patch UV containment     PASS    4 material(s) / 17,754 uv0 value(s) checked against their real-_D texture patch (tolerance 1e-04): all inside
-        - PASS BaseMetal.Folktails                patch uv=[0.066406, 0.558594, 0.378906, 0.871094]  uv0 u=[0.071289, 0.374023] v=[0.563477, 0.865235]  values=2052
-        - PASS Details.Folktails                  patch uv=[0.097656, 0.019531, 0.347656, 0.269531]  uv0 u=[0.101562, 0.342773] v=[0.024414, 0.265625]  values=15198
-        - PASS IrregularPlanks_Brown.Folktails    patch uv=[0.003906, 0.550781, 0.253906, 0.800781]  uv0 u=[0.012695, 0.242187] v=[0.566406, 0.783203]  values=180
-        - PASS WindowsAtlas.Folktails             patch uv=[0.808594, 0.058594, 0.996094, 0.246094]  uv0 u=[0.812500, 0.989258] v=[0.072266, 0.242188]  values=324
+  C8  topology (indices/parents/uv0)    PASS    all 17,754 indices in [0, vertexCount); parent links valid; exactly 1 root node ('BoxFarm.Top.Folktails.Model'); uv0 range u[0.0093, 0.9967] v[0.0093, 0.9967] over 13612 values (tolerance 0.001)
+        - total index count: 17,754; uv0 values checked: 13,612
+  C9  material patch UV containment     PASS    4 material(s) (1 tile / 3 patch) / 17,754 uv0 value(s) checked against their ART-07 canvases (tile: 2-texel guard band; patch: uv_canvas): all inside
+        - PASS BaseMetal.Folktails                mode=patch uv_canvas uv=[0.007812, 0.507812, 0.492188, 0.992188]  uv0 u=[0.009926, 0.490074] v=[0.509926, 0.990074]  values=2052
+        - PASS Details.Folktails                  mode=patch uv_canvas uv=[0.003906, 0.011719, 0.496094, 0.496094]  uv0 u=[0.009766, 0.490234] v=[0.013672, 0.494141]  values=15198
+        - PASS IrregularPlanks_Brown.Folktails    mode=tile  tile guard uv=[0.001953, 0.001953, 0.998047, 0.998047]  uv0 u=[0.009258, 0.996719] v=[0.009258, 0.996719]  values=180
+        - PASS WindowsAtlas.Folktails             mode=patch uv_canvas uv=[0.753906, 0.003906, 0.996094, 0.246094]  uv0 u=[0.757677, 0.993933] v=[0.017655, 0.243933]  values=324
   RESULT: PASS
 --------------------------------------------------------------------------------------------------------
 [ 8/16] BoxFarm.Top.IronTeeth.Model
   tier=Top          faction=IronTeeth  kind=finished (LOD0)
   file: art\timbermesh\BoxFarm.Top.IronTeeth.Model.timbermesh
-  bytes: 131,781 bytes (zlib) -> 907,638 bytes (protobuf)
-  C1  parses (zlib + protobuf)          PASS    zlib ok: 131,781 bytes compressed -> 907,638 bytes protobuf; Model parsed; nodes=4
+  bytes: 109,860 bytes (zlib) -> 907,638 bytes (protobuf)
+  C1  parses (zlib + protobuf)          PASS    zlib ok: 109,860 bytes compressed -> 907,638 bytes protobuf; Model parsed; nodes=4
   C2  model identity (name/version)     PASS    Model.name='BoxFarm.Top.IronTeeth.Model' version=0; root node name='BoxFarm.Top.IronTeeth.Model'
   C3  mesh bounds (3x1x3 @ corner)      PASS    size=(3.0000, 1.0000, 3.0000) min=(-0.0000, -0.0000, -0.0000) max=(3.0000, 1.0000, 3.0000); size_dev=0.0000 min_dev=0.0000 (tolerance 0.020, 13620 vertices)
   C4  triangles <= budget               PASS    5918 triangles (budget 6000, +82 spare); total index count 17,754
@@ -263,20 +266,20 @@ PER-FILE RESULTS
         - node '#Port#Power' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
         - node '#Port#Pipe' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
         - node '#Port#Logistics' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
-  C8  topology (indices/parents/uv0)    PASS    all 17,754 indices in [0, vertexCount); parent links valid; exactly 1 root node ('BoxFarm.Top.IronTeeth.Model'); uv0 range u[0.1953, 0.9873] v[0.0244, 0.6895] over 13620 values (tolerance 0.001)
+  C8  topology (indices/parents/uv0)    PASS    all 17,754 indices in [0, vertexCount); parent links valid; exactly 1 root node ('BoxFarm.Top.IronTeeth.Model'); uv0 range u[0.0023, 0.9977] v[0.0023, 0.9977] over 13620 values (tolerance 0.001)
         - total index count: 17,754; uv0 values checked: 13,620
-  C9  material patch UV containment     PASS    4 material(s) / 17,754 uv0 value(s) checked against their real-_D texture patch (tolerance 1e-04): all inside
-        - PASS BaseWood_DarkBrown.IronTeeth       patch uv=[0.355469, 0.558594, 0.496094, 0.699219]  uv0 u=[0.365235, 0.487305] v=[0.565430, 0.689453]  values=180
-        - PASS Details.IronTeeth                  patch uv=[0.191406, 0.019531, 0.441406, 0.269531]  uv0 u=[0.195312, 0.436523] v=[0.024414, 0.265625]  values=15198
-        - PASS IrregularPlanks_MetalForged.IronTeeth patch uv=[0.621094, 0.417969, 0.839844, 0.636719]  uv0 u=[0.625000, 0.834961] v=[0.422852, 0.632813]  values=2052
-        - PASS WindowsAtlas.IronTeeth             patch uv=[0.808594, 0.058594, 0.996094, 0.246094]  uv0 u=[0.813477, 0.987305] v=[0.063477, 0.238282]  values=324
+  C9  material patch UV containment     PASS    4 material(s) (1 tile / 3 patch) / 17,754 uv0 value(s) checked against their ART-07 canvases (tile: 2-texel guard band; patch: uv_canvas): all inside
+        - PASS BaseWood_DarkBrown.IronTeeth       mode=patch uv_canvas uv=[0.003906, 0.566406, 0.500000, 0.996094]  uv0 u=[0.042233, 0.464227] v=[0.571530, 0.993524]  values=180
+        - PASS Details.IronTeeth                  mode=patch uv_canvas uv=[0.003906, 0.011719, 0.496094, 0.496094]  uv0 u=[0.009766, 0.490234] v=[0.013672, 0.494141]  values=15198
+        - PASS IrregularPlanks_MetalForged.IronTeeth mode=tile  tile guard uv=[0.001953, 0.001953, 0.998047, 0.998047]  uv0 u=[0.002285, 0.997715] v=[0.002285, 0.997715]  values=2052
+        - PASS WindowsAtlas.IronTeeth             mode=patch uv_canvas uv=[0.753906, 0.003906, 0.996094, 0.246094]  uv0 u=[0.757677, 0.993933] v=[0.017655, 0.243933]  values=324
   RESULT: PASS
 --------------------------------------------------------------------------------------------------------
 [ 9/16] BoxFarm.Basic.Folktails.ConstructionStage0.Model
   tier=Basic        faction=Folktails  kind=construction-stage0
   file: art\timbermesh\BoxFarm.Basic.Folktails.ConstructionStage0.Model.timbermesh
-  bytes: 22,810 bytes (zlib) -> 144,248 bytes (protobuf)
-  C1  parses (zlib + protobuf)          PASS    zlib ok: 22,810 bytes compressed -> 144,248 bytes protobuf; Model parsed; nodes=4
+  bytes: 19,005 bytes (zlib) -> 144,248 bytes (protobuf)
+  C1  parses (zlib + protobuf)          PASS    zlib ok: 19,005 bytes compressed -> 144,248 bytes protobuf; Model parsed; nodes=4
   C2  model identity (name/version)     PASS    Model.name='BoxFarm.Basic.Folktails.ConstructionStage0.Model' version=0; root node name='BoxFarm.Basic.Folktails.ConstructionStage0.Model'
   C3  mesh bounds (3x1x3 @ corner)      PASS    size=(3.0000, 1.0000, 3.0000) min=(-0.0000, -0.0000, -0.0000) max=(3.0000, 1.0000, 3.0000); size_dev=0.0000 min_dev=0.0000 (tolerance 0.020, 2166 vertices)
   C4  triangles <= budget               PASS    864 triangles (budget 6000, +5136 spare); total index count 2,592
@@ -293,18 +296,18 @@ PER-FILE RESULTS
         - node '#Port#Power' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
         - node '#Port#Pipe' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
         - node '#Port#Logistics' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
-  C8  topology (indices/parents/uv0)    PASS    all 2,592 indices in [0, vertexCount); parent links valid; exactly 1 root node ('BoxFarm.Basic.Folktails.ConstructionStage0.Model'); uv0 range u[0.0078, 0.3740] v[0.0186, 0.8672] over 2166 values (tolerance 0.001)
+  C8  topology (indices/parents/uv0)    PASS    all 2,592 indices in [0, vertexCount); parent links valid; exactly 1 root node ('BoxFarm.Basic.Folktails.ConstructionStage0.Model'); uv0 range u[0.0098, 0.4902] v[0.5098, 0.9941] over 2166 values (tolerance 0.001)
         - total index count: 2,592; uv0 values checked: 2,166
-  C9  material patch UV containment     PASS    2 material(s) / 2,592 uv0 value(s) checked against their real-_D texture patch (tolerance 1e-04): all inside
-        - PASS BaseMetal.Folktails                patch uv=[0.066406, 0.558594, 0.378906, 0.871094]  uv0 u=[0.071289, 0.374023] v=[0.563477, 0.867188]  values=1812
-        - PASS BaseWood_Brown.Folktails           patch uv=[0.003906, 0.011719, 0.253906, 0.261719]  uv0 u=[0.007812, 0.249023] v=[0.018555, 0.254883]  values=780
+  C9  material patch UV containment     PASS    2 material(s) (0 tile / 2 patch) / 2,592 uv0 value(s) checked against their ART-07 canvases (tile: 2-texel guard band; patch: uv_canvas): all inside
+        - PASS BaseMetal.Folktails                mode=patch uv_canvas uv=[0.007812, 0.507812, 0.492188, 0.992188]  uv0 u=[0.009766, 0.490234] v=[0.509766, 0.990234]  values=1812
+        - PASS BaseWood_Brown.Folktails           mode=patch uv_canvas uv=[0.003906, 0.566406, 0.500000, 0.996094]  uv0 u=[0.039111, 0.464795] v=[0.568408, 0.994092]  values=780
   RESULT: PASS
 --------------------------------------------------------------------------------------------------------
 [10/16] BoxFarm.Basic.IronTeeth.ConstructionStage0.Model
   tier=Basic        faction=IronTeeth  kind=construction-stage0
   file: art\timbermesh\BoxFarm.Basic.IronTeeth.ConstructionStage0.Model.timbermesh
-  bytes: 22,810 bytes (zlib) -> 144,244 bytes (protobuf)
-  C1  parses (zlib + protobuf)          PASS    zlib ok: 22,810 bytes compressed -> 144,244 bytes protobuf; Model parsed; nodes=4
+  bytes: 19,003 bytes (zlib) -> 144,244 bytes (protobuf)
+  C1  parses (zlib + protobuf)          PASS    zlib ok: 19,003 bytes compressed -> 144,244 bytes protobuf; Model parsed; nodes=4
   C2  model identity (name/version)     PASS    Model.name='BoxFarm.Basic.IronTeeth.ConstructionStage0.Model' version=0; root node name='BoxFarm.Basic.IronTeeth.ConstructionStage0.Model'
   C3  mesh bounds (3x1x3 @ corner)      PASS    size=(3.0000, 1.0000, 3.0000) min=(-0.0000, -0.0000, -0.0000) max=(3.0000, 1.0000, 3.0000); size_dev=0.0000 min_dev=0.0000 (tolerance 0.020, 2166 vertices)
   C4  triangles <= budget               PASS    864 triangles (budget 6000, +5136 spare); total index count 2,592
@@ -321,18 +324,18 @@ PER-FILE RESULTS
         - node '#Port#Power' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
         - node '#Port#Pipe' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
         - node '#Port#Logistics' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
-  C8  topology (indices/parents/uv0)    PASS    all 2,592 indices in [0, vertexCount); parent links valid; exactly 1 root node ('BoxFarm.Basic.IronTeeth.ConstructionStage0.Model'); uv0 range u[0.0078, 0.3740] v[0.0186, 0.8672] over 2166 values (tolerance 0.001)
+  C8  topology (indices/parents/uv0)    PASS    all 2,592 indices in [0, vertexCount); parent links valid; exactly 1 root node ('BoxFarm.Basic.IronTeeth.ConstructionStage0.Model'); uv0 range u[0.0098, 0.4902] v[0.5098, 0.9941] over 2166 values (tolerance 0.001)
         - total index count: 2,592; uv0 values checked: 2,166
-  C9  material patch UV containment     PASS    2 material(s) / 2,592 uv0 value(s) checked against their real-_D texture patch (tolerance 1e-04): all inside
-        - PASS BaseMetal.IronTeeth                patch uv=[0.066406, 0.558594, 0.378906, 0.871094]  uv0 u=[0.071289, 0.374023] v=[0.563477, 0.867188]  values=1812
-        - PASS RoofPlanks.IronTeeth               patch uv=[0.003906, 0.011719, 0.253906, 0.261719]  uv0 u=[0.007812, 0.249023] v=[0.018555, 0.254883]  values=780
+  C9  material patch UV containment     PASS    2 material(s) (1 tile / 1 patch) / 2,592 uv0 value(s) checked against their ART-07 canvases (tile: 2-texel guard band; patch: uv_canvas): all inside
+        - PASS BaseMetal.IronTeeth                mode=patch uv_canvas uv=[0.007812, 0.507812, 0.492188, 0.992188]  uv0 u=[0.009766, 0.490234] v=[0.509766, 0.990234]  values=1812
+        - PASS RoofPlanks.IronTeeth               mode=tile  tile guard uv=[0.001953, 0.001953, 0.998047, 0.998047]  uv0 u=[0.039111, 0.464795] v=[0.568408, 0.994092]  values=780
   RESULT: PASS
 --------------------------------------------------------------------------------------------------------
 [11/16] BoxFarm.Intermediate.Folktails.ConstructionStage0.Model
   tier=Intermediate faction=Folktails  kind=construction-stage0
   file: art\timbermesh\BoxFarm.Intermediate.Folktails.ConstructionStage0.Model.timbermesh
-  bytes: 22,821 bytes (zlib) -> 144,262 bytes (protobuf)
-  C1  parses (zlib + protobuf)          PASS    zlib ok: 22,821 bytes compressed -> 144,262 bytes protobuf; Model parsed; nodes=4
+  bytes: 19,012 bytes (zlib) -> 144,262 bytes (protobuf)
+  C1  parses (zlib + protobuf)          PASS    zlib ok: 19,012 bytes compressed -> 144,262 bytes protobuf; Model parsed; nodes=4
   C2  model identity (name/version)     PASS    Model.name='BoxFarm.Intermediate.Folktails.ConstructionStage0.Model' version=0; root node name='BoxFarm.Intermediate.Folktails.ConstructionStage0.Model'
   C3  mesh bounds (3x1x3 @ corner)      PASS    size=(3.0000, 1.0000, 3.0000) min=(-0.0000, -0.0000, -0.0000) max=(3.0000, 1.0000, 3.0000); size_dev=0.0000 min_dev=0.0000 (tolerance 0.020, 2166 vertices)
   C4  triangles <= budget               PASS    864 triangles (budget 6000, +5136 spare); total index count 2,592
@@ -349,18 +352,18 @@ PER-FILE RESULTS
         - node '#Port#Power' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
         - node '#Port#Pipe' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
         - node '#Port#Logistics' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
-  C8  topology (indices/parents/uv0)    PASS    all 2,592 indices in [0, vertexCount); parent links valid; exactly 1 root node ('BoxFarm.Intermediate.Folktails.ConstructionStage0.Model'); uv0 range u[0.0078, 0.3740] v[0.0186, 0.8672] over 2166 values (tolerance 0.001)
+  C8  topology (indices/parents/uv0)    PASS    all 2,592 indices in [0, vertexCount); parent links valid; exactly 1 root node ('BoxFarm.Intermediate.Folktails.ConstructionStage0.Model'); uv0 range u[0.0098, 0.4902] v[0.5098, 0.9941] over 2166 values (tolerance 0.001)
         - total index count: 2,592; uv0 values checked: 2,166
-  C9  material patch UV containment     PASS    2 material(s) / 2,592 uv0 value(s) checked against their real-_D texture patch (tolerance 1e-04): all inside
-        - PASS BaseMetal.Folktails                patch uv=[0.066406, 0.558594, 0.378906, 0.871094]  uv0 u=[0.071289, 0.374023] v=[0.563477, 0.867188]  values=1812
-        - PASS BaseWood_Brown.Folktails           patch uv=[0.003906, 0.011719, 0.253906, 0.261719]  uv0 u=[0.007812, 0.249023] v=[0.018555, 0.254883]  values=780
+  C9  material patch UV containment     PASS    2 material(s) (0 tile / 2 patch) / 2,592 uv0 value(s) checked against their ART-07 canvases (tile: 2-texel guard band; patch: uv_canvas): all inside
+        - PASS BaseMetal.Folktails                mode=patch uv_canvas uv=[0.007812, 0.507812, 0.492188, 0.992188]  uv0 u=[0.009766, 0.490234] v=[0.509766, 0.990234]  values=1812
+        - PASS BaseWood_Brown.Folktails           mode=patch uv_canvas uv=[0.003906, 0.566406, 0.500000, 0.996094]  uv0 u=[0.039111, 0.464795] v=[0.568408, 0.994092]  values=780
   RESULT: PASS
 --------------------------------------------------------------------------------------------------------
 [12/16] BoxFarm.Intermediate.IronTeeth.ConstructionStage0.Model
   tier=Intermediate faction=IronTeeth  kind=construction-stage0
   file: art\timbermesh\BoxFarm.Intermediate.IronTeeth.ConstructionStage0.Model.timbermesh
-  bytes: 22,817 bytes (zlib) -> 144,258 bytes (protobuf)
-  C1  parses (zlib + protobuf)          PASS    zlib ok: 22,817 bytes compressed -> 144,258 bytes protobuf; Model parsed; nodes=4
+  bytes: 19,011 bytes (zlib) -> 144,258 bytes (protobuf)
+  C1  parses (zlib + protobuf)          PASS    zlib ok: 19,011 bytes compressed -> 144,258 bytes protobuf; Model parsed; nodes=4
   C2  model identity (name/version)     PASS    Model.name='BoxFarm.Intermediate.IronTeeth.ConstructionStage0.Model' version=0; root node name='BoxFarm.Intermediate.IronTeeth.ConstructionStage0.Model'
   C3  mesh bounds (3x1x3 @ corner)      PASS    size=(3.0000, 1.0000, 3.0000) min=(-0.0000, -0.0000, -0.0000) max=(3.0000, 1.0000, 3.0000); size_dev=0.0000 min_dev=0.0000 (tolerance 0.020, 2166 vertices)
   C4  triangles <= budget               PASS    864 triangles (budget 6000, +5136 spare); total index count 2,592
@@ -377,18 +380,18 @@ PER-FILE RESULTS
         - node '#Port#Power' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
         - node '#Port#Pipe' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
         - node '#Port#Logistics' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
-  C8  topology (indices/parents/uv0)    PASS    all 2,592 indices in [0, vertexCount); parent links valid; exactly 1 root node ('BoxFarm.Intermediate.IronTeeth.ConstructionStage0.Model'); uv0 range u[0.0078, 0.3740] v[0.0186, 0.8672] over 2166 values (tolerance 0.001)
+  C8  topology (indices/parents/uv0)    PASS    all 2,592 indices in [0, vertexCount); parent links valid; exactly 1 root node ('BoxFarm.Intermediate.IronTeeth.ConstructionStage0.Model'); uv0 range u[0.0098, 0.4902] v[0.5098, 0.9941] over 2166 values (tolerance 0.001)
         - total index count: 2,592; uv0 values checked: 2,166
-  C9  material patch UV containment     PASS    2 material(s) / 2,592 uv0 value(s) checked against their real-_D texture patch (tolerance 1e-04): all inside
-        - PASS BaseMetal.IronTeeth                patch uv=[0.066406, 0.558594, 0.378906, 0.871094]  uv0 u=[0.071289, 0.374023] v=[0.563477, 0.867188]  values=1812
-        - PASS RoofPlanks.IronTeeth               patch uv=[0.003906, 0.011719, 0.253906, 0.261719]  uv0 u=[0.007812, 0.249023] v=[0.018555, 0.254883]  values=780
+  C9  material patch UV containment     PASS    2 material(s) (1 tile / 1 patch) / 2,592 uv0 value(s) checked against their ART-07 canvases (tile: 2-texel guard band; patch: uv_canvas): all inside
+        - PASS BaseMetal.IronTeeth                mode=patch uv_canvas uv=[0.007812, 0.507812, 0.492188, 0.992188]  uv0 u=[0.009766, 0.490234] v=[0.509766, 0.990234]  values=1812
+        - PASS RoofPlanks.IronTeeth               mode=tile  tile guard uv=[0.001953, 0.001953, 0.998047, 0.998047]  uv0 u=[0.039111, 0.464795] v=[0.568408, 0.994092]  values=780
   RESULT: PASS
 --------------------------------------------------------------------------------------------------------
 [13/16] BoxFarm.Advanced.Folktails.ConstructionStage0.Model
   tier=Advanced     faction=Folktails  kind=construction-stage0
   file: art\timbermesh\BoxFarm.Advanced.Folktails.ConstructionStage0.Model.timbermesh
-  bytes: 22,815 bytes (zlib) -> 144,254 bytes (protobuf)
-  C1  parses (zlib + protobuf)          PASS    zlib ok: 22,815 bytes compressed -> 144,254 bytes protobuf; Model parsed; nodes=4
+  bytes: 19,008 bytes (zlib) -> 144,254 bytes (protobuf)
+  C1  parses (zlib + protobuf)          PASS    zlib ok: 19,008 bytes compressed -> 144,254 bytes protobuf; Model parsed; nodes=4
   C2  model identity (name/version)     PASS    Model.name='BoxFarm.Advanced.Folktails.ConstructionStage0.Model' version=0; root node name='BoxFarm.Advanced.Folktails.ConstructionStage0.Model'
   C3  mesh bounds (3x1x3 @ corner)      PASS    size=(3.0000, 1.0000, 3.0000) min=(-0.0000, -0.0000, -0.0000) max=(3.0000, 1.0000, 3.0000); size_dev=0.0000 min_dev=0.0000 (tolerance 0.020, 2166 vertices)
   C4  triangles <= budget               PASS    864 triangles (budget 6000, +5136 spare); total index count 2,592
@@ -405,18 +408,18 @@ PER-FILE RESULTS
         - node '#Port#Power' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
         - node '#Port#Pipe' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
         - node '#Port#Logistics' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
-  C8  topology (indices/parents/uv0)    PASS    all 2,592 indices in [0, vertexCount); parent links valid; exactly 1 root node ('BoxFarm.Advanced.Folktails.ConstructionStage0.Model'); uv0 range u[0.0078, 0.3740] v[0.0186, 0.8672] over 2166 values (tolerance 0.001)
+  C8  topology (indices/parents/uv0)    PASS    all 2,592 indices in [0, vertexCount); parent links valid; exactly 1 root node ('BoxFarm.Advanced.Folktails.ConstructionStage0.Model'); uv0 range u[0.0098, 0.4902] v[0.5098, 0.9941] over 2166 values (tolerance 0.001)
         - total index count: 2,592; uv0 values checked: 2,166
-  C9  material patch UV containment     PASS    2 material(s) / 2,592 uv0 value(s) checked against their real-_D texture patch (tolerance 1e-04): all inside
-        - PASS BaseMetal.Folktails                patch uv=[0.066406, 0.558594, 0.378906, 0.871094]  uv0 u=[0.071289, 0.374023] v=[0.563477, 0.867188]  values=1812
-        - PASS BaseWood_Brown.Folktails           patch uv=[0.003906, 0.011719, 0.253906, 0.261719]  uv0 u=[0.007812, 0.249023] v=[0.018555, 0.254883]  values=780
+  C9  material patch UV containment     PASS    2 material(s) (0 tile / 2 patch) / 2,592 uv0 value(s) checked against their ART-07 canvases (tile: 2-texel guard band; patch: uv_canvas): all inside
+        - PASS BaseMetal.Folktails                mode=patch uv_canvas uv=[0.007812, 0.507812, 0.492188, 0.992188]  uv0 u=[0.009766, 0.490234] v=[0.509766, 0.990234]  values=1812
+        - PASS BaseWood_Brown.Folktails           mode=patch uv_canvas uv=[0.003906, 0.566406, 0.500000, 0.996094]  uv0 u=[0.039111, 0.464795] v=[0.568408, 0.994092]  values=780
   RESULT: PASS
 --------------------------------------------------------------------------------------------------------
 [14/16] BoxFarm.Advanced.IronTeeth.ConstructionStage0.Model
   tier=Advanced     faction=IronTeeth  kind=construction-stage0
   file: art\timbermesh\BoxFarm.Advanced.IronTeeth.ConstructionStage0.Model.timbermesh
-  bytes: 22,812 bytes (zlib) -> 144,250 bytes (protobuf)
-  C1  parses (zlib + protobuf)          PASS    zlib ok: 22,812 bytes compressed -> 144,250 bytes protobuf; Model parsed; nodes=4
+  bytes: 19,005 bytes (zlib) -> 144,250 bytes (protobuf)
+  C1  parses (zlib + protobuf)          PASS    zlib ok: 19,005 bytes compressed -> 144,250 bytes protobuf; Model parsed; nodes=4
   C2  model identity (name/version)     PASS    Model.name='BoxFarm.Advanced.IronTeeth.ConstructionStage0.Model' version=0; root node name='BoxFarm.Advanced.IronTeeth.ConstructionStage0.Model'
   C3  mesh bounds (3x1x3 @ corner)      PASS    size=(3.0000, 1.0000, 3.0000) min=(-0.0000, -0.0000, -0.0000) max=(3.0000, 1.0000, 3.0000); size_dev=0.0000 min_dev=0.0000 (tolerance 0.020, 2166 vertices)
   C4  triangles <= budget               PASS    864 triangles (budget 6000, +5136 spare); total index count 2,592
@@ -433,18 +436,18 @@ PER-FILE RESULTS
         - node '#Port#Power' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
         - node '#Port#Pipe' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
         - node '#Port#Logistics' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
-  C8  topology (indices/parents/uv0)    PASS    all 2,592 indices in [0, vertexCount); parent links valid; exactly 1 root node ('BoxFarm.Advanced.IronTeeth.ConstructionStage0.Model'); uv0 range u[0.0078, 0.3740] v[0.0186, 0.8672] over 2166 values (tolerance 0.001)
+  C8  topology (indices/parents/uv0)    PASS    all 2,592 indices in [0, vertexCount); parent links valid; exactly 1 root node ('BoxFarm.Advanced.IronTeeth.ConstructionStage0.Model'); uv0 range u[0.0098, 0.4902] v[0.5098, 0.9941] over 2166 values (tolerance 0.001)
         - total index count: 2,592; uv0 values checked: 2,166
-  C9  material patch UV containment     PASS    2 material(s) / 2,592 uv0 value(s) checked against their real-_D texture patch (tolerance 1e-04): all inside
-        - PASS BaseMetal.IronTeeth                patch uv=[0.066406, 0.558594, 0.378906, 0.871094]  uv0 u=[0.071289, 0.374023] v=[0.563477, 0.867188]  values=1812
-        - PASS RoofPlanks.IronTeeth               patch uv=[0.003906, 0.011719, 0.253906, 0.261719]  uv0 u=[0.007812, 0.249023] v=[0.018555, 0.254883]  values=780
+  C9  material patch UV containment     PASS    2 material(s) (1 tile / 1 patch) / 2,592 uv0 value(s) checked against their ART-07 canvases (tile: 2-texel guard band; patch: uv_canvas): all inside
+        - PASS BaseMetal.IronTeeth                mode=patch uv_canvas uv=[0.007812, 0.507812, 0.492188, 0.992188]  uv0 u=[0.009766, 0.490234] v=[0.509766, 0.990234]  values=1812
+        - PASS RoofPlanks.IronTeeth               mode=tile  tile guard uv=[0.001953, 0.001953, 0.998047, 0.998047]  uv0 u=[0.039111, 0.464795] v=[0.568408, 0.994092]  values=780
   RESULT: PASS
 --------------------------------------------------------------------------------------------------------
 [15/16] BoxFarm.Top.Folktails.ConstructionStage0.Model
   tier=Top          faction=Folktails  kind=construction-stage0
   file: art\timbermesh\BoxFarm.Top.Folktails.ConstructionStage0.Model.timbermesh
-  bytes: 22,808 bytes (zlib) -> 144,244 bytes (protobuf)
-  C1  parses (zlib + protobuf)          PASS    zlib ok: 22,808 bytes compressed -> 144,244 bytes protobuf; Model parsed; nodes=4
+  bytes: 19,003 bytes (zlib) -> 144,244 bytes (protobuf)
+  C1  parses (zlib + protobuf)          PASS    zlib ok: 19,003 bytes compressed -> 144,244 bytes protobuf; Model parsed; nodes=4
   C2  model identity (name/version)     PASS    Model.name='BoxFarm.Top.Folktails.ConstructionStage0.Model' version=0; root node name='BoxFarm.Top.Folktails.ConstructionStage0.Model'
   C3  mesh bounds (3x1x3 @ corner)      PASS    size=(3.0000, 1.0000, 3.0000) min=(-0.0000, -0.0000, -0.0000) max=(3.0000, 1.0000, 3.0000); size_dev=0.0000 min_dev=0.0000 (tolerance 0.020, 2166 vertices)
   C4  triangles <= budget               PASS    864 triangles (budget 6000, +5136 spare); total index count 2,592
@@ -461,18 +464,18 @@ PER-FILE RESULTS
         - node '#Port#Power' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
         - node '#Port#Pipe' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
         - node '#Port#Logistics' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
-  C8  topology (indices/parents/uv0)    PASS    all 2,592 indices in [0, vertexCount); parent links valid; exactly 1 root node ('BoxFarm.Top.Folktails.ConstructionStage0.Model'); uv0 range u[0.0078, 0.3740] v[0.0186, 0.8672] over 2166 values (tolerance 0.001)
+  C8  topology (indices/parents/uv0)    PASS    all 2,592 indices in [0, vertexCount); parent links valid; exactly 1 root node ('BoxFarm.Top.Folktails.ConstructionStage0.Model'); uv0 range u[0.0098, 0.4902] v[0.5098, 0.9941] over 2166 values (tolerance 0.001)
         - total index count: 2,592; uv0 values checked: 2,166
-  C9  material patch UV containment     PASS    2 material(s) / 2,592 uv0 value(s) checked against their real-_D texture patch (tolerance 1e-04): all inside
-        - PASS BaseMetal.Folktails                patch uv=[0.066406, 0.558594, 0.378906, 0.871094]  uv0 u=[0.071289, 0.374023] v=[0.563477, 0.867188]  values=1812
-        - PASS BaseWood_Brown.Folktails           patch uv=[0.003906, 0.011719, 0.253906, 0.261719]  uv0 u=[0.007812, 0.249023] v=[0.018555, 0.254883]  values=780
+  C9  material patch UV containment     PASS    2 material(s) (0 tile / 2 patch) / 2,592 uv0 value(s) checked against their ART-07 canvases (tile: 2-texel guard band; patch: uv_canvas): all inside
+        - PASS BaseMetal.Folktails                mode=patch uv_canvas uv=[0.007812, 0.507812, 0.492188, 0.992188]  uv0 u=[0.009766, 0.490234] v=[0.509766, 0.990234]  values=1812
+        - PASS BaseWood_Brown.Folktails           mode=patch uv_canvas uv=[0.003906, 0.566406, 0.500000, 0.996094]  uv0 u=[0.039111, 0.464795] v=[0.568408, 0.994092]  values=780
   RESULT: PASS
 --------------------------------------------------------------------------------------------------------
 [16/16] BoxFarm.Top.IronTeeth.ConstructionStage0.Model
   tier=Top          faction=IronTeeth  kind=construction-stage0
   file: art\timbermesh\BoxFarm.Top.IronTeeth.ConstructionStage0.Model.timbermesh
-  bytes: 22,806 bytes (zlib) -> 144,240 bytes (protobuf)
-  C1  parses (zlib + protobuf)          PASS    zlib ok: 22,806 bytes compressed -> 144,240 bytes protobuf; Model parsed; nodes=4
+  bytes: 19,000 bytes (zlib) -> 144,240 bytes (protobuf)
+  C1  parses (zlib + protobuf)          PASS    zlib ok: 19,000 bytes compressed -> 144,240 bytes protobuf; Model parsed; nodes=4
   C2  model identity (name/version)     PASS    Model.name='BoxFarm.Top.IronTeeth.ConstructionStage0.Model' version=0; root node name='BoxFarm.Top.IronTeeth.ConstructionStage0.Model'
   C3  mesh bounds (3x1x3 @ corner)      PASS    size=(3.0000, 1.0000, 3.0000) min=(-0.0000, -0.0000, -0.0000) max=(3.0000, 1.0000, 3.0000); size_dev=0.0000 min_dev=0.0000 (tolerance 0.020, 2166 vertices)
   C4  triangles <= budget               PASS    864 triangles (budget 6000, +5136 spare); total index count 2,592
@@ -489,19 +492,20 @@ PER-FILE RESULTS
         - node '#Port#Power' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
         - node '#Port#Pipe' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
         - node '#Port#Logistics' vertexCount=0 properties=[('position', 3), ('normal', 3), ('tangent', 4)] meshes=0
-  C8  topology (indices/parents/uv0)    PASS    all 2,592 indices in [0, vertexCount); parent links valid; exactly 1 root node ('BoxFarm.Top.IronTeeth.ConstructionStage0.Model'); uv0 range u[0.0078, 0.3740] v[0.0186, 0.8672] over 2166 values (tolerance 0.001)
+  C8  topology (indices/parents/uv0)    PASS    all 2,592 indices in [0, vertexCount); parent links valid; exactly 1 root node ('BoxFarm.Top.IronTeeth.ConstructionStage0.Model'); uv0 range u[0.0098, 0.4902] v[0.5098, 0.9941] over 2166 values (tolerance 0.001)
         - total index count: 2,592; uv0 values checked: 2,166
-  C9  material patch UV containment     PASS    2 material(s) / 2,592 uv0 value(s) checked against their real-_D texture patch (tolerance 1e-04): all inside
-        - PASS BaseMetal.IronTeeth                patch uv=[0.066406, 0.558594, 0.378906, 0.871094]  uv0 u=[0.071289, 0.374023] v=[0.563477, 0.867188]  values=1812
-        - PASS RoofPlanks.IronTeeth               patch uv=[0.003906, 0.011719, 0.253906, 0.261719]  uv0 u=[0.007812, 0.249023] v=[0.018555, 0.254883]  values=780
+  C9  material patch UV containment     PASS    2 material(s) (1 tile / 1 patch) / 2,592 uv0 value(s) checked against their ART-07 canvases (tile: 2-texel guard band; patch: uv_canvas): all inside
+        - PASS BaseMetal.IronTeeth                mode=patch uv_canvas uv=[0.007812, 0.507812, 0.492188, 0.992188]  uv0 u=[0.009766, 0.490234] v=[0.509766, 0.990234]  values=1812
+        - PASS RoofPlanks.IronTeeth               mode=tile  tile guard uv=[0.001953, 0.001953, 0.998047, 0.998047]  uv0 u=[0.039111, 0.464795] v=[0.568408, 0.994092]  values=780
   RESULT: PASS
 
 ========================================================================================================
-C10-C12: MATERIAL TEXTURE PATCH CHECKS (ART-05, cross-file)
+C10-C12 + C15-C16: MATERIAL TEXTURE PATCH + ART-07 WORLD-UV CHECKS (cross-file)
 ========================================================================================================
 map:        material_patches.load_material_texture_map()
 map schema: 'hdbf.material_texture_map/v1'; texture roots: env HDBF_VANILLA_TEX_ROOT > map.texture_roots > defaults
 patch stats: mean RGB + std (max channel std, 0..255) re-measured from the real vanilla _D PNG with art/png_stats.py; recorded mean +-0.5, std +-0.5, std <= std_max
+ART-07:     world-scale planar projection at the native-on-atlas texel density (art/ART07_UV_TILING.md); UVs inside the material canvas because the game AutoAtlaser remaps them into the material's own atlas cell (no UV>1 Repeat tiling)
 
 --------------------------------------------------------------------------------------------------------
 C10 material patch map coverage                              PASS
@@ -512,24 +516,24 @@ C10 material patch map coverage                              PASS
 --------------------------------------------------------------------------------------------------------
 C11 real _D texture variance re-verification                 PASS
   all 17 patch record(s) re-verified from the real vanilla _D PNGs: recorded mean RGB / std match the decoded pixels (mean +-0.5, std +-0.5) and std <= std_max
-        - decoded 15 unique vanilla _D PNG file(s) with art/png_stats.py (decoder: pil); mean/std recomputed from the raw sRGB bytes
-        - PASS BaseMetal.Folktails                BaseMetal_D1.png               px=(68, 132, 388, 452)  uv=(0.066406, 0.558594, 0.378906, 0.871094) mean=(111.96, 100.15, 76.73) std=11.290 std_max=14.00
-        - PASS BaseMetal.IronTeeth                BaseMetal_D2.png               px=(68, 132, 388, 452)  uv=(0.066406, 0.558594, 0.378906, 0.871094) mean=(110.81, 106.12, 106.19) std=10.676 std_max=14.00
-        - PASS BaseWood_Brown.Folktails           BaseWood_1K_D_Brown.png        px=(4, 756, 260, 1012)  uv=(0.003906, 0.011719, 0.253906, 0.261719) mean=(54.47, 40.38, 27.02) std=17.735 std_max=18.00
-        - PASS BaseWood_DarkBrown.IronTeeth       BaseWood_1K_D_Grey.png         px=(364, 308, 508, 452) uv=(0.355469, 0.558594, 0.496094, 0.699219) mean=(135.71, 129.88, 120.96) std=17.934 std_max=18.00
-        - PASS BaseWood_Grey.IronTeeth            BaseWood_1K_D_Grey.png         px=(364, 308, 508, 452) uv=(0.355469, 0.558594, 0.496094, 0.699219) mean=(135.71, 129.88, 120.96) std=17.934 std_max=18.00
-        - PASS BaseWood_LightBrown.Folktails      BaseWood_1K_D_White.png        px=(20, 244, 212, 436)  uv=(0.019531, 0.574219, 0.207031, 0.761719) mean=(148.40, 135.11, 117.52) std=14.473 std_max=18.00
-        - PASS BaseWood_White.Folktails           BaseWood_1K_D_White.png        px=(20, 244, 212, 436)  uv=(0.019531, 0.574219, 0.207031, 0.761719) mean=(148.40, 135.11, 117.52) std=14.473 std_max=18.00
-        - PASS Details.Folktails                  Details_D.Folktails.png        px=(100, 748, 356, 1004) uv=(0.097656, 0.019531, 0.347656, 0.269531) mean=(105.26, 80.45, 48.28) std=23.732 std_max=26.00
-        - PASS Details.IronTeeth                  Details_D.IronTeeth.png        px=(196, 748, 452, 1004) uv=(0.191406, 0.019531, 0.441406, 0.269531) mean=(89.18, 74.98, 57.97) std=25.399 std_max=26.00
+        - decoded 15 unique vanilla _D PNG file(s) with art/png_stats.py (decoder: pure-python); mean/std recomputed from the raw sRGB bytes
+        - PASS BaseMetal.Folktails                BaseMetal_D1.png               px=(8, 8, 504, 504)     uv=(0.007812, 0.507812, 0.492188, 0.992188) mean=(109.45, 97.55, 74.21) std=14.446 std_max=30.00
+        - PASS BaseMetal.IronTeeth                BaseMetal_D2.png               px=(8, 8, 504, 504)     uv=(0.007812, 0.507812, 0.492188, 0.992188) mean=(107.96, 103.25, 103.34) std=14.677 std_max=30.00
+        - PASS BaseWood_Brown.Folktails           BaseWood_1K_D_Brown.png        px=(4, 4, 512, 444)     uv=(0.003906, 0.566406, 0.500000, 0.996094) mean=(47.21, 33.02, 21.69) std=11.731 std_max=30.00
+        - PASS BaseWood_DarkBrown.IronTeeth       BaseWood_1K_D_Grey.png         px=(4, 4, 512, 444)     uv=(0.003906, 0.566406, 0.500000, 0.996094) mean=(140.80, 135.09, 126.49) std=27.589 std_max=30.00
+        - PASS BaseWood_Grey.IronTeeth            BaseWood_1K_D_Grey.png         px=(4, 4, 512, 444)     uv=(0.003906, 0.566406, 0.500000, 0.996094) mean=(140.80, 135.09, 126.49) std=27.589 std_max=30.00
+        - PASS BaseWood_LightBrown.Folktails      BaseWood_1K_D_White.png        px=(4, 4, 512, 444)     uv=(0.003906, 0.566406, 0.500000, 0.996094) mean=(151.21, 138.31, 121.93) std=24.760 std_max=30.00
+        - PASS BaseWood_White.Folktails           BaseWood_1K_D_White.png        px=(4, 4, 512, 444)     uv=(0.003906, 0.566406, 0.500000, 0.996094) mean=(151.21, 138.31, 121.93) std=24.760 std_max=30.00
+        - PASS Details.Folktails                  Details_D.Folktails.png        px=(4, 516, 508, 1012)  uv=(0.003906, 0.011719, 0.496094, 0.496094) mean=(105.93, 81.34, 48.89) std=25.325 std_max=30.00
+        - PASS Details.IronTeeth                  Details_D.IronTeeth.png        px=(4, 516, 508, 1012)  uv=(0.003906, 0.011719, 0.496094, 0.496094) mean=(84.63, 72.14, 55.46) std=28.629 std_max=30.00
         - PASS IrregularPlanks_Brown.Folktails    IrregularPlanks_D_Brown.png    px=(4, 204, 260, 460)   uv=(0.003906, 0.550781, 0.253906, 0.800781) mean=(50.97, 37.95, 26.16) std=17.878 std_max=18.00
         - PASS IrregularPlanks_MetalForged.IronTeeth PlanksWithMetal_D.png          px=(636, 372, 860, 596) uv=(0.621094, 0.417969, 0.839844, 0.636719) mean=(94.91, 73.74, 57.63) std=26.265 std_max=27.00
         - PASS Moss.Folktails                     Moss_D.Folktails.png           px=(188, 292, 444, 548) uv=(0.183594, 0.464844, 0.433594, 0.714844) mean=(43.20, 48.63, 20.88) std=13.102 std_max=16.00
         - PASS Plaster_Orange.IronTeeth           Plaster_D_White.IronTeeth.png  px=(468, 4, 788, 324)   uv=(0.457031, 0.683594, 0.769531, 0.996094) mean=(176.09, 159.81, 141.20) std=9.972 std_max=10.00
         - PASS Plaster_White.Folktails            Plaster_D_White.Folktails.png  px=(468, 4, 788, 324)   uv=(0.457031, 0.683594, 0.769531, 0.996094) mean=(176.09, 159.81, 141.20) std=9.972 std_max=10.00
         - PASS RoofPlanks.IronTeeth               RoofPlanks_D.png               px=(4, 756, 260, 1012)  uv=(0.003906, 0.011719, 0.253906, 0.261719) mean=(37.85, 39.60, 30.42) std=13.548 std_max=16.00
-        - PASS WindowsAtlas.Folktails             WindowsAtlas_D.Folktails.png   px=(828, 772, 1020, 964) uv=(0.808594, 0.058594, 0.996094, 0.246094) mean=(122.32, 133.66, 139.66) std=11.536 std_max=12.00
-        - PASS WindowsAtlas.IronTeeth             WindowsAtlas_D.IronTeeth.png   px=(828, 772, 1020, 964) uv=(0.808594, 0.058594, 0.996094, 0.246094) mean=(122.32, 133.66, 139.66) std=11.536 std_max=12.00
+        - PASS WindowsAtlas.Folktails             WindowsAtlas_D.Folktails.png   px=(772, 772, 1020, 1020) uv=(0.753906, 0.003906, 0.996094, 0.246094) mean=(128.04, 138.22, 144.23) std=14.686 std_max=30.00
+        - PASS WindowsAtlas.IronTeeth             WindowsAtlas_D.IronTeeth.png   px=(772, 772, 1020, 1020) uv=(0.753906, 0.003906, 0.996094, 0.246094) mean=(128.04, 138.22, 144.23) std=14.686 std_max=30.00
         - texture root resolution: env HDBF_VANILLA_TEX_ROOT > map.texture_roots > built-in default roots
 --------------------------------------------------------------------------------------------------------
 C12 hazard / large-shell material policy                     PASS
@@ -539,27 +543,80 @@ C12 hazard / large-shell material policy                     PASS
         - 2 recorded hazard/logo/text exclusion rect(s) checked against the usable patches
         - no usable patch overlaps a recorded exclusion rect
         - used by shipped .timbermesh: ['BaseMetal.Folktails', 'BaseMetal.IronTeeth', 'BaseWood_Brown.Folktails', 'BaseWood_DarkBrown.IronTeeth', 'BaseWood_Grey.IronTeeth', 'BaseWood_LightBrown.Folktails', 'BaseWood_White.Folktails', 'Details.Folktails', 'Details.IronTeeth', 'IrregularPlanks_Brown.Folktails', 'IrregularPlanks_MetalForged.IronTeeth', 'Moss.Folktails', 'Plaster_Orange.IronTeeth', 'Plaster_White.Folktails', 'RoofPlanks.IronTeeth', 'WindowsAtlas.Folktails', 'WindowsAtlas.IronTeeth']
+--------------------------------------------------------------------------------------------------------
+C15 ART-07 world-UV texel density                            PASS
+  17 material(s) / 53856 triangle(s) keep the frozen ART-07 texel density (+-2 % aggregate of the map px_per_m; tile [300.0, 600.0] px/m band; exact UV recompute 50272/50272 non-ambiguous triangles within 1e-03)
+        - PASS BaseMetal.Folktails                    mode=patch canvas=(8, 8, 504, 504)       px_per_m expected  164.00 measured min/mean/max  163.989/ 164.000/ 164.007 (-0.000 %) tris=10190
+        - PASS BaseMetal.IronTeeth                    mode=patch canvas=(8, 8, 504, 504)       px_per_m expected  164.00 measured min/mean/max  163.988/ 164.000/ 164.007 (+0.000 %) tris=4674
+        - PASS BaseWood_Brown.Folktails               mode=patch canvas=(4, 4, 512, 444)       px_per_m expected  145.30 measured min/mean/max  145.286/ 145.300/ 145.307 (-0.000 %) tris=7354
+        - PASS BaseWood_DarkBrown.IronTeeth           mode=patch canvas=(4, 4, 512, 444)       px_per_m expected  145.30 measured min/mean/max  145.286/ 145.300/ 145.307 (+0.000 %) tris=5816
+        - PASS BaseWood_Grey.IronTeeth                mode=patch canvas=(4, 4, 512, 444)       px_per_m expected  145.30 measured min/mean/max  145.286/ 145.300/ 145.307 (+0.000 %) tris=5388
+        - PASS BaseWood_LightBrown.Folktails          mode=patch canvas=(4, 4, 512, 444)       px_per_m expected  145.30 measured min/mean/max  145.286/ 145.300/ 145.307 (+0.000 %) tris=5388
+        - PASS BaseWood_White.Folktails               mode=patch canvas=(4, 4, 512, 444)       px_per_m expected  145.30 measured min/mean/max  145.298/ 145.300/ 145.300 (-0.000 %) tris=756
+        - PASS Details.Folktails                      mode=patch canvas=(4, 516, 508, 1012)    px_per_m expected  164.00 measured min/mean/max  163.992/ 164.000/ 164.003 (-0.000 %) tris=5390
+        - PASS Details.IronTeeth                      mode=patch canvas=(4, 516, 508, 1012)    px_per_m expected  164.00 measured min/mean/max  163.990/ 164.000/ 164.003 (-0.000 %) tris=5390
+        - PASS IrregularPlanks_Brown.Folktails        mode=tile  canvas=(0, 0, 1024, 1024)     px_per_m expected  340.00 measured min/mean/max  339.998/ 340.000/ 340.000 (-0.000 %) tris=60
+        - PASS IrregularPlanks_MetalForged.IronTeeth  mode=tile  canvas=(0, 0, 1024, 1024)     px_per_m expected  340.00 measured min/mean/max  339.998/ 340.000/ 340.001 (+0.000 %) tris=1440
+        - PASS Moss.Folktails                         mode=tile  canvas=(0, 0, 1024, 1024)     px_per_m expected  341.10 measured min/mean/max  341.099/ 341.100/ 341.101 (-0.000 %) tris=576
+        - PASS Plaster_Orange.IronTeeth               mode=tile  canvas=(0, 0, 1024, 1024)     px_per_m expected  340.00 measured min/mean/max  339.998/ 340.000/ 340.001 (+0.000 %) tris=382
+        - PASS Plaster_White.Folktails                mode=tile  canvas=(0, 0, 1024, 1024)     px_per_m expected  340.00 measured min/mean/max  339.998/ 340.000/ 340.001 (+0.000 %) tris=382
+        - PASS RoofPlanks.IronTeeth                   mode=tile  canvas=(0, 0, 1024, 1024)     px_per_m expected  357.80 measured min/mean/max  357.800/ 357.800/ 357.801 (+0.000 %) tris=94
+        - PASS WindowsAtlas.Folktails                 mode=patch canvas=(772, 772, 1020, 1020) px_per_m expected   82.40 measured min/mean/max   82.398/  82.400/  82.402 (+0.000 %) tris=288
+        - PASS WindowsAtlas.IronTeeth                 mode=patch canvas=(772, 772, 1020, 1020) px_per_m expected   82.40 measured min/mean/max   82.398/  82.400/  82.402 (+0.000 %) tris=288
+        - aggregate tolerance +-2 % per material; per-triangle +-25 % above 0.05 m^2 world area (0/6040 failed); tile materials must be inside the REQ band [300.0, 600.0]; patch materials must be >= 64 px/m (2x ART-06; the WindowsAtlas glass pane is 82.4 px/m by design)
+        - exact UV recomputation (frozen projection tie-break; export -> author space inverse): 50272 triangle(s) checked, 0 mismatch(es) > 1e-03; ambiguous-plane triangles 3584/53856 = 6.65 % of triangles / 0.130 % of world area (limits 15 % / 2.0 %)
+        - the 8 ConstructionStage0 files share ONE baked Folktails UV set: their density/exact UVs are measured against the Folktails source material of the shared window (the IronTeeth export samples that same window by contract)
+--------------------------------------------------------------------------------------------------------
+C16 ART-07 UV mapping contract / determinism                 PASS
+  17 used material(s) carry the frozen sec.4 ART-07 record (mode/tile_meters/texture_size/wrap/uv_canvas/projection/px_per_m/coverage); px_per_m reproduces from the usable canvas and coverage; wrap/tile_meters/uv_canvas/patch inside the texture; 2 construction shared window(s) resolve both factions; the same density/canvas is used by every shipped file
+        - 17 used material(s) checked against the sec.4 record; construction shared window(s): 2; per-file density uses cross-checked: 42 (drift failures: 0)
+        - construction_shared_patches['construction_metal']: shared window uv=(0.007812, 0.507812, 0.492188, 0.992188) (Folktails 'BaseMetal.Folktails' canvas, IronTeeth 'BaseMetal.IronTeeth' bounds OK)
+        - construction_shared_patches['construction_wood']: shared window uv=(0.003906, 0.566406, 0.500000, 0.996094) (Folktails 'BaseWood_Brown.Folktails' canvas, IronTeeth 'RoofPlanks.IronTeeth' bounds OK)
 
 --------------------------------------------------------------------------------------------------------
 PATCH TABLE (per material: real _D texture, pixel rect, uv rect, re-measured mean RGB, std, std_max)
   RES  MATERIAL                           TEXTURE                        PIXEL RECT           UV RECT                                MEAN RGB (measured)  MEAN RGB (recorded)          STD  STD_MAX
-  PASS BaseMetal.Folktails                BaseMetal_D1.png               (68, 132, 388, 452)  (0.066406, 0.558594, 0.378906, 0.871094) (111.96, 100.15, 76.73) (111.96, 100.15, 76.73)   11.290    14.00
-  PASS BaseMetal.IronTeeth                BaseMetal_D2.png               (68, 132, 388, 452)  (0.066406, 0.558594, 0.378906, 0.871094) (110.81, 106.12, 106.19) (110.81, 106.12, 106.19)   10.676    14.00
-  PASS BaseWood_Brown.Folktails           BaseWood_1K_D_Brown.png        (4, 756, 260, 1012)  (0.003906, 0.011719, 0.253906, 0.261719) (54.47, 40.38, 27.02) (54.47, 40.38, 27.02)     17.735    18.00
-  PASS BaseWood_DarkBrown.IronTeeth       BaseWood_1K_D_Grey.png         (364, 308, 508, 452) (0.355469, 0.558594, 0.496094, 0.699219) (135.71, 129.88, 120.96) (135.71, 129.88, 120.96)   17.934    18.00
-  PASS BaseWood_Grey.IronTeeth            BaseWood_1K_D_Grey.png         (364, 308, 508, 452) (0.355469, 0.558594, 0.496094, 0.699219) (135.71, 129.88, 120.96) (135.71, 129.88, 120.96)   17.934    18.00
-  PASS BaseWood_LightBrown.Folktails      BaseWood_1K_D_White.png        (20, 244, 212, 436)  (0.019531, 0.574219, 0.207031, 0.761719) (148.40, 135.11, 117.52) (148.40, 135.11, 117.52)   14.473    18.00
-  PASS BaseWood_White.Folktails           BaseWood_1K_D_White.png        (20, 244, 212, 436)  (0.019531, 0.574219, 0.207031, 0.761719) (148.40, 135.11, 117.52) (148.40, 135.11, 117.52)   14.473    18.00
-  PASS Details.Folktails                  Details_D.Folktails.png        (100, 748, 356, 1004) (0.097656, 0.019531, 0.347656, 0.269531) (105.26, 80.45, 48.28) (105.26, 80.45, 48.28)    23.732    26.00
-  PASS Details.IronTeeth                  Details_D.IronTeeth.png        (196, 748, 452, 1004) (0.191406, 0.019531, 0.441406, 0.269531) (89.18, 74.98, 57.97) (89.18, 74.98, 57.96)     25.399    26.00
+  PASS BaseMetal.Folktails                BaseMetal_D1.png               (8, 8, 504, 504)     (0.007812, 0.507812, 0.492188, 0.992188) (109.45, 97.55, 74.21) (109.45, 97.55, 74.21)    14.446    30.00
+  PASS BaseMetal.IronTeeth                BaseMetal_D2.png               (8, 8, 504, 504)     (0.007812, 0.507812, 0.492188, 0.992188) (107.96, 103.25, 103.34) (107.96, 103.25, 103.34)   14.677    30.00
+  PASS BaseWood_Brown.Folktails           BaseWood_1K_D_Brown.png        (4, 4, 512, 444)     (0.003906, 0.566406, 0.500000, 0.996094) (47.21, 33.02, 21.69) (47.21, 33.02, 21.69)     11.731    30.00
+  PASS BaseWood_DarkBrown.IronTeeth       BaseWood_1K_D_Grey.png         (4, 4, 512, 444)     (0.003906, 0.566406, 0.500000, 0.996094) (140.80, 135.09, 126.49) (140.80, 135.09, 126.49)   27.589    30.00
+  PASS BaseWood_Grey.IronTeeth            BaseWood_1K_D_Grey.png         (4, 4, 512, 444)     (0.003906, 0.566406, 0.500000, 0.996094) (140.80, 135.09, 126.49) (140.80, 135.09, 126.49)   27.589    30.00
+  PASS BaseWood_LightBrown.Folktails      BaseWood_1K_D_White.png        (4, 4, 512, 444)     (0.003906, 0.566406, 0.500000, 0.996094) (151.21, 138.31, 121.93) (151.21, 138.31, 121.93)   24.760    30.00
+  PASS BaseWood_White.Folktails           BaseWood_1K_D_White.png        (4, 4, 512, 444)     (0.003906, 0.566406, 0.500000, 0.996094) (151.21, 138.31, 121.93) (151.21, 138.31, 121.93)   24.760    30.00
+  PASS Details.Folktails                  Details_D.Folktails.png        (4, 516, 508, 1012)  (0.003906, 0.011719, 0.496094, 0.496094) (105.93, 81.34, 48.89) (105.93, 81.34, 48.89)    25.325    30.00
+  PASS Details.IronTeeth                  Details_D.IronTeeth.png        (4, 516, 508, 1012)  (0.003906, 0.011719, 0.496094, 0.496094) (84.63, 72.14, 55.46) (84.63, 72.14, 55.46)     28.629    30.00
   PASS IrregularPlanks_Brown.Folktails    IrregularPlanks_D_Brown.png    (4, 204, 260, 460)   (0.003906, 0.550781, 0.253906, 0.800781) (50.97, 37.95, 26.16) (50.97, 37.95, 26.16)     17.878    18.00
   PASS IrregularPlanks_MetalForged.IronTeeth PlanksWithMetal_D.png          (636, 372, 860, 596) (0.621094, 0.417969, 0.839844, 0.636719) (94.91, 73.74, 57.63) (94.91, 73.74, 57.63)     26.265    27.00
   PASS Moss.Folktails                     Moss_D.Folktails.png           (188, 292, 444, 548) (0.183594, 0.464844, 0.433594, 0.714844) (43.20, 48.63, 20.88) (43.20, 48.63, 20.88)     13.102    16.00
   PASS Plaster_Orange.IronTeeth           Plaster_D_White.IronTeeth.png  (468, 4, 788, 324)   (0.457031, 0.683594, 0.769531, 0.996094) (176.09, 159.81, 141.20) (176.09, 159.81, 141.20)    9.972    10.00
   PASS Plaster_White.Folktails            Plaster_D_White.Folktails.png  (468, 4, 788, 324)   (0.457031, 0.683594, 0.769531, 0.996094) (176.09, 159.81, 141.20) (176.09, 159.81, 141.20)    9.972    10.00
   PASS RoofPlanks.IronTeeth               RoofPlanks_D.png               (4, 756, 260, 1012)  (0.003906, 0.011719, 0.253906, 0.261719) (37.85, 39.60, 30.42) (37.85, 39.60, 30.42)     13.548    16.00
-  PASS WindowsAtlas.Folktails             WindowsAtlas_D.Folktails.png   (828, 772, 1020, 964) (0.808594, 0.058594, 0.996094, 0.246094) (122.32, 133.66, 139.66) (122.32, 133.66, 139.66)   11.536    12.00
-  PASS WindowsAtlas.IronTeeth             WindowsAtlas_D.IronTeeth.png   (828, 772, 1020, 964) (0.808594, 0.058594, 0.996094, 0.246094) (122.32, 133.66, 139.66) (122.32, 133.66, 139.66)   11.536    12.00
+  PASS WindowsAtlas.Folktails             WindowsAtlas_D.Folktails.png   (772, 772, 1020, 1020) (0.753906, 0.003906, 0.996094, 0.246094) (128.04, 138.22, 144.23) (128.04, 138.22, 144.23)   14.686    30.00
+  PASS WindowsAtlas.IronTeeth             WindowsAtlas_D.IronTeeth.png   (772, 772, 1020, 1020) (0.753906, 0.003906, 0.996094, 0.246094) (128.04, 138.22, 144.23) (128.04, 138.22, 144.23)   14.686    30.00
+
+--------------------------------------------------------------------------------------------------------
+WORLD-UV TEXEL DENSITY TABLE (C15; per material of the 16 shipped .timbermesh files, author space)
+  RES  MATERIAL                               MODE  CANVAS                  PX/M(EXP)        MIN       MEAN        MAX    TRIS
+  PASS BaseMetal.Folktails                    patch (8, 8, 504, 504)           164.00    163.989    164.000    164.007   10190
+  PASS BaseMetal.IronTeeth                    patch (8, 8, 504, 504)           164.00    163.988    164.000    164.007    4674
+  PASS BaseWood_Brown.Folktails               patch (4, 4, 512, 444)           145.30    145.286    145.300    145.307    7354
+  PASS BaseWood_DarkBrown.IronTeeth           patch (4, 4, 512, 444)           145.30    145.286    145.300    145.307    5816
+  PASS BaseWood_Grey.IronTeeth                patch (4, 4, 512, 444)           145.30    145.286    145.300    145.307    5388
+  PASS BaseWood_LightBrown.Folktails          patch (4, 4, 512, 444)           145.30    145.286    145.300    145.307    5388
+  PASS BaseWood_White.Folktails               patch (4, 4, 512, 444)           145.30    145.298    145.300    145.300     756
+  PASS Details.Folktails                      patch (4, 516, 508, 1012)        164.00    163.992    164.000    164.003    5390
+  PASS Details.IronTeeth                      patch (4, 516, 508, 1012)        164.00    163.990    164.000    164.003    5390
+  PASS IrregularPlanks_Brown.Folktails        tile  (0, 0, 1024, 1024)         340.00    339.998    340.000    340.000      60
+  PASS IrregularPlanks_MetalForged.IronTeeth  tile  (0, 0, 1024, 1024)         340.00    339.998    340.000    340.001    1440
+  PASS Moss.Folktails                         tile  (0, 0, 1024, 1024)         341.10    341.099    341.100    341.101     576
+  PASS Plaster_Orange.IronTeeth               tile  (0, 0, 1024, 1024)         340.00    339.998    340.000    340.001     382
+  PASS Plaster_White.Folktails                tile  (0, 0, 1024, 1024)         340.00    339.998    340.000    340.001     382
+  PASS RoofPlanks.IronTeeth                   tile  (0, 0, 1024, 1024)         357.80    357.800    357.800    357.801      94
+  PASS WindowsAtlas.Folktails                 patch (772, 772, 1020, 1020)      82.40     82.398     82.400     82.402     288
+  PASS WindowsAtlas.IronTeeth                 patch (772, 772, 1020, 1020)      82.40     82.398     82.400     82.402     288
+  tile band: 300-600 px/m; patch floor: 64 px/m (2x the retired ART-06 density of 32 px/m; the WindowsAtlas glass pane is 82.4 px/m by design); aggregate tolerance +-2 % vs the map px_per_m
+  per-triangle tolerance +-25 % above 0.05 m^2 world area (0/6040 failed); exact UV recompute: 50272 triangle(s) checked, 0 mismatch(es) > 1e-03; ambiguous planes 3584/53856 = 6.65 % of triangles / 0.130 % of area (limits 15 % / 2.0 %)
+  construction stage: the 8 ConstructionStage0 files share ONE baked Folktails UV set; their density/exact UVs are measured against the Folktails source material of the construction_shared_patches window
 
 ========================================================================================================
 SUMMARY TABLE
@@ -587,25 +644,37 @@ RESULT
 ========================================================================================================
 FILES:  16/16 present; 16 PASS, 0 FAIL
 CHECKS: 144 PASS, 0 FAIL, 0 NOT RUN (of 144 = 16 files x 9 checks)
-CROSS-FILE MATERIAL CHECKS (ART-05 real-texture patches):
+CROSS-FILE MATERIAL CHECKS (C10-C12 ART-05 + C15-C16 ART-07):
   C10 material patch map coverage                                PASS   schema 'hdbf.material_texture_map/v1' ok; all 17 required material(s) have a real-texture patch record (17 usable, 2 unused/reference)
   C11 real _D texture variance re-verification                   PASS   all 17 patch record(s) re-verified from the real vanilla _D PNGs: recorded mean RGB / std match the decoded pixels (mean +-0.5, std +-0.5) and std <= std_max
   C12 hazard / large-shell material policy                       PASS   2 forbidden yellow-black hazard material(s) declared and unused; no hazard-tagged patch is shipped; 2 exclusion rect(s) respected
-NEGATIVE CONTROLS: PASS 3/3 (each control must be REJECTED)
+  C15 ART-07 world-UV texel density                              PASS   17 material(s) / 53856 triangle(s) keep the frozen ART-07 texel density (+-2 % aggregate of the map px_per_m; tile [300.0, 600.0] px/m band; exact UV recompute 50272/50272 non-ambiguous triangles within 1e-03)
+  C16 ART-07 UV mapping contract / determinism                   PASS   17 used material(s) carry the frozen sec.4 ART-07 record (mode/tile_meters/texture_size/wrap/uv_canvas/projection/px_per_m/coverage); px_per_m reproduces from the usable canvas and coverage; wrap/tile_meters/uv_canvas/patch inside the texture; 2 construction shared window(s) resolve both factions; the same density/canvas is used by every shipped file
+NEGATIVE CONTROLS: PASS 6/6 (each control must be REJECTED)
+controls: 6/6 rejected
 OVERALL VERDICT: PASS
 report: art\timbermesh-validation.txt
 
 ========================================================================================================
 NEGATIVE CONTROLS (requirement D: each control must be rejected)
 ========================================================================================================
-[1] REJECTED    one shipped uv0 shifted outside its patch (uv containment)
-     source=shipped:BoxFarm.Basic.Folktails.Model material='BaseWood_Brown.Folktails' uv0=(0.028320, 0.017578) -> (0.553906, 0.017578): moved 0.5256 in u (> one patch width 0.2500) outside patch uv=[0.003906, 0.011719, 0.253906, 0.261719]; containment checker REJECTED (FAIL)
-     rejected by C9: material 'BaseWood_Brown.Folktails': 1 uv0 value(s) lie outside its patch uv_rect [0.003906, 0.011719, 0.253906, 0.261719] +-1e-04 (first: [('shipped:BoxFarm.Basic.Folktails.Model', 0.553906, 0.017578)])
+[1] REJECTED    one shipped uv0 shifted outside its ART-07 canvas (containment)
+     source=shipped:BoxFarm.Basic.Folktails.Model material='BaseWood_Brown.Folktails' mode='patch' uv0=(0.039111, 0.994092) -> (1.046094, 0.994092): moved 1.0070 in u (> one canvas width 0.4961) outside the ART-07 canvas uv=[0.003906, 0.566406, 0.500000, 0.996094]; containment checker REJECTED (FAIL)
+     rejected by C9: material 'BaseWood_Brown.Folktails': 1 uv0 value(s) lie outside its ART-07 uv_canvas [0.003906, 0.566406, 0.500000, 0.996094] +-1e-04 (first: [('shipped:BoxFarm.Basic.Folktails.Model', 1.046094, 0.994092)])
 [2] REJECTED    synthetic 192x192 yellow-black hazard-stripe patch record (texture variance/hazard)
      mode=real PaintedMetal_D.Folktails.png resolved via texture_roots['vanilla-tex-all']; patch px=(384, 416, 576, 608) uv=(0.375000, 0.406250, 0.562500, 0.593750); recorded std=60.019; std_max=18.000 -> REJECTED
      rejected by C11: re-measured std 60.0192 > std_max 18.0000 (the patch is not uniform - hazard stripes, a logo/text region or several materials in one patch)
 [3] REJECTED    one required material removed from an in-memory map copy (coverage)
      mode=in-memory copy of art/material_texture_map.json; removed required material 'BaseMetal.Folktails'; coverage checker -> FAIL
      rejected by C10: 1 required material(s) have no entry in art/material_texture_map.json: ['BaseMetal.Folktails']
-NEGATIVE CONTROLS: PASS 3/3
+[4] REJECTED    tile material UVs scaled x0.5 (world-UV texel density)
+     source=parsed shipped .timbermesh file material='Moss.Folktails' (effective 'Moss.Folktails') UVs scaled x0.5 about uv=0.5; baseline density 341.10 px/m (map 341.10) -> scaled density 170.55 px/m; C15 aggregate tolerance +-2% -> REJECTED
+     rejected by C15: BoxFarm.Basic.Folktails.Model: exact UV recomputation differs by 0.188205 (tolerance 1e-03) on material 'Moss.Folktails' triangle 0
+[5] REJECTED    tile material UVs scaled x2.0 (world-UV texel density)
+     source=parsed shipped .timbermesh file material='Moss.Folktails' (effective 'Moss.Folktails') UVs scaled x2.0 about uv=0.5; baseline density 341.10 px/m (map 341.10) -> scaled density 682.20 px/m; C15 aggregate tolerance +-2% -> REJECTED
+     rejected by C15: BoxFarm.Basic.Folktails.Model: exact UV recomputation differs by 0.376409 (tolerance 1e-03) on material 'Moss.Folktails' triangle 0 [the x2.0 UVs also leave the material canvas, so C9 would reject them too; the control is scored on the C15 density checker]
+[6] REJECTED    one large patch-mode face stretched to the full 0..1 UV square (mode-aware canvas containment)
+     source=parsed shipped .timbermesh file file=BoxFarm.Basic.Folktails.Model material='BaseWood_Brown.Folktails' triangle=(0, 1, 2) world_area=4.5000 m^2; the face UVs are replaced by (0,0)/(1,0)/(0,1) -> its patch canvas is uv=[(0.003906, 0.566406, 0.500000, 0.996094)]; mode-aware containment REJECTED
+     rejected by C9: material 'BaseWood_Brown.Folktails': 3 uv0 value(s) lie outside its ART-07 uv_canvas [0.003906, 0.566406, 0.500000, 0.996094] +-1e-04 (first: [('BoxFarm.Basic.Folktails.Model', 0.0, 0.0), ('BoxFarm.Basic.Folktails.Model', 1.0, 0.0), ('BoxFarm.Basic.Folktails.Model', 0.0, 1.0)])
+NEGATIVE CONTROLS: PASS 6/6
 

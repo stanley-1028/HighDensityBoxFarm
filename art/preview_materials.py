@@ -28,7 +28,12 @@ sample exactly the same bytes + tint + UVs the game does:
   texture).
 * binding: Image Texture (full real PNG, UVMap) * ``_Color`` tint -> Principled
   Base Color.  The FBX mesh UVs already live in the mapped material's real
-  texture space, so the patch is sampled automatically - no UV is changed here.
+  texture space, so the patch/canvas is sampled automatically - no UV is changed
+  here.  ART-07 (2026-10-27): the real-texture image nodes use
+  ``extension = "REPEAT"`` (interpolation stays ``"Linear"``) so the offline
+  sampler matches the in-game sampler; the ART-07 world UVs stay inside the
+  material canvas, so REPEAT only matches the game's half-texel edge filtering,
+  never the mapping (see ``art/ART07_UV_TILING.md`` section 6).
   The vanilla ``_BumpMap`` normal maps are **OFF by default**: the extracted
   Unity ``_N`` assets are stored in Unity's normal-map packing, not as a
   Blender/OpenGL tangent-space RGB normal map, and sampling them directly turns
@@ -352,6 +357,10 @@ class MaterialTextureBook(object):
                 out["material_color_tint"] = None
             patch = rec.get("patch")
             out["patch"] = patch if isinstance(patch, dict) else None
+            canvas = rec.get("uv_canvas")
+            out["uv_canvas"] = canvas if isinstance(canvas, dict) else None
+            out["mode"] = rec.get("mode")
+            out["px_per_m"] = rec.get("px_per_m")
             out["normal_texture"] = (rec.get("normal_texture")
                                      or rec.get("normal_texture_name"))
             out["normal_texture_source"] = rec.get("normal_texture_source")
@@ -416,6 +425,7 @@ class MaterialTextureBook(object):
                 "texture": None, "texture_path": None, "texture_source": None,
                 "texture_size": None, "texture_size_declared": None,
                 "material_color_tint": None, "patch": None,
+                "mode": None, "px_per_m": None, "canvas_uv_rect": None,
                 "normal_texture": None, "normal_path": None,
                 "normal_source": None, "source": "missing",
                 "status": "unknown-material",
@@ -462,6 +472,10 @@ class MaterialTextureBook(object):
                 "texture_size_declared": (list(declared) if declared else None),
                 "material_color_tint": [float(v) for v in tint[:3]],
                 "patch": raw.get("patch"),
+                "mode": raw.get("mode"),
+                "px_per_m": raw.get("px_per_m"),
+                "canvas_uv_rect": self._canvas_uv_rect(vanilla_material,
+                                                       raw.get("uv_canvas")),
                 "normal_texture": normal_name,
                 "normal_path": normal_path,
                 "normal_source": normal_source,
@@ -471,6 +485,31 @@ class MaterialTextureBook(object):
             self._check_patch(vanilla_material, result)
         self._resolved[vanilla_material] = result
         return result
+
+    def _canvas_uv_rect(self, vanilla_material, canvas):
+        """ART-07 ``uv_canvas.uv_rect`` (ordered, inside [0,1]) or None.
+
+        A *tile* material samples the whole texture (uv_rect 0,0,1,1); a *patch*
+        material samples the curated coherent canvas rect.  Either way every
+        shipped UV must stay inside this rect (ART07_UV_TILING.md sections 2
+        and 5), so the preview QA checks containment against it instead of the
+        out-of-date ART-06 small patch window.
+        """
+        if not isinstance(canvas, dict):
+            return None
+        uv_rect = canvas.get("uv_rect")
+        if not (isinstance(uv_rect, (list, tuple)) and len(uv_rect) == 4):
+            self.warnings.append("%s: uv_canvas has no usable uv_rect"
+                                 % vanilla_material)
+            return None
+        values = [float(v) for v in uv_rect]
+        if not (0.0 <= values[0] < values[2] <= 1.0
+                and 0.0 <= values[1] < values[3] <= 1.0):
+            self.warnings.append(
+                "%s: uv_canvas uv_rect %r is not an ordered rect inside [0,1]"
+                % (vanilla_material, values))
+            return None
+        return values
 
     def _check_patch(self, vanilla_material, record):
         """Sanity-check the informative patch rect against the texture size."""
@@ -668,7 +707,10 @@ def _apply_material(mat, slot, tint, image, normal_image):
         tex.location = (-420, 220)
         tex.image = image
         tex.interpolation = "Linear"
-        tex.extension = "EXTEND"
+        # ART-07: the in-game sampler is Repeat (Texture2D.m_WrapMode = 0); the
+        # world UVs stay inside the material canvas, so this only matches the
+        # game's half-texel edge filtering (see ART07_UV_TILING.md section 6).
+        tex.extension = "REPEAT"
         tex.label = os.path.basename(image.filepath_raw or image.name)
         if tint is None or tuple(round(v, 6) for v in tint[:3]) == (1.0, 1.0,
                                                                     1.0):
@@ -692,6 +734,7 @@ def _apply_material(mat, slot, tint, image, normal_image):
         ntex.location = (-420, -160)
         ntex.image = normal_image
         ntex.interpolation = "Linear"
+        ntex.extension = "REPEAT"
         ntex.label = os.path.basename(normal_image.filepath_raw or
                                       normal_image.name)
         nmap = nt.nodes.new("ShaderNodeNormalMap")
@@ -806,8 +849,12 @@ def bind_scene_materials(tier, faction, construction=False, book=None,
             "normal_texture": record["normal_texture"],
             "normal_path": (record["normal_path"] if normal_maps else None),
             "patch": record["patch"],
+            "mode": record.get("mode"),
+            "px_per_m": record.get("px_per_m"),
+            "canvas_uv_rect": record.get("canvas_uv_rect"),
             "uv_bbox": uv_boxes.get(slot),
             "uv_inside_patch": None,
+            "uv_inside_canvas": None,
             "table_source": record["source"],
         }
         material = _find_material(slot)
@@ -844,10 +891,25 @@ def bind_scene_materials(tier, faction, construction=False, book=None,
             _apply_material(material, slot, record["material_color_tint"],
                             image, normal_image)
             entry["status"] = "bound"
+            # ART-07: containment is checked against the material *canvas*
+            # (full texture for tile materials / curated rect for patch
+            # materials) when the map carries it; older maps fall back to the
+            # informative ART-06 patch rect.
+            canvas_rect = record.get("canvas_uv_rect")
             entry["uv_inside_patch"] = _patch_containment(
                 entry["uv_bbox"],
                 (record["patch"] or {}).get("uv_rect"))
-            if entry["uv_inside_patch"] is False:
+            if canvas_rect is not None:
+                entry["uv_inside_canvas"] = _patch_containment(
+                    entry["uv_bbox"], canvas_rect)
+                if entry["uv_inside_canvas"] is False:
+                    warnings.append(
+                        "%s: %s UVs %s lie outside the mapped %s uv_canvas %s "
+                        "(ART-07 model UVs not regenerated yet?)"
+                        % (context_label, slot, _format_rect(entry["uv_bbox"]),
+                           record["vanilla_material"],
+                           _format_rect(canvas_rect)))
+            elif entry["uv_inside_patch"] is False:
                 warnings.append(
                     "%s: %s UVs %s lie outside the mapped %s patch uv_rect %s "
                     "(model UVs not regenerated yet?)"
@@ -888,7 +950,9 @@ def bind_scene_materials(tier, faction, construction=False, book=None,
             "texture": None, "texture_path": None, "texture_source": None,
             "texture_size": None, "tint": None, "normal_texture": None,
             "normal_path": None, "patch": None, "uv_bbox": uv_boxes.get(slot),
-            "uv_inside_patch": None, "table_source": None,
+            "uv_inside_patch": None, "uv_inside_canvas": None,
+            "mode": None, "px_per_m": None, "canvas_uv_rect": None,
+            "table_source": None,
         })
     return {
         "context": {
@@ -926,7 +990,9 @@ def format_binding_report(report, indent="    "):
         texture = entry["texture"] or "-"
         size = entry["texture_size"] or []
         size_text = ("%dx%d" % (size[0], size[1])) if len(size) == 2 else "?"
-        uv_inside = entry["uv_inside_patch"]
+        uv_inside = entry.get("uv_inside_canvas")
+        if uv_inside is None:
+            uv_inside = entry["uv_inside_patch"]
         if entry["status"] == "bound":
             state = "OK"
         elif entry["status"] == "forced-fallback":
@@ -938,13 +1004,15 @@ def format_binding_report(report, indent="    "):
         else:
             state = "FALLBACK"
         lines.append(
-            "%s  %-13s %-34s %-28s %-11s tint=%s%s  patch=%s%s"
+            "%s  %-13s %-34s %-28s %-11s tint=%s%s  uv=%s%s%s"
             % (indent, entry["slot"], str(entry["vanilla_material"]),
                texture, size_text, _format_tint(entry["tint"]),
                (" normal=%s" % entry["normal_texture"]
                 if entry["normal_texture"] else ""),
                ("inside" if uv_inside else
                 ("OUTSIDE" if uv_inside is False else "-")),
+               (" %s %.1f px/m" % (entry["mode"], float(entry["px_per_m"]))
+                if entry.get("mode") and entry.get("px_per_m") else ""),
                "  [%s]" % state if state != "OK" else ""))
     for warning in report["warnings"]:
         lines.append("%s  MATERIAL WARNING: %s" % (indent, warning))

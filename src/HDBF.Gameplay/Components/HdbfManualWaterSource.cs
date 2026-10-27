@@ -12,8 +12,6 @@ using HDBF.Core.Indoor;
 using HDBF.Core.Logging;
 using HdbfWaterSource = HDBF.Core.Indoor.IWaterSource;
 using Timberborn.BaseComponentSystem;
-using Timberborn.BlockSystem;
-using Timberborn.Coordinates;
 using Timberborn.GameDistricts;
 using Timberborn.Navigation;
 using Timberborn.WaterSystem;
@@ -134,42 +132,6 @@ namespace HDBF.Gameplay.Components
                     "manual water source probe failed; treating the farm as having no source", exception);
                 source = null;
                 failureKey = HdbfIndoorCommandFailures.NoWaterSource;
-                return false;
-            }
-        }
-
-        private bool TryResolveFarm(BaseComponent farm, out Vector3Int origin, out Vector3 start)
-        {
-            origin = default;
-            start = default;
-            try
-            {
-                var block = farm.GetComponent<BlockObject>();
-                origin = block is not null ? block.Coordinates : CoordinateSystem.WorldToGridInt(farm.Transform.position);
-                var accessible = farm.GetComponent<Accessible>();
-                if (accessible is null)
-                {
-                    return false;
-                }
-
-                var single = accessible.UnblockedSingleAccess;
-                if (single.HasValue)
-                {
-                    start = single.Value;
-                    return true;
-                }
-
-                var accesses = accessible.Accesses;
-                if (accesses.Count == 0)
-                {
-                    return false;
-                }
-
-                start = accesses[0];
-                return true;
-            }
-            catch (Exception)
-            {
                 return false;
             }
         }

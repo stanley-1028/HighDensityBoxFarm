@@ -145,17 +145,19 @@ namespace HDBF.Tests
 
         /// <summary>
         /// The ConstructionStage0 source geometry bakes ONE uv0 set that is shared by both factions,
-        /// so each joint group must give its FT and IT material the IDENTICAL patch uv_rect (the
-        /// frozen window is pinned exactly) even though the underlying real textures differ.
-        /// group -> (Folktails material, IronTeeth material, frozen shared uv_rect).
+        /// so the shared window must be a region both factions' material canvases can sample. ART-07
+        /// (§3 "Construction stage") replaced the old small patch window with the Folktails source
+        /// material's ART-07 canvas: BaseWood_Brown.Folktails' curated wood canvas is inside the
+        /// RoofPlanks.IronTeeth full-bleed tile texture, and BaseMetal.Folktails / BaseMetal.IronTeeth
+        /// share the identical metal canvas. The expected window is therefore derived from the map
+        /// (the Folktails canvas), not hard-coded.
+        /// group -> (Folktails source material, IronTeeth material).
         /// </summary>
-        private static readonly Dictionary<string, (string Folktails, string IronTeeth, double[] SharedUv)>
+        private static readonly Dictionary<string, (string Folktails, string IronTeeth)>
             SharedConstructionGroups = new(StringComparer.Ordinal)
             {
-                ["construction_wood"] = ("BaseWood_Brown.Folktails", "RoofPlanks.IronTeeth",
-                    new[] { 0.003906, 0.011719, 0.253906, 0.261719 }),
-                ["construction_metal"] = ("BaseMetal.Folktails", "BaseMetal.IronTeeth",
-                    new[] { 0.066406, 0.558594, 0.378906, 0.871094 }),
+                ["construction_wood"] = ("BaseWood_Brown.Folktails", "RoofPlanks.IronTeeth"),
+                ["construction_metal"] = ("BaseMetal.Folktails", "BaseMetal.IronTeeth"),
             };
 
         private static readonly Lazy<JsonElement> LazyMapRoot = new(LoadMapRoot);
@@ -293,8 +295,14 @@ namespace HDBF.Tests
                     entryContext + ": patch_class \"" + record.PatchClass
                     + "\" has no std_max_by_class budget (classes: "
                     + string.Join(", ", classBudgets.Keys.OrderBy(name => name, StringComparer.Ordinal)) + ")");
-                TestAssert.Equal(Math.Min(classBudgets[record.PatchClass], hardStdCap), record.StdMax, 1e-6,
-                    entryContext + ": patch.std_max must be the min(class budget, hard_std_cap) from thresholds");
+                // ART-07 §4: for PATCH materials the legacy patch record is the large curated canvas,
+                // whose std budget is the ART-05 hard cap (the canvas deliberately contains plank
+                // seams/wear); for TILE materials it stays the small ART-05 probe window and keeps
+                // the reviewed per-class budget.
+                var expectedStdMax = ExpectedPatchStdMax(record, classBudgets, hardStdCap);
+                TestAssert.Equal(expectedStdMax, record.StdMax, 1e-6,
+                    entryContext + ": patch.std_max must be the ART-07 canvas budget (" + hardStdCap
+                    + ") for patch-mode canvases and min(class budget, hard_std_cap) for the tile probe window");
             }
 
             var sharedPatches = Member(mapRoot, "construction_shared_patches", context);
@@ -365,8 +373,14 @@ namespace HDBF.Tests
                 var patchStdMax = NumberMember(texturePatch, "std_max", textureContext + " patch");
                 TestAssert.True(patchStd >= 0.0 && patchStdMax > 0.0 && patchStd <= patchStdMax,
                     textureContext + ": patch std must be >= 0 and <= std_max");
-                TestAssert.Equal(Math.Min(classBudgets[patchClass], hardStdCap), patchStdMax, 1e-6,
-                    textureContext + ": patch.std_max must be the min(class budget, hard_std_cap)");
+                var textureOwner = FindTextureOwner(materials, property.Name);
+                TestAssert.NotNull(textureOwner,
+                    textureContext + ": no used material samples this texture, so its patch record cannot "
+                    + "be identified as probe window (tile) or ART-07 canvas (patch)");
+                TestAssert.Equal(ExpectedPatchStdMax(textureOwner!, classBudgets, hardStdCap),
+                    patchStdMax, 1e-6,
+                    textureContext + ": patch.std_max must be the ART-07 canvas budget (" + hardStdCap
+                    + ") for a patch-mode canvas and min(class budget, hard_std_cap) for a tile probe window");
                 var patchMean = DoubleArray(Member(texturePatch, "mean_rgb", textureContext), 3,
                     textureContext + " patch.mean_rgb");
                 TestAssert.True(patchMean.All(value => value >= 0.0 && value <= 255.0),
@@ -381,6 +395,10 @@ namespace HDBF.Tests
                     textureContext + " patch.reject_tags", requireNonEmpty: false);
 
                 // A texture shared by the two construction factions must carry the joint UV window.
+                // ART-07 §3: the window is the Folktails source material's canvas; a patch-mode
+                // texture records that canvas as its own patch window, while a full-bleed tile
+                // texture (e.g. RoofPlanks) keeps its small ART-05 probe record and only has to
+                // CONTAIN the shared window.
                 if (entry.TryGetProperty("shared_uv_group", out var sharedGroupElement)
                     && sharedGroupElement.ValueKind == JsonValueKind.String)
                 {
@@ -394,10 +412,27 @@ namespace HDBF.Tests
                         var groupUv = DoubleArray(Member(sharedGroup, "uv_rect",
                             context + " construction_shared_patches[\"" + sharedGroupName + "\"]"), 4,
                             context + " construction_shared_patches[\"" + sharedGroupName + "\"] uv_rect");
-                        TestAssert.True(UvRectsEqual(patchUv, groupUv, 1e-9),
-                            textureContext + ": texture patch uv_rect must equal its shared_uv_group window");
-                        TestAssert.True(UvRectsEqual(groupUv, SharedConstructionGroups[sharedGroupName].SharedUv, 1e-9),
-                            textureContext + ": shared_uv_group uv_rect must be the frozen shared construction window");
+                        var sourceMaterial = SharedConstructionGroups[sharedGroupName].Folktails;
+                        TestAssert.True(materials.ContainsKey(sourceMaterial),
+                            textureContext + ": missing the map entry of the Folktails construction "
+                            + "source material \"" + sourceMaterial + "\"");
+                        TestAssert.True(UvRectsEqual(groupUv, materials[sourceMaterial].UvCanvasUvRect, 1e-9),
+                            textureContext + ": the shared construction window must be the ART-07 canvas of "
+                            + "the Folktails source material \"" + sourceMaterial + "\" (ART-07 §3)");
+                        var sharedTextureOwner = FindTextureOwner(materials, property.Name);
+                        TestAssert.NotNull(sharedTextureOwner,
+                            textureContext + ": no used material samples this shared texture");
+                        if (string.Equals(sharedTextureOwner!.Mode, "patch", StringComparison.Ordinal))
+                        {
+                            TestAssert.True(UvRectsEqual(patchUv, groupUv, 1e-9),
+                                textureContext + ": a patch-mode shared texture's patch window must equal "
+                                + "the shared construction window");
+                        }
+
+                        TestAssert.True(UvRectInsideOrEqual(sharedTextureOwner.UvCanvasUvRect, groupUv, 1e-9),
+                            textureContext + ": the shared construction window must lie inside the ART-07 "
+                            + "canvas of \"" + sharedTextureOwner.Material + "\" so the one baked uv0 set "
+                            + "samples this faction's texture correctly");
                     }
                 }
             }
@@ -468,9 +503,9 @@ namespace HDBF.Tests
                     hazardContext + ": hazard_reference_stats.std_by_channel values must be >= 0");
             }
 
-            // The shared ConstructionStage0 geometry bakes ONE uv0 set for both factions. The map
-            // must therefore record joint groups whose two factions' materials sample an IDENTICAL
-            // normalized patch window, even though their real _D textures differ.
+            // The shared ConstructionStage0 geometry bakes ONE uv0 set for both factions. ART-07 §3:
+            // the shared window is the ART-07 canvas of the Folktails source material (e.g.
+            // BaseWood_Brown.Folktails), which both factions' material canvases can sample.
             var sharedKeys = ObjectEntries(sharedPatches, context + " construction_shared_patches")
                 .Select(property => property.Name)
                 .ToList();
@@ -484,6 +519,11 @@ namespace HDBF.Tests
                 var group = Member(sharedPatches, groupName, context + " construction_shared_patches");
                 TestAssert.Equal(groupName, StringMember(group, "group", groupContext),
                     groupContext + " group id");
+
+                var sourceMaterial = SharedConstructionGroups[groupName].Folktails;
+                TestAssert.True(materials.ContainsKey(sourceMaterial),
+                    groupContext + ": missing the map entry of the Folktails construction source material \""
+                    + sourceMaterial + "\"");
 
                 var textures = StringArray(Member(group, "textures", groupContext),
                     groupContext + " textures", requireNonEmpty: true);
@@ -501,20 +541,25 @@ namespace HDBF.Tests
                 TestAssert.True(0.0 <= sharedUv[0] && sharedUv[0] < sharedUv[2] && sharedUv[2] <= 1.0
                     && 0.0 <= sharedUv[1] && sharedUv[1] < sharedUv[3] && sharedUv[3] <= 1.0,
                     groupContext + ": shared uv_rect must lie inside [0,1] and be non-degenerate");
-                TestAssert.True(UvRectsEqual(sharedUv, SharedConstructionGroups[groupName].SharedUv, 1e-9),
-                    groupContext + ": shared uv_rect changed from the frozen shared construction window ["
-                    + string.Join(", ", SharedConstructionGroups[groupName].SharedUv) + "] (found ["
-                    + string.Join(", ", sharedUv) + "])");
+                TestAssert.True(UvRectsEqual(sharedUv, materials[sourceMaterial].UvCanvasUvRect, 1e-9),
+                    groupContext + ": the shared uv_rect must be the ART-07 canvas of the Folktails source "
+                    + "material \"" + sourceMaterial + "\"; found [" + string.Join(", ", sharedUv)
+                    + "] vs canvas [" + string.Join(", ", materials[sourceMaterial].UvCanvasUvRect) + "]");
+
                 var sharedPixel = IntArray(Member(group, "pixel_rect", groupContext), 4,
                     groupContext + " pixel_rect");
                 TestAssert.True(sharedPixel[0] >= 0 && sharedPixel[1] >= 0
                     && sharedPixel[2] > sharedPixel[0] && sharedPixel[3] > sharedPixel[1],
                     groupContext + ": pixel_rect must be a valid non-empty pixel rect");
+                TestAssert.Equal(string.Join(",", sharedPixel),
+                    string.Join(",", materials[sourceMaterial].UvCanvasPixelRect),
+                    groupContext + ": the shared pixel_rect must be the ART-07 canvas pixel rect of \""
+                    + sourceMaterial + "\"");
                 var sharedSize = IntArray(Member(group, "size_px", groupContext), 2, groupContext + " size_px");
                 TestAssert.Equal(sharedPixel[2] - sharedPixel[0], sharedSize[0], groupContext + " size_px width");
                 TestAssert.Equal(sharedPixel[3] - sharedPixel[1], sharedSize[1], groupContext + " size_px height");
                 TestAssert.True(StringMember(group, "reason", groupContext).Trim().Length > 0,
-                    groupContext + ": reason must explain the joint search across factions");
+                    groupContext + ": reason must explain the joint sampling across factions");
 
                 var textureUvRects = Member(group, "texture_uv_rect", groupContext);
                 var perTexture = Member(group, "per_texture", groupContext);
@@ -562,7 +607,7 @@ namespace HDBF.Tests
 
             foreach (var pair in SharedConstructionGroups)
             {
-                AssertSharedConstructionUvPair(materials, pair.Value.Folktails, pair.Value.IronTeeth, pair.Key, pair.Value.SharedUv);
+                AssertSharedConstructionUvPair(materials, pair.Value.Folktails, pair.Value.IronTeeth, pair.Key);
             }
 
             Console.WriteLine("  material_texture_map: " + materials.Count + " used + " + unused.Count
@@ -1147,12 +1192,14 @@ namespace HDBF.Tests
         /// <summary>
         /// STRONGEST guard for the user-visible bug: decompress every shipped <c>.timbermesh</c>,
         /// decode its protobuf, read the node uv0 vertex property together with each Mesh's
-        /// material and index list, and require every indexed UV to lie inside that material's
-        /// patch uv_rect in art/material_texture_map.json. If the models regress to the old fake
-        /// atlas UVs (or the generator/map disagree), this fails even though all material names and
-        /// map entries look correct. It also pins the shared ConstructionStage0 invariant: the FT
-        /// and IT construction materials of a joint group must carry the identical patch uv_rect,
-        /// otherwise the one baked uv0 set necessarily samples outside one faction's texture window.
+        /// material and index list, and require every indexed UV to sample that material's own
+        /// texture canvas from art/material_texture_map.json (ART-07 §1: tile material -> inside the
+        /// 2-texel guard of the full texture; patch material -> inside the curated uv_canvas).
+        /// If the models regress to the old fake atlas UVs (or the generator/map disagree), this
+        /// fails even though all material names and map entries look correct. It also pins the
+        /// shared ConstructionStage0 invariant: the shared window is the Folktails source material's
+        /// ART-07 canvas, which both factions' material canvases can sample, otherwise the one baked
+        /// uv0 set necessarily samples outside one faction's texture canvas.
         /// </summary>
         public static void TestShippedMeshUvsStayInsideTheirMaterialPatch()
         {
@@ -1162,7 +1209,7 @@ namespace HDBF.Tests
 
             foreach (var pair in SharedConstructionGroups)
             {
-                AssertSharedConstructionUvPair(map, pair.Value.Folktails, pair.Value.IronTeeth, pair.Key, pair.Value.SharedUv);
+                AssertSharedConstructionUvPair(map, pair.Value.Folktails, pair.Value.IronTeeth, pair.Key);
             }
 
             foreach (var stem in ExpectedShippedStems())
@@ -1201,15 +1248,14 @@ namespace HDBF.Tests
                                 label + ": " + part.Material + " mesh index " + index
                                 + " is outside the node's " + uvs.Count + " uv0 vertices");
                             var (u, v) = uvs[index];
-                            if (!IsUvInsidePatch(record, u, v, MeshUvInsidePatchTolerance))
+                            if (!IsUvInsideMaterialCanvas(record, u, v, MeshUvInsidePatchTolerance))
                             {
-                                var expected = "[" + record.UvRect[0] + ", " + record.UvRect[1] + ", "
-                                    + record.UvRect[2] + ", " + record.UvRect[3] + "]";
                                 TestAssert.True(false,
                                     label + ": material \"" + part.Material + "\" has uv0 (" + u + ", " + v
-                                    + ") outside its art/material_texture_map.json patch uv_rect " + expected
-                                    + "; the shipped model regressed to UVs that do not sample its own "
-                                    + "texture patch (fake-atlas checkerboard regression)");
+                                    + ") outside its art/material_texture_map.json "
+                                    + (record.Mode == "tile" ? "tile canvas guard" : "patch uv_canvas")
+                                    + "; the shipped model regressed to UVs that leave the material's own "
+                                    + "texture canvas (auto-atlas bleed / fake-atlas checkerboard regression)");
                             }
 
                             totalIndexedUvs++;
@@ -1248,6 +1294,73 @@ namespace HDBF.Tests
             return u >= u0 - tolerance && u <= u1 + tolerance
                 && v >= v0 - tolerance && v <= v1 + tolerance;
         }
+
+        /// <summary>
+        /// ART-07 §1/§4 containment in the material's own texture canvas:
+        /// tile material -&gt; inside the 2-texel guard of the whole texture;
+        /// patch material -&gt; inside the curated uv_canvas.uv_rect.
+        /// </summary>
+        private static bool IsUvInsideMaterialCanvas(PatchRecord record, double u, double v, double tolerance)
+        {
+            if (double.IsNaN(u) || double.IsNaN(v) || double.IsInfinity(u) || double.IsInfinity(v))
+            {
+                return false;
+            }
+
+            double uMin, uMax, vMin, vMax;
+            if (string.Equals(record.Mode, "tile", StringComparison.Ordinal))
+            {
+                if (record.Width <= 0 || record.Height <= 0)
+                {
+                    return false;
+                }
+
+                var guardU = 2.0 / record.Width;
+                var guardV = 2.0 / record.Height;
+                uMin = guardU;
+                uMax = 1.0 - guardU;
+                vMin = guardV;
+                vMax = 1.0 - guardV;
+            }
+            else
+            {
+                if (record.UvCanvasUvRect.Length != 4)
+                {
+                    return false;
+                }
+
+                uMin = record.UvCanvasUvRect[0];
+                vMin = record.UvCanvasUvRect[1];
+                uMax = record.UvCanvasUvRect[2];
+                vMax = record.UvCanvasUvRect[3];
+            }
+
+            return u >= uMin - tolerance && u <= uMax + tolerance
+                && v >= vMin - tolerance && v <= vMax + tolerance;
+        }
+
+        /// <summary>Returns true when every corner of <paramref name="inner"/> is inside
+        /// <paramref name="outer"/> (with tolerance).</summary>
+        private static bool UvRectInsideOrEqual(double[] outer, double[] inner, double tolerance)
+            => outer.Length == 4 && inner.Length == 4
+               && inner[0] >= outer[0] - tolerance && inner[1] >= outer[1] - tolerance
+               && inner[2] <= outer[2] + tolerance && inner[3] <= outer[3] + tolerance;
+
+        /// <summary>Finds the map record of the used material that samples the given texture.</summary>
+        private static PatchRecord? FindTextureOwner(Dictionary<string, PatchRecord> materials, string texture)
+            => materials.Values.FirstOrDefault(record =>
+                string.Equals(record.Texture, texture, StringComparison.Ordinal));
+
+        /// <summary>
+        /// ART07 §4/§5 std_max rule for the legacy patch record: a patch-mode record is the large
+        /// curated ART-07 canvas whose budget is the ART-05 hard cap; a tile-mode record is the
+        /// small ART-05 probe window which keeps the reviewed per-class budget.
+        /// </summary>
+        private static double ExpectedPatchStdMax(PatchRecord record,
+            IReadOnlyDictionary<string, double> classBudgets, double hardStdCap)
+            => string.Equals(record.Mode, "patch", StringComparison.Ordinal)
+                ? hardStdCap
+                : Math.Min(classBudgets[record.PatchClass], hardStdCap);
 
         /// <summary>
         /// Returns true when the material is not banned by the forbidden large-shell list. Supports
@@ -1326,16 +1439,18 @@ namespace HDBF.Tests
                && Math.Abs(left[3] - right[3]) <= tolerance;
 
         /// <summary>
-        /// The one-baked-UV-set invariant of the shared ConstructionStage0 geometry: both factions'
-        /// materials of a joint group must carry the identical patch uv_rect in the materials section,
-        /// and that rect must be the frozen shared construction window.
+        /// The one-baked-UV-set invariant of the shared ConstructionStage0 geometry (ART-07 §3):
+        /// the source (Folktails) material's ART-07 canvas is the shared window, and every faction's
+        /// material canvas must contain that window (BaseMetal.Folktails / BaseMetal.IronTeeth share
+        /// the identical canvas; the RoofPlanks.IronTeeth full-bleed tile texture contains the
+        /// BaseWood_Brown wood canvas). Both construction materials must still keep a valid patch
+        /// record so C12/C13 keep working.
         /// </summary>
         private static void AssertSharedConstructionUvPair(
             Dictionary<string, PatchRecord> materials,
             string folktailsMaterial,
             string ironTeethMaterial,
-            string groupName,
-            double[] expectedSharedUv)
+            string groupName)
         {
             TestAssert.True(materials.ContainsKey(folktailsMaterial),
                 groupName + ": missing material_texture_map entry for the Folktails construction material \""
@@ -1345,15 +1460,19 @@ namespace HDBF.Tests
                 + ironTeethMaterial + "\"");
             var folktails = materials[folktailsMaterial];
             var ironTeeth = materials[ironTeethMaterial];
-            TestAssert.True(UvRectsEqual(folktails.UvRect, ironTeeth.UvRect, 1e-9),
-                groupName + ": the shared ConstructionStage0 UV set requires \"" + folktailsMaterial
-                + "\" and \"" + ironTeethMaterial + "\" to use the IDENTICAL patch uv_rect (found ["
-                + string.Join(", ", folktails.UvRect) + "] vs [" + string.Join(", ", ironTeeth.UvRect)
-                + "]); otherwise the single baked uv0 set samples outside one faction's texture window");
-            TestAssert.True(UvRectsEqual(folktails.UvRect, expectedSharedUv, 1e-9),
-                groupName + ": the shared construction patch window changed from the frozen ["
-                + string.Join(", ", expectedSharedUv) + "] (found ["
-                + string.Join(", ", folktails.UvRect) + "] for \"" + folktailsMaterial + "\")");
+            TestAssert.Equal(4, folktails.UvCanvasUvRect.Length,
+                groupName + ": the Folktails construction source material must carry an ART-07 uv_canvas");
+            TestAssert.Equal(4, ironTeeth.UvCanvasUvRect.Length,
+                groupName + ": the IronTeeth construction material must carry an ART-07 uv_canvas");
+            TestAssert.True(UvRectInsideOrEqual(ironTeeth.UvCanvasUvRect, folktails.UvCanvasUvRect, 1e-9),
+                groupName + ": the shared window (the " + folktailsMaterial + " canvas ["
+                + string.Join(", ", folktails.UvCanvasUvRect) + "]) must lie inside the "
+                + ironTeethMaterial + " canvas [" + string.Join(", ", ironTeeth.UvCanvasUvRect)
+                + "]; otherwise the single baked uv0 set samples outside one faction's texture canvas");
+            TestAssert.True(folktails.Std <= folktails.StdMax,
+                groupName + ": " + folktailsMaterial + " patch record must stay within its std budget");
+            TestAssert.True(ironTeeth.Std <= ironTeeth.StdMax,
+                groupName + ": " + ironTeethMaterial + " patch record must stay within its std budget");
         }
 
         /// <summary>
@@ -1550,6 +1669,15 @@ namespace HDBF.Tests
                 Std = 10.0,
                 StdByChannel = new[] { 8.0, 9.0, 10.0 },
                 StdMax = 18.0,
+                Mode = "patch",
+                UvCanvasPixelRect = new[] { left, top, right, bottom },
+                UvCanvasUvRect = new[]
+                {
+                    left / (double)textureSize,
+                    1.0 - bottom / (double)textureSize,
+                    right / (double)textureSize,
+                    1.0 - top / (double)textureSize,
+                },
                 Reason = "flat mid-tone plank region used as the wood patch",
                 RejectTags = new[] { "seam" },
             };
@@ -1633,6 +1761,25 @@ namespace HDBF.Tests
             record.ColorTint = DoubleArray(Member(entry, "material_color_tint", context), 3,
                 context + " material_color_tint");
             record.PatchClass = StringMember(entry, "patch_class", context);
+
+            // ART-07 §4 additions (optional on the texture_patches records, required on the
+            // per-material records; the mode-aware UV containment below only needs the materials).
+            if (entry.TryGetProperty("mode", out var modeElement)
+                && modeElement.ValueKind == JsonValueKind.String)
+            {
+                record.Mode = modeElement.GetString()!;
+            }
+
+            if (entry.TryGetProperty("uv_canvas", out var uvCanvasElement)
+                && uvCanvasElement.ValueKind == JsonValueKind.Object)
+            {
+                record.UvCanvasPixelRect = IntArray(
+                    Member(uvCanvasElement, "pixel_rect", context + " uv_canvas"), 4,
+                    context + " uv_canvas.pixel_rect");
+                record.UvCanvasUvRect = DoubleArray(
+                    Member(uvCanvasElement, "uv_rect", context + " uv_canvas"), 4,
+                    context + " uv_canvas.uv_rect");
+            }
 
             var patch = Member(entry, "patch", context);
             record.PixelRect = IntArray(Member(patch, "pixel_rect", context), 4, context + " patch.pixel_rect");
@@ -1882,6 +2029,11 @@ namespace HDBF.Tests
             public double StdMax;
             public string Reason = string.Empty;
             public string[] RejectTags = Array.Empty<string>();
+
+            // ART-07 §4: "tile" | "patch" plus the actual material canvas (materials records only).
+            public string Mode = string.Empty;
+            public int[] UvCanvasPixelRect = Array.Empty<int>();
+            public double[] UvCanvasUvRect = Array.Empty<double>();
         }
 
         // ------------------------------------------------------------------ timbermesh protobuf
