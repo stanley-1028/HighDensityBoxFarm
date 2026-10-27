@@ -54,6 +54,14 @@
       <HintPath>$(TimberbornManagedDir)\Timberborn.EntityNaming.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <Reference Include="Timberborn.TooltipSystem">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.TooltipSystem.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Timberborn.DropdownSystem">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.DropdownSystem.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="Bindito.Core">
       <HintPath>$(TimberbornManagedDir)\Bindito.Core.dll</HintPath>
       <Private>false</Private>

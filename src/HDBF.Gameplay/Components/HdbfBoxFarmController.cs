@@ -80,7 +80,6 @@ namespace HDBF.Gameplay.Components
         private bool _maintenanceInitialized;
         private bool _entranceBlocked;
         private bool _lastStalled;
-        private float _lastCoverage;
         private float _lastModeChangeDay = float.NaN;
         private IndoorWarningFlags _lastWarnings;
         private WaterSupplyKind _waterSupply = WaterSupplyKind.None;

@@ -1,11 +1,13 @@
-﻿// ============================================================================
+// ============================================================================
 // HDBF v2 | Layer: UI/Panels | Owner: V2-UI-01
-// Purpose: Maps one Core IndoorFarmSnapshot onto the localized panel read-model
-//          (HdbfIndoorPanelData). Read-only: no game object, no command, no allocation in the
-//          per-frame path (the fragment calls it only when the value fingerprint changed).
+// Purpose: Maps one Core IndoorFarmSnapshot onto the localized panel read model: header, the
+//          read-only worker roster, the crop-strategy block, the action availability/reasons and
+//          the ordered card list (card rows live in HdbfIndoorPanelFactory.Cards.cs). Read-only:
+//          no game object, no command, no allocation in the idle refresh path.
 // Requirements: REQ-V2-UI-01/02/03, REQ-V2-WATER-03, REQ-V2-READ-04
 // ============================================================================
 using System;
+using System.Collections.Generic;
 using HDBF.Core;
 using HDBF.Core.Balance;
 using HDBF.Core.Formatting;
@@ -15,17 +17,17 @@ using HDBF.UI.Localization;
 namespace HDBF.UI.Panels
 {
     /// <summary>
-    /// Pure factory of <see cref="HdbfIndoorPanelData"/> (chapter 19.11 field map). The fragment
-    /// passes <c>ILoc.T</c> as the resolver; L1 tests pass the shipped CSV templates, so every row
-    /// can be asserted without loading Timberborn (REQ-V2-TEST-01).
+    /// Pure factory of <see cref="HdbfIndoorPanelData"/> (chapter 19.11). The fragment passes
+    /// <c>ILoc.T</c> as the resolver; L1 tests pass the shipped CSV templates, so every card and
+    /// row can be asserted without loading Timberborn (REQ-V2-TEST-01).
     /// </summary>
-    public static class HdbfIndoorPanelFactory
+    public static partial class HdbfIndoorPanelFactory
     {
-        /// <summary>Empty read-model: the fragment stays hidden (no error text on a non-farm entity).</summary>
+        /// <summary>Empty read model: the fragment stays hidden (non-farm entity or no data).</summary>
         public static HdbfIndoorPanelData Empty { get; } = new();
 
         /// <summary>
-        /// Projects one snapshot onto the panel. Null snapshots return <see cref="Empty"/> instead
+        /// Projects one snapshot onto the panel. A null snapshot returns <see cref="Empty"/> instead
         /// of throwing (REQ-V2-SAFE-01: player state must never break the panel).
         /// </summary>
         /// <param name="snapshot">Core read-only snapshot; null means "not ready".</param>
@@ -39,148 +41,210 @@ namespace HDBF.UI.Panels
             }
 
             var profile = FindProfile(snapshot.Tier);
+            var coverage = snapshot.Coverage;
+            var minCoverage = snapshot.MinCoverage;
+            var irrigation = IndoorWaterMath.IrrigationMultiplier(coverage, minCoverage);
             var flags = snapshot.Warnings;
-            var stalled = (flags & IndoorWarningFlags.MaintenanceStalled) != 0;
-            var materialFree = profile is not null && profile.MaintenanceKind == HdbfMaintenanceKind.IrrigationOnly;
+            var entranceBlocked = (flags & IndoorWarningFlags.EntranceBlocked) != 0;
+
+            // REQ-V2-UI-02: a refill needs a manual source, a crew and a free entrance.
+            var refillReason = RefillBlockedReason(snapshot, entranceBlocked, localize);
+            var maintenanceReason = MaintenanceBlockedReason(snapshot, profile, localize);
 
             var data = new HdbfIndoorPanelData
             {
                 HasData = true,
                 Title = HdbfIndoorPanelFormat.Text(localize, BuildingKey(snapshot.Tier)),
-                TierText = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelTier,
-                    HdbfIndoorPanelFormat.Text(localize, HdbfIndoorPanelFormat.TierKey(snapshot.Tier))),
-                FactionText = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelFaction,
+                Subtitle = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelSubtitle,
+                    HdbfIndoorPanelFormat.Text(localize, HdbfIndoorPanelFormat.TierKey(snapshot.Tier)),
                     HdbfIndoorPanelFormat.Text(localize, HdbfIndoorPanelFormat.FactionKey(snapshot.Faction))),
-                WorkersText = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelWorkers,
-                    snapshot.Workers, snapshot.MaxWorkers),
-                ModeText = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelMode) + ": "
-                    + HdbfIndoorPanelFormat.Text(localize, HdbfIndoorPanelFormat.ModeKey(snapshot.Mode)),
+                ModeBadge = HdbfIndoorPanelFormat.Text(localize,
+                    HdbfIndoorPanelFormat.ModeKey(snapshot.Mode)),
                 ModeTransitionText = snapshot.ModeTransitioning
                     ? HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelModeTransition)
                     : string.Empty,
-                ModeValue = snapshot.Mode,
+                HeaderTooltip = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.TooltipWorkers),
+                Tier = snapshot.Tier,
+                Faction = snapshot.Faction,
+                Mode = snapshot.Mode,
 
-                SlotsText = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelSlots,
-                    snapshot.ConfiguredSlots, snapshot.Capacity),
-                EffectiveSlotsText = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelEffectiveSlots,
-                    snapshot.EffectiveSlots),
-                EffectiveSlotsTooltip = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.TooltipEffectiveSlots,
-                    snapshot.Capacity, snapshot.Workers, TierCatalog.SlotsPerFarmer),
-                EmptySlotsText = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelEmptySlots,
-                    snapshot.EmptySlots),
-                GrowingSlotsText = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelGrowingSlots,
-                    snapshot.GrowingSlots),
-                MatureSlotsText = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelMatureSlots,
-                    snapshot.MatureSlots),
-                BacklogText = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelBacklog,
-                    snapshot.BacklogActions),
+                WorkerChips = BuildWorkerChips(snapshot, localize),
+                WorkerRosterNote = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelWorkerNote),
 
-                TankText = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelTank,
-                    PanelNumbers.Days(snapshot.Tank, roundUp: false),
-                    PanelNumbers.Days(snapshot.TankCapacity, roundUp: false),
-                    PanelNumbers.Days(snapshot.TankDaysRemaining, roundUp: false)),
-                CoverageText = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelCoverage,
-                    PanelNumbers.Percent(snapshot.Coverage, roundUp: false)),
-                MinCoverageText = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelMinCoverage,
-                    PanelNumbers.Percent(snapshot.MinCoverage, roundUp: false)),
-                WaterSupplyText = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelWaterSupply,
-                    HdbfIndoorPanelFormat.Text(localize, HdbfIndoorPanelFormat.SupplyKey(snapshot.WaterSupply))),
-                TankTooltip = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.TooltipTank),
-                CoverageTooltip = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.TooltipCoverage),
-
-                MaintenanceDueText = materialFree
-                    ? HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelMaintenanceNone)
-                    : HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelMaintenanceDue,
-                        PanelNumbers.Days(snapshot.MaintenanceDueDay, roundUp: false)),
-                MaintenanceCyclesText = HdbfIndoorPanelFormat.Text(localize,
-                    HdbfUiLocKeys.PanelMaintenanceCycles, HdbfIndoorPanelFormat.Count(snapshot.MaintenanceCyclesMissed)),
-                MaintenanceTooltip = HdbfIndoorPanelFormat.Text(localize, materialFree
-                    ? HdbfUiLocKeys.PanelMaintenanceNone
-                    : stalled
-                        ? HdbfUiLocKeys.TooltipMaintenanceShutdown
-                        : HdbfUiLocKeys.TooltipMaintenance),
-                CanPerformMaintenance = profile is not null && !materialFree,
-                MaintenanceUrgent = snapshot.MaintenanceCyclesMissed > 0
-                    || snapshot.MaintenanceMaterialMissing
-                    || (flags & (IndoorWarningFlags.MaintenanceDue | IndoorWarningFlags.MaintenanceStalled
-                                 | IndoorWarningFlags.MissingMaterial)) != 0,
-
-                PowerText = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelPower,
-                    HdbfIndoorPanelFormat.Text(localize,
-                        HdbfIndoorPanelFormat.PowerKey(snapshot.Power, snapshot.PowerConnected))),
-                PowerTooltip = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.TooltipPower),
-
-                CropPolicyText = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelCropPolicy,
-                    HdbfIndoorPanelFormat.Text(localize, HdbfIndoorPanelFormat.PolicyKey(snapshot.CropPolicy))),
-                RotationText = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelRotation,
-                    string.IsNullOrEmpty(snapshot.RotationSequence)
-                        ? HdbfIndoorPanelFormat.Unknown
-                        : snapshot.RotationSequence),
-                CropTooltip = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.TooltipRotation),
+                CropPolicyLabel = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelCropPolicyLabel),
+                CropPolicyText = CropPolicyText(snapshot, localize),
                 SelectedCropId = snapshot.CropPolicy == CropPolicy.Fixed ? snapshot.FixedCropId : string.Empty,
                 CropChoices = HdbfIndoorPanelWarnings.BuildCropChoices(snapshot, localize),
+                CropTooltip = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.TooltipRotation),
 
-                OutputStockText = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelOutputStock,
-                    HdbfIndoorPanelFormat.Count(snapshot.OutputOccupied)),
-                OutputPortText = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelOutputPort,
-                    HdbfIndoorPanelFormat.Text(localize, snapshot.OutputPortConnected
-                        ? HdbfUiLocKeys.PortConnected
-                        : HdbfUiLocKeys.PortNotConnected)),
-                PortsText = FormatPorts(snapshot, localize),
-                OutputTooltip = OutputTooltip(snapshot, localize),
-                StatusRows = HdbfIndoorPanelWarnings.BuildStatusRows(snapshot, localize),
-                ProblemRows = HdbfIndoorPanelWarnings.BuildProblemRows(snapshot, profile, localize),
+                CanRefill = string.IsNullOrEmpty(refillReason),
+                RefillTooltip = RefillTooltip(snapshot, refillReason, localize),
+                RefillReasonText = refillReason,
+
+                CanPerformMaintenance = string.IsNullOrEmpty(maintenanceReason),
+                MaintenanceTooltip = MaintenanceTooltip(snapshot, profile, maintenanceReason, localize),
+                MaintenanceReasonText = maintenanceReason ?? string.Empty,
+                MaintenanceUrgent = (flags & (IndoorWarningFlags.MaintenanceDue
+                                             | IndoorWarningFlags.MaintenanceStalled
+                                             | IndoorWarningFlags.MissingMaterial)) != 0,
+
+                Sections = new[]
+                {
+                    BuildWorkersSection(snapshot, irrigation, entranceBlocked, localize),
+                    BuildSlotsSection(snapshot, localize),
+                    BuildWaterSection(snapshot, coverage, minCoverage, irrigation, localize),
+                    BuildMaintenanceSection(snapshot, profile, localize),
+                    BuildPowerSection(snapshot, localize),
+                    BuildCropsSection(snapshot, localize),
+                    BuildOutputSection(snapshot, localize),
+                },
             };
 
-            var irrigation = IndoorWaterMath.IrrigationMultiplier(snapshot.Coverage, snapshot.MinCoverage);
-            var waterShortage = irrigation < 0.999f
-                ? HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelWaterShortage,
-                    PanelNumbers.Percent(irrigation, roundUp: false))
-                : string.Empty;
-
-            return data with
-            {
-                WaterShortageText = waterShortage,
-                RefillTooltip = RefillTooltip(snapshot, localize),
-                CanRefill = snapshot.WaterSupply == WaterSupplyKind.Manual,
-                FixedCropText = FormatFixedCrop(snapshot, localize),
-                MaintenanceMaterialsText = FormatMissingMaterials(snapshot, profile, localize),
-            };
+            return data;
         }
 
-        private static string OutputTooltip(IndoorFarmSnapshot snapshot, Func<string, string> localize)
+        // ------------------------------------------------------------------ worker roster
+
+        private static IReadOnlyList<HdbfWorkerChip> BuildWorkerChips(IndoorFarmSnapshot snapshot,
+            Func<string, string> localize)
         {
-            var tooltip = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.TooltipOutput);
-            if (!string.IsNullOrEmpty(snapshot.OutputInventoryPortState))
+            var filled = snapshot.Workers < 0 ? 0 : snapshot.Workers;
+            if (filled > snapshot.MaxWorkers)
             {
-                tooltip += HdbfIndoorPanelFormat.ProblemSeparator + snapshot.OutputInventoryPortState;
+                filled = snapshot.MaxWorkers;
             }
 
-            return tooltip;
+            var chips = new List<HdbfWorkerChip>(snapshot.MaxWorkers < 0 ? 0 : snapshot.MaxWorkers);
+            var note = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.TooltipWorkerName);
+            for (var index = 0; index < snapshot.MaxWorkers; index++)
+            {
+                var assigned = index < filled;
+                chips.Add(new HdbfWorkerChip
+                {
+                    // The snapshot does not carry beaver names (UI may not read game objects), so a
+                    // staffed chip shows the shared "—" glyph and explains it in the note.
+                    Name = assigned
+                        ? HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelUnknown)
+                        : HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelWorkerVacant),
+                    Vacant = !assigned,
+                    Tooltip = note,
+                });
+            }
+
+            return chips;
         }
 
-        private static string FormatFixedCrop(IndoorFarmSnapshot snapshot, Func<string, string> localize)
+        // ------------------------------------------------------------------ crop strategy
+
+        private static string CropPolicyText(IndoorFarmSnapshot snapshot, Func<string, string> localize)
         {
             if (snapshot.CropPolicy != CropPolicy.Fixed || string.IsNullOrEmpty(snapshot.FixedCropId))
             {
-                return string.Empty;
+                return HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelPolicyRotation);
             }
 
-            var key = HdbfIndoorPanelFormat.CropNameKey(snapshot.FixedCropId);
-            var name = key is null ? snapshot.FixedCropId : HdbfIndoorPanelFormat.Text(localize, key);
-            return HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelFixedCrop, name);
+            return HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelFixedCrop,
+                HdbfIndoorPanelFormat.CropName(localize, snapshot.FixedCropId));
+        }
+
+        /// <summary>
+        /// Rotation sequence with localized crop names; the snapshot carries ids ("Carrot → Potato").
+        /// </summary>
+        internal static string FormatRotationSequence(string? sequence, Func<string, string> localize)
+        {
+            if (string.IsNullOrEmpty(sequence))
+            {
+                return HdbfIndoorPanelFormat.Unknown;
+            }
+
+            var parts = sequence!.Split(new[] { " > ", " → " }, StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length <= 1)
+            {
+                return HdbfIndoorPanelFormat.CropName(localize, sequence);
+            }
+
+            var names = new List<string>(parts.Length);
+            for (var index = 0; index < parts.Length; index++)
+            {
+                names.Add(HdbfIndoorPanelFormat.CropName(localize, parts[index].Trim()));
+            }
+
+            // ASCII arrow keeps the sequence readable in every font shipped by the game.
+            return string.Join(" > ", names);
+        }
+
+        // ------------------------------------------------------------------ action reasons
+
+        private static string RefillBlockedReason(IndoorFarmSnapshot snapshot, bool entranceBlocked,
+            Func<string, string> localize)
+        {
+            switch (snapshot.WaterSupply)
+            {
+                case WaterSupplyKind.Pipe:
+                    return HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.TooltipPipeWater);
+                case WaterSupplyKind.None:
+                    return HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.ErrorNoWaterSource);
+            }
+
+            if (snapshot.Workers <= 0)
+            {
+                return HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.ErrorNoWorkers);
+            }
+
+            return entranceBlocked
+                ? HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.ErrorEntranceBlocked)
+                : string.Empty;
+        }
+
+        private static string RefillTooltip(IndoorFarmSnapshot snapshot, string blockedReason,
+            Func<string, string> localize)
+        {
+            if (!string.IsNullOrEmpty(blockedReason))
+            {
+                return blockedReason;
+            }
+
+            return HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.TooltipRefill);
+        }
+
+        private static string? MaintenanceBlockedReason(IndoorFarmSnapshot snapshot, TierProfile? profile,
+            Func<string, string> localize)
+        {
+            if (profile is null || profile.MaintenanceKind == HdbfMaintenanceKind.IrrigationOnly)
+            {
+                return HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelMaintenanceNone);
+            }
+
+            if ((snapshot.Warnings & IndoorWarningFlags.MissingMaterial) != 0)
+            {
+                return FormatMissingMaterials(snapshot, profile, localize);
+            }
+
+            return null;
+        }
+
+        private static string MaintenanceTooltip(IndoorFarmSnapshot snapshot, TierProfile? profile,
+            string? blockedReason, Func<string, string> localize)
+        {
+            if (!string.IsNullOrEmpty(blockedReason))
+            {
+                return blockedReason;
+            }
+
+            var materialFree = profile is null || profile.MaintenanceKind == HdbfMaintenanceKind.IrrigationOnly;
+            var stalled = (snapshot.Warnings & IndoorWarningFlags.MaintenanceStalled) != 0;
+            return HdbfIndoorPanelFormat.Text(localize, materialFree
+                ? HdbfUiLocKeys.PanelMaintenanceNone
+                : stalled
+                    ? HdbfUiLocKeys.TooltipMaintenanceShutdown
+                    : HdbfUiLocKeys.TooltipMaintenance);
         }
 
         private static string FormatMissingMaterials(IndoorFarmSnapshot snapshot, TierProfile? profile,
             Func<string, string> localize)
         {
-            if ((snapshot.Warnings & IndoorWarningFlags.MissingMaterial) == 0)
-            {
-                return string.Empty;
-            }
-
-            if (!HdbfIndoorPanelFormat.TryGetMaintenanceMaterial(profile, snapshot.Power, snapshot.PowerConnected,
-                    out var materialKey, out var count))
+            if (!HdbfIndoorPanelFormat.TryGetMaintenanceMaterial(profile, snapshot.Power,
+                    snapshot.PowerConnected, out var materialKey, out var count))
             {
                 return HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.WarningMissingMaterial);
             }
@@ -189,47 +253,9 @@ namespace HDBF.UI.Panels
                 HdbfIndoorPanelFormat.Text(localize, materialKey), count);
         }
 
-        private static string RefillTooltip(IndoorFarmSnapshot snapshot, Func<string, string> localize)
-        {
-            switch (snapshot.WaterSupply)
-            {
-                case WaterSupplyKind.Manual:
-                    return HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.TooltipRefill);
-                case WaterSupplyKind.Pipe:
-                    return HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.TooltipPipeWater);
-                default:
-                    return HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.TooltipNoWaterSource);
-            }
-        }
+        // ------------------------------------------------------------------ shared helpers
 
-        private static string FormatPorts(IndoorFarmSnapshot snapshot, Func<string, string> localize)
-        {
-            var pipe = !snapshot.PipePort
-                ? HdbfUiLocKeys.PortNotApplicable
-                : snapshot.WaterSupply == WaterSupplyKind.Pipe
-                    ? HdbfUiLocKeys.PortConnected
-                    : HdbfUiLocKeys.PortNotConnected;
-            var logistics = !snapshot.LogisticsPort
-                ? HdbfUiLocKeys.PortNotApplicable
-                : snapshot.OutputPortConnected
-                    ? HdbfUiLocKeys.PortConnected
-                    : HdbfUiLocKeys.PortNotConnected;
-            var power = !snapshot.PowerPort
-                ? HdbfUiLocKeys.PortNotApplicable
-                : snapshot.PowerConnected
-                    ? HdbfUiLocKeys.PortConnected
-                    : HdbfUiLocKeys.PortNotConnected;
-
-            return HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelPorts) + ": "
-                   + HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PortPipe) + " "
-                   + HdbfIndoorPanelFormat.Text(localize, pipe) + HdbfIndoorPanelFormat.ProblemSeparator
-                   + HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PortLogistics) + " "
-                   + HdbfIndoorPanelFormat.Text(localize, logistics) + HdbfIndoorPanelFormat.ProblemSeparator
-                   + HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PortPower) + " "
-                   + HdbfIndoorPanelFormat.Text(localize, power);
-        }
-
-        private static string BuildingKey(HdbfTier tier)
+        internal static string BuildingKey(HdbfTier tier)
         {
             switch (tier)
             {
@@ -240,7 +266,7 @@ namespace HDBF.UI.Panels
             }
         }
 
-        private static TierProfile? FindProfile(HdbfTier tier)
+        internal static TierProfile? FindProfile(HdbfTier tier)
         {
             try
             {
@@ -254,6 +280,3 @@ namespace HDBF.UI.Panels
         }
     }
 }
-
-
-

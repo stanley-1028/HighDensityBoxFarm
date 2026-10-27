@@ -1,8 +1,9 @@
 // ============================================================================
 // HDBF v2 | Layer: UI/Panels | Owner: V2-UI-01
-// Purpose: Pure builders of the panel status rows, the concrete problem rows and the fixed-crop
-//          dropdown choices. The four v2 warning categories and every blocking reason are derived
-//          from the Core snapshot flags only (REQ-V2-UI-02, chapter 19.18.1-C).
+// Purpose: Pure builders of the panel warning rows and the fixed-crop dropdown choices. Every
+//          warning row carries an icon key AND a plain-text marker, so colour is never the only
+//          information carrier (chapter 19.18.1-C). Water warnings are derived from the live
+//          coverage C against C_min, never from the previous day-tick flag cache.
 // Requirements: REQ-V2-UI-02/03, REQ-V2-BAL-03, REQ-V2-READ-04
 // ============================================================================
 using System;
@@ -14,117 +15,165 @@ using HDBF.UI.Localization;
 namespace HDBF.UI.Panels
 {
     /// <summary>
-    /// Pure row builders of the v2 indoor panel. They take the localization resolver as a plain
-    /// <see cref="Func{T,TResult}"/> so the whole mapping is exercised by the game-free L1 suite.
+    /// Pure warning/choice builders of the v2 indoor panel. They take the localization resolver as
+    /// a plain <see cref="Func{T,TResult}"/> so the whole mapping runs in the game-free L1 suite.
     /// </summary>
     public static class HdbfIndoorPanelWarnings
     {
         /// <summary>
-        /// The four v2 warning categories (chapter 19.11): water shortage, maintenance overdue,
-        /// power cut and blocked entrance. The extra flags (output full, no workers, missing
-        /// material) become concrete problem rows instead of world-icon warnings.
+        /// Water warning rows from the live coverage (REQ-V2-WATER-03): C = 0 is "no water", any
+        /// 0 &lt; C &lt; C_min is "water low". A full tank therefore shows no warning even before the
+        /// first daily tick, which removes the stale 0 % shortage the players reported.
         /// </summary>
-        public static IReadOnlyList<HdbfPanelStatusRow> BuildStatusRows(IndoorFarmSnapshot snapshot,
-            Func<string, string> localize)
+        /// <param name="coverage">Live coverage C in [0,1].</param>
+        /// <param name="minCoverage">Tier minimum coverage C_min.</param>
+        /// <param name="supply">Water source kind, used for the concrete source sentence.</param>
+        /// <param name="pipePort">True when the pipe port exists.</param>
+        /// <param name="localize">Localization resolver.</param>
+        /// <returns>Warning rows, critical first.</returns>
+        public static IReadOnlyList<HdbfPanelRow> BuildWaterWarnings(float coverage, float minCoverage,
+            WaterSupplyKind supply, bool pipePort, Func<string, string> localize)
         {
-            var rows = new List<HdbfPanelStatusRow>(4);
+            var rows = new List<HdbfPanelRow>(2);
+            if (float.IsNaN(coverage))
+            {
+                return rows;
+            }
+
+            var cmin = float.IsNaN(minCoverage) || minCoverage <= 0f ? 0f : minCoverage;
+            if (coverage <= 0f)
+            {
+                AddRow(rows, "no-water", HdbfUiLocKeys.WarningNoWater, IndoorWarningSeverity.Critical,
+                    SupplyDetail(supply, pipePort, localize), localize);
+                return rows;
+            }
+
+            if (coverage >= cmin)
+            {
+                return rows;
+            }
+
+            AddRow(rows, "no-water", HdbfUiLocKeys.WarningIrrigationLow, IndoorWarningSeverity.High,
+                SupplyDetail(supply, pipePort, localize), localize);
+            return rows;
+        }
+
+        /// <summary>
+        /// Maintenance warning rows: stalled farm, overdue cycle or missing upkeep material.
+        /// </summary>
+        /// <param name="snapshot">Read-only farm snapshot.</param>
+        /// <param name="materialMissing">True when the upkeep material cannot be paid.</param>
+        /// <param name="localize">Localization resolver.</param>
+        /// <returns>Warning rows, critical first.</returns>
+        public static IReadOnlyList<HdbfPanelRow> BuildMaintenanceWarnings(IndoorFarmSnapshot snapshot,
+            bool materialMissing, Func<string, string> localize)
+        {
+            var rows = new List<HdbfPanelRow>(2);
             var flags = snapshot.Warnings;
-            if ((flags & IndoorWarningFlags.NoWater) != 0)
+            var stalled = (flags & IndoorWarningFlags.MaintenanceStalled) != 0;
+            if (stalled)
             {
-                AddRow(rows, HdbfUiLocKeys.WarningNoWater, IndoorWarningSeverity.Critical, localize);
-            }
-            else if ((flags & IndoorWarningFlags.LowWater) != 0)
-            {
-                AddRow(rows, HdbfUiLocKeys.WarningIrrigationLow, IndoorWarningSeverity.High, localize);
-            }
-
-            if ((flags & IndoorWarningFlags.MaintenanceStalled) != 0)
-            {
-                AddRow(rows, HdbfUiLocKeys.WarningMaintenanceOverdue, IndoorWarningSeverity.Critical, localize);
-            }
-            else if ((flags & IndoorWarningFlags.MaintenanceDue) != 0)
-            {
-                AddRow(rows, HdbfUiLocKeys.WarningMaintenanceOverdue, IndoorWarningSeverity.High, localize);
+                AddRow(rows, "maintenance", HdbfUiLocKeys.WarningMaintenanceOverdue,
+                    IndoorWarningSeverity.Critical, HdbfUiLocKeys.TooltipMaintenanceShutdown, localize);
+                return rows;
             }
 
-            if ((flags & IndoorWarningFlags.NoPower) != 0)
+            if (materialMissing)
             {
-                AddRow(rows, HdbfUiLocKeys.WarningNoPower, IndoorWarningSeverity.High, localize);
+                AddRow(rows, "material", HdbfUiLocKeys.WarningMissingMaterial,
+                    IndoorWarningSeverity.Critical, null, localize);
+                return rows;
             }
 
-            if ((flags & IndoorWarningFlags.EntranceBlocked) != 0)
+            if ((flags & IndoorWarningFlags.MaintenanceDue) != 0 || snapshot.MaintenanceCyclesMissed > 0)
             {
-                AddRow(rows, HdbfUiLocKeys.WarningEntranceBlocked, IndoorWarningSeverity.High, localize);
+                AddRow(rows, "maintenance", HdbfUiLocKeys.WarningMaintenanceOverdue,
+                    IndoorWarningSeverity.High, HdbfUiLocKeys.TooltipMaintenance, localize);
             }
 
             return rows;
         }
 
-        /// <summary>
-        /// Concrete blocking reasons (chapter 19.18.1-C): missing material with its count, water
-        /// shortage with its source state, no workers, blocked entrance, full output and an
-        /// invalid fixed crop.
-        /// </summary>
-        public static IReadOnlyList<string> BuildProblemRows(IndoorFarmSnapshot snapshot,
-            HDBF.Core.Balance.TierProfile? profile, Func<string, string> localize)
+        /// <summary>Power cut warning row of a tier that requires grid power.</summary>
+        /// <param name="snapshot">Read-only farm snapshot.</param>
+        /// <param name="localize">Localization resolver.</param>
+        /// <returns>Zero or one warning rows.</returns>
+        public static IReadOnlyList<HdbfPanelRow> BuildPowerWarnings(IndoorFarmSnapshot snapshot,
+            Func<string, string> localize)
         {
-            var rows = new List<string>(6);
-            var flags = snapshot.Warnings;
-
-            if ((flags & IndoorWarningFlags.MissingMaterial) != 0)
+            var rows = new List<HdbfPanelRow>(1);
+            if ((snapshot.Warnings & IndoorWarningFlags.NoPower) != 0)
             {
-                var text = HdbfIndoorPanelFormat.TryGetMaintenanceMaterial(profile, snapshot.Power,
-                    snapshot.PowerConnected, out var materialKey, out var count)
-                    ? HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelMaintenanceMaterials,
-                        HdbfIndoorPanelFormat.Text(localize, materialKey), count)
-                    : HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.WarningMissingMaterial);
-                rows.Add(text);
+                AddRow(rows, "power", HdbfUiLocKeys.WarningNoPower, IndoorWarningSeverity.High,
+                    HdbfUiLocKeys.TooltipPower, localize);
             }
 
-            if ((flags & (IndoorWarningFlags.NoWater | IndoorWarningFlags.LowWater)) != 0)
-            {
-                var noWater = (flags & IndoorWarningFlags.NoWater) != 0;
-                var water = HdbfIndoorPanelFormat.Text(localize,
-                    noWater ? HdbfUiLocKeys.WarningNoWater : HdbfUiLocKeys.WarningIrrigationLow);
-                if (snapshot.WaterSupply == WaterSupplyKind.None)
-                {
-                    water += HdbfIndoorPanelFormat.ProblemSeparator
-                             + HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.TooltipNoWaterSource);
-                }
-                else if (snapshot.WaterSupply == WaterSupplyKind.Pipe && !snapshot.PipePort)
-                {
-                    water += HdbfIndoorPanelFormat.ProblemSeparator
-                             + HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelWaterNone);
-                }
+            return rows;
+        }
 
-                rows.Add(water);
+        /// <summary>Worker/entrance warning rows: no crew on duty or a blocked entrance.</summary>
+        /// <param name="snapshot">Read-only farm snapshot.</param>
+        /// <param name="entranceBlocked">True when the entrance is blocked.</param>
+        /// <param name="localize">Localization resolver.</param>
+        /// <returns>Warning rows, critical first.</returns>
+        public static IReadOnlyList<HdbfPanelRow> BuildWorkerWarnings(IndoorFarmSnapshot snapshot,
+            bool entranceBlocked, Func<string, string> localize)
+        {
+            var rows = new List<HdbfPanelRow>(2);
+            if (snapshot.Workers <= 0 || (snapshot.Warnings & IndoorWarningFlags.NoWorkers) != 0)
+            {
+                AddRow(rows, "no-workers", HdbfUiLocKeys.WarningNoWorkers, IndoorWarningSeverity.Critical,
+                    HdbfUiLocKeys.ErrorNoWorkers, localize);
             }
 
-            if ((flags & IndoorWarningFlags.NoWorkers) != 0)
+            if (entranceBlocked)
             {
-                rows.Add(HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.WarningNoWorkers));
+                AddRow(rows, "entrance", HdbfUiLocKeys.WarningEntranceBlocked,
+                    IndoorWarningSeverity.High, HdbfUiLocKeys.ErrorEntranceBlocked, localize);
             }
 
-            if ((flags & IndoorWarningFlags.EntranceBlocked) != 0)
+            return rows;
+        }
+
+        /// <summary>Output warning rows: a full output inventory blocks harvesting.</summary>
+        /// <param name="snapshot">Read-only farm snapshot.</param>
+        /// <param name="localize">Localization resolver.</param>
+        /// <returns>Zero or one warning rows.</returns>
+        public static IReadOnlyList<HdbfPanelRow> BuildOutputWarnings(IndoorFarmSnapshot snapshot,
+            Func<string, string> localize)
+        {
+            var rows = new List<HdbfPanelRow>(1);
+            if ((snapshot.Warnings & IndoorWarningFlags.OutputFull) != 0)
             {
-                rows.Add(HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.WarningEntranceBlocked));
+                AddRow(rows, "output-full", HdbfUiLocKeys.WarningOutputFull,
+                    IndoorWarningSeverity.High, HdbfUiLocKeys.ErrorOutputFull, localize);
             }
 
-            if ((flags & IndoorWarningFlags.OutputFull) != 0)
-            {
-                rows.Add(HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.WarningOutputFull));
-            }
+            return rows;
+        }
 
+        /// <summary>Crop warning rows: the fixed crop is not in the faction crop table.</summary>
+        /// <param name="snapshot">Read-only farm snapshot.</param>
+        /// <param name="localize">Localization resolver.</param>
+        /// <returns>Zero or one warning rows.</returns>
+        public static IReadOnlyList<HdbfPanelRow> BuildCropWarnings(IndoorFarmSnapshot snapshot,
+            Func<string, string> localize)
+        {
+            var rows = new List<HdbfPanelRow>(1);
             if (snapshot.CropPolicy == CropPolicy.Fixed
                 && !FallbackCropCatalog.Default.TryGet(snapshot.Faction, snapshot.FixedCropId, out _))
             {
-                rows.Add(HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.WarningInvalidCrop));
+                AddRow(rows, "invalid-crop", HdbfUiLocKeys.WarningInvalidCrop,
+                    IndoorWarningSeverity.High, HdbfUiLocKeys.TooltipRotation, localize);
             }
 
             return rows;
         }
 
         /// <summary>Dropdown items: automatic rotation first, then the faction crop table.</summary>
+        /// <param name="snapshot">Read-only farm snapshot.</param>
+        /// <param name="localize">Localization resolver.</param>
+        /// <returns>Ordered dropdown choices; item text is the localized display text.</returns>
         public static IReadOnlyList<HdbfCropChoice> BuildCropChoices(IndoorFarmSnapshot snapshot,
             Func<string, string> localize)
         {
@@ -157,6 +206,8 @@ namespace HDBF.UI.Panels
         }
 
         /// <summary>Text severity marker: the second encoding that keeps colour from being the only carrier.</summary>
+        /// <param name="severity">Row severity.</param>
+        /// <returns>"▲" for critical, "!" for high, "•" otherwise.</returns>
         public static string MarkerFor(IndoorWarningSeverity severity)
         {
             switch (severity)
@@ -167,24 +218,38 @@ namespace HDBF.UI.Panels
             }
         }
 
-        private static void AddRow(List<HdbfPanelStatusRow> rows, string key, IndoorWarningSeverity severity,
-            Func<string, string> localize)
+        private static void AddRow(List<HdbfPanelRow> rows, string iconKey, string textKey,
+            IndoorWarningSeverity severity, string? tooltipKey, Func<string, string> localize)
         {
-            var row = new HdbfPanelStatusRow
+            var text = HdbfIndoorPanelFormat.Text(localize, textKey);
+            if (!string.IsNullOrEmpty(tooltipKey))
             {
-                Marker = MarkerFor(severity),
-                Text = HdbfIndoorPanelFormat.Text(localize, key),
-                Severity = severity,
-            };
-
-            // Stable insertion: P0 rows stay above P1/P2 rows, equal severities keep category order.
-            var index = rows.Count;
-            while (index > 0 && rows[index - 1].Severity > row.Severity)
-            {
-                index--;
+                text += HdbfIndoorPanelFormat.ProblemSeparator
+                        + HdbfIndoorPanelFormat.Text(localize, tooltipKey!);
             }
 
-            rows.Insert(index, row);
+            rows.Add(new HdbfPanelRow
+            {
+                IconKey = iconKey,
+                Label = text,
+                IsWarning = true,
+                Marker = MarkerFor(severity),
+                Tooltip = text,
+            });
+        }
+
+        private static string? SupplyDetail(WaterSupplyKind supply, bool pipePort,
+            Func<string, string> localize)
+        {
+            switch (supply)
+            {
+                case WaterSupplyKind.None:
+                    return HdbfUiLocKeys.TooltipNoWaterSource;
+                case WaterSupplyKind.Pipe when !pipePort:
+                    return HdbfUiLocKeys.PanelWaterNone;
+                default:
+                    return null;
+            }
         }
     }
 }

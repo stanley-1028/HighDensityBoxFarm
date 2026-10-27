@@ -149,7 +149,6 @@ namespace HDBF.Gameplay.Components
 
         private void ApplyDayResult(in IndoorDayResult result)
         {
-            _lastCoverage = result.Coverage;
             _lastWarnings = result.Warnings;
             _lastStalled = result.Stalled;
             if (result.Changed)

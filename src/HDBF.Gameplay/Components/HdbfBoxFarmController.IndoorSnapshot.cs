@@ -3,6 +3,8 @@
 // Purpose: CreateIndoorSnapshot (Core IndoorFarmSnapshot for V2-UI-01) plus the slot/water/
 //          mode/rotation helpers it needs. The port/occupancy helpers live in the
 //          .IndoorSnapshot.Helpers partial so every embedded file stays within the gate.
+//          The water block of the snapshot is computed live (tank x demand at the current
+//          crew/mode) so a freshly loaded, full tank never renders as 0 % coverage.
 // Requirements: REQ-V2-WATER-03, REQ-V2-UI-01/02, REQ-V2-CORE-01, REQ-V2-SAFE-07
 // ============================================================================
 using System;
@@ -25,6 +27,13 @@ namespace HDBF.Gameplay.Components
             var workers = WorkerCount();
             CountSlots(out var empty, out var growing, out var mature);
             var effective = IndoorLaborMath.EffectiveSlots(_profile, workers);
+
+            // REQ-V2-UI-02 / REQ-V2-WATER-03: coverage is a function of the tank as it is right
+            // now, not of the coverage cached by the previous daily tick. A farm that loaded with
+            // a full tank therefore reports C = 100 % before the first daily tick instead of the
+            // stale 0 % that made the panel render "water shortage: growth 0 %".
+            var demand = IndoorWaterMath.DemandPerDay(effective, _profile.WaterPerSlotPerDay, record.Mode);
+            var coverage = IndoorWaterMath.Coverage(record.Tank, demand);
             return new IndoorFarmSnapshot(
                 record.Tier,
                 record.Faction,
@@ -42,8 +51,8 @@ namespace HDBF.Gameplay.Components
                 _lastBacklogActions,
                 record.Tank,
                 _profile.TankCapacity,
-                TankDaysRemaining(workers),
-                _lastCoverage,
+                IndoorWaterMath.DaysRemaining(record.Tank, demand),
+                coverage,
                 _profile.MinIrrigationCoverage,
                 WaterSupply(),
                 record.MaintenanceDueDay,
@@ -65,9 +74,11 @@ namespace HDBF.Gameplay.Components
 
         private IndoorFarmSnapshot EmptyIndoorSnapshot()
         {
+            // Not-ready data: no record means no demand, so coverage is 1 and the day estimate is
+            // infinite (the panel renders the dash). Never 0 %, which would read as "no water".
             return new IndoorFarmSnapshot(_profile.Tier, _faction, 0, _profile.MaxWorkers,
                 IndoorMode.Normal, false, _profile.SlotCapacity, 0, 0, 0, 0, 0, 0,
-                0f, _profile.TankCapacity, float.PositiveInfinity, 0f,
+                0f, _profile.TankCapacity, float.PositiveInfinity, 1f,
                 _profile.MinIrrigationCoverage, WaterSupplyKind.None, 0f, 0, false,
                 PowerConnection.NotRequired, false, CropPolicy.Rotation, string.Empty,
                 string.Empty, 0, false, true, false, false, IndoorWarningFlags.None, string.Empty);
@@ -103,19 +114,6 @@ namespace HDBF.Gameplay.Components
                     empty++;
                 }
             }
-        }
-
-        private float TankDaysRemaining(int workers)
-        {
-            var record = _record;
-            if (record is null)
-            {
-                return float.PositiveInfinity;
-            }
-
-            var effective = IndoorLaborMath.EffectiveSlots(_profile, workers);
-            var demand = IndoorWaterMath.DemandPerDay(effective, _profile.WaterPerSlotPerDay, record.Mode);
-            return IndoorWaterMath.DaysRemaining(record.Tank, demand);
         }
 
         private bool IsModeTransitioning()

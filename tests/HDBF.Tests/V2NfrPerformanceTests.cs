@@ -27,7 +27,7 @@ namespace HDBF.Tests
     {
         private const int Buildings = 100;
         private const int TickRounds = 40;
-        private const int EncodeRounds = 12;
+        private const int EncodeRounds = 40;
         private const string RepoRootKey = "HdbfRepoRoot";
 
         /// <summary>100 buildings x 600 slots: &lt;=0.5 ms per building per game day (section 19.13).</summary>
@@ -82,6 +82,7 @@ namespace HDBF.Tests
                 + (totalBytes / 1024.0 / 1024.0).ToString("F2", CultureInfo.InvariantCulture)
                 + " MB), budgets 14,336 B/building and 1,572,864 B total");
 
+            GC.Collect();
             EncodeAll(records);
             EncodeAll(records);
             var best = double.MaxValue;

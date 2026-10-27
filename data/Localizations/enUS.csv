@@ -34,7 +34,7 @@ HDBF.Panel.Tank,Tank {0}/{1} units (about {2} days),v2 UI
 HDBF.Panel.Coverage,Coverage C {0}%,v2 UI
 HDBF.Panel.MinCoverage,Minimum C_min {0}%,v2 UI
 HDBF.Panel.WaterSupply,Water source: {0},v2 UI
-HDBF.Panel.WaterShortage,Water shortage: growth {0}%,v2 UI
+HDBF.Panel.WaterShortage,Water shortage: growth {0}% (yield -{1}%),v2 UI
 HDBF.Panel.WaterPipe,pipe,v2 UI
 HDBF.Panel.WaterManual,manual,v2 UI
 HDBF.Panel.WaterNone,none,v2 UI
@@ -64,7 +64,7 @@ HDBF.Panel.CropCorn,Corn,v2 UI
 HDBF.Panel.CropEggplant,Eggplant,v2 UI
 HDBF.Panel.CropKohlrabi,Kohlrabi,v2 UI
 HDBF.Panel.CropSoybean,Soybean,v2 UI
-HDBF.Panel.OutputStock,Output stock {0},v2 UI
+HDBF.Panel.OutputStock,Output stock {0}/{1},v2 UI
 HDBF.Panel.OutputPort,Output port: {0},v2 UI
 HDBF.Panel.Ports,Ports,v2 UI
 HDBF.Panel.Status,Status,v2 UI
@@ -146,3 +146,41 @@ HDBF.Tooltip.CurrentMode,This is the current mode.,v2 UI
 HDBF.Tooltip.ModeNormal,Normal: no yield or water change.,v2 UI
 HDBF.Tooltip.ModeDense,Dense: yield ×1.35 and water ×1.5.,v2 UI
 HDBF.Tooltip.ModeFallow,Fallow: production stops while the soil recovers.,v2 UI
+HDBF.Panel.SectionWorkers,Workers & efficiency,v2 UI
+HDBF.Panel.SectionActions,Actions,v2 UI
+HDBF.Panel.Subtitle,{0} · {1},v2 UI
+HDBF.Panel.CrewLabel,Crew,v2 UI
+HDBF.Panel.CountValue,{0}/{1},v2 UI
+HDBF.Panel.PercentValue,{0}%,v2 UI
+HDBF.Panel.EfficiencyLabel,Growth efficiency,v2 UI
+HDBF.Panel.CapacityLabel,Slot capacity,v2 UI
+HDBF.Panel.ConfiguredLabel,Configured,v2 UI
+HDBF.Panel.EffectiveLabel,Effective P_eff,v2 UI
+HDBF.Panel.EmptyLabel,Empty,v2 UI
+HDBF.Panel.GrowingLabel,Growing,v2 UI
+HDBF.Panel.HarvestLabel,Ready,v2 UI
+HDBF.Panel.BacklogLabel,Backlog,v2 UI
+HDBF.Panel.TankLabel,Tank,v2 UI
+HDBF.Panel.TankValue,{0}/{1} units,v2 UI
+HDBF.Panel.CoverageLabel,Coverage C,v2 UI
+HDBF.Panel.MinCoverageLabel,Minimum C_min,v2 UI
+HDBF.Panel.SupplyLabel,Water source,v2 UI
+HDBF.Panel.MaintenanceDueLabel,Next due day,v2 UI
+HDBF.Panel.MaintenanceCyclesLabel,Overdue cycles,v2 UI
+HDBF.Panel.PowerLabel,Power,v2 UI
+HDBF.Panel.CropPolicyLabel,Current policy,v2 UI
+HDBF.Panel.FixedCropLabel,Fixed crop,v2 UI
+HDBF.Panel.RotationLabel,Rotation,v2 UI
+HDBF.Panel.OutputLabel,Output stock,v2 UI
+HDBF.Panel.OutputPortLabel,Output port,v2 UI
+HDBF.Panel.PortsLabel,Ports,v2 UI
+HDBF.Panel.BarTank,about {0} days,v2 UI
+HDBF.Panel.BarCoverage,C {0}% · min {1}%,v2 UI
+HDBF.Panel.BarSlots,{0}/{1} configured,v2 UI
+HDBF.Panel.BarOutput,{0}/{1} stored,v2 UI
+HDBF.Panel.WorkerNote,Workers are assigned by the game; beaver names are not exposed to mods.,v2 UI
+HDBF.Panel.WorkerVacant,Vacant,v2 UI
+HDBF.Tooltip.WorkerName,This roster is read-only: the game assigns the workers.,v2 UI
+HDBF.Tooltip.Slots,Tier slot capacity; P_eff is how many slots the current crew can tend.,v2 UI
+HDBF.Tooltip.Workers,On-duty crew of the building (read-only).,v2 UI
+HDBF.Tooltip.Efficiency,Irrigation growth multiplier G_irr from tank coverage C: 100% at or above C_min.,v2 UI

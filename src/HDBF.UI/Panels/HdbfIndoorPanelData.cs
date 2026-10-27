@@ -1,30 +1,117 @@
 // ============================================================================
 // HDBF v2 | Layer: UI/Panels | Owner: V2-UI-01
-// Purpose: Game-free read-model of one v2 indoor panel (INTERFACES section 9 DTO only).
-//          It carries already-localized strings so the UIElements fragment is a dumb renderer
-//          and the whole mapping is testable offline. No game type appears here.
-// Requirements: REQ-V2-UI-01/02/03, REQ-V2-READ-04, REQ-V2-WATER-03
+// Purpose: Game-free read model of the v2 indoor entity panel (INTERFACES section 9 DTO in,
+//          localized card/row tree out). Every visible string is already localized here, and the
+//          rows carry a semantic icon key, so the UIElements fragment is a dumb renderer and the
+//          whole mapping stays testable offline. No game type appears in this file.
+// Requirements: REQ-V2-UI-01/02/03/04, REQ-V2-READ-04, REQ-V2-WATER-03
 // ============================================================================
 using System;
 using System.Collections.Generic;
+using HDBF.Core;
 using HDBF.Core.Indoor;
 
 namespace HDBF.UI.Panels
 {
     /// <summary>
-    /// One localized warning row. The severity is also encoded as a text <see cref="Marker"/> so
-    /// colour is never the only information carrier (chapter 19.18.1-C).
+    /// Card order of the panel (docs/REQ_V2_SECTION_19.md 19.11 plus the worker/efficiency card).
+    /// The fragment renders the list in order, so the order is part of the contract.
     /// </summary>
-    public sealed record HdbfPanelStatusRow
+    public enum HdbfPanelSectionKind
     {
-        /// <summary>Plain-text severity marker ("▲" critical, "!" high, "•" medium); never colour-only.</summary>
+        /// <summary>Workers and the irrigation growth efficiency.</summary>
+        Workers,
+
+        /// <summary>Slot capacity, configured slots, P_eff, empty/growing/mature/backlog.</summary>
+        Slots,
+
+        /// <summary>Tank, days, coverage C, minimum C_min, supply, shortage derate.</summary>
+        Water,
+
+        /// <summary>Maintenance due day, overdue cycles, missing material.</summary>
+        Maintenance,
+
+        /// <summary>Power contract of the tier (grid/off-grid/no power/not required).</summary>
+        Power,
+
+        /// <summary>Crop strategy: the current policy row owns the vanilla dropdown.</summary>
+        Crops,
+
+        /// <summary>Output inventory occupancy and logistics/pipe/power port states.</summary>
+        Output,
+    }
+
+    /// <summary>
+    /// One panel row: a semantic icon key, a localized label, a localized value, an optional
+    /// progress bar and an optional warning marker. The icon key is resolved to a vanilla sprite
+    /// by the game-facing renderer; the pure model only names the meaning.
+    /// </summary>
+    public sealed record HdbfPanelRow
+    {
+        /// <summary>Semantic icon name, see <see cref="HdbfIndoorPanelStyle"/>; empty for no icon.</summary>
+        public string IconKey { get; init; } = string.Empty;
+
+        /// <summary>Localized row label (left of the value).</summary>
+        public string Label { get; init; } = string.Empty;
+
+        /// <summary>Localized row value (right aligned).</summary>
+        public string Value { get; init; } = string.Empty;
+
+        /// <summary>Localized hover text; empty when the row has no tooltip.</summary>
+        public string Tooltip { get; init; } = string.Empty;
+
+        /// <summary>True when the row is a warning sentence rendered with an icon + text marker.</summary>
+        public bool IsWarning { get; init; }
+
+        /// <summary>Plain-text severity marker ("▲"/"!"/"•") when <see cref="IsWarning"/> is set.</summary>
         public string Marker { get; init; } = string.Empty;
 
-        /// <summary>Already-localized warning sentence.</summary>
-        public string Text { get; init; } = string.Empty;
+        /// <summary>True when the row owns a vanilla progress bar.</summary>
+        public bool HasBar { get; init; }
 
-        /// <summary>P0..P4 priority used for ordering.</summary>
-        public IndoorWarningSeverity Severity { get; init; }
+        /// <summary>Progress bar fill in [0,1]; 0 when there is no bar.</summary>
+        public float Bar { get; init; }
+
+        /// <summary>Text drawn inside the progress bar (value + unit).</summary>
+        public string BarText { get; init; } = string.Empty;
+
+        /// <summary>Optional marker position on the bar (C_min on the coverage bar), NaN for none.</summary>
+        public float BarMarker { get; init; } = float.NaN;
+    }
+
+    /// <summary>One card of the panel: title, tone and the ordered rows inside it.</summary>
+    public sealed record HdbfPanelSection
+    {
+        /// <summary>Card identity; the fragment uses it to attach the crop dropdown.</summary>
+        public HdbfPanelSectionKind Kind { get; init; }
+
+        /// <summary>Localized card title.</summary>
+        public string Title { get; init; } = string.Empty;
+
+        /// <summary>Semantic icon key of the card title.</summary>
+        public string IconKey { get; init; } = string.Empty;
+
+        /// <summary>
+        /// Vanilla card tone: "green" (default sub-box), "blue" (info), "purple" (header) or
+        /// "red" (warning). Resolved to the real USS class by <see cref="HdbfIndoorPanelStyle"/>.
+        /// </summary>
+        public string Tone { get; init; } = "green";
+
+        /// <summary>Ordered rows of the card.</summary>
+        public IReadOnlyList<HdbfPanelRow> Rows { get; init; } = Array.Empty<HdbfPanelRow>();
+    }
+
+    /// <summary>One read-only roster chip: a worker name or a vacant position.</summary>
+    public sealed record HdbfWorkerChip
+    {
+        /// <summary>Worker name, or the localized "—" when the name is not exposed to mods.</summary>
+        public string Name { get; init; } = string.Empty;
+
+        /// <summary>True for an unstaffed position.</summary>
+        public bool Vacant { get; init; }
+
+        /// <summary>Localized hover text (assigns the read-only roster behaviour).</summary>
+        public string Tooltip { get; init; } = string.Empty;
     }
 
     /// <summary>One entry of the fixed-crop dropdown. An empty <see cref="Id"/> means auto rotation.</summary>
@@ -33,130 +120,58 @@ namespace HDBF.UI.Panels
         /// <summary>Crop id; empty selects the automatic rotation policy.</summary>
         public string Id { get; init; } = string.Empty;
 
-        /// <summary>Already-localized crop name.</summary>
+        /// <summary>Already-localized crop name; this is also the dropdown display text.</summary>
         public string Text { get; init; } = string.Empty;
     }
 
     /// <summary>
     /// Everything the v2 indoor entity panel shows, already localized and formatted from
-    /// <see cref="IndoorFarmSnapshot"/> + the Core tier/crop tables (REQ-V2-UI-01/02). The fragment
-    /// only applies these strings; it never formats a raw snapshot value itself.
+    /// <see cref="IndoorFarmSnapshot"/> plus the Core tier/crop tables (REQ-V2-UI-01/02). The
+    /// fragment only applies these values; it never formats a raw snapshot value itself.
     /// </summary>
     public sealed record HdbfIndoorPanelData
     {
         /// <summary>False when the snapshot was missing; the fragment stays hidden then.</summary>
         public bool HasData { get; init; }
 
-        // ----- header: tier, faction, workers, mode + transition -------------------------------
+        // ----- header: tier icon, name, subtitle, mode badge --------------------------------
         /// <summary>Localized building name of the tier (the panel title).</summary>
         public string Title { get; init; } = string.Empty;
 
-        /// <summary>"Tier: Basic" row.</summary>
-        public string TierText { get; init; } = string.Empty;
+        /// <summary>Localized subtitle "{tier} · {faction}".</summary>
+        public string Subtitle { get; init; } = string.Empty;
 
-        /// <summary>"Faction: Folktails" row.</summary>
-        public string FactionText { get; init; } = string.Empty;
+        /// <summary>Localized current mode (rendered as the vanilla badge).</summary>
+        public string ModeBadge { get; init; } = string.Empty;
 
-        /// <summary>"Workers W/W_max" row.</summary>
-        public string WorkersText { get; init; } = string.Empty;
-
-        /// <summary>"Mode: Dense planting" row.</summary>
-        public string ModeText { get; init; } = string.Empty;
-
-        /// <summary>Transition sentence, empty when no transition is running (row hidden).</summary>
+        /// <summary>One-day mode transition sentence, empty when no transition is running.</summary>
         public string ModeTransitionText { get; init; } = string.Empty;
 
-        /// <summary>Raw mode, so the fragment can mark the active mode button.</summary>
-        public IndoorMode ModeValue { get; init; }
+        /// <summary>Hover hint of the header card.</summary>
+        public string HeaderTooltip { get; init; } = string.Empty;
 
-        // ----- slots: capacity / configured / P_eff / empty / growing / mature / backlog --------
-        /// <summary>"Slots configured/capacity" row.</summary>
-        public string SlotsText { get; init; } = string.Empty;
+        /// <summary>Raw tier, for the game-facing tier-icon lookup.</summary>
+        public HdbfTier Tier { get; init; }
 
-        /// <summary>"Effective slots P_eff" row.</summary>
-        public string EffectiveSlotsText { get; init; } = string.Empty;
+        /// <summary>Raw faction, for diagnostics and the subtitle.</summary>
+        public HdbfFaction Faction { get; init; }
 
-        /// <summary>Tooltip carrying the P_eff = min(capacity, W × 38) formula and inputs.</summary>
-        public string EffectiveSlotsTooltip { get; init; } = string.Empty;
+        /// <summary>Raw mode, so the fragment can mark the active mode radio button.</summary>
+        public IndoorMode Mode { get; init; }
 
-        /// <summary>"Empty slots N" row.</summary>
-        public string EmptySlotsText { get; init; } = string.Empty;
+        // ----- worker roster (read-only) -----------------------------------------------------
+        /// <summary>One chip per worker slot; filled chips show "—" plus the explanation.</summary>
+        public IReadOnlyList<HdbfWorkerChip> WorkerChips { get; init; } = Array.Empty<HdbfWorkerChip>();
 
-        /// <summary>"Growing N" row.</summary>
-        public string GrowingSlotsText { get; init; } = string.Empty;
+        /// <summary>Localized explanation of why names are not shown.</summary>
+        public string WorkerRosterNote { get; init; } = string.Empty;
 
-        /// <summary>"Ready to harvest N" row.</summary>
-        public string MatureSlotsText { get; init; } = string.Empty;
+        // ----- crop strategy (one row + vanilla dropdown) ------------------------------------
+        /// <summary>Localized label of the crop-policy row.</summary>
+        public string CropPolicyLabel { get; init; } = string.Empty;
 
-        /// <summary>"Action backlog N" row.</summary>
-        public string BacklogText { get; init; } = string.Empty;
-
-        // ----- water: tank units + days, C, C_min, supply, shortage derate ----------------------
-        /// <summary>"Tank x/y units (about d days)" row.</summary>
-        public string TankText { get; init; } = string.Empty;
-
-        /// <summary>"Coverage C p%" row.</summary>
-        public string CoverageText { get; init; } = string.Empty;
-
-        /// <summary>"Minimum C_min p%" row.</summary>
-        public string MinCoverageText { get; init; } = string.Empty;
-
-        /// <summary>"Water source: pipe/manual/none" row.</summary>
-        public string WaterSupplyText { get; init; } = string.Empty;
-
-        /// <summary>"Water shortage: growth p%" row, empty while irrigation is not derated.</summary>
-        public string WaterShortageText { get; init; } = string.Empty;
-
-        /// <summary>Hover hint of the tank row (units + C_min rule).</summary>
-        public string TankTooltip { get; init; } = string.Empty;
-
-        /// <summary>Hover hint of the coverage row (C vs C_min behaviour).</summary>
-        public string CoverageTooltip { get; init; } = string.Empty;
-
-        /// <summary>True when the refill button may be pressed (manual water source).</summary>
-        public bool CanRefill { get; init; }
-
-        /// <summary>Why refill is enabled/disabled; always set.</summary>
-        public string RefillTooltip { get; init; } = string.Empty;
-
-        // ----- maintenance: due day, overdue cycles, missing material list ----------------------
-        /// <summary>"Maintenance due day D" or the no-material-upkeep sentence.</summary>
-        public string MaintenanceDueText { get; init; } = string.Empty;
-
-        /// <summary>"Overdue cycles N" row.</summary>
-        public string MaintenanceCyclesText { get; init; } = string.Empty;
-
-        /// <summary>"Missing materials: Plank ×8" row, empty when the stockpile can pay.</summary>
-        public string MaintenanceMaterialsText { get; init; } = string.Empty;
-
-        /// <summary>Hover hint of the maintenance block.</summary>
-        public string MaintenanceTooltip { get; init; } = string.Empty;
-
-        /// <summary>False for the material-free basic tier: the maintenance action is disabled.</summary>
-        public bool CanPerformMaintenance { get; init; }
-
-        /// <summary>True while overdue/material-missing: the fragment emphasises the action.</summary>
-        public bool MaintenanceUrgent { get; init; }
-
-        // ----- power: grid / off-grid / power cut / not required ---------------------------------
-        /// <summary>"Power: grid/off-grid/no power/not required" row.</summary>
-        public string PowerText { get; init; } = string.Empty;
-
-        /// <summary>Hover hint of the power row.</summary>
-        public string PowerTooltip { get; init; } = string.Empty;
-
-        // ----- crop strategy: rotation (default) / fixed crop / rotation sequence ----------------
-        /// <summary>"Crop policy: auto rotation/fixed crop" row.</summary>
+        /// <summary>Localized current policy sentence ("Auto rotation" / "Fixed crop").</summary>
         public string CropPolicyText { get; init; } = string.Empty;
-
-        /// <summary>"Fixed crop: Carrot" row, empty while the policy is rotation.</summary>
-        public string FixedCropText { get; init; } = string.Empty;
-
-        /// <summary>"Rotation: ..." row; "—" when the sequence is not known yet.</summary>
-        public string RotationText { get; init; } = string.Empty;
-
-        /// <summary>Hover hint explaining rotation vs fixed crop.</summary>
-        public string CropTooltip { get; init; } = string.Empty;
 
         /// <summary>Currently selected dropdown id ("" = auto rotation).</summary>
         public string SelectedCropId { get; init; } = string.Empty;
@@ -164,24 +179,33 @@ namespace HDBF.UI.Panels
         /// <summary>Dropdown items: auto rotation first, then the faction crop table.</summary>
         public IReadOnlyList<HdbfCropChoice> CropChoices { get; init; } = Array.Empty<HdbfCropChoice>();
 
-        // ----- output: stock and port state ------------------------------------------------------
-        /// <summary>"Output stock N" row.</summary>
-        public string OutputStockText { get; init; } = string.Empty;
+        /// <summary>Hover hint explaining rotation versus fixed crop.</summary>
+        public string CropTooltip { get; init; } = string.Empty;
 
-        /// <summary>"Output port: Connected/Not connected" row.</summary>
-        public string OutputPortText { get; init; } = string.Empty;
+        // ----- cards -------------------------------------------------------------------------
+        /// <summary>Ordered cards (worker, slots, water, maintenance, power, crops, output).</summary>
+        public IReadOnlyList<HdbfPanelSection> Sections { get; init; } = Array.Empty<HdbfPanelSection>();
 
-        /// <summary>Pipe/logistics/power port state sentence.</summary>
-        public string PortsText { get; init; } = string.Empty;
+        // ----- actions -----------------------------------------------------------------------
+        /// <summary>True when the refill button may be pressed (manual source, crew, entrance).</summary>
+        public bool CanRefill { get; init; }
 
-        /// <summary>Hover hint of the output block.</summary>
-        public string OutputTooltip { get; init; } = string.Empty;
+        /// <summary>Hover hint of the refill button; set even while it is disabled.</summary>
+        public string RefillTooltip { get; init; } = string.Empty;
 
-        // ----- status: the four v2 warning categories + concrete blocking reasons ----------------
-        /// <summary>Warning rows (water, maintenance, power, entrance), P0 first.</summary>
-        public IReadOnlyList<HdbfPanelStatusRow> StatusRows { get; init; } = Array.Empty<HdbfPanelStatusRow>();
+        /// <summary>Inline reason shown under a disabled refill button; empty when enabled.</summary>
+        public string RefillReasonText { get; init; } = string.Empty;
 
-        /// <summary>Concrete "why nothing happens" reasons (water/material/workers/entrance/output/crop).</summary>
-        public IReadOnlyList<string> ProblemRows { get; init; } = Array.Empty<string>();
+        /// <summary>True when the maintenance button may be pressed.</summary>
+        public bool CanPerformMaintenance { get; init; }
+
+        /// <summary>Hover hint of the maintenance button; set even while it is disabled.</summary>
+        public string MaintenanceTooltip { get; init; } = string.Empty;
+
+        /// <summary>Inline reason shown under a disabled maintenance button; empty when enabled.</summary>
+        public string MaintenanceReasonText { get; init; } = string.Empty;
+
+        /// <summary>True while overdue/material-missing: the fragment marks the action as urgent.</summary>
+        public bool MaintenanceUrgent { get; init; }
     }
 }

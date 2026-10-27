@@ -1,13 +1,13 @@
 // ============================================================================
 // HDBF v2 | Layer: UI/Panels | Owner: V2-UI-01
-// Purpose: Applies the localized HdbfIndoorPanelData read-model onto the UIElements tree.
-//          No value formatting happens here: every string was produced by the pure factory from
-//          the Core snapshot. State is shown as text, never by colour alone.
+// Purpose: Applies the localized HdbfIndoorPanelData read model onto the vanilla UIElements tree:
+//          header card, the ordered cards (workers/efficiency, slots, water, maintenance, power,
+//          crop strategy, output), the action card and the one-line action result. No value
+//          formatting happens here: every string was produced by the pure factory from the Core
+//          snapshot, and state is always shown as text, never by colour alone.
 // Requirements: REQ-V2-UI-01/02/03/04, REQ-V2-READ-04, REQ-V2-WATER-03
 // ============================================================================
-using System;
 using System.Collections.Generic;
-using HDBF.Core.Indoor;
 using HDBF.UI.Localization;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -29,176 +29,143 @@ namespace HDBF.UI.Panels
                 return;
             }
 
-            Set(_title, data.Title);
+            _lastData = data;
             RenderHeader(data);
-            RenderStatus(data);
-            RenderProblems(data);
-            RenderSlots(data);
-            RenderWater(data);
-            RenderMaintenance(data);
-            SetHeader(_powerHeader, HdbfUiLocKeys.PanelSectionPower);
-            Set(_power, data.PowerText);
-            SetTooltip(_power, data.PowerTooltip);
-            RenderCrop(data);
-            RenderOutput(data);
+            RenderCards(data);
+            RenderActions(data);
             RenderActionMessage(_actionMessage);
-
             _root.style.display = DisplayStyle.Flex;
         }
 
         private void RenderHeader(HdbfIndoorPanelData data)
         {
-            Set(_tier, data.TierText);
-            Set(_faction, data.FactionText);
-            Set(_workers, data.WorkersText);
+            Set(_title, data.Title);
+            Set(_subtitle, data.Subtitle);
+            Set(_modeBadge, data.ModeBadge);
             SetOptional(_modeTransition, data.ModeTransitionText);
-            RenderModeButtons(data);
+            _modeToggle?.Update((int)data.Mode);
+
+            if (_headerIcon is not null)
+            {
+                // Null sprite (no badge/icon) keeps the vanilla avatar frame; nothing throws.
+                _headerIcon.sprite = _avatarSprite;
+            }
+
+            if (_headerCard is not null)
+            {
+                HdbfPanelControls.SetTooltip(_headerCard, data.HeaderTooltip);
+            }
         }
 
-        private void RenderModeButtons(HdbfIndoorPanelData data)
+        private void RenderCards(HdbfIndoorPanelData data)
         {
-            RenderModeButton(_modeNormal, IndoorMode.Normal, data.ModeValue);
-            RenderModeButton(_modeDense, IndoorMode.Dense, data.ModeValue);
-            RenderModeButton(_modeFallow, IndoorMode.Fallow, data.ModeValue);
-        }
-
-        private void RenderModeButton(Button? button, IndoorMode mode, IndoorMode current)
-        {
-            if (button is null)
+            if (_cards is null)
             {
                 return;
             }
 
-            button.text = _loc.T(HdbfIndoorPanelFormat.ModeKey(mode));
-            button.tooltip = mode == current
-                ? _loc.T(HdbfUiLocKeys.TooltipCurrentMode)
-                : ModeTooltip(mode);
-            // The active mode is the selected segment; the other two stay operable.
-            button.SetEnabled(mode != current);
-        }
-
-        private string ModeTooltip(IndoorMode mode)
-        {
-            switch (mode)
+            _cards.Clear();
+            for (var index = 0; index < data.Sections.Count; index++)
             {
-                case IndoorMode.Dense:
-                    return _loc.T(HdbfUiLocKeys.TooltipModeDense);
-                case IndoorMode.Fallow:
-                    return _loc.T(HdbfUiLocKeys.TooltipModeFallow);
-                default:
-                    return _loc.T(HdbfUiLocKeys.TooltipModeNormal);
-            }
-        }
+                var section = data.Sections[index];
+                var card = HdbfPanelControls.CreateCard(section.Tone);
+                card.Add(HdbfPanelControls.CreateSectionTitle(section, _icons));
 
-        private void RenderStatus(HdbfIndoorPanelData data)
-        {
-            var rows = data.StatusRows;
-            var hasRows = rows is not null && rows.Count > 0;
-            SetHeader(_statusHeader, HdbfUiLocKeys.PanelStatus);
-            if (_statusHeader is not null)
-            {
-                _statusHeader.style.display = hasRows ? DisplayStyle.Flex : DisplayStyle.None;
-            }
-
-            for (var index = 0; index < _statusLabels.Count; index++)
-            {
-                var label = _statusLabels[index];
-                if (rows is not null && index < rows.Count)
+                var critical = section.Kind == HdbfPanelSectionKind.Water && HasWarning(section.Rows);
+                VisualElement? cropPolicyRow = null;
+                for (var rowIndex = 0; rowIndex < section.Rows.Count; rowIndex++)
                 {
-                    // The text marker is the first carrier: colour is never the only signal.
-                    label.text = rows[index].Marker + " " + rows[index].Text;
-                    label.style.display = DisplayStyle.Flex;
+                    var row = section.Rows[rowIndex];
+                    if (row.IsWarning)
+                    {
+                        var warningRow = HdbfPanelControls.CreateWarningRow(row, _icons);
+                        RegisterTooltip(warningRow, row.Tooltip);
+                        card.Add(warningRow);
+                        continue;
+                    }
+
+                    var rowElement = HdbfPanelControls.CreateRow(row, _icons, out _);
+                    RegisterTooltip(rowElement, row.Tooltip);
+                    card.Add(rowElement);
+                    if (row.HasBar)
+                    {
+                        card.Add(HdbfPanelControls.CreateBar(row, critical));
+                    }
+
+                    if (section.Kind == HdbfPanelSectionKind.Crops && cropPolicyRow is null)
+                    {
+                        cropPolicyRow = rowElement;
+                    }
                 }
-                else
+
+                if (section.Kind == HdbfPanelSectionKind.Workers)
                 {
-                    label.style.display = DisplayStyle.None;
+                    RenderWorkerRoster(card, data);
                 }
+
+                if (cropPolicyRow is not null && _cropHost is not null)
+                {
+                    // Requirement: one row = icon/label + current strategy text + the vanilla dropdown.
+                    cropPolicyRow.Add(_cropHost);
+                    RenderCrop(data);
+                }
+
+                _cards.Add(card);
             }
         }
 
-        private void RenderProblems(HdbfIndoorPanelData data)
+        private void RenderWorkerRoster(VisualElement card, HdbfIndoorPanelData data)
         {
-            var rows = data.ProblemRows;
-            var hasRows = rows is not null && rows.Count > 0;
-            SetHeader(_problemsHeader, HdbfUiLocKeys.PanelProblems);
-            if (_problemsHeader is not null)
+            var roster = new VisualElement();
+            roster.AddToClassList(HdbfIndoorPanelStyle.WorkerRoster);
+            roster.style.marginTop = 4f;
+            for (var index = 0; index < data.WorkerChips.Count; index++)
             {
-                _problemsHeader.style.display = hasRows ? DisplayStyle.Flex : DisplayStyle.None;
+                var chip = HdbfPanelControls.CreateWorkerChip(_visualElementLoader, data.WorkerChips[index], _icons);
+                RegisterTooltip(chip, data.WorkerChips[index].Tooltip);
+                roster.Add(chip);
             }
 
-            for (var index = 0; index < _problemLabels.Count; index++)
+            card.Add(roster);
+
+            var note = new Label(data.WorkerRosterNote);
+            note.AddToClassList(HdbfIndoorPanelStyle.SubText);
+            note.style.whiteSpace = WhiteSpace.Normal;
+            note.style.marginTop = 2f;
+            card.Add(note);
+
+            if (_modeHost is not null)
             {
-                var label = _problemLabels[index];
-                if (hasRows && index < rows!.Count)
-                {
-                    label.text = "• " + rows[index];
-                    label.style.display = DisplayStyle.Flex;
-                }
-                else
-                {
-                    label.style.display = DisplayStyle.None;
-                }
+                card.Add(_modeHost);
+            }
+
+            if (_modeTransition is not null)
+            {
+                card.Add(_modeTransition);
             }
         }
 
-        private void RenderSlots(HdbfIndoorPanelData data)
+        private void RenderActions(HdbfIndoorPanelData data)
         {
-            SetHeader(_slotsHeader, HdbfUiLocKeys.PanelSectionSlots);
-            Set(_slots, data.SlotsText);
-            Set(_effectiveSlots, data.EffectiveSlotsText);
-            SetTooltip(_effectiveSlots, data.EffectiveSlotsTooltip);
-            Set(_emptySlots, data.EmptySlotsText);
-            Set(_growingSlots, data.GrowingSlotsText);
-            Set(_matureSlots, data.MatureSlotsText);
-            Set(_backlog, data.BacklogText);
-        }
-
-        private void RenderWater(HdbfIndoorPanelData data)
-        {
-            SetHeader(_waterHeader, HdbfUiLocKeys.PanelSectionWater);
-            Set(_tank, data.TankText);
-            SetTooltip(_tank, data.TankTooltip);
-            Set(_coverage, data.CoverageText);
-            SetTooltip(_coverage, data.CoverageTooltip);
-            Set(_minCoverage, data.MinCoverageText);
-            Set(_waterSupply, data.WaterSupplyText);
-            SetOptional(_waterShortage, data.WaterShortageText);
             if (_refillButton is not null)
             {
                 _refillButton.text = _loc.T(HdbfUiLocKeys.ActionRefill);
                 _refillButton.tooltip = data.RefillTooltip;
                 _refillButton.SetEnabled(data.CanRefill);
-                _refillButton.style.unityFontStyleAndWeight =
-                    data.CanRefill ? FontStyle.Bold : FontStyle.Normal;
             }
-        }
 
-        private void RenderMaintenance(HdbfIndoorPanelData data)
-        {
-            SetHeader(_maintenanceHeader, HdbfUiLocKeys.PanelSectionMaintenance);
-            Set(_maintenanceDue, data.MaintenanceDueText);
-            Set(_maintenanceCycles, data.MaintenanceCyclesText);
-            SetOptional(_maintenanceMaterials, data.MaintenanceMaterialsText);
-            SetTooltip(_maintenanceDue, data.MaintenanceTooltip);
+            SetOptional(_refillReason, data.RefillReasonText);
+
             if (_maintenanceButton is not null)
             {
                 _maintenanceButton.text = _loc.T(HdbfUiLocKeys.ActionMaintenance);
                 _maintenanceButton.tooltip = data.MaintenanceTooltip;
                 _maintenanceButton.SetEnabled(data.CanPerformMaintenance);
-                // Bold text (asset-free emphasis) marks the urgent action; the status rows above
-                // already name the reason in words.
                 _maintenanceButton.style.unityFontStyleAndWeight =
                     data.MaintenanceUrgent && data.CanPerformMaintenance ? FontStyle.Bold : FontStyle.Normal;
             }
-        }
 
-        private void RenderOutput(HdbfIndoorPanelData data)
-        {
-            SetHeader(_outputHeader, HdbfUiLocKeys.PanelSectionOutput);
-            Set(_outputStock, data.OutputStockText);
-            SetTooltip(_outputStock, data.OutputTooltip);
-            Set(_outputPort, data.OutputPortText);
-            Set(_ports, data.PortsText);
+            SetOptional(_maintenanceReason, data.MaintenanceReasonText);
         }
 
         private void RenderActionMessage(string message)
@@ -220,11 +187,25 @@ namespace HDBF.UI.Panels
             RenderActionMessage(_actionMessage);
         }
 
-        private void SetHeader(Label? header, string key)
+        private static bool HasWarning(IReadOnlyList<HdbfPanelRow> rows)
         {
-            if (header is not null)
+            for (var index = 0; index < rows.Count; index++)
             {
-                header.text = _loc.T(key);
+                if (rows[index].IsWarning)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>Registers the vanilla hover tooltip of a freshly created row/chip element.</summary>
+        private void RegisterTooltip(VisualElement element, string? tooltip)
+        {
+            if (!string.IsNullOrEmpty(tooltip))
+            {
+                _tooltips.Register(element, tooltip!);
             }
         }
 
@@ -247,14 +228,6 @@ namespace HDBF.UI.Panels
             label.style.display = string.IsNullOrEmpty(label.text)
                 ? DisplayStyle.None
                 : DisplayStyle.Flex;
-        }
-
-        private static void SetTooltip(VisualElement? element, string tooltip)
-        {
-            if (element is not null)
-            {
-                element.tooltip = tooltip ?? string.Empty;
-            }
         }
     }
 }

@@ -1,13 +1,12 @@
 // ============================================================================
 // HDBF v2 | Layer: UI/Panels | Owner: V2-UI-01
-// Purpose: Player-action callbacks of the indoor panel (mode switch, water refill, maintenance,
-//          crop strategy). Every rejection shows a specific localized reason (REQ-V2-UI-02) and
-//          re-reads the authoritative snapshot; no optimistic UI state is kept.
+// Purpose: Player-action callbacks of the indoor panel (mode radio group, crop dropdown, water
+//          refill, maintenance). Every rejection shows a specific localized reason
+//          (REQ-V2-UI-02) and re-reads the authoritative snapshot; no optimistic UI state is kept.
 // Requirements: REQ-V2-UI-01/02, REQ-V2-SAFE-01, REQ-V2-WATER-04
 // ============================================================================
 using System;
 using HDBF.Core;
-using HDBF.Core.Abstractions;
 using HDBF.Core.Indoor;
 using HDBF.Core.Logging;
 using HDBF.UI.Localization;
@@ -16,9 +15,27 @@ namespace HDBF.UI.Panels
 {
     public sealed partial class HdbfFarmPanelFragment
     {
+        /// <summary>Vanilla radio-group callback: index 0/1/2 maps to normal/dense/fallow.</summary>
+        private void OnModeSelected(object? sender, int index)
+        {
+            if (index < (int)IndoorMode.Normal || index > (int)IndoorMode.Fallow)
+            {
+                return;
+            }
+
+            var mode = (IndoorMode)index;
+            if (_lastData is not null && _lastData.Mode == mode)
+            {
+                // Clicking the active radio button is a no-op (the command would reject it).
+                return;
+            }
+
+            OnModeClicked(mode);
+        }
+
         /// <summary>
-        /// Mode switch. UI keeps no optimistic state: the mode buttons are re-rendered from the
-        /// next snapshot, and a rejection renders the gameplay failure key.
+        /// Mode switch. UI keeps no optimistic state: the radio group is re-rendered from the next
+        /// snapshot, and a rejection renders the gameplay failure key in the action line.
         /// </summary>
         private void OnModeClicked(IndoorMode mode)
         {
@@ -48,37 +65,36 @@ namespace HDBF.UI.Panels
             Refresh(force: true);
         }
 
-        /// <summary>
-        /// Material maintenance. Gameplay performs the all-or-nothing material transaction; a
-        /// shortage shows the returned reason (the missing material and count are also listed in
-        /// the maintenance block while the flag is set).
-        /// </summary>
-        private void OnMaintenanceClicked()
+        /// <summary>Crop dropdown callback: empty id selects rotation, a crop id selects fixed crop.</summary>
+        private void OnCropSelected(int index)
         {
             if (_entityId == Guid.Empty)
             {
                 return;
             }
 
+            var cropId = _cropProvider.IdAt(index);
+            var policy = string.IsNullOrEmpty(cropId) ? CropPolicy.Rotation : CropPolicy.Fixed;
             try
             {
-                if (_command.TryPerformMaintenance(_entityId, out var failureKey))
+                if (_indoor.TrySetCropPolicy(_entityId, policy, cropId, out var failureKey))
                 {
-                    SetActionMessage(_loc.T(HdbfUiLocKeys.ActionMaintenanceDone));
+                    SetActionMessage(_loc.T(HdbfUiLocKeys.ActionCropPolicyChanged));
                 }
                 else
                 {
                     SetActionMessage(HdbfIndoorPanelFormat.FormatCommandFailure(_loc.T, failureKey));
-                    LogRejected("perform maintenance", failureKey);
+                    LogRejected("set crop policy " + policy + " (" + cropId + ")", failureKey);
                 }
             }
             catch (Exception exception)
             {
                 SetActionMessage(_loc.T(HdbfUiLocKeys.ErrorActionFailed));
-                LogCommandException("perform maintenance", exception);
+                LogCommandException("set crop policy", exception);
             }
 
             Refresh(force: true);
+            ScheduleCropValueSync();
         }
 
         /// <summary>
@@ -115,41 +131,32 @@ namespace HDBF.UI.Panels
         }
 
         /// <summary>
-        /// Crop strategy changed through the dropdown: an empty id selects automatic rotation, a
-        /// crop id selects the fixed-crop policy. Invalid crops are rejected by gameplay with a
-        /// specific reason; the dropdown is re-synced from the next snapshot.
+        /// Material maintenance. Gameplay performs the all-or-nothing material transaction; a
+        /// shortage shows the returned reason (the missing material list is also rendered above).
         /// </summary>
-        private void OnCropChoiceChanged()
+        private void OnMaintenanceClicked()
         {
-            if (_suppressCropChange || _cropDropdown is null || _entityId == Guid.Empty)
+            if (_entityId == Guid.Empty)
             {
                 return;
             }
 
-            var index = _cropDropdown.index;
-            if (index < 0 || index >= _cropChoiceIds.Count)
-            {
-                return;
-            }
-
-            var cropId = _cropChoiceIds[index];
-            var policy = string.IsNullOrEmpty(cropId) ? CropPolicy.Rotation : CropPolicy.Fixed;
             try
             {
-                if (_indoor.TrySetCropPolicy(_entityId, policy, cropId, out var failureKey))
+                if (_command.TryPerformMaintenance(_entityId, out var failureKey))
                 {
-                    SetActionMessage(_loc.T(HdbfUiLocKeys.ActionCropPolicyChanged));
+                    SetActionMessage(_loc.T(HdbfUiLocKeys.ActionMaintenanceDone));
                 }
                 else
                 {
                     SetActionMessage(HdbfIndoorPanelFormat.FormatCommandFailure(_loc.T, failureKey));
-                    LogRejected("set crop policy " + policy + " (" + cropId + ")", failureKey);
+                    LogRejected("perform maintenance", failureKey);
                 }
             }
             catch (Exception exception)
             {
                 SetActionMessage(_loc.T(HdbfUiLocKeys.ErrorActionFailed));
-                LogCommandException("set crop policy", exception);
+                LogCommandException("perform maintenance", exception);
             }
 
             Refresh(force: true);

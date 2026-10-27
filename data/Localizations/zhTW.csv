@@ -34,7 +34,7 @@ HDBF.Panel.Tank,水罐 {0}/{1} 單位（約 {2} 天）,v2 UI
 HDBF.Panel.Coverage,覆蓋率 C {0}%,v2 UI
 HDBF.Panel.MinCoverage,下限 C_min {0}%,v2 UI
 HDBF.Panel.WaterSupply,補水來源：{0},v2 UI
-HDBF.Panel.WaterShortage,缺水：生長效率 {0}%,v2 UI
+HDBF.Panel.WaterShortage,缺水：生長效率 {0}%（減產 {1}%）,v2 UI
 HDBF.Panel.WaterPipe,管道,v2 UI
 HDBF.Panel.WaterManual,人工,v2 UI
 HDBF.Panel.WaterNone,無,v2 UI
@@ -64,7 +64,7 @@ HDBF.Panel.CropCorn,玉米,v2 UI
 HDBF.Panel.CropEggplant,茄子,v2 UI
 HDBF.Panel.CropKohlrabi,苤藍,v2 UI
 HDBF.Panel.CropSoybean,大豆,v2 UI
-HDBF.Panel.OutputStock,輸出庫存佔用 {0},v2 UI
+HDBF.Panel.OutputStock,輸出庫存佔用 {0}/{1},v2 UI
 HDBF.Panel.OutputPort,輸出端口：{0},v2 UI
 HDBF.Panel.Ports,端口,v2 UI
 HDBF.Panel.Status,狀態,v2 UI
@@ -146,3 +146,41 @@ HDBF.Tooltip.CurrentMode,目前模式。,v2 UI
 HDBF.Tooltip.ModeNormal,常規：產量與水耗不變。,v2 UI
 HDBF.Tooltip.ModeDense,密植：產量 ×1.35，水耗 ×1.5。,v2 UI
 HDBF.Tooltip.ModeFallow,休耕：停止產出，讓土壤恢復。,v2 UI
+HDBF.Panel.SectionWorkers,工人與效率,v2 UI
+HDBF.Panel.SectionActions,操作,v2 UI
+HDBF.Panel.Subtitle,{0} · {1},v2 UI
+HDBF.Panel.CrewLabel,工人,v2 UI
+HDBF.Panel.CountValue,{0}/{1},v2 UI
+HDBF.Panel.PercentValue,{0}%,v2 UI
+HDBF.Panel.EfficiencyLabel,生長效率,v2 UI
+HDBF.Panel.CapacityLabel,槽位上限,v2 UI
+HDBF.Panel.ConfiguredLabel,已配置,v2 UI
+HDBF.Panel.EffectiveLabel,有效 P_eff,v2 UI
+HDBF.Panel.EmptyLabel,空槽,v2 UI
+HDBF.Panel.GrowingLabel,生長中,v2 UI
+HDBF.Panel.HarvestLabel,可收穫,v2 UI
+HDBF.Panel.BacklogLabel,積壓,v2 UI
+HDBF.Panel.TankLabel,水罐,v2 UI
+HDBF.Panel.TankValue,{0}/{1} 單位,v2 UI
+HDBF.Panel.CoverageLabel,覆蓋率 C,v2 UI
+HDBF.Panel.MinCoverageLabel,下限 C_min,v2 UI
+HDBF.Panel.SupplyLabel,補水來源,v2 UI
+HDBF.Panel.MaintenanceDueLabel,到期日,v2 UI
+HDBF.Panel.MaintenanceCyclesLabel,逾期週期,v2 UI
+HDBF.Panel.PowerLabel,動力,v2 UI
+HDBF.Panel.CropPolicyLabel,當前策略,v2 UI
+HDBF.Panel.FixedCropLabel,固定作物,v2 UI
+HDBF.Panel.RotationLabel,輪作,v2 UI
+HDBF.Panel.OutputLabel,輸出庫存,v2 UI
+HDBF.Panel.OutputPortLabel,輸出埠,v2 UI
+HDBF.Panel.PortsLabel,埠,v2 UI
+HDBF.Panel.BarTank,約 {0} 天,v2 UI
+HDBF.Panel.BarCoverage,C {0}% · 下限 {1}%,v2 UI
+HDBF.Panel.BarSlots,已配置 {0}/{1},v2 UI
+HDBF.Panel.BarOutput,佔用 {0}/{1},v2 UI
+HDBF.Panel.WorkerNote,工人由遊戲自動分配，模組無法讀取名字。,v2 UI
+HDBF.Panel.WorkerVacant,空缺,v2 UI
+HDBF.Tooltip.WorkerName,唯讀名冊：工人由遊戲分配。,v2 UI
+HDBF.Tooltip.Slots,檔位槽位上限；P_eff 表示目前工人能照料的槽位數。,v2 UI
+HDBF.Tooltip.Workers,當班工人（唯讀）。,v2 UI
+HDBF.Tooltip.Efficiency,灌溉生長係數 G_irr：覆蓋率 C 達到 C_min 及以上為 100%。,v2 UI

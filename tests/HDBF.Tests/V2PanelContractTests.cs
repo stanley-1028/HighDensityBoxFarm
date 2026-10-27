@@ -1,8 +1,9 @@
 // ============================================================================
 // HDBF v2 | Layer: L1 test | Owner: V2-UI-01
-// Purpose: Contract of the v2 indoor panel: every Core snapshot field reaches a shipped
-//          localization key, the four warning categories, the whitelisted failure reasons,
-//          the "—" rule, the text-not-colour rule and the 4 Hz / fingerprint refresh gate.
+// Purpose: Contract of the v2 indoor panel: every Core snapshot field reaches the shipped cards,
+//          the chapter-19.11 card order, the vanilla-control vocabulary, the live coverage rule
+//          (no stale 0 % shortage), the concrete action reasons, the "—" rule, the no-braces rule,
+//          the 4 Hz / fingerprint refresh gate and the output capacity pinned to the blueprints.
 //          It drives the REAL game-free panel mapping (linked HdbfIndoor*.cs sources).
 // Requirements: REQ-V2-UI-01/02/03/04, REQ-V2-WATER-03, REQ-V2-READ-04, REQ-V2-TEST-01
 // ============================================================================
@@ -12,8 +13,8 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
 using HDBF.Core;
-using HDBF.Core.Abstractions;
 using HDBF.Core.Formatting;
 using HDBF.Core.Indoor;
 using HDBF.UI.Localization;
@@ -22,9 +23,9 @@ using HDBF.UI.Panels;
 namespace HDBF.Tests
 {
     /// <summary>
-    /// L1 contract of the V2-UI-01 card. The fragment itself references UIElements/Timberborn and
-    /// cannot load here (REQ-V2-TEST-01), so the test links the game-free read model and pins both
-    /// the source-level UI rules and the rendered text of a fully populated Core snapshot.
+    /// L1 contract of the v2 panel. The fragment itself references UIElements/Timberborn and cannot
+    /// load here (REQ-V2-TEST-01), so the test links the game-free read model and pins both the
+    /// source-level UI rules and the rendered text of a fully populated Core snapshot.
     /// </summary>
     public static class V2PanelContractTests
     {
@@ -33,13 +34,6 @@ namespace HDBF.Tests
 
         private static readonly Guid EntityId = new Guid("00000000-0000-0000-0000-0000000000aa");
 
-        // ------------------------------------------------------------------ snapshot field map
-
-        /// <summary>
-        /// The frozen v2 panel DTO (docs/v2/INTERFACES.md section 9). Adding/removing a field must
-        /// update the panel and this list in the same change, otherwise the panel silently stops
-        /// showing real state.
-        /// </summary>
         private static readonly string[] SnapshotFields =
         {
             "Tier", "Faction", "Workers", "MaxWorkers", "Mode", "ModeTransitioning",
@@ -50,6 +44,8 @@ namespace HDBF.Tests
             "CropPolicy", "FixedCropId", "RotationSequence", "OutputOccupied", "OutputPortConnected",
             "PipePort", "LogisticsPort", "PowerPort", "Warnings", "OutputInventoryPortState",
         };
+
+        // ------------------------------------------------------------------ contract / order
 
         public static void TestSnapshotContractHasExactlyTheDocumentedFields()
         {
@@ -74,19 +70,42 @@ namespace HDBF.Tests
             }
         }
 
-        // ------------------------------------------------------------------ full read model
-
-        public static void TestHeaderBlockRendersTierFactionWorkersAndMode()
+        public static void TestCardsFollowTheChapter1911Order()
         {
             var data = CreateData(IntermediateFixture(), out var missing);
             TestAssert.Equal(0, missing.Count, "unmapped keys: " + string.Join(", ", missing));
+            var kinds = data.Sections.Select(section => section.Kind).ToArray();
+            TestAssert.Equal(HdbfPanelSectionKind.Workers, kinds[0]);
+            TestAssert.Equal(HdbfPanelSectionKind.Slots, kinds[1]);
+            TestAssert.Equal(HdbfPanelSectionKind.Water, kinds[2]);
+            TestAssert.Equal(HdbfPanelSectionKind.Maintenance, kinds[3]);
+            TestAssert.Equal(HdbfPanelSectionKind.Power, kinds[4]);
+            TestAssert.Equal(HdbfPanelSectionKind.Crops, kinds[5]);
+            TestAssert.Equal(HdbfPanelSectionKind.Output, kinds[6]);
+            TestAssert.Equal(7, kinds.Length, "worker/efficiency + seven chapter-19.11 cards");
+            TestAssert.Equal("Workers & efficiency", Section(data, HdbfPanelSectionKind.Workers).Title);
+            TestAssert.Equal("Crop strategy", Section(data, HdbfPanelSectionKind.Crops).Title);
+        }
+
+        // ------------------------------------------------------------------ header / workers
+
+        public static void TestHeaderRendersNameSubtitleModeBadgeAndTierIcon()
+        {
+            var data = CreateData(IntermediateFixture(), out _);
             TestAssert.Equal("High-Density Box Farm (Intermediate)", data.Title);
-            TestAssert.Equal("Tier: Intermediate", data.TierText);
-            TestAssert.Equal("Faction: IronTeeth", data.FactionText);
-            TestAssert.Equal("Workers 3/4", data.WorkersText);
-            TestAssert.Equal("Mode: Dense planting", data.ModeText);
+            TestAssert.Equal("Intermediate · IronTeeth", data.Subtitle);
+            TestAssert.Equal("Dense planting", data.ModeBadge);
             TestAssert.Equal("Mode changing; output is reduced today.", data.ModeTransitionText);
-            TestAssert.Equal(IndoorMode.Dense, data.ModeValue);
+            TestAssert.Equal(HdbfTier.Intermediate, data.Tier);
+            TestAssert.Equal(IndoorMode.Dense, data.Mode);
+
+            // Header icon: the panel uses the vanilla avatar of the building, i.e. the tier icon of
+            // the blueprint; the mapping is pinned here so a tier mix-up is caught offline.
+            TestAssert.Equal("Icons/BoxFarmBasic", HdbfIndoorPanelStyle.TierIconAsset(HdbfTier.Basic));
+            TestAssert.Equal("Icons/BoxFarmIntermediate",
+                HdbfIndoorPanelStyle.TierIconAsset(HdbfTier.Intermediate));
+            TestAssert.Equal("Icons/BoxFarmAdvanced", HdbfIndoorPanelStyle.TierIconAsset(HdbfTier.Advanced));
+            TestAssert.Equal("Icons/BoxFarmTop", HdbfIndoorPanelStyle.TierIconAsset(HdbfTier.Top));
         }
 
         public static void TestTransitionRowIsEmptyWhenNoTransitionRuns()
@@ -95,58 +114,143 @@ namespace HDBF.Tests
             TestAssert.Equal(string.Empty, data.ModeTransitionText);
         }
 
-        public static void TestSlotBlockRendersEveryCountAndTheEffectiveFormula()
+        public static void TestWorkerCardRendersCrewEfficiencyAndReadOnlyRoster()
         {
             var data = CreateData(IntermediateFixture(), out _);
-            TestAssert.Equal("Slots 120/150", data.SlotsText);
-            TestAssert.Equal("Effective slots 114", data.EffectiveSlotsText);
-            TestAssert.Equal("Effective slots P_eff = min(150, 3 × 38).", data.EffectiveSlotsTooltip);
-            TestAssert.Equal("Empty slots 40", data.EmptySlotsText);
-            TestAssert.Equal("Growing 70", data.GrowingSlotsText);
-            TestAssert.Equal("Ready to harvest 10", data.MatureSlotsText);
-            TestAssert.Equal("Action backlog 2", data.BacklogText);
+            var workers = Section(data, HdbfPanelSectionKind.Workers);
+            TestAssert.Equal("3/4", Row(workers, "Crew").Value);
+            TestAssert.Equal("100%", Row(workers, "Growth efficiency").Value,
+                "C = 73 % is above C_min = 60 %, so G_irr is 1");
+            TestAssert.True(Row(workers, "Growth efficiency").HasBar);
+            TestAssert.Equal(4, data.WorkerChips.Count, "one chip per worker slot");
+            for (var index = 0; index < 3; index++)
+            {
+                TestAssert.Equal("—", data.WorkerChips[index].Name, "name is not exposed to mods");
+                TestAssert.False(data.WorkerChips[index].Vacant);
+            }
+
+            TestAssert.Equal("Vacant", data.WorkerChips[3].Name);
+            TestAssert.True(data.WorkerChips[3].Vacant);
+            TestAssert.True(data.WorkerRosterNote.Length > 0, "the read-only roster explains itself");
         }
 
-        public static void TestWaterBlockRendersUnitsDaysCoverageAndSupply()
+        public static void TestWorkerCardWarnsOnNoCrewAndBlockedEntrance()
         {
-            var data = CreateData(IntermediateFixture(), out _);
-            TestAssert.Equal("Tank 2.4/10.8 units (about 2.0 days)", data.TankText);
-            TestAssert.Equal("Coverage C 73%", data.CoverageText);
-            TestAssert.Equal("Minimum C_min 60%", data.MinCoverageText);
-            TestAssert.Equal("Water source: pipe", data.WaterSupplyText);
-            TestAssert.Equal("Tank units and remaining days; coverage C must stay above C_min.", data.TankTooltip);
-            TestAssert.Equal(string.Empty, data.WaterShortageText, "C >= C_min must not derate growth");
-            TestAssert.True(data.CanRefill == false, "a pipe source is not the manual refill path");
-            TestAssert.Equal("The pipe port supplies water automatically.", data.RefillTooltip);
+            var broken = IntermediateFixture() with
+            {
+                Workers = 0,
+                Warnings = IndoorWarningFlags.NoWorkers | IndoorWarningFlags.EntranceBlocked,
+            };
+            var workers = Section(CreateData(broken, out _), HdbfPanelSectionKind.Workers);
+            var warnings = workers.Rows.Where(row => row.IsWarning).ToArray();
+            TestAssert.Equal(2, warnings.Length);
+            TestAssert.True(warnings[0].Label.StartsWith("No workers on duty", StringComparison.Ordinal),
+                warnings[0].Label);
+            TestAssert.True(warnings[1].Label.StartsWith("Entrance blocked", StringComparison.Ordinal),
+                warnings[1].Label);
+            TestAssert.True(warnings[0].Marker.Length > 0, "colour must not be the only carrier");
         }
 
-        public static void TestWaterShortageShowsTheGrowthPenalty()
+        // ------------------------------------------------------------------ slots / water
+
+        public static void TestSlotCardRendersEveryCount()
+        {
+            var slots = Section(CreateData(IntermediateFixture(), out _), HdbfPanelSectionKind.Slots);
+            TestAssert.Equal("150", Row(slots, "Slot capacity").Value);
+            TestAssert.Equal("120/150", Row(slots, "Configured").Value);
+            TestAssert.Equal("120/150 configured", Row(slots, "Configured").BarText);
+            TestAssert.Equal("114", Row(slots, "Effective P_eff").Value);
+            TestAssert.Equal("40", Row(slots, "Empty").Value);
+            TestAssert.Equal("70", Row(slots, "Growing").Value);
+            TestAssert.Equal("10", Row(slots, "Ready").Value);
+            TestAssert.Equal("2", Row(slots, "Backlog").Value);
+            TestAssert.True(Row(slots, "Effective P_eff").Tooltip.Contains("P_eff", StringComparison.Ordinal),
+                "the P_eff formula stays in the row tooltip");
+        }
+
+        public static void TestWaterCardRendersTankCoverageMinimumAndSupply()
+        {
+            var water = Section(CreateData(IntermediateFixture(), out _), HdbfPanelSectionKind.Water);
+            TestAssert.Equal("2.4/10.8 units", Row(water, "Tank").Value);
+            TestAssert.Equal("about 2.0 days", Row(water, "Tank").BarText);
+            TestAssert.Equal("73%", Row(water, "Coverage C").Value);
+            TestAssert.Equal("C 73% · min 60%", Row(water, "Coverage C").BarText);
+            TestAssert.Equal(0.60f, Row(water, "Coverage C").BarMarker, 1e-4f);
+            TestAssert.Equal("60%", Row(water, "Minimum C_min").Value);
+            TestAssert.Equal("pipe", Row(water, "Water source").Value);
+        }
+
+        public static void TestFullTankNeverShowsTheStaleWaterShortage()
+        {
+            // The reported defect: a freshly loaded farm with a full tank showed "coverage C 0 %"
+            // and "water shortage: growth 0 %" because the snapshot used the previous tick cache.
+            var loaded = IntermediateFixture() with
+            {
+                Tank = 10.8f,
+                Coverage = 1f,
+                TankDaysRemaining = 3f,
+                Warnings = IndoorWarningFlags.NoWater | IndoorWarningFlags.LowWater,
+            };
+            var water = Section(CreateData(loaded, out _), HdbfPanelSectionKind.Water);
+            TestAssert.Equal("100%", Row(water, "Coverage C").Value);
+            TestAssert.Equal(0, water.Rows.Count(row => row.IsWarning),
+                "live C >= C_min must not render a water warning even if the flags are stale");
+            TestAssert.False(water.Rows.Any(row => row.Label.Contains("Water shortage", StringComparison.Ordinal)),
+                "no shortage row while the tank covers the day");
+        }
+
+        public static void TestLowCoverageShowsTheSpecificDeratePercent()
         {
             var dry = IntermediateFixture() with
             {
                 Coverage = 0.30f,
                 MinCoverage = 0.60f,
-                Warnings = IndoorWarningFlags.LowWater,
                 WaterSupply = WaterSupplyKind.Manual,
+                Warnings = IndoorWarningFlags.LowWater,
             };
             var data = CreateData(dry, out _);
-            // G_irr = (0.30 - 0.25*0.60) / (0.75*0.60) = 0.3333 -> floored 33 %.
-            TestAssert.Equal("Water shortage: growth 33%", data.WaterShortageText);
-            TestAssert.True(data.CanRefill, "manual supply enables the refill action");
-            TestAssert.Equal("Requests one manual refill trip.", data.RefillTooltip);
+            var water = Section(data, HdbfPanelSectionKind.Water);
+            // G_irr = (0.30 - 0.25*0.60) / (0.75*0.60) = 1/3 -> growth 33 %, yield loss 67 %.
+            var shortage = water.Rows.Single(row => row.Label.StartsWith("Water shortage", StringComparison.Ordinal));
+            TestAssert.Equal("Water shortage: growth 33% (yield -67%)", shortage.Label);
+            TestAssert.True(shortage.IsWarning);
+            TestAssert.Equal("Water low", water.Rows[0].Label, "the low-water warning keeps its text");
+            TestAssert.True(data.CanRefill, "manual supply with a crew enables the refill action");
         }
 
-        public static void TestMaintenanceBlockListsMaterialAndCount()
+        public static void TestWaterCardTurnsCriticalAtZeroCoverage()
         {
-            var data = CreateData(IntermediateFixture(), out _);
-            TestAssert.Equal("Maintenance due day 24.5", data.MaintenanceDueText);
-            TestAssert.Equal("Overdue cycles 1", data.MaintenanceCyclesText);
-            TestAssert.Equal("Missing materials: Plank ×8", data.MaintenanceMaterialsText);
-            TestAssert.True(data.CanPerformMaintenance, "plank tier supports the maintenance action");
-            TestAssert.True(data.MaintenanceUrgent, "missing material marks the action urgent");
+            var empty = IntermediateFixture() with
+            {
+                Tank = 0f,
+                Coverage = 0f,
+                WaterSupply = WaterSupplyKind.None,
+            };
+            var water = Section(CreateData(empty, out _), HdbfPanelSectionKind.Water);
+            TestAssert.True(water.Rows[0].IsWarning);
+            TestAssert.True(water.Rows[0].Label.StartsWith("Water shortage", StringComparison.Ordinal),
+                water.Rows[0].Label);
+            TestAssert.True(water.Rows[0].Label.Contains("No water source is connected", StringComparison.Ordinal),
+                "a zero tank must name the missing source: " + water.Rows[0].Label);
         }
 
-        public static void TestMaintenanceBlockForMaterialFreeTier()
+        // ------------------------------------------------------------------ maintenance / power
+
+        public static void TestMaintenanceCardListsMaterialAndCount()
+        {
+            var maintenance = Section(CreateData(IntermediateFixture(), out _),
+                HdbfPanelSectionKind.Maintenance);
+            TestAssert.Equal("24.5", Row(maintenance, "Next due day").Value);
+            TestAssert.Equal("1", Row(maintenance, "Overdue cycles").Value);
+            var warning = maintenance.Rows[0];
+            TestAssert.True(warning.IsWarning);
+            TestAssert.True(warning.Label.Contains("Maintenance material missing", StringComparison.Ordinal),
+                warning.Label);
+            TestAssert.True(warning.Label.Contains("Missing materials: Plank ×8", StringComparison.Ordinal),
+                "the missing material and count are named: " + warning.Label);
+        }
+
+        public static void TestMaterialFreeTierDisablesMaintenanceWithReason()
         {
             var basic = IntermediateFixture() with
             {
@@ -154,137 +258,238 @@ namespace HDBF.Tests
                 Faction = HdbfFaction.Folktails,
                 Warnings = IndoorWarningFlags.None,
                 MaintenanceMaterialMissing = false,
+                MaintenanceCyclesMissed = 0,
             };
             var data = CreateData(basic, out _);
-            TestAssert.Equal("No material upkeep", data.MaintenanceDueText);
-            TestAssert.False(data.CanPerformMaintenance, "the basic tier has no material upkeep");
-            TestAssert.Equal(string.Empty, data.MaintenanceMaterialsText);
+            var maintenance = Section(data, HdbfPanelSectionKind.Maintenance);
+            TestAssert.Equal("No material upkeep", Row(maintenance, "Next due day").Value);
+            TestAssert.False(data.CanPerformMaintenance);
+            TestAssert.Equal("No material upkeep", data.MaintenanceReasonText);
+            TestAssert.False(maintenance.Rows.Any(row => row.IsWarning));
         }
 
-        public static void TestPowerRowMapsEveryContractState()
+        public static void TestPowerCardMapsEveryContractState()
         {
-            var top = IntermediateFixture() with { Tier = HdbfTier.Top, Power = PowerConnection.Grid, PowerConnected = false };
-            TestAssert.Equal("Power: no power", CreateData(top, out _).PowerText);
-            TestAssert.Equal("Power: grid", CreateData(top with { PowerConnected = true }, out _).PowerText);
-            TestAssert.Equal("Power: off-grid", CreateData(top with { Power = PowerConnection.OffGrid }, out _).PowerText);
-            TestAssert.Equal("Power: not required",
-                CreateData(IntermediateFixture() with { Power = PowerConnection.NotRequired }, out _).PowerText);
+            var top = IntermediateFixture() with { Tier = HdbfTier.Top, Power = PowerConnection.Grid };
+            TestAssert.Equal("no power", PowerValue(CreateData(top with { PowerConnected = false }, out _)));
+            TestAssert.Equal("grid", PowerValue(CreateData(top with { PowerConnected = true }, out _)));
+            TestAssert.Equal("off-grid", PowerValue(CreateData(top with { Power = PowerConnection.OffGrid }, out _)));
+            TestAssert.Equal("not required", PowerValue(CreateData(
+                IntermediateFixture() with { Power = PowerConnection.NotRequired }, out _)));
         }
 
-        public static void TestCropStrategyRendersRotationAndFixedCrop()
+        // ------------------------------------------------------------------ crops / output
+
+        public static void TestCropCardRendersOnePolicyRowAndTheDropdownChoices()
+        {
+            var crops = Section(CreateData(IntermediateFixture(), out _), HdbfPanelSectionKind.Crops);
+            TestAssert.Equal("Current policy", crops.Rows[0].Label,
+                "one policy row; the vanilla dropdown is appended to it by the fragment");
+            TestAssert.Equal("Fixed crop: Corn", crops.Rows[0].Value);
+            TestAssert.Equal("Corn", crops.Rows[1].Value, "the fixed crop row repeats the crop name");
+            TestAssert.Equal("Fixed crop", crops.Rows[1].Label);
+        }
+
+        public static void TestCropChoicesAreLocalizedAndSelected()
         {
             var data = CreateData(IntermediateFixture(), out _);
-            TestAssert.Equal("Crop policy: fixed crop", data.CropPolicyText);
-            TestAssert.Equal("Fixed crop: Corn", data.FixedCropText);
-            TestAssert.Equal("Rotation: Carrot → Potato", data.RotationText);
-            TestAssert.Equal("Corn", data.SelectedCropId);
             TestAssert.Equal(7, data.CropChoices.Count, "auto rotation + six IronTeeth crops");
             TestAssert.Equal(string.Empty, data.CropChoices[0].Id, "the first choice is automatic rotation");
             TestAssert.Equal("auto rotation", data.CropChoices[0].Text);
-            TestAssert.True(data.CropChoices.Any(choice => choice.Id == "Corn" && choice.Text == "Corn"),
-                "the fixed crop is one of the dropdown choices");
+            TestAssert.Equal("Corn", data.SelectedCropId);
+            TestAssert.True(data.CropChoices.Any(choice => choice.Id == "Corn" && choice.Text == "Corn"));
+            TestAssert.True(data.CropTooltip.Length > 0);
         }
 
-        public static void TestCropStrategyDefaultsToRotationAndDashSequence()
+        public static void TestRotationRowUsesLocalizedCropNamesAndTheDash()
         {
             var rotation = IntermediateFixture() with
             {
                 CropPolicy = CropPolicy.Rotation,
                 FixedCropId = string.Empty,
-                RotationSequence = string.Empty,
+                RotationSequence = "Carrot > Potato",
             };
             var data = CreateData(rotation, out _);
-            TestAssert.Equal("Crop policy: auto rotation", data.CropPolicyText);
-            TestAssert.Equal(string.Empty, data.FixedCropText);
-            TestAssert.Equal("Rotation: —", data.RotationText);
-            TestAssert.Equal(string.Empty, data.SelectedCropId);
+            var crops = Section(data, HdbfPanelSectionKind.Crops);
+            TestAssert.Equal("auto rotation", data.CropPolicyText);
+            TestAssert.Equal("Rotation", crops.Rows[1].Label);
+            TestAssert.Equal("Carrot > Potato", crops.Rows[1].Value);
+
+            var unknown = CreateData(rotation with { RotationSequence = string.Empty }, out _);
+            TestAssert.Equal("—", Section(unknown, HdbfPanelSectionKind.Crops).Rows[1].Value,
+                "unknown sequence renders the dash");
         }
 
-        public static void TestOutputBlockRendersStockAndPortStates()
+        public static void TestOutputCardRendersOccupiedOverCapacityAndPorts()
         {
-            var data = CreateData(IntermediateFixture(), out _);
-            TestAssert.Equal("Output stock 12", data.OutputStockText);
-            TestAssert.Equal("Output port: Connected", data.OutputPortText);
-            TestAssert.True(data.PortsText.Contains("Pipe port Connected", StringComparison.Ordinal), data.PortsText);
-            TestAssert.True(data.PortsText.Contains("Logistics port Connected", StringComparison.Ordinal), data.PortsText);
-            TestAssert.True(data.PortsText.Contains("Power port Not applicable", StringComparison.Ordinal), data.PortsText);
-            TestAssert.True(data.OutputTooltip.Contains("Ok", StringComparison.Ordinal),
-                "the output adapter state is shown in the tooltip: " + data.OutputTooltip);
+            var output = Section(CreateData(IntermediateFixture(), out _), HdbfPanelSectionKind.Output);
+            TestAssert.Equal("12/50", Row(output, "Output stock").Value, "occupancy/capacity stays complete");
+            TestAssert.Equal("12/50 stored", Row(output, "Output stock").BarText);
+            TestAssert.Equal("Connected", Row(output, "Output port").Value);
+            var ports = Row(output, "Ports").Value;
+            TestAssert.True(ports.Contains("Pipe port Connected", StringComparison.Ordinal), ports);
+            TestAssert.True(ports.Contains("Logistics port Connected", StringComparison.Ordinal), ports);
+            TestAssert.True(ports.Contains("Power port Not applicable", StringComparison.Ordinal), ports);
+            TestAssert.True(Row(output, "Output stock").Tooltip.Contains("Ok", StringComparison.Ordinal),
+                "the output adapter state stays in the tooltip");
         }
 
-        // ------------------------------------------------------------------ warnings / problems
+        public static void TestOutputCapacityMatchesEveryShippedBlueprint()
+        {
+            var blueprints = Directory.GetFiles(RepoPath("data/Buildings"), "*.blueprint.json",
+                SearchOption.AllDirectories);
+            TestAssert.True(blueprints.Length >= 8, "expected the eight shipped tier blueprints");
+            var pattern = new Regex(
+                "\"SimpleOutputInventorySpec\"\\s*:\\s*\\{[^}]*\"Capacity\"\\s*:\\s*(?<capacity>\\d+)",
+                RegexOptions.Singleline);
+            var checkedCount = 0;
+            foreach (var blueprint in blueprints)
+            {
+                var text = File.ReadAllText(blueprint);
+                var match = pattern.Match(text);
+                if (!match.Success)
+                {
+                    continue;
+                }
 
-        public static void TestFourWarningCategoriesCarryTextMarkers()
+                checkedCount++;
+                TestAssert.Equal(HdbfIndoorPanelLimits.OutputCapacity,
+                    int.Parse(match.Groups["capacity"].Value, System.Globalization.CultureInfo.InvariantCulture),
+                    "panel output capacity must mirror " + Path.GetFileName(blueprint));
+            }
+
+            TestAssert.True(checkedCount >= 8, "every tier blueprint must declare the output capacity");
+        }
+
+        // ------------------------------------------------------------------ warnings / reasons
+
+        public static void TestCleanFarmHasNoWarningRows()
+        {
+            var clean = IntermediateFixture() with
+            {
+                Warnings = IndoorWarningFlags.None,
+                MaintenanceMaterialMissing = false,
+                MaintenanceCyclesMissed = 0,
+            };
+            var data = CreateData(clean, out _);
+            foreach (var section in data.Sections)
+            {
+                TestAssert.Equal(0, section.Rows.Count(row => row.IsWarning),
+                    "clean farm warning in card " + section.Kind);
+            }
+        }
+
+        public static void TestWarningsKeepTheirIconAndTextMarker()
         {
             var flagged = IntermediateFixture() with
             {
-                Warnings = IndoorWarningFlags.NoWater | IndoorWarningFlags.MaintenanceStalled
-                           | IndoorWarningFlags.NoPower | IndoorWarningFlags.EntranceBlocked,
+                Warnings = IndoorWarningFlags.NoPower | IndoorWarningFlags.OutputFull,
+                Power = PowerConnection.Grid,
+                PowerConnected = false,
             };
             var data = CreateData(flagged, out _);
-            TestAssert.Equal(4, data.StatusRows.Count, "the four v2 warning categories");
-            TestAssert.Equal("Water shortage", data.StatusRows[0].Text);
-            TestAssert.Equal("Maintenance overdue", data.StatusRows[1].Text);
-            TestAssert.Equal("No power", data.StatusRows[2].Text);
-            TestAssert.Equal("Entrance blocked", data.StatusRows[3].Text);
-            TestAssert.Equal(IndoorWarningSeverity.Critical, data.StatusRows[0].Severity);
-            TestAssert.Equal(IndoorWarningSeverity.Critical, data.StatusRows[1].Severity);
-
-            // Colours must not be the only carrier: every row carries a text marker, and the pure
-            // read model has no colour property at all.
-            foreach (var row in data.StatusRows)
+            var warnings = data.Sections.SelectMany(section => section.Rows).Where(row => row.IsWarning).ToArray();
+            TestAssert.True(warnings.Length >= 2);
+            foreach (var row in warnings)
             {
+                TestAssert.True(row.IconKey.Length > 0, "warning row must carry an icon key");
                 TestAssert.True(row.Marker.Length > 0, "warning row must carry a text marker");
-                TestAssert.True(row.Text.Length > 0, "warning row must carry text");
+                TestAssert.True(row.Label.Length > 0, "warning row must carry text");
             }
 
-            foreach (var property in typeof(HdbfPanelStatusRow).GetProperties())
+            // The pure model has no colour property at all (colour may never be the only carrier).
+            foreach (var property in typeof(HdbfPanelRow).GetProperties())
             {
-                TestAssert.False(property.Name.Contains("Color", StringComparison.OrdinalIgnoreCase)
-                                 || property.Name.Contains("Rgba", StringComparison.OrdinalIgnoreCase),
+                TestAssert.False(property.Name.Contains("Color", StringComparison.OrdinalIgnoreCase),
                     "the read model must not encode severity by colour only: " + property.Name);
             }
         }
 
-        public static void TestLowWaterWarningIsHighNotCritical()
+        public static void TestActionButtonsCarryInlineBlockedReasons()
         {
-            var data = CreateData(IntermediateFixture() with { Warnings = IndoorWarningFlags.LowWater }, out _);
-            TestAssert.Equal(1, data.StatusRows.Count);
-            TestAssert.Equal("Water low", data.StatusRows[0].Text);
-            TestAssert.Equal(IndoorWarningSeverity.High, data.StatusRows[0].Severity);
-        }
+            var pipe = CreateData(IntermediateFixture(), out _);
+            TestAssert.False(pipe.CanRefill, "a pipe source is not the manual refill path");
+            TestAssert.Equal("The pipe port supplies water automatically.", pipe.RefillReasonText);
+            TestAssert.Equal(pipe.RefillReasonText, pipe.RefillTooltip);
 
-        public static void TestProblemRowsListConcreteReasons()
-        {
-            var broken = IntermediateFixture() with
+            var noWorkers = CreateData(IntermediateFixture() with
             {
-                FixedCropId = "BogusCrop",
-                WaterSupply = WaterSupplyKind.None,
-                Warnings = IndoorWarningFlags.MissingMaterial | IndoorWarningFlags.NoWater
-                           | IndoorWarningFlags.NoWorkers | IndoorWarningFlags.EntranceBlocked
-                           | IndoorWarningFlags.OutputFull,
-            };
-            var data = CreateData(broken, out _);
-            TestAssert.Equal(6, data.ProblemRows.Count, "material/water/workers/entrance/output/crop");
-            TestAssert.Equal("Missing materials: Plank ×8", data.ProblemRows[0]);
-            TestAssert.True(data.ProblemRows[1].StartsWith("Water shortage", StringComparison.Ordinal),
-                data.ProblemRows[1]);
-            TestAssert.True(data.ProblemRows[1].Contains("No water source", StringComparison.Ordinal),
-                "water shortage must name the missing source: " + data.ProblemRows[1]);
-            TestAssert.Equal("No workers on duty", data.ProblemRows[2]);
-            TestAssert.Equal("Entrance blocked", data.ProblemRows[3]);
-            TestAssert.Equal("Output inventory full", data.ProblemRows[4]);
-            TestAssert.Equal("Invalid fixed crop", data.ProblemRows[5]);
+                WaterSupply = WaterSupplyKind.Manual,
+                Workers = 0,
+                MaxWorkers = 4,
+            }, out _);
+            TestAssert.False(noWorkers.CanRefill);
+            TestAssert.Equal("No worker is on duty to fetch water.", noWorkers.RefillReasonText);
+
+            var blocked = CreateData(IntermediateFixture() with
+            {
+                WaterSupply = WaterSupplyKind.Manual,
+                Warnings = IndoorWarningFlags.EntranceBlocked,
+            }, out _);
+            TestAssert.False(blocked.CanRefill);
+            TestAssert.Equal("The entrance is blocked; a worker cannot leave for water.", blocked.RefillReasonText);
+
+            var usable = CreateData(IntermediateFixture() with
+            {
+                WaterSupply = WaterSupplyKind.Manual,
+                Warnings = IndoorWarningFlags.MissingMaterial,
+            }, out _);
+            TestAssert.True(usable.CanRefill);
+            TestAssert.Equal(string.Empty, usable.RefillReasonText);
+            TestAssert.Equal("Requests one manual refill trip.", usable.RefillTooltip);
+
+            var material = CreateData(IntermediateFixture(), out _);
+            TestAssert.False(material.CanPerformMaintenance);
+            TestAssert.Equal("Missing materials: Plank ×8", material.MaintenanceReasonText);
+            TestAssert.True(material.MaintenanceUrgent);
         }
 
-        public static void TestCleanFarmHasNoWarningOrProblemRows()
+        // ------------------------------------------------------------------ formatting rules
+
+        public static void TestEveryRowCarriesIconLabelAndSafeFill()
         {
-            var data = CreateData(IntermediateFixture() with { Warnings = IndoorWarningFlags.None }, out _);
-            TestAssert.Equal(0, data.StatusRows.Count);
-            TestAssert.Equal(0, data.ProblemRows.Count);
+            var data = CreateData(IntermediateFixture(), out _);
+            var labelledRows = 0;
+            foreach (var section in data.Sections)
+            {
+                foreach (var row in section.Rows)
+                {
+                    TestAssert.True(row.IconKey.Length > 0, "every row names an icon: " + section.Kind);
+                    if (row.IsWarning)
+                    {
+                        continue;
+                    }
+
+                    labelledRows++;
+                    TestAssert.True(row.Label.Length > 0, "row label empty in " + section.Kind);
+                    TestAssert.True(row.Value.Length > 0, "row value empty in " + section.Kind);
+                    if (row.HasBar)
+                    {
+                        TestAssert.True(row.Bar >= 0f && row.Bar <= 1f, "bar fill must be in [0,1]");
+                        TestAssert.True(row.BarText.Length > 0, "a bar always carries its value text");
+                    }
+                }
+            }
+
+            TestAssert.True(labelledRows >= 20, "the panel renders all chapter-19.11 rows: " + labelledRows);
         }
 
-        // ------------------------------------------------------------------ dash / failure rules
+        public static void TestNoRenderedTextLeaksBracesRawKeysNanOrInfinity()
+        {
+            var data = CreateData(IntermediateFixture(), out _);
+            var values = AllStrings(data);
+            foreach (var value in values)
+            {
+                TestAssert.False(value.Contains("{", StringComparison.Ordinal)
+                                 || value.Contains("}", StringComparison.Ordinal),
+                    "the panel must never render an unformatted template: " + value);
+                TestAssert.False(value.Contains("HDBF.", StringComparison.Ordinal),
+                    "the panel must never render a raw localization key: " + value);
+                TestAssert.False(value.Contains("NaN", StringComparison.Ordinal)
+                                 || value.Contains("Infinity", StringComparison.Ordinal),
+                    "unknown numbers render as the dash: " + value);
+            }
+        }
 
         public static void TestUnknownValuesRenderTheDashAndNeverNanOrInfinity()
         {
@@ -292,28 +497,17 @@ namespace HDBF.Tests
             {
                 TankDaysRemaining = float.PositiveInfinity,
                 MaintenanceDueDay = float.NaN,
+                CropPolicy = CropPolicy.Rotation,
+                FixedCropId = string.Empty,
                 RotationSequence = string.Empty,
             };
             var data = CreateData(unknown, out _);
-            TestAssert.Equal("Tank 2.4/10.8 units (about — days)", data.TankText);
-            TestAssert.Equal("Maintenance due day —", data.MaintenanceDueText);
-            TestAssert.Equal("Rotation: —", data.RotationText);
-
-            foreach (var property in typeof(HdbfIndoorPanelData).GetProperties())
-            {
-                if (property.PropertyType != typeof(string))
-                {
-                    continue;
-                }
-
-                var text = (string?)property.GetValue(data) ?? string.Empty;
-                TestAssert.False(text.Contains("NaN", StringComparison.Ordinal),
-                    property.Name + " must render unknown values as the dash");
-                TestAssert.False(text.Contains("Infinity", StringComparison.Ordinal),
-                    property.Name + " must render unknown values as the dash");
-                TestAssert.False(text.Contains("!", StringComparison.Ordinal) && text.Contains("HDBF.", StringComparison.Ordinal),
-                    property.Name + " must not leak a raw localization key: " + text);
-            }
+            var water = Section(data, HdbfPanelSectionKind.Water);
+            TestAssert.True(Row(water, "Tank").BarText.Contains("—", StringComparison.Ordinal),
+                Row(water, "Tank").BarText);
+            TestAssert.Equal("—", Row(Section(data, HdbfPanelSectionKind.Maintenance), "Next due day").Value);
+            TestAssert.Equal("—",
+                Section(data, HdbfPanelSectionKind.Crops).Rows[1].Value);
         }
 
         public static void TestEmptySnapshotProducesTheHiddenModel()
@@ -321,6 +515,7 @@ namespace HDBF.Tests
             var empty = HdbfIndoorPanelFactory.Create(null, KeyEcho);
             TestAssert.False(empty.HasData);
             TestAssert.Equal(string.Empty, empty.Title);
+            TestAssert.Equal(0, empty.Sections.Count);
         }
 
         public static void TestFailureReasonsAreWhitelistedAndSpecific()
@@ -335,7 +530,6 @@ namespace HDBF.Tests
                 HdbfUiLocKeys.ErrorMaintenanceUnavailable, HdbfUiLocKeys.ErrorInvalidMode,
                 HdbfUiLocKeys.ErrorMissingMod, HdbfUiLocKeys.ModeSwitchCooldown,
                 HdbfUiLocKeys.PortNotApplicable,
-                // Specific refill/action reasons returned by the v2 gameplay commands.
                 HdbfUiLocKeys.ErrorNoWorkers, HdbfUiLocKeys.ErrorEntranceBlocked,
                 HdbfUiLocKeys.ErrorNoWaterSource, HdbfUiLocKeys.ErrorWaterSourceUnreachable,
                 HdbfUiLocKeys.ErrorWaterContaminated, HdbfUiLocKeys.ErrorNoActionsLeft,
@@ -353,7 +547,7 @@ namespace HDBF.Tests
             TestAssert.Equal(generic, HdbfIndoorPanelFormat.FormatCommandFailure(localize, string.Empty));
         }
 
-        // ------------------------------------------------------------------ refresh / no-v1 rules
+        // ------------------------------------------------------------------ source rules
 
         public static void TestRefreshGateIsFourHertzAndFingerprintDriven()
         {
@@ -370,6 +564,39 @@ namespace HDBF.Tests
                 TestAssert.False(source.Contains(forbidden, StringComparison.Ordinal),
                     "the fragment must not simulate per frame: " + forbidden);
             }
+        }
+
+        public static void TestPanelUsesTheVanillaControlVocabulary()
+        {
+            var sources = ReadUiPanelSources(onlyIndoorMapping: false);
+            foreach (var token in new[]
+                     {
+                         "NineSliceVisualElement", "entity-sub-panel", "bg-sub-box--green",
+                         "bg-sub-box--blue", "bg-sub-box--purple-striped", "button-game",
+                         "entity-fragment__button", "worker-view", "progress-bar",
+                         "status-list-element", "game-text-heading", "entity-panel__text",
+                         "game-dropdown", "entity-panel__avatar", "entity-panel__header",
+                         "new Dropdown", "CreateLocalizable", "ProgressBar",
+                     })
+            {
+                TestAssert.True(sources.Contains(token, StringComparison.Ordinal),
+                    "the panel must compose the original control/class vocabulary; missing " + token);
+            }
+
+            // No invented full-screen background / no hand-drawn texture and no bare Unity dropdown.
+            foreach (var forbidden in new[]
+                     {
+                         "backgroundColor", "new Texture2D", "GUI.DrawTexture", "DropdownField",
+                         "style.backgroundImage = new StyleBackground(new Color",
+                     })
+            {
+                TestAssert.False(sources.Contains(forbidden, StringComparison.Ordinal),
+                    "the panel must not invent its own look: " + forbidden);
+            }
+
+            // The view templates used for the gold buttons / worker chips are the shipped ones.
+            TestAssert.Equal("Game/EntityPanel/DebugButton", HdbfIndoorPanelStyle.ButtonTemplate);
+            TestAssert.Equal("Game/EntityPanel/WorkerView", HdbfIndoorPanelStyle.WorkerChipTemplate);
         }
 
         public static void TestUiSourcesCarryNoRemovedV1PlotSurface()
@@ -433,24 +660,58 @@ namespace HDBF.Tests
             TestAssert.Null(nullBridge.GetIndoorSnapshot(EntityId));
         }
 
-        // ------------------------------------------------------------------ reusable number rules
+        // ------------------------------------------------------------------ helpers
 
-        public static void TestPanelNumbersKeepTheChapter145Formats()
+        private static string PowerValue(HdbfIndoorPanelData data)
         {
-            TestAssert.Equal("73", PanelNumbers.Percent(0.734f, roundUp: false));
-            TestAssert.Equal("74", PanelNumbers.Percent(0.734f, roundUp: true));
-            TestAssert.Equal("—", PanelNumbers.Percent(float.NaN, roundUp: false));
-            TestAssert.Equal("3.4", PanelNumbers.Days(3.46f, roundUp: false));
-            TestAssert.Equal("3.5", PanelNumbers.Days(3.41f, roundUp: true));
-            TestAssert.Equal("—", PanelNumbers.Days(float.PositiveInfinity, roundUp: false));
-            TestAssert.Equal("—", PanelNumbers.DaysRounded(float.PositiveInfinity));
-            TestAssert.Equal("1.35", PanelNumbers.Multiplier(1.35f));
-            TestAssert.Equal("600", PanelNumbers.PlotCount(600));
-            TestAssert.Equal("—", PanelNumbers.PlotCountOrUnknown(-1));
-            TestAssert.Equal(0, PanelNumbers.RoundedCount(float.NaN));
+            return Row(Section(data, HdbfPanelSectionKind.Power), "Power").Value;
         }
 
-        // ------------------------------------------------------------------ fixtures
+        private static HdbfPanelSection Section(HdbfIndoorPanelData data, HdbfPanelSectionKind kind)
+        {
+            return data.Sections.Single(section => section.Kind == kind);
+        }
+
+        private static HdbfPanelRow Row(HdbfPanelSection section, string label)
+        {
+            return section.Rows.Single(row => string.Equals(row.Label, label, StringComparison.Ordinal));
+        }
+
+        private static List<string> AllStrings(HdbfIndoorPanelData data)
+        {
+            var values = new List<string>
+            {
+                data.Title, data.Subtitle, data.ModeBadge, data.ModeTransitionText,
+                data.HeaderTooltip, data.WorkerRosterNote, data.CropPolicyLabel, data.CropPolicyText,
+                data.CropTooltip, data.RefillTooltip, data.RefillReasonText, data.MaintenanceTooltip,
+                data.MaintenanceReasonText,
+            };
+
+            foreach (var chip in data.WorkerChips)
+            {
+                values.Add(chip.Name);
+                values.Add(chip.Tooltip);
+            }
+
+            foreach (var choice in data.CropChoices)
+            {
+                values.Add(choice.Text);
+            }
+
+            foreach (var section in data.Sections)
+            {
+                values.Add(section.Title);
+                foreach (var row in section.Rows)
+                {
+                    values.Add(row.Label);
+                    values.Add(row.Value);
+                    values.Add(row.Tooltip);
+                    values.Add(row.BarText);
+                }
+            }
+
+            return values.Where(value => !string.IsNullOrEmpty(value)).ToList();
+        }
 
         private static IndoorFarmSnapshot IntermediateFixture()
         {
@@ -516,13 +777,140 @@ namespace HDBF.Tests
             };
         }
 
-        // ------------------------------------------------------------------ helpers
+        // ------------------------------------------------------------------ file helpers
+
+        private static string ReadUiPanelSources(bool onlyIndoorMapping)
+        {
+            var directory = Path.Combine(RepoRoot(), UiPanelFolder, "Panels");
+            var builder = new StringBuilder();
+            foreach (var file in Directory.GetFiles(directory, "*.cs", SearchOption.TopDirectoryOnly)
+                         .OrderBy(path => path, StringComparer.Ordinal))
+            {
+                var name = Path.GetFileName(file);
+                if (onlyIndoorMapping && !name.StartsWith("HdbfIndoor", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                builder.Append(File.ReadAllText(file, Encoding.UTF8)).Append('\n');
+            }
+
+            return builder.ToString();
+        }
+
+        private static string ReadUiFile(string relativePath)
+        {
+            return File.ReadAllText(Path.Combine(RepoRoot(), UiPanelFolder, relativePath), Encoding.UTF8);
+        }
+
+        private static string RepoPath(string relativePath)
+        {
+            return Path.Combine(RepoRoot(), relativePath.Replace('/', Path.DirectorySeparatorChar));
+        }
+
+        private static string RepoRoot()
+        {
+            var metadata = typeof(V2PanelContractTests).Assembly
+                .GetCustomAttributes(typeof(AssemblyMetadataAttribute), inherit: false)
+                .OfType<AssemblyMetadataAttribute>()
+                .FirstOrDefault(attribute => string.Equals(attribute.Key, RepoRootMetadataKey,
+                    StringComparison.Ordinal));
+            if (metadata is null || string.IsNullOrWhiteSpace(metadata.Value))
+            {
+                throw new TestFailureException("missing HdbfRepoRoot assembly metadata");
+            }
+
+            return metadata.Value!;
+        }
+
+        private static Dictionary<string, string> LoadTexts(string language)
+        {
+            var resource = "HDBF.Tests.Localizations." + language + ".csv";
+            var assembly = typeof(V2PanelContractTests).Assembly;
+            using var stream = assembly.GetManifestResourceStream(resource);
+            if (stream is null)
+            {
+                throw new TestFailureException("missing embedded localization resource " + resource);
+            }
+
+            using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+            return ParseCsv(reader.ReadToEnd());
+        }
+
+        private static Dictionary<string, string> ParseCsv(string text)
+        {
+            var texts = new Dictionary<string, string>(StringComparer.Ordinal);
+            var lines = text.Replace("\r\n", "\n").Split('\n');
+            for (var i = 1; i < lines.Length; i++)
+            {
+                if (lines[i].Trim().Length == 0)
+                {
+                    continue;
+                }
+
+                var fields = SplitCsvLine(lines[i]);
+                if (fields.Count >= 2)
+                {
+                    texts[fields[0].Trim()] = fields[1];
+                }
+            }
+
+            return texts;
+        }
+
+        private static List<string> SplitCsvLine(string line)
+        {
+            var fields = new List<string>();
+            var builder = new StringBuilder();
+            var inQuotes = false;
+            for (var index = 0; index < line.Length; index++)
+            {
+                var character = line[index];
+                if (inQuotes)
+                {
+                    if (character == '"')
+                    {
+                        if (index + 1 < line.Length && line[index + 1] == '"')
+                        {
+                            builder.Append('"');
+                            index++;
+                        }
+                        else
+                        {
+                            inQuotes = false;
+                        }
+                    }
+                    else
+                    {
+                        builder.Append(character);
+                    }
+                }
+                else if (character == '"')
+                {
+                    inQuotes = true;
+                }
+                else if (character == ',')
+                {
+                    fields.Add(builder.ToString());
+                    builder.Clear();
+                }
+                else
+                {
+                    builder.Append(character);
+                }
+            }
+
+            fields.Add(builder.ToString());
+            return fields;
+        }
+
+        // ------------------------------------------------------------------ fakes
 
         private sealed class FakeQueryService
         {
             public IndoorFarmSnapshot Snapshot { get; init; } = new IndoorFarmSnapshot(
                 HdbfTier.Basic, HdbfFaction.Folktails, 0, 2, IndoorMode.Normal, false, 60, 0, 0,
-                60, 0, 0, 0, 0f, 3.6f, float.PositiveInfinity, 0f, 0.5f, WaterSupplyKind.None,
+                60, 0, 0, 0, 0f, 3.6f, float.PositiveInfinity, 1f, 0.5f, WaterSupplyKind.None,
                 0f, 0, false, PowerConnection.NotRequired, false, CropPolicy.Rotation, string.Empty,
                 string.Empty, 0, false, true, false, false, IndoorWarningFlags.None, string.Empty);
 
@@ -559,141 +947,6 @@ namespace HDBF.Tests
                 failureKey = RefillFailureKey ?? HdbfUiLocKeys.ErrorRefillUnavailable;
                 return false;
             }
-        }
-
-        private static string ReadUiPanelSources(bool onlyIndoorMapping)
-        {
-            var directory = Path.Combine(RepoRoot(), UiPanelFolder, "Panels");
-            var builder = new StringBuilder();
-            foreach (var file in Directory.GetFiles(directory, "*.cs", SearchOption.TopDirectoryOnly)
-                         .OrderBy(path => path, StringComparer.Ordinal))
-            {
-                var name = Path.GetFileName(file);
-                if (onlyIndoorMapping && !name.StartsWith("HdbfIndoor", StringComparison.Ordinal))
-                {
-                    continue;
-                }
-
-                builder.Append(File.ReadAllText(file, Encoding.UTF8)).Append('\n');
-            }
-
-            return builder.ToString();
-        }
-
-        private static string ReadUiFile(string relativePath)
-        {
-            return File.ReadAllText(Path.Combine(RepoRoot(), UiPanelFolder, relativePath), Encoding.UTF8);
-        }
-
-        private static string RepoRoot()
-        {
-            var metadata = typeof(V2PanelContractTests).Assembly
-                .GetCustomAttributes(typeof(AssemblyMetadataAttribute), inherit: false)
-                .OfType<AssemblyMetadataAttribute>()
-                .FirstOrDefault(attribute => string.Equals(attribute.Key, RepoRootMetadataKey,
-                    StringComparison.Ordinal));
-            if (metadata is null || string.IsNullOrWhiteSpace(metadata.Value))
-            {
-                throw new TestFailureException("missing HdbfRepoRoot assembly metadata");
-            }
-
-            return metadata.Value!;
-        }
-
-        /// <summary>Loads one shipped CSV from the embedded test resource (ID,Text,Comment).</summary>
-        private static Dictionary<string, string> LoadTexts(string language)
-        {
-            var resource = "HDBF.Tests.Localizations." + language + ".csv";
-            var assembly = typeof(V2PanelContractTests).Assembly;
-            using var stream = assembly.GetManifestResourceStream(resource);
-            if (stream is null)
-            {
-                throw new TestFailureException("missing embedded localization resource " + resource);
-            }
-
-            using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
-            var rows = ParseCsv(reader.ReadToEnd());
-            var texts = new Dictionary<string, string>(StringComparer.Ordinal);
-            for (var i = 1; i < rows.Count; i++)
-            {
-                var row = rows[i];
-                if (row.Length == 0 || (row.Length == 1 && row[0].Trim().Length == 0))
-                {
-                    continue;
-                }
-
-                if (row.Length != 3)
-                {
-                    throw new TestFailureException(resource + " line " + (i + 1) + " has " + row.Length + " fields");
-                }
-
-                texts[row[0].Trim()] = row[1];
-            }
-
-            return texts;
-        }
-
-        private static List<string[]> ParseCsv(string text)
-        {
-            var rows = new List<string[]>();
-            var fields = new List<string>();
-            var field = new StringBuilder();
-            var inQuotes = false;
-            for (var i = 0; i < text.Length; i++)
-            {
-                var character = text[i];
-                if (inQuotes)
-                {
-                    if (character == '"')
-                    {
-                        if (i + 1 < text.Length && text[i + 1] == '"')
-                        {
-                            field.Append('"');
-                            i++;
-                        }
-                        else
-                        {
-                            inQuotes = false;
-                        }
-                    }
-                    else
-                    {
-                        field.Append(character);
-                    }
-                }
-                else if (character == '"')
-                {
-                    inQuotes = true;
-                }
-                else if (character == ',')
-                {
-                    fields.Add(field.ToString());
-                    field.Clear();
-                }
-                else if (character == '\r')
-                {
-                    // Normalised away.
-                }
-                else if (character == '\n')
-                {
-                    fields.Add(field.ToString());
-                    field.Clear();
-                    rows.Add(fields.ToArray());
-                    fields.Clear();
-                }
-                else
-                {
-                    field.Append(character);
-                }
-            }
-
-            if (field.Length > 0 || fields.Count > 0)
-            {
-                fields.Add(field.ToString());
-                rows.Add(fields.ToArray());
-            }
-
-            return rows;
         }
     }
 }

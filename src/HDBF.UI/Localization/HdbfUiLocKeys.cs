@@ -49,6 +49,48 @@ namespace HDBF.UI.Localization
         public const string PanelSectionPower = "HDBF.Panel.SectionPower";
         public const string PanelSectionCrops = "HDBF.Panel.SectionCrops";
         public const string PanelSectionOutput = "HDBF.Panel.SectionOutput";
+        public const string PanelSectionWorkers = "HDBF.Panel.SectionWorkers";
+        public const string PanelSectionActions = "HDBF.Panel.SectionActions";
+
+        // Header card and vanilla row labels (one localized label per panel row; values are numbers
+        // or enum labels so a row never concatenates two sentences).
+        public const string PanelSubtitle = "HDBF.Panel.Subtitle";
+        public const string PanelCrewLabel = "HDBF.Panel.CrewLabel";
+        public const string PanelCountValue = "HDBF.Panel.CountValue";
+        public const string PanelPercentValue = "HDBF.Panel.PercentValue";
+        public const string PanelEfficiencyLabel = "HDBF.Panel.EfficiencyLabel";
+        public const string PanelCapacityLabel = "HDBF.Panel.CapacityLabel";
+        public const string PanelConfiguredLabel = "HDBF.Panel.ConfiguredLabel";
+        public const string PanelEffectiveLabel = "HDBF.Panel.EffectiveLabel";
+        public const string PanelEmptyLabel = "HDBF.Panel.EmptyLabel";
+        public const string PanelGrowingLabel = "HDBF.Panel.GrowingLabel";
+        public const string PanelHarvestLabel = "HDBF.Panel.HarvestLabel";
+        public const string PanelBacklogLabel = "HDBF.Panel.BacklogLabel";
+        public const string PanelTankLabel = "HDBF.Panel.TankLabel";
+        public const string PanelTankValue = "HDBF.Panel.TankValue";
+        public const string PanelCoverageLabel = "HDBF.Panel.CoverageLabel";
+        public const string PanelMinCoverageLabel = "HDBF.Panel.MinCoverageLabel";
+        public const string PanelSupplyLabel = "HDBF.Panel.SupplyLabel";
+        public const string PanelMaintenanceDueLabel = "HDBF.Panel.MaintenanceDueLabel";
+        public const string PanelMaintenanceCyclesLabel = "HDBF.Panel.MaintenanceCyclesLabel";
+        public const string PanelPowerLabel = "HDBF.Panel.PowerLabel";
+        public const string PanelCropPolicyLabel = "HDBF.Panel.CropPolicyLabel";
+        public const string PanelFixedCropLabel = "HDBF.Panel.FixedCropLabel";
+        public const string PanelRotationLabel = "HDBF.Panel.RotationLabel";
+        public const string PanelOutputLabel = "HDBF.Panel.OutputLabel";
+        public const string PanelOutputPortLabel = "HDBF.Panel.OutputPortLabel";
+        public const string PanelPortsLabel = "HDBF.Panel.PortsLabel";
+
+        // Progress bar texts: the value + unit inside the vanilla bar.
+        public const string PanelBarTank = "HDBF.Panel.BarTank";
+        public const string PanelBarCoverage = "HDBF.Panel.BarCoverage";
+        public const string PanelBarSlots = "HDBF.Panel.BarSlots";
+        public const string PanelBarOutput = "HDBF.Panel.BarOutput";
+
+        // Read-only worker roster: names are not exposed to mods, so the chips explain themselves.
+        public const string PanelWorkerNote = "HDBF.Panel.WorkerNote";
+        public const string PanelWorkerVacant = "HDBF.Panel.WorkerVacant";
+        public const string TooltipWorkerName = "HDBF.Tooltip.WorkerName";
 
         // Slot block: capacity / configured / P_eff / empty / growing / mature / backlog.
         public const string PanelSlots = "HDBF.Panel.Slots";
@@ -197,6 +239,9 @@ namespace HDBF.UI.Localization
 
         // Tooltips (description-style; exempt from the label length rule).
         public const string TooltipEffectiveSlots = "HDBF.Tooltip.EffectiveSlots";
+        public const string TooltipSlots = "HDBF.Tooltip.Slots";
+        public const string TooltipWorkers = "HDBF.Tooltip.Workers";
+        public const string TooltipEfficiency = "HDBF.Tooltip.Efficiency";
         public const string TooltipTank = "HDBF.Tooltip.Tank";
         public const string TooltipCoverage = "HDBF.Tooltip.Coverage";
         public const string TooltipMaintenance = "HDBF.Tooltip.Maintenance";

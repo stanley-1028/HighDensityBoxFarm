@@ -298,6 +298,7 @@ namespace HDBF.Tests
                 HdbfUiLocKeys.PanelSectionSlots, HdbfUiLocKeys.PanelSectionWater,
                 HdbfUiLocKeys.PanelSectionMaintenance, HdbfUiLocKeys.PanelSectionPower,
                 HdbfUiLocKeys.PanelSectionCrops, HdbfUiLocKeys.PanelSectionOutput,
+                HdbfUiLocKeys.PanelSectionWorkers, HdbfUiLocKeys.PanelSectionActions,
                 HdbfUiLocKeys.PanelStatus, HdbfUiLocKeys.PanelProblems,
             };
             var en = LoadTexts("enUS");
@@ -311,6 +312,95 @@ namespace HDBF.Tests
                     "zhCN header too long (" + zh[key].Length + "): " + key);
                 TestAssert.True(tw[key].Length <= ChineseLabelMaxLength,
                     "zhTW header too long (" + tw[key].Length + "): " + key);
+            }
+        }
+
+        /// <summary>
+        /// Every row label of the panel is short enough for the 325 px vanilla entity panel; the
+        /// warning/explanation sentences are exempt (they wrap).
+        /// </summary>
+        public static void TestPanelRowLabelsAreShortInEveryLanguage()
+        {
+            var labelKeys = new[]
+            {
+                HdbfUiLocKeys.PanelCrewLabel, HdbfUiLocKeys.PanelEfficiencyLabel,
+                HdbfUiLocKeys.PanelCapacityLabel, HdbfUiLocKeys.PanelConfiguredLabel,
+                HdbfUiLocKeys.PanelEffectiveLabel, HdbfUiLocKeys.PanelEmptyLabel,
+                HdbfUiLocKeys.PanelGrowingLabel, HdbfUiLocKeys.PanelHarvestLabel,
+                HdbfUiLocKeys.PanelBacklogLabel, HdbfUiLocKeys.PanelTankLabel,
+                HdbfUiLocKeys.PanelCoverageLabel, HdbfUiLocKeys.PanelMinCoverageLabel,
+                HdbfUiLocKeys.PanelSupplyLabel, HdbfUiLocKeys.PanelMaintenanceDueLabel,
+                HdbfUiLocKeys.PanelMaintenanceCyclesLabel, HdbfUiLocKeys.PanelPowerLabel,
+                HdbfUiLocKeys.PanelCropPolicyLabel, HdbfUiLocKeys.PanelFixedCropLabel,
+                HdbfUiLocKeys.PanelRotationLabel, HdbfUiLocKeys.PanelOutputLabel,
+                HdbfUiLocKeys.PanelOutputPortLabel, HdbfUiLocKeys.PanelPortsLabel,
+            };
+            foreach (var key in labelKeys)
+            {
+                TestAssert.True(LoadTexts("enUS")[key].Length <= EnglishLabelMaxLength,
+                    "enUS row label too long: " + key);
+                TestAssert.True(LoadTexts("zhCN")[key].Length <= ChineseLabelMaxLength,
+                    "zhCN row label too long: " + key);
+                TestAssert.True(LoadTexts("zhTW")[key].Length <= ChineseLabelMaxLength,
+                    "zhTW row label too long: " + key);
+            }
+        }
+
+        /// <summary>
+        /// The panel must never render an unformatted placeholder: the shipped texts may carry
+        /// "{0}" templates, but no text may carry the literal empty braces "{}" (the reported
+        /// "crop policy: {}" defect was an unformatted template shown by the old dropdown label).
+        /// </summary>
+        public static void TestNoEmptyBraceTemplatesShip()
+        {
+            foreach (var language in Languages)
+            {
+                foreach (var pair in LoadTexts(language))
+                {
+                    TestAssert.False(pair.Value.Contains("{}", StringComparison.Ordinal),
+                        language + " key '" + pair.Key + "' ships an empty placeholder");
+                }
+            }
+        }
+
+        /// <summary>The two panel sentences that now carry a second argument (derate percent / output capacity).</summary>
+        public static void TestChangedPanelSentencesCarryBothPlaceholders()
+        {
+            foreach (var language in Languages)
+            {
+                var texts = LoadTexts(language);
+                var shortage = Placeholders(texts[HdbfUiLocKeys.PanelWaterShortage]);
+                TestAssert.Equal(2, shortage.Count, language + " water shortage must show growth and derate");
+                TestAssert.Equal(0, shortage[0]);
+                TestAssert.Equal(1, shortage[1]);
+
+                var output = Placeholders(texts[HdbfUiLocKeys.PanelOutputStock]);
+                TestAssert.Equal(2, output.Count, language + " output stock must show occupied/capacity");
+            }
+        }
+
+        /// <summary>The new read-model cards must ship their labels and tooltips in all languages.</summary>
+        public static void TestNewCardVocabularyIsShipped()
+        {
+            var required = new[]
+            {
+                HdbfUiLocKeys.PanelSectionWorkers, HdbfUiLocKeys.PanelSectionActions,
+                HdbfUiLocKeys.PanelSubtitle, HdbfUiLocKeys.PanelCountValue,
+                HdbfUiLocKeys.PanelPercentValue, HdbfUiLocKeys.PanelBarTank,
+                HdbfUiLocKeys.PanelBarCoverage, HdbfUiLocKeys.PanelBarSlots,
+                HdbfUiLocKeys.PanelBarOutput, HdbfUiLocKeys.PanelWorkerNote,
+                HdbfUiLocKeys.PanelWorkerVacant, HdbfUiLocKeys.TooltipWorkerName,
+                HdbfUiLocKeys.TooltipSlots, HdbfUiLocKeys.TooltipWorkers,
+                HdbfUiLocKeys.TooltipEfficiency,
+            };
+            foreach (var language in Languages)
+            {
+                var texts = LoadTexts(language);
+                foreach (var key in required)
+                {
+                    TestAssert.True(texts.ContainsKey(key), language + " missing new card key " + key);
+                    TestAssert.True(texts[key].Trim().Length > 0, language + " empty text for " + key);
+                }
             }
         }
 
