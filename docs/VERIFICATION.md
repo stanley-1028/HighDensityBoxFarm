@@ -1247,6 +1247,18 @@ Load time: 30029ms (scene index: 2)
 > 版本為 **0.2.0**；自本日起 mod 版本統一為 **2.2.0**（與內部美術/UI 修訂 2.2 對齊），
 > 存檔/配置 schema 不變（2）。日誌中的 `HDBF 0.2.0` / `version=0.2.0` 屬歷史證據，不回寫。
 
+## 26.5 材質/貼圖缺陷與修復（2026-10-27 使用者實機截圖）
+
+使用者在四檔同框截圖中指出：所有模型表面呈**棋盤/拼布塊**、頂級出現**黃黑警示條**。
+根因：flat-patch UV 沿用「所有原版材質共享一張 2048 atlas」的假設，但每個 MaterialCollection
+材質有自己的 `_D` 貼圖，UV patch 落在貼圖任意內容上；且頂級外殼使用 `PaintedMetal.IronTeeth`
+（黃黑警示條）做大面積。
+修復：`art/material_texture_map.json` 逐材質記錄「材質→真實 `_D` 貼圖→低方差 patch→mean RGB/std」；
+`gen_models_v2`/`material_patches`/export 按材質分配 UV；預覽/圖標改用同一批真實貼圖；
+`PaintedMetal` 列入 large-shell 禁用清單；驗證器新增 C11–C14 與 3 個負向對照。
+離線：16/16 模型 PASS、`dotnet tests` 577/577、`build.ps1` 44 gates PASS。
+**待使用者實機截圖確認**（遊戲光照與離線預覽不同，色調可能仍需微調）。
+
 ## 27. v2.2 美術升級的實機檢查（2026-10-27，round43/44/52）
 
 本輪把參考圖驅動的美術升級（材質分區/開窗比例/室內貨架剪影，見 `art/references/README.md`）

@@ -1,0 +1,2612 @@
+{
+  "construction_shared_patches": {
+    "construction_metal": {
+      "group": "construction_metal",
+      "per_texture": {
+        "BaseMetal_D1.png": {
+          "color_distance": 1.28,
+          "mean_rgb": [
+            111.96,
+            100.15,
+            76.73
+          ],
+          "std": 11.29,
+          "std_by_channel": [
+            7.51,
+            9.49,
+            11.29
+          ],
+          "std_max": 14.0,
+          "target_rgb": [
+            112.0,
+            100.0,
+            78.0
+          ]
+        },
+        "BaseMetal_D2.png": {
+          "color_distance": 1.69,
+          "mean_rgb": [
+            110.81,
+            106.12,
+            106.19
+          ],
+          "std": 10.68,
+          "std_by_channel": [
+            9.97,
+            10.68,
+            10.49
+          ],
+          "std_max": 14.0,
+          "target_rgb": [
+            112.0,
+            107.0,
+            107.0
+          ]
+        }
+      },
+      "pixel_rect": [
+        68,
+        132,
+        388,
+        452
+      ],
+      "reason": "construction stage shares one UV set across factions: BaseMetal.Folktails and BaseMetal.IronTeeth (metal slot) must sample the same normalized window; the two vanilla sheet-metal textures have the same atlas layout, so one plain-sheet window is flat and representative in both",
+      "size_px": [
+        320,
+        320
+      ],
+      "texture_uv_rect": {
+        "BaseMetal_D1.png": [
+          0.066406,
+          0.558594,
+          0.378906,
+          0.871094
+        ],
+        "BaseMetal_D2.png": [
+          0.066406,
+          0.558594,
+          0.378906,
+          0.871094
+        ]
+      },
+      "textures": [
+        "BaseMetal_D1.png",
+        "BaseMetal_D2.png"
+      ],
+      "uv_rect": [
+        0.066406,
+        0.558594,
+        0.378906,
+        0.871094
+      ]
+    },
+    "construction_wood": {
+      "group": "construction_wood",
+      "per_texture": {
+        "BaseWood_1K_D_Brown.png": {
+          "color_distance": 4.25,
+          "mean_rgb": [
+            54.47,
+            40.38,
+            27.02
+          ],
+          "std": 17.73,
+          "std_by_channel": [
+            17.73,
+            17.68,
+            12.52
+          ],
+          "std_max": 18.0,
+          "target_rgb": [
+            56.0,
+            43.0,
+            30.0
+          ]
+        },
+        "RoofPlanks_D.png": {
+          "color_distance": 0.72,
+          "mean_rgb": [
+            37.85,
+            39.6,
+            30.42
+          ],
+          "std": 13.55,
+          "std_by_channel": [
+            11.72,
+            13.55,
+            12.05
+          ],
+          "std_max": 16.0,
+          "target_rgb": [
+            38.0,
+            40.0,
+            31.0
+          ]
+        }
+      },
+      "pixel_rect": [
+        4,
+        756,
+        260,
+        1012
+      ],
+      "reason": "construction stage shares one UV set across factions: BaseWood_Brown.Folktails (wood slot, FT) and RoofPlanks.IronTeeth (wood slot, IT) must sample the same normalized window; both are representative dark raw-timber tones and both stay under their class std budget inside this window",
+      "size_px": [
+        256,
+        256
+      ],
+      "texture_uv_rect": {
+        "BaseWood_1K_D_Brown.png": [
+          0.003906,
+          0.011719,
+          0.253906,
+          0.261719
+        ],
+        "RoofPlanks_D.png": [
+          0.003906,
+          0.011719,
+          0.253906,
+          0.261719
+        ]
+      },
+      "textures": [
+        "BaseWood_1K_D_Brown.png",
+        "RoofPlanks_D.png"
+      ],
+      "uv_rect": [
+        0.003906,
+        0.011719,
+        0.253906,
+        0.261719
+      ]
+    }
+  },
+  "generated_by": "art/material_texture_analysis.py",
+  "generation_warnings": [],
+  "large_shell_policy": {
+    "forbidden_materials": [
+      "PaintedMetal.Folktails",
+      "PaintedMetal.IronTeeth"
+    ],
+    "reason": "their entire albedo is warning-stripe paint; any large face would read as a hazard sign (user bug 2026-10-27). They stay in MATERIAL_WHITELIST for completeness but must never appear in a shipped model."
+  },
+  "material_source_provenance": "Ground truth read from the installed game's Material assets (Timberborn_Data/resources.assets, 660 assemblies / 1536 Texture2D): each material's m_SavedProperties._MainTex (Texture2D name) and _Color tint, extracted 2026-10-27 with AssetStudioModCLI (materials enumerated via a small AssetStudio probe) and cross-checked against the runtime UV contract in Timberborn.PrefabOptimization.AutoAtlaser / AutoAtlasingPrefabOptimizer IL: a mesh UV is remapped as uv_atlas = uv_material * UVScale + UVOffset with UVScale = 1/sizeMultiplier, so normalized (u,v) inside the material's own _D texture is preserved (AutoAtlas or direct material, identical sampling). The _Color tint multiplies the sampled albedo.",
+  "materials": {
+    "BaseMetal.Folktails": {
+      "material": "BaseMetal.Folktails",
+      "material_color_tint": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "patch": {
+        "color_distance": 1.28,
+        "color_distance_max": 22.0,
+        "hard_std_cap": 30.0,
+        "hazard_fraction": 0.0,
+        "mean_rgb": [
+          111.96,
+          100.15,
+          76.73
+        ],
+        "mean_rgb_tinted": [
+          111.96,
+          100.15,
+          76.73
+        ],
+        "pixel_rect": [
+          68,
+          132,
+          388,
+          452
+        ],
+        "reason": "shared construction-stage UV window (construction_metal): construction stage shares one UV set across factions: BaseMetal.Folktails and BaseMetal.IronTeeth (metal slot) must sample the same normalized window; the two vanilla sheet-metal textures have the same atlas layout, so one plain-sheet window is flat and representative in both",
+        "reject_tags": [
+          "hazard-stripes",
+          "faction-banner/logo",
+          "text",
+          "uv-margin/canvas",
+          "repair-plate",
+          "plank-seam",
+          "grille/rib/pattern"
+        ],
+        "size_px": [
+          320,
+          320
+        ],
+        "std": 11.29,
+        "std_by_channel": [
+          7.51,
+          9.49,
+          11.29
+        ],
+        "std_max": 14.0,
+        "target_rgb": [
+          112.0,
+          100.0,
+          78.0
+        ],
+        "uv_rect": [
+          0.066406,
+          0.558594,
+          0.378906,
+          0.871094
+        ]
+      },
+      "patch_class": "metal",
+      "shared_uv_group": "construction_metal",
+      "texture": "BaseMetal_D1.png",
+      "texture_path": "C:\\Users\\user\\.hdbf\\sdk\\vanilla-tex-extra\\BaseMetal_D1.png",
+      "texture_sha256": "e8d758b0f22a02224534f15e742100d2862b3e4e3c7303de3800253c4ccea9aa",
+      "texture_size": [
+        1024,
+        1024
+      ],
+      "texture_source": "vanilla-tex-extra",
+      "used_in_material_map": [
+        "Advanced.Folktails.M_HDBF_Metal",
+        "Advanced.Folktails.M_HDBF_Metal.Construction",
+        "Basic.Folktails.M_HDBF_Metal.Construction",
+        "Intermediate.Folktails.M_HDBF_Metal.Construction",
+        "Top.Folktails.M_HDBF_Fabric",
+        "Top.Folktails.M_HDBF_Metal.Construction"
+      ]
+    },
+    "BaseMetal.IronTeeth": {
+      "material": "BaseMetal.IronTeeth",
+      "material_color_tint": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "patch": {
+        "color_distance": 1.69,
+        "color_distance_max": 22.0,
+        "hard_std_cap": 30.0,
+        "hazard_fraction": 0.0,
+        "mean_rgb": [
+          110.81,
+          106.12,
+          106.19
+        ],
+        "mean_rgb_tinted": [
+          110.81,
+          106.12,
+          106.19
+        ],
+        "pixel_rect": [
+          68,
+          132,
+          388,
+          452
+        ],
+        "reason": "shared construction-stage UV window (construction_metal): construction stage shares one UV set across factions: BaseMetal.Folktails and BaseMetal.IronTeeth (metal slot) must sample the same normalized window; the two vanilla sheet-metal textures have the same atlas layout, so one plain-sheet window is flat and representative in both",
+        "reject_tags": [
+          "hazard-stripes",
+          "faction-banner/logo",
+          "text",
+          "uv-margin/canvas",
+          "repair-plate",
+          "plank-seam",
+          "grille/rib/pattern"
+        ],
+        "size_px": [
+          320,
+          320
+        ],
+        "std": 10.68,
+        "std_by_channel": [
+          9.97,
+          10.68,
+          10.49
+        ],
+        "std_max": 14.0,
+        "target_rgb": [
+          112.0,
+          107.0,
+          107.0
+        ],
+        "uv_rect": [
+          0.066406,
+          0.558594,
+          0.378906,
+          0.871094
+        ]
+      },
+      "patch_class": "metal",
+      "shared_uv_group": "construction_metal",
+      "texture": "BaseMetal_D2.png",
+      "texture_path": "C:\\Users\\user\\.hdbf\\sdk\\vanilla-tex-extra\\BaseMetal_D2.png",
+      "texture_sha256": "56e4cac79f4e52f3857b7443101222284c6b7a82355f8adcbcf8e658ccb11a29",
+      "texture_size": [
+        1024,
+        1024
+      ],
+      "texture_source": "vanilla-tex-extra",
+      "used_in_material_map": [
+        "Advanced.IronTeeth.M_HDBF_Metal",
+        "Advanced.IronTeeth.M_HDBF_Metal.Construction",
+        "Basic.IronTeeth.M_HDBF_Metal.Construction",
+        "Intermediate.IronTeeth.M_HDBF_Metal.Construction",
+        "Top.IronTeeth.M_HDBF_Metal.Construction"
+      ]
+    },
+    "BaseWood_Brown.Folktails": {
+      "material": "BaseWood_Brown.Folktails",
+      "material_color_tint": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "patch": {
+        "color_distance": 4.25,
+        "color_distance_max": 18.0,
+        "hard_std_cap": 30.0,
+        "hazard_fraction": 0.0,
+        "mean_rgb": [
+          54.47,
+          40.38,
+          27.02
+        ],
+        "mean_rgb_tinted": [
+          54.47,
+          40.38,
+          27.02
+        ],
+        "pixel_rect": [
+          4,
+          756,
+          260,
+          1012
+        ],
+        "reason": "shared construction-stage UV window (construction_wood): construction stage shares one UV set across factions: BaseWood_Brown.Folktails (wood slot, FT) and RoofPlanks.IronTeeth (wood slot, IT) must sample the same normalized window; both are representative dark raw-timber tones and both stay under their class std budget inside this window",
+        "reject_tags": [
+          "hazard-stripes",
+          "faction-banner/logo",
+          "text",
+          "uv-margin/canvas",
+          "repair-plate",
+          "plank-seam",
+          "grille/rib/pattern"
+        ],
+        "size_px": [
+          256,
+          256
+        ],
+        "std": 17.73,
+        "std_by_channel": [
+          17.73,
+          17.68,
+          12.52
+        ],
+        "std_max": 18.0,
+        "target_rgb": [
+          56.0,
+          43.0,
+          30.0
+        ],
+        "uv_rect": [
+          0.003906,
+          0.011719,
+          0.253906,
+          0.261719
+        ]
+      },
+      "patch_class": "wood",
+      "shared_uv_group": "construction_wood",
+      "texture": "BaseWood_1K_D_Brown.png",
+      "texture_path": "C:\\Users\\user\\.hdbf\\sdk\\vanilla-tex-all\\BaseWood_1K_D_Brown.png",
+      "texture_sha256": "f623aac2bb48cdb8e11ae11b82f11615801db7c5052aa5c106398a61bb11b006",
+      "texture_size": [
+        1024,
+        1024
+      ],
+      "texture_source": "vanilla-tex-all",
+      "used_in_material_map": [
+        "Advanced.Folktails.M_HDBF_Wood.Construction",
+        "Basic.Folktails.M_HDBF_Wood",
+        "Basic.Folktails.M_HDBF_Wood.Construction",
+        "Intermediate.Folktails.M_HDBF_Wood.Construction",
+        "Top.Folktails.M_HDBF_Wood.Construction"
+      ]
+    },
+    "BaseWood_DarkBrown.IronTeeth": {
+      "material": "BaseWood_DarkBrown.IronTeeth",
+      "material_color_tint": [
+        0.3113,
+        0.2673,
+        0.2071
+      ],
+      "patch": {
+        "color_distance": 4.93,
+        "color_distance_max": 18.0,
+        "hard_std_cap": 30.0,
+        "hazard_fraction": 0.0,
+        "mean_rgb": [
+          135.71,
+          129.88,
+          120.96
+        ],
+        "mean_rgb_tinted": [
+          42.25,
+          34.72,
+          25.05
+        ],
+        "pixel_rect": [
+          364,
+          308,
+          508,
+          452
+        ],
+        "reason": "grey timber grain; vanilla _Color tints it dark-brown (DarkBrown) or grey (Grey); avoids canvas/knots/plate regions",
+        "reject_tags": [
+          "hazard-stripes",
+          "faction-banner/logo",
+          "text",
+          "uv-margin/canvas",
+          "repair-plate",
+          "plank-seam",
+          "grille/rib/pattern"
+        ],
+        "size_px": [
+          144,
+          144
+        ],
+        "std": 17.93,
+        "std_by_channel": [
+          17.5,
+          17.63,
+          17.93
+        ],
+        "std_max": 18.0,
+        "target_rgb": [
+          138.0,
+          133.0,
+          124.0
+        ],
+        "uv_rect": [
+          0.355469,
+          0.558594,
+          0.496094,
+          0.699219
+        ]
+      },
+      "patch_class": "wood",
+      "shared_uv_group": null,
+      "texture": "BaseWood_1K_D_Grey.png",
+      "texture_path": "C:\\Users\\user\\.hdbf\\sdk\\vanilla-tex-all\\BaseWood_1K_D_Grey.png",
+      "texture_sha256": "4aae49ffbf9f6014f6f96849ba98136ccb8975b0a38fe91fa64fc96de827da70",
+      "texture_size": [
+        1024,
+        1024
+      ],
+      "texture_source": "vanilla-tex-all",
+      "used_in_material_map": [
+        "Basic.IronTeeth.M_HDBF_Wood",
+        "Top.IronTeeth.M_HDBF_Wood"
+      ]
+    },
+    "BaseWood_Grey.IronTeeth": {
+      "material": "BaseWood_Grey.IronTeeth",
+      "material_color_tint": [
+        0.6226,
+        0.5796,
+        0.5257
+      ],
+      "patch": {
+        "color_distance": 4.93,
+        "color_distance_max": 18.0,
+        "hard_std_cap": 30.0,
+        "hazard_fraction": 0.0,
+        "mean_rgb": [
+          135.71,
+          129.88,
+          120.96
+        ],
+        "mean_rgb_tinted": [
+          84.49,
+          75.28,
+          63.59
+        ],
+        "pixel_rect": [
+          364,
+          308,
+          508,
+          452
+        ],
+        "reason": "grey timber grain; vanilla _Color tints it dark-brown (DarkBrown) or grey (Grey); avoids canvas/knots/plate regions",
+        "reject_tags": [
+          "hazard-stripes",
+          "faction-banner/logo",
+          "text",
+          "uv-margin/canvas",
+          "repair-plate",
+          "plank-seam",
+          "grille/rib/pattern"
+        ],
+        "size_px": [
+          144,
+          144
+        ],
+        "std": 17.93,
+        "std_by_channel": [
+          17.5,
+          17.63,
+          17.93
+        ],
+        "std_max": 18.0,
+        "target_rgb": [
+          138.0,
+          133.0,
+          124.0
+        ],
+        "uv_rect": [
+          0.355469,
+          0.558594,
+          0.496094,
+          0.699219
+        ]
+      },
+      "patch_class": "wood",
+      "shared_uv_group": null,
+      "texture": "BaseWood_1K_D_Grey.png",
+      "texture_path": "C:\\Users\\user\\.hdbf\\sdk\\vanilla-tex-all\\BaseWood_1K_D_Grey.png",
+      "texture_sha256": "4aae49ffbf9f6014f6f96849ba98136ccb8975b0a38fe91fa64fc96de827da70",
+      "texture_size": [
+        1024,
+        1024
+      ],
+      "texture_source": "vanilla-tex-all",
+      "used_in_material_map": [
+        "Intermediate.IronTeeth.M_HDBF_Wood"
+      ]
+    },
+    "BaseWood_LightBrown.Folktails": {
+      "material": "BaseWood_LightBrown.Folktails",
+      "material_color_tint": [
+        0.6604,
+        0.5552,
+        0.4081
+      ],
+      "patch": {
+        "color_distance": 6.34,
+        "color_distance_max": 18.0,
+        "hard_std_cap": 30.0,
+        "hazard_fraction": 0.0,
+        "mean_rgb": [
+          148.4,
+          135.11,
+          117.52
+        ],
+        "mean_rgb_tinted": [
+          98.0,
+          75.01,
+          47.96
+        ],
+        "pixel_rect": [
+          20,
+          244,
+          212,
+          436
+        ],
+        "reason": "whitewashed timber grain (vanilla tint supplies the pale/warm variant); avoids the blank canvas corner, knots and plates",
+        "reject_tags": [
+          "hazard-stripes",
+          "faction-banner/logo",
+          "text",
+          "uv-margin/canvas",
+          "repair-plate",
+          "plank-seam",
+          "grille/rib/pattern"
+        ],
+        "size_px": [
+          192,
+          192
+        ],
+        "std": 14.47,
+        "std_by_channel": [
+          13.76,
+          14.47,
+          14.44
+        ],
+        "std_max": 18.0,
+        "target_rgb": [
+          152.0,
+          139.0,
+          121.0
+        ],
+        "uv_rect": [
+          0.019531,
+          0.574219,
+          0.207031,
+          0.761719
+        ]
+      },
+      "patch_class": "wood",
+      "shared_uv_group": null,
+      "texture": "BaseWood_1K_D_White.png",
+      "texture_path": "C:\\Users\\user\\.hdbf\\sdk\\vanilla-tex-all\\BaseWood_1K_D_White.png",
+      "texture_sha256": "02adce75b4809d6c0c4c3bef8775cc73f8c867ef025455ad8d20c08676d371c4",
+      "texture_size": [
+        1024,
+        1024
+      ],
+      "texture_source": "vanilla-tex-all",
+      "used_in_material_map": [
+        "Intermediate.Folktails.M_HDBF_Wood"
+      ]
+    },
+    "BaseWood_White.Folktails": {
+      "material": "BaseWood_White.Folktails",
+      "material_color_tint": [
+        0.8868,
+        0.8641,
+        0.8324
+      ],
+      "patch": {
+        "color_distance": 6.34,
+        "color_distance_max": 18.0,
+        "hard_std_cap": 30.0,
+        "hazard_fraction": 0.0,
+        "mean_rgb": [
+          148.4,
+          135.11,
+          117.52
+        ],
+        "mean_rgb_tinted": [
+          131.6,
+          116.75,
+          97.82
+        ],
+        "pixel_rect": [
+          20,
+          244,
+          212,
+          436
+        ],
+        "reason": "whitewashed timber grain (vanilla tint supplies the pale/warm variant); avoids the blank canvas corner, knots and plates",
+        "reject_tags": [
+          "hazard-stripes",
+          "faction-banner/logo",
+          "text",
+          "uv-margin/canvas",
+          "repair-plate",
+          "plank-seam",
+          "grille/rib/pattern"
+        ],
+        "size_px": [
+          192,
+          192
+        ],
+        "std": 14.47,
+        "std_by_channel": [
+          13.76,
+          14.47,
+          14.44
+        ],
+        "std_max": 18.0,
+        "target_rgb": [
+          152.0,
+          139.0,
+          121.0
+        ],
+        "uv_rect": [
+          0.019531,
+          0.574219,
+          0.207031,
+          0.761719
+        ]
+      },
+      "patch_class": "wood",
+      "shared_uv_group": null,
+      "texture": "BaseWood_1K_D_White.png",
+      "texture_path": "C:\\Users\\user\\.hdbf\\sdk\\vanilla-tex-all\\BaseWood_1K_D_White.png",
+      "texture_sha256": "02adce75b4809d6c0c4c3bef8775cc73f8c867ef025455ad8d20c08676d371c4",
+      "texture_size": [
+        1024,
+        1024
+      ],
+      "texture_source": "vanilla-tex-all",
+      "used_in_material_map": [
+        "Advanced.Folktails.M_HDBF_Wood"
+      ]
+    },
+    "Details.Folktails": {
+      "material": "Details.Folktails",
+      "material_color_tint": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "patch": {
+        "color_distance": 0.67,
+        "color_distance_max": 25.0,
+        "hard_std_cap": 30.0,
+        "hazard_fraction": 0.0,
+        "mean_rgb": [
+          105.26,
+          80.45,
+          48.28
+        ],
+        "mean_rgb_tinted": [
+          105.26,
+          80.45,
+          48.28
+        ],
+        "pixel_rect": [
+          100,
+          748,
+          356,
+          1004
+        ],
+        "reason": "dark timber floor-plank block from the detail atlas; the whole top half (faction banner + logo + sack + flag strip) is excluded",
+        "reject_tags": [
+          "hazard-stripes",
+          "faction-banner/logo",
+          "text",
+          "uv-margin/canvas",
+          "repair-plate",
+          "plank-seam",
+          "grille/rib/pattern"
+        ],
+        "size_px": [
+          256,
+          256
+        ],
+        "std": 23.73,
+        "std_by_channel": [
+          23.73,
+          21.25,
+          17.15
+        ],
+        "std_max": 26.0,
+        "target_rgb": [
+          105.0,
+          81.0,
+          48.0
+        ],
+        "uv_rect": [
+          0.097656,
+          0.019531,
+          0.347656,
+          0.269531
+        ]
+      },
+      "patch_class": "details",
+      "shared_uv_group": null,
+      "texture": "Details_D.Folktails.png",
+      "texture_path": "C:\\Users\\user\\.hdbf\\sdk\\vanilla-tex-extra\\Details_D.Folktails.png",
+      "texture_sha256": "14ac2d0ecaf25153dda260fd66e2d88a52d8f61db953982de94337bb76da237e",
+      "texture_size": [
+        1024,
+        1024
+      ],
+      "texture_source": "vanilla-tex-extra",
+      "used_in_material_map": [
+        "Advanced.Folktails.M_HDBF_Fabric",
+        "Top.Folktails.M_HDBF_Metal"
+      ]
+    },
+    "Details.IronTeeth": {
+      "material": "Details.IronTeeth",
+      "material_color_tint": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "patch": {
+        "color_distance": 1.56,
+        "color_distance_max": 25.0,
+        "hard_std_cap": 30.0,
+        "hazard_fraction": 0.0,
+        "mean_rgb": [
+          89.18,
+          74.98,
+          57.96
+        ],
+        "mean_rgb_tinted": [
+          89.18,
+          74.98,
+          57.96
+        ],
+        "pixel_rect": [
+          196,
+          748,
+          452,
+          1004
+        ],
+        "reason": "dark timber plank block from the IronTeeth detail atlas; the banner/sack/flag half is excluded",
+        "reject_tags": [
+          "hazard-stripes",
+          "faction-banner/logo",
+          "text",
+          "uv-margin/canvas",
+          "repair-plate",
+          "plank-seam",
+          "grille/rib/pattern"
+        ],
+        "size_px": [
+          256,
+          256
+        ],
+        "std": 25.4,
+        "std_by_channel": [
+          25.4,
+          22.03,
+          17.48
+        ],
+        "std_max": 26.0,
+        "target_rgb": [
+          88.0,
+          76.0,
+          58.0
+        ],
+        "uv_rect": [
+          0.191406,
+          0.019531,
+          0.441406,
+          0.269531
+        ]
+      },
+      "patch_class": "details",
+      "shared_uv_group": null,
+      "texture": "Details_D.IronTeeth.png",
+      "texture_path": "C:\\Users\\user\\.hdbf\\sdk\\vanilla-tex-extra\\Details_D.IronTeeth.png",
+      "texture_sha256": "8c45aee96164608273d106d4a529e5776d277af290561327f04cbc44ab6b4298",
+      "texture_size": [
+        1024,
+        1024
+      ],
+      "texture_source": "vanilla-tex-extra",
+      "used_in_material_map": [
+        "Advanced.IronTeeth.M_HDBF_Fabric",
+        "Top.IronTeeth.M_HDBF_Metal"
+      ]
+    },
+    "IrregularPlanks_Brown.Folktails": {
+      "material": "IrregularPlanks_Brown.Folktails",
+      "material_color_tint": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "patch": {
+        "color_distance": 1.69,
+        "color_distance_max": 18.0,
+        "hard_std_cap": 30.0,
+        "hazard_fraction": 0.0,
+        "mean_rgb": [
+          50.97,
+          37.95,
+          26.16
+        ],
+        "mean_rgb_tinted": [
+          50.97,
+          37.95,
+          26.16
+        ],
+        "pixel_rect": [
+          4,
+          204,
+          260,
+          460
+        ],
+        "reason": "dark irregular plank field, single-plank tone",
+        "reject_tags": [
+          "hazard-stripes",
+          "faction-banner/logo",
+          "text",
+          "uv-margin/canvas",
+          "repair-plate",
+          "plank-seam",
+          "grille/rib/pattern"
+        ],
+        "size_px": [
+          256,
+          256
+        ],
+        "std": 17.88,
+        "std_by_channel": [
+          17.88,
+          16.44,
+          11.09
+        ],
+        "std_max": 18.0,
+        "target_rgb": [
+          52.0,
+          39.0,
+          27.0
+        ],
+        "uv_rect": [
+          0.003906,
+          0.550781,
+          0.253906,
+          0.800781
+        ]
+      },
+      "patch_class": "wood",
+      "shared_uv_group": null,
+      "texture": "IrregularPlanks_D_Brown.png",
+      "texture_path": "C:\\Users\\user\\.hdbf\\sdk\\vanilla-tex-all\\IrregularPlanks_D_Brown.png",
+      "texture_sha256": "49e2f0a787bdc5513f159dd349306bcd71d00458f84874249b3349edd28a514b",
+      "texture_size": [
+        1024,
+        1024
+      ],
+      "texture_source": "vanilla-tex-all",
+      "used_in_material_map": [
+        "Top.Folktails.M_HDBF_Wood"
+      ]
+    },
+    "IrregularPlanks_MetalForged.IronTeeth": {
+      "material": "IrregularPlanks_MetalForged.IronTeeth",
+      "material_color_tint": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "patch": {
+        "color_distance": 0.46,
+        "color_distance_max": 30.0,
+        "hard_std_cap": 30.0,
+        "hazard_fraction": 0.0,
+        "mean_rgb": [
+          94.91,
+          73.74,
+          57.63
+        ],
+        "mean_rgb_tinted": [
+          94.91,
+          73.74,
+          57.63
+        ],
+        "pixel_rect": [
+          636,
+          372,
+          860,
+          596
+        ],
+        "reason": "copper/forged plank field between the forged steel bands (small detail/accent material on the advanced/top tiers); the class budget 27 is the texture's inherent flat-window minimum for painted planks + steel bands",
+        "reject_tags": [
+          "hazard-stripes",
+          "faction-banner/logo",
+          "text",
+          "uv-margin/canvas",
+          "repair-plate",
+          "plank-seam",
+          "grille/rib/pattern"
+        ],
+        "size_px": [
+          224,
+          224
+        ],
+        "std": 26.26,
+        "std_by_channel": [
+          25.27,
+          21.35,
+          26.26
+        ],
+        "std_max": 27.0,
+        "target_rgb": [
+          95.0,
+          74.0,
+          58.0
+        ],
+        "uv_rect": [
+          0.621094,
+          0.417969,
+          0.839844,
+          0.636719
+        ]
+      },
+      "patch_class": "forged_planks",
+      "shared_uv_group": null,
+      "texture": "PlanksWithMetal_D.png",
+      "texture_path": "C:\\Users\\user\\.hdbf\\sdk\\vanilla-tex-all\\PlanksWithMetal_D.png",
+      "texture_sha256": "8dbe8731000415e14b45a7ee8ed25badc13af11b0b19ae809f3f2739554f23a8",
+      "texture_size": [
+        1024,
+        1024
+      ],
+      "texture_source": "vanilla-tex-all",
+      "used_in_material_map": [
+        "Advanced.IronTeeth.M_HDBF_Wood",
+        "Top.IronTeeth.M_HDBF_Fabric"
+      ]
+    },
+    "Moss.Folktails": {
+      "material": "Moss.Folktails",
+      "material_color_tint": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "patch": {
+        "color_distance": 0.44,
+        "color_distance_max": 18.0,
+        "hard_std_cap": 30.0,
+        "hazard_fraction": 0.0,
+        "mean_rgb": [
+          43.2,
+          48.63,
+          20.88
+        ],
+        "mean_rgb_tinted": [
+          43.2,
+          48.63,
+          20.88
+        ],
+        "pixel_rect": [
+          188,
+          292,
+          444,
+          548
+        ],
+        "reason": "uniform moss/foliage area (green accents of the basic tier)",
+        "reject_tags": [
+          "hazard-stripes",
+          "faction-banner/logo",
+          "text",
+          "uv-margin/canvas",
+          "repair-plate",
+          "plank-seam",
+          "grille/rib/pattern"
+        ],
+        "size_px": [
+          256,
+          256
+        ],
+        "std": 13.1,
+        "std_by_channel": [
+          12.2,
+          13.1,
+          6.69
+        ],
+        "std_max": 16.0,
+        "target_rgb": [
+          43.0,
+          49.0,
+          21.0
+        ],
+        "uv_rect": [
+          0.183594,
+          0.464844,
+          0.433594,
+          0.714844
+        ]
+      },
+      "patch_class": "moss",
+      "shared_uv_group": null,
+      "texture": "Moss_D.Folktails.png",
+      "texture_path": "C:\\Users\\user\\.hdbf\\sdk\\vanilla-tex-all\\Moss_D.Folktails.png",
+      "texture_sha256": "e147a3c3dc196634b68563817d22818d1e4b26bf8dcadbf80c900f593eaa5fae",
+      "texture_size": [
+        1024,
+        1024
+      ],
+      "texture_source": "vanilla-tex-all",
+      "used_in_material_map": [
+        "Basic.Folktails.M_HDBF_Fabric"
+      ]
+    },
+    "Plaster_Orange.IronTeeth": {
+      "material": "Plaster_Orange.IronTeeth",
+      "material_color_tint": [
+        0.8353,
+        0.4824,
+        0.2588
+      ],
+      "patch": {
+        "color_distance": 4.74,
+        "color_distance_max": 12.0,
+        "hard_std_cap": 30.0,
+        "hazard_fraction": 0.0,
+        "mean_rgb": [
+          176.09,
+          159.81,
+          141.2
+        ],
+        "mean_rgb_tinted": [
+          147.09,
+          77.09,
+          36.54
+        ],
+        "pixel_rect": [
+          468,
+          4,
+          788,
+          324
+        ],
+        "reason": "large smooth white-plaster area; the orange IronTeeth plaster variant is supplied by the material _Color tint",
+        "reject_tags": [
+          "hazard-stripes",
+          "faction-banner/logo",
+          "text",
+          "uv-margin/canvas",
+          "repair-plate",
+          "plank-seam",
+          "grille/rib/pattern"
+        ],
+        "size_px": [
+          320,
+          320
+        ],
+        "std": 9.97,
+        "std_by_channel": [
+          6.36,
+          7.35,
+          9.97
+        ],
+        "std_max": 10.0,
+        "target_rgb": [
+          174.0,
+          157.0,
+          138.0
+        ],
+        "uv_rect": [
+          0.457031,
+          0.683594,
+          0.769531,
+          0.996094
+        ]
+      },
+      "patch_class": "plaster",
+      "shared_uv_group": null,
+      "texture": "Plaster_D_White.IronTeeth.png",
+      "texture_path": "C:\\Users\\user\\.hdbf\\sdk\\vanilla-tex-extra\\Plaster_D_White.IronTeeth.png",
+      "texture_sha256": "1a3b0dd719832eae461b0acd77e0a9235d7a485d671ffd2e4c324736b6d71930",
+      "texture_size": [
+        1024,
+        1024
+      ],
+      "texture_source": "vanilla-tex-extra",
+      "used_in_material_map": [
+        "Intermediate.IronTeeth.M_HDBF_Fabric"
+      ]
+    },
+    "Plaster_White.Folktails": {
+      "material": "Plaster_White.Folktails",
+      "material_color_tint": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "patch": {
+        "color_distance": 4.74,
+        "color_distance_max": 12.0,
+        "hard_std_cap": 30.0,
+        "hazard_fraction": 0.0,
+        "mean_rgb": [
+          176.09,
+          159.81,
+          141.2
+        ],
+        "mean_rgb_tinted": [
+          176.09,
+          159.81,
+          141.2
+        ],
+        "pixel_rect": [
+          468,
+          4,
+          788,
+          324
+        ],
+        "reason": "large smooth white-plaster area (cream flat roof / plaster walls)",
+        "reject_tags": [
+          "hazard-stripes",
+          "faction-banner/logo",
+          "text",
+          "uv-margin/canvas",
+          "repair-plate",
+          "plank-seam",
+          "grille/rib/pattern"
+        ],
+        "size_px": [
+          320,
+          320
+        ],
+        "std": 9.97,
+        "std_by_channel": [
+          6.36,
+          7.35,
+          9.97
+        ],
+        "std_max": 10.0,
+        "target_rgb": [
+          174.0,
+          157.0,
+          138.0
+        ],
+        "uv_rect": [
+          0.457031,
+          0.683594,
+          0.769531,
+          0.996094
+        ]
+      },
+      "patch_class": "plaster",
+      "shared_uv_group": null,
+      "texture": "Plaster_D_White.Folktails.png",
+      "texture_path": "C:\\Users\\user\\.hdbf\\sdk\\vanilla-tex-extra\\Plaster_D_White.Folktails.png",
+      "texture_sha256": "1a3b0dd719832eae461b0acd77e0a9235d7a485d671ffd2e4c324736b6d71930",
+      "texture_size": [
+        1024,
+        1024
+      ],
+      "texture_source": "vanilla-tex-extra",
+      "used_in_material_map": [
+        "Intermediate.Folktails.M_HDBF_Fabric"
+      ]
+    },
+    "RoofPlanks.IronTeeth": {
+      "material": "RoofPlanks.IronTeeth",
+      "material_color_tint": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "patch": {
+        "color_distance": 0.72,
+        "color_distance_max": 18.0,
+        "hard_std_cap": 30.0,
+        "hazard_fraction": 0.0,
+        "mean_rgb": [
+          37.85,
+          39.6,
+          30.42
+        ],
+        "mean_rgb_tinted": [
+          37.85,
+          39.6,
+          30.42
+        ],
+        "pixel_rect": [
+          4,
+          756,
+          260,
+          1012
+        ],
+        "reason": "shared construction-stage UV window (construction_wood): construction stage shares one UV set across factions: BaseWood_Brown.Folktails (wood slot, FT) and RoofPlanks.IronTeeth (wood slot, IT) must sample the same normalized window; both are representative dark raw-timber tones and both stay under their class std budget inside this window",
+        "reject_tags": [
+          "hazard-stripes",
+          "faction-banner/logo",
+          "text",
+          "uv-margin/canvas",
+          "repair-plate",
+          "plank-seam",
+          "grille/rib/pattern"
+        ],
+        "size_px": [
+          256,
+          256
+        ],
+        "std": 13.55,
+        "std_by_channel": [
+          11.72,
+          13.55,
+          12.05
+        ],
+        "std_max": 16.0,
+        "target_rgb": [
+          38.0,
+          40.0,
+          31.0
+        ],
+        "uv_rect": [
+          0.003906,
+          0.011719,
+          0.253906,
+          0.261719
+        ]
+      },
+      "patch_class": "roof_planks",
+      "shared_uv_group": "construction_wood",
+      "texture": "RoofPlanks_D.png",
+      "texture_path": "C:\\Users\\user\\.hdbf\\sdk\\vanilla-tex-extra\\RoofPlanks_D.png",
+      "texture_sha256": "e3379a99496304fae3817a8678491998a2f2b85cba186ef96a41fdf1b7c7599a",
+      "texture_size": [
+        1024,
+        1024
+      ],
+      "texture_source": "vanilla-tex-extra",
+      "used_in_material_map": [
+        "Advanced.IronTeeth.M_HDBF_Wood.Construction",
+        "Basic.IronTeeth.M_HDBF_Fabric",
+        "Basic.IronTeeth.M_HDBF_Wood.Construction",
+        "Intermediate.IronTeeth.M_HDBF_Wood.Construction",
+        "Top.IronTeeth.M_HDBF_Wood.Construction"
+      ]
+    },
+    "WindowsAtlas.Folktails": {
+      "material": "WindowsAtlas.Folktails",
+      "material_color_tint": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "patch": {
+        "color_distance": 37.69,
+        "color_distance_max": 45.0,
+        "hard_std_cap": 30.0,
+        "hazard_fraction": 0.0,
+        "mean_rgb": [
+          122.32,
+          133.66,
+          139.66
+        ],
+        "mean_rgb_tinted": [
+          122.32,
+          133.66,
+          139.66
+        ],
+        "pixel_rect": [
+          828,
+          772,
+          1020,
+          964
+        ],
+        "reason": "interior of a flat glass pane (bottom-right pane gradient area), not the tan atlas backdrop and not a window frame",
+        "reject_tags": [
+          "hazard-stripes",
+          "faction-banner/logo",
+          "text",
+          "uv-margin/canvas",
+          "repair-plate",
+          "plank-seam",
+          "grille/rib/pattern"
+        ],
+        "size_px": [
+          192,
+          192
+        ],
+        "std": 11.54,
+        "std_by_channel": [
+          11.54,
+          9.22,
+          9.23
+        ],
+        "std_max": 12.0,
+        "target_rgb": [
+          140.0,
+          154.0,
+          166.0
+        ],
+        "uv_rect": [
+          0.808594,
+          0.058594,
+          0.996094,
+          0.246094
+        ]
+      },
+      "patch_class": "glass",
+      "shared_uv_group": null,
+      "texture": "WindowsAtlas_D.Folktails.png",
+      "texture_path": "C:\\Users\\user\\.hdbf\\sdk\\vanilla-tex-extra\\WindowsAtlas_D.Folktails.png",
+      "texture_sha256": "32b5598efeb9f92c581e71d894724266bbfa5366bc45d6d8967e4dfb1b3c13ef",
+      "texture_size": [
+        1024,
+        1024
+      ],
+      "texture_source": "vanilla-tex-extra",
+      "used_in_material_map": [
+        "Advanced.Folktails.M_HDBF_Glass",
+        "Intermediate.Folktails.M_HDBF_Glass",
+        "Top.Folktails.M_HDBF_Glass"
+      ]
+    },
+    "WindowsAtlas.IronTeeth": {
+      "material": "WindowsAtlas.IronTeeth",
+      "material_color_tint": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "patch": {
+        "color_distance": 37.69,
+        "color_distance_max": 45.0,
+        "hard_std_cap": 30.0,
+        "hazard_fraction": 0.0,
+        "mean_rgb": [
+          122.32,
+          133.66,
+          139.66
+        ],
+        "mean_rgb_tinted": [
+          122.32,
+          133.66,
+          139.66
+        ],
+        "pixel_rect": [
+          828,
+          772,
+          1020,
+          964
+        ],
+        "reason": "interior of a flat glass pane (bottom-right pane gradient area), not the tan atlas backdrop and not a window frame",
+        "reject_tags": [
+          "hazard-stripes",
+          "faction-banner/logo",
+          "text",
+          "uv-margin/canvas",
+          "repair-plate",
+          "plank-seam",
+          "grille/rib/pattern"
+        ],
+        "size_px": [
+          192,
+          192
+        ],
+        "std": 11.54,
+        "std_by_channel": [
+          11.54,
+          9.22,
+          9.23
+        ],
+        "std_max": 12.0,
+        "target_rgb": [
+          140.0,
+          154.0,
+          166.0
+        ],
+        "uv_rect": [
+          0.808594,
+          0.058594,
+          0.996094,
+          0.246094
+        ]
+      },
+      "patch_class": "glass",
+      "shared_uv_group": null,
+      "texture": "WindowsAtlas_D.IronTeeth.png",
+      "texture_path": "C:\\Users\\user\\.hdbf\\sdk\\vanilla-tex-extra\\WindowsAtlas_D.IronTeeth.png",
+      "texture_sha256": "f8caf53222c65e17ef16c34edbca8abf7cdfd0b928105239ee137a5bd28751f2",
+      "texture_size": [
+        1024,
+        1024
+      ],
+      "texture_source": "vanilla-tex-extra",
+      "used_in_material_map": [
+        "Advanced.IronTeeth.M_HDBF_Glass",
+        "Intermediate.IronTeeth.M_HDBF_Glass",
+        "Top.IronTeeth.M_HDBF_Glass"
+      ]
+    }
+  },
+  "schema": "hdbf.material_texture_map/v1",
+  "texture_patches": {
+    "BaseMetal_D1.png": {
+      "patch": {
+        "color_distance": 1.28,
+        "color_distance_max": 22.0,
+        "hard_std_cap": 30.0,
+        "hazard_fraction": 0.0,
+        "mean_rgb": [
+          111.96,
+          100.15,
+          76.73
+        ],
+        "mean_rgb_tinted": {
+          "BaseMetal.Folktails": [
+            111.96,
+            100.15,
+            76.73
+          ]
+        },
+        "pixel_rect": [
+          68,
+          132,
+          388,
+          452
+        ],
+        "reason": "shared construction-stage UV window (construction_metal): construction stage shares one UV set across factions: BaseMetal.Folktails and BaseMetal.IronTeeth (metal slot) must sample the same normalized window; the two vanilla sheet-metal textures have the same atlas layout, so one plain-sheet window is flat and representative in both",
+        "reject_tags": [
+          "hazard-stripes",
+          "faction-banner/logo",
+          "text",
+          "uv-margin/canvas",
+          "repair-plate",
+          "plank-seam",
+          "grille/rib/pattern"
+        ],
+        "size_px": [
+          320,
+          320
+        ],
+        "std": 11.29,
+        "std_by_channel": [
+          7.51,
+          9.49,
+          11.29
+        ],
+        "std_max": 14.0,
+        "target_rgb": [
+          112.0,
+          100.0,
+          78.0
+        ],
+        "uv_rect": [
+          0.066406,
+          0.558594,
+          0.378906,
+          0.871094
+        ]
+      },
+      "patch_class": "metal",
+      "shared_uv_group": "construction_metal",
+      "texture": "BaseMetal_D1.png",
+      "texture_path": "C:\\Users\\user\\.hdbf\\sdk\\vanilla-tex-extra\\BaseMetal_D1.png",
+      "texture_sha256": "e8d758b0f22a02224534f15e742100d2862b3e4e3c7303de3800253c4ccea9aa",
+      "texture_size": [
+        1024,
+        1024
+      ],
+      "texture_source": "vanilla-tex-extra"
+    },
+    "BaseMetal_D2.png": {
+      "patch": {
+        "color_distance": 1.69,
+        "color_distance_max": 22.0,
+        "hard_std_cap": 30.0,
+        "hazard_fraction": 0.0,
+        "mean_rgb": [
+          110.81,
+          106.12,
+          106.19
+        ],
+        "mean_rgb_tinted": {
+          "BaseMetal.IronTeeth": [
+            110.81,
+            106.12,
+            106.19
+          ]
+        },
+        "pixel_rect": [
+          68,
+          132,
+          388,
+          452
+        ],
+        "reason": "shared construction-stage UV window (construction_metal): construction stage shares one UV set across factions: BaseMetal.Folktails and BaseMetal.IronTeeth (metal slot) must sample the same normalized window; the two vanilla sheet-metal textures have the same atlas layout, so one plain-sheet window is flat and representative in both",
+        "reject_tags": [
+          "hazard-stripes",
+          "faction-banner/logo",
+          "text",
+          "uv-margin/canvas",
+          "repair-plate",
+          "plank-seam",
+          "grille/rib/pattern"
+        ],
+        "size_px": [
+          320,
+          320
+        ],
+        "std": 10.68,
+        "std_by_channel": [
+          9.97,
+          10.68,
+          10.49
+        ],
+        "std_max": 14.0,
+        "target_rgb": [
+          112.0,
+          107.0,
+          107.0
+        ],
+        "uv_rect": [
+          0.066406,
+          0.558594,
+          0.378906,
+          0.871094
+        ]
+      },
+      "patch_class": "metal",
+      "shared_uv_group": "construction_metal",
+      "texture": "BaseMetal_D2.png",
+      "texture_path": "C:\\Users\\user\\.hdbf\\sdk\\vanilla-tex-extra\\BaseMetal_D2.png",
+      "texture_sha256": "56e4cac79f4e52f3857b7443101222284c6b7a82355f8adcbcf8e658ccb11a29",
+      "texture_size": [
+        1024,
+        1024
+      ],
+      "texture_source": "vanilla-tex-extra"
+    },
+    "BaseWood_1K_D_Brown.png": {
+      "patch": {
+        "color_distance": 4.25,
+        "color_distance_max": 18.0,
+        "hard_std_cap": 30.0,
+        "hazard_fraction": 0.0,
+        "mean_rgb": [
+          54.47,
+          40.38,
+          27.02
+        ],
+        "mean_rgb_tinted": {
+          "BaseWood_Brown.Folktails": [
+            54.47,
+            40.38,
+            27.02
+          ]
+        },
+        "pixel_rect": [
+          4,
+          756,
+          260,
+          1012
+        ],
+        "reason": "shared construction-stage UV window (construction_wood): construction stage shares one UV set across factions: BaseWood_Brown.Folktails (wood slot, FT) and RoofPlanks.IronTeeth (wood slot, IT) must sample the same normalized window; both are representative dark raw-timber tones and both stay under their class std budget inside this window",
+        "reject_tags": [
+          "hazard-stripes",
+          "faction-banner/logo",
+          "text",
+          "uv-margin/canvas",
+          "repair-plate",
+          "plank-seam",
+          "grille/rib/pattern"
+        ],
+        "size_px": [
+          256,
+          256
+        ],
+        "std": 17.73,
+        "std_by_channel": [
+          17.73,
+          17.68,
+          12.52
+        ],
+        "std_max": 18.0,
+        "target_rgb": [
+          56.0,
+          43.0,
+          30.0
+        ],
+        "uv_rect": [
+          0.003906,
+          0.011719,
+          0.253906,
+          0.261719
+        ]
+      },
+      "patch_class": "wood",
+      "shared_uv_group": "construction_wood",
+      "texture": "BaseWood_1K_D_Brown.png",
+      "texture_path": "C:\\Users\\user\\.hdbf\\sdk\\vanilla-tex-all\\BaseWood_1K_D_Brown.png",
+      "texture_sha256": "f623aac2bb48cdb8e11ae11b82f11615801db7c5052aa5c106398a61bb11b006",
+      "texture_size": [
+        1024,
+        1024
+      ],
+      "texture_source": "vanilla-tex-all"
+    },
+    "BaseWood_1K_D_Grey.png": {
+      "patch": {
+        "color_distance": 4.93,
+        "color_distance_max": 18.0,
+        "hard_std_cap": 30.0,
+        "hazard_fraction": 0.0,
+        "mean_rgb": [
+          135.71,
+          129.88,
+          120.96
+        ],
+        "mean_rgb_tinted": {
+          "BaseWood_DarkBrown.IronTeeth": [
+            42.25,
+            34.72,
+            25.05
+          ],
+          "BaseWood_Grey.IronTeeth": [
+            84.49,
+            75.28,
+            63.59
+          ]
+        },
+        "pixel_rect": [
+          364,
+          308,
+          508,
+          452
+        ],
+        "reason": "grey timber grain; vanilla _Color tints it dark-brown (DarkBrown) or grey (Grey); avoids canvas/knots/plate regions",
+        "reject_tags": [
+          "hazard-stripes",
+          "faction-banner/logo",
+          "text",
+          "uv-margin/canvas",
+          "repair-plate",
+          "plank-seam",
+          "grille/rib/pattern"
+        ],
+        "size_px": [
+          144,
+          144
+        ],
+        "std": 17.93,
+        "std_by_channel": [
+          17.5,
+          17.63,
+          17.93
+        ],
+        "std_max": 18.0,
+        "target_rgb": [
+          138.0,
+          133.0,
+          124.0
+        ],
+        "uv_rect": [
+          0.355469,
+          0.558594,
+          0.496094,
+          0.699219
+        ]
+      },
+      "patch_class": "wood",
+      "shared_uv_group": null,
+      "texture": "BaseWood_1K_D_Grey.png",
+      "texture_path": "C:\\Users\\user\\.hdbf\\sdk\\vanilla-tex-all\\BaseWood_1K_D_Grey.png",
+      "texture_sha256": "4aae49ffbf9f6014f6f96849ba98136ccb8975b0a38fe91fa64fc96de827da70",
+      "texture_size": [
+        1024,
+        1024
+      ],
+      "texture_source": "vanilla-tex-all"
+    },
+    "BaseWood_1K_D_White.png": {
+      "patch": {
+        "color_distance": 6.34,
+        "color_distance_max": 18.0,
+        "hard_std_cap": 30.0,
+        "hazard_fraction": 0.0,
+        "mean_rgb": [
+          148.4,
+          135.11,
+          117.52
+        ],
+        "mean_rgb_tinted": {
+          "BaseWood_LightBrown.Folktails": [
+            98.0,
+            75.01,
+            47.96
+          ],
+          "BaseWood_White.Folktails": [
+            131.6,
+            116.75,
+            97.82
+          ]
+        },
+        "pixel_rect": [
+          20,
+          244,
+          212,
+          436
+        ],
+        "reason": "whitewashed timber grain (vanilla tint supplies the pale/warm variant); avoids the blank canvas corner, knots and plates",
+        "reject_tags": [
+          "hazard-stripes",
+          "faction-banner/logo",
+          "text",
+          "uv-margin/canvas",
+          "repair-plate",
+          "plank-seam",
+          "grille/rib/pattern"
+        ],
+        "size_px": [
+          192,
+          192
+        ],
+        "std": 14.47,
+        "std_by_channel": [
+          13.76,
+          14.47,
+          14.44
+        ],
+        "std_max": 18.0,
+        "target_rgb": [
+          152.0,
+          139.0,
+          121.0
+        ],
+        "uv_rect": [
+          0.019531,
+          0.574219,
+          0.207031,
+          0.761719
+        ]
+      },
+      "patch_class": "wood",
+      "shared_uv_group": null,
+      "texture": "BaseWood_1K_D_White.png",
+      "texture_path": "C:\\Users\\user\\.hdbf\\sdk\\vanilla-tex-all\\BaseWood_1K_D_White.png",
+      "texture_sha256": "02adce75b4809d6c0c4c3bef8775cc73f8c867ef025455ad8d20c08676d371c4",
+      "texture_size": [
+        1024,
+        1024
+      ],
+      "texture_source": "vanilla-tex-all"
+    },
+    "Details_D.Folktails.png": {
+      "patch": {
+        "color_distance": 0.67,
+        "color_distance_max": 25.0,
+        "hard_std_cap": 30.0,
+        "hazard_fraction": 0.0,
+        "mean_rgb": [
+          105.26,
+          80.45,
+          48.28
+        ],
+        "mean_rgb_tinted": {
+          "Details.Folktails": [
+            105.26,
+            80.45,
+            48.28
+          ]
+        },
+        "pixel_rect": [
+          100,
+          748,
+          356,
+          1004
+        ],
+        "reason": "dark timber floor-plank block from the detail atlas; the whole top half (faction banner + logo + sack + flag strip) is excluded",
+        "reject_tags": [
+          "hazard-stripes",
+          "faction-banner/logo",
+          "text",
+          "uv-margin/canvas",
+          "repair-plate",
+          "plank-seam",
+          "grille/rib/pattern"
+        ],
+        "size_px": [
+          256,
+          256
+        ],
+        "std": 23.73,
+        "std_by_channel": [
+          23.73,
+          21.25,
+          17.15
+        ],
+        "std_max": 26.0,
+        "target_rgb": [
+          105.0,
+          81.0,
+          48.0
+        ],
+        "uv_rect": [
+          0.097656,
+          0.019531,
+          0.347656,
+          0.269531
+        ]
+      },
+      "patch_class": "details",
+      "shared_uv_group": null,
+      "texture": "Details_D.Folktails.png",
+      "texture_path": "C:\\Users\\user\\.hdbf\\sdk\\vanilla-tex-extra\\Details_D.Folktails.png",
+      "texture_sha256": "14ac2d0ecaf25153dda260fd66e2d88a52d8f61db953982de94337bb76da237e",
+      "texture_size": [
+        1024,
+        1024
+      ],
+      "texture_source": "vanilla-tex-extra"
+    },
+    "Details_D.IronTeeth.png": {
+      "patch": {
+        "color_distance": 1.56,
+        "color_distance_max": 25.0,
+        "hard_std_cap": 30.0,
+        "hazard_fraction": 0.0,
+        "mean_rgb": [
+          89.18,
+          74.98,
+          57.96
+        ],
+        "mean_rgb_tinted": {
+          "Details.IronTeeth": [
+            89.18,
+            74.98,
+            57.96
+          ]
+        },
+        "pixel_rect": [
+          196,
+          748,
+          452,
+          1004
+        ],
+        "reason": "dark timber plank block from the IronTeeth detail atlas; the banner/sack/flag half is excluded",
+        "reject_tags": [
+          "hazard-stripes",
+          "faction-banner/logo",
+          "text",
+          "uv-margin/canvas",
+          "repair-plate",
+          "plank-seam",
+          "grille/rib/pattern"
+        ],
+        "size_px": [
+          256,
+          256
+        ],
+        "std": 25.4,
+        "std_by_channel": [
+          25.4,
+          22.03,
+          17.48
+        ],
+        "std_max": 26.0,
+        "target_rgb": [
+          88.0,
+          76.0,
+          58.0
+        ],
+        "uv_rect": [
+          0.191406,
+          0.019531,
+          0.441406,
+          0.269531
+        ]
+      },
+      "patch_class": "details",
+      "shared_uv_group": null,
+      "texture": "Details_D.IronTeeth.png",
+      "texture_path": "C:\\Users\\user\\.hdbf\\sdk\\vanilla-tex-extra\\Details_D.IronTeeth.png",
+      "texture_sha256": "8c45aee96164608273d106d4a529e5776d277af290561327f04cbc44ab6b4298",
+      "texture_size": [
+        1024,
+        1024
+      ],
+      "texture_source": "vanilla-tex-extra"
+    },
+    "IrregularPlanks_D_Brown.png": {
+      "patch": {
+        "color_distance": 1.69,
+        "color_distance_max": 18.0,
+        "hard_std_cap": 30.0,
+        "hazard_fraction": 0.0,
+        "mean_rgb": [
+          50.97,
+          37.95,
+          26.16
+        ],
+        "mean_rgb_tinted": {
+          "IrregularPlanks_Brown.Folktails": [
+            50.97,
+            37.95,
+            26.16
+          ]
+        },
+        "pixel_rect": [
+          4,
+          204,
+          260,
+          460
+        ],
+        "reason": "dark irregular plank field, single-plank tone",
+        "reject_tags": [
+          "hazard-stripes",
+          "faction-banner/logo",
+          "text",
+          "uv-margin/canvas",
+          "repair-plate",
+          "plank-seam",
+          "grille/rib/pattern"
+        ],
+        "size_px": [
+          256,
+          256
+        ],
+        "std": 17.88,
+        "std_by_channel": [
+          17.88,
+          16.44,
+          11.09
+        ],
+        "std_max": 18.0,
+        "target_rgb": [
+          52.0,
+          39.0,
+          27.0
+        ],
+        "uv_rect": [
+          0.003906,
+          0.550781,
+          0.253906,
+          0.800781
+        ]
+      },
+      "patch_class": "wood",
+      "shared_uv_group": null,
+      "texture": "IrregularPlanks_D_Brown.png",
+      "texture_path": "C:\\Users\\user\\.hdbf\\sdk\\vanilla-tex-all\\IrregularPlanks_D_Brown.png",
+      "texture_sha256": "49e2f0a787bdc5513f159dd349306bcd71d00458f84874249b3349edd28a514b",
+      "texture_size": [
+        1024,
+        1024
+      ],
+      "texture_source": "vanilla-tex-all"
+    },
+    "Moss_D.Folktails.png": {
+      "patch": {
+        "color_distance": 0.44,
+        "color_distance_max": 18.0,
+        "hard_std_cap": 30.0,
+        "hazard_fraction": 0.0,
+        "mean_rgb": [
+          43.2,
+          48.63,
+          20.88
+        ],
+        "mean_rgb_tinted": {
+          "Moss.Folktails": [
+            43.2,
+            48.63,
+            20.88
+          ]
+        },
+        "pixel_rect": [
+          188,
+          292,
+          444,
+          548
+        ],
+        "reason": "uniform moss/foliage area (green accents of the basic tier)",
+        "reject_tags": [
+          "hazard-stripes",
+          "faction-banner/logo",
+          "text",
+          "uv-margin/canvas",
+          "repair-plate",
+          "plank-seam",
+          "grille/rib/pattern"
+        ],
+        "size_px": [
+          256,
+          256
+        ],
+        "std": 13.1,
+        "std_by_channel": [
+          12.2,
+          13.1,
+          6.69
+        ],
+        "std_max": 16.0,
+        "target_rgb": [
+          43.0,
+          49.0,
+          21.0
+        ],
+        "uv_rect": [
+          0.183594,
+          0.464844,
+          0.433594,
+          0.714844
+        ]
+      },
+      "patch_class": "moss",
+      "shared_uv_group": null,
+      "texture": "Moss_D.Folktails.png",
+      "texture_path": "C:\\Users\\user\\.hdbf\\sdk\\vanilla-tex-all\\Moss_D.Folktails.png",
+      "texture_sha256": "e147a3c3dc196634b68563817d22818d1e4b26bf8dcadbf80c900f593eaa5fae",
+      "texture_size": [
+        1024,
+        1024
+      ],
+      "texture_source": "vanilla-tex-all"
+    },
+    "PlanksWithMetal_D.png": {
+      "patch": {
+        "color_distance": 0.46,
+        "color_distance_max": 30.0,
+        "hard_std_cap": 30.0,
+        "hazard_fraction": 0.0,
+        "mean_rgb": [
+          94.91,
+          73.74,
+          57.63
+        ],
+        "mean_rgb_tinted": {
+          "IrregularPlanks_MetalForged.IronTeeth": [
+            94.91,
+            73.74,
+            57.63
+          ]
+        },
+        "pixel_rect": [
+          636,
+          372,
+          860,
+          596
+        ],
+        "reason": "copper/forged plank field between the forged steel bands (small detail/accent material on the advanced/top tiers); the class budget 27 is the texture's inherent flat-window minimum for painted planks + steel bands",
+        "reject_tags": [
+          "hazard-stripes",
+          "faction-banner/logo",
+          "text",
+          "uv-margin/canvas",
+          "repair-plate",
+          "plank-seam",
+          "grille/rib/pattern"
+        ],
+        "size_px": [
+          224,
+          224
+        ],
+        "std": 26.26,
+        "std_by_channel": [
+          25.27,
+          21.35,
+          26.26
+        ],
+        "std_max": 27.0,
+        "target_rgb": [
+          95.0,
+          74.0,
+          58.0
+        ],
+        "uv_rect": [
+          0.621094,
+          0.417969,
+          0.839844,
+          0.636719
+        ]
+      },
+      "patch_class": "forged_planks",
+      "shared_uv_group": null,
+      "texture": "PlanksWithMetal_D.png",
+      "texture_path": "C:\\Users\\user\\.hdbf\\sdk\\vanilla-tex-all\\PlanksWithMetal_D.png",
+      "texture_sha256": "8dbe8731000415e14b45a7ee8ed25badc13af11b0b19ae809f3f2739554f23a8",
+      "texture_size": [
+        1024,
+        1024
+      ],
+      "texture_source": "vanilla-tex-all"
+    },
+    "Plaster_D_White.Folktails.png": {
+      "patch": {
+        "color_distance": 4.74,
+        "color_distance_max": 12.0,
+        "hard_std_cap": 30.0,
+        "hazard_fraction": 0.0,
+        "mean_rgb": [
+          176.09,
+          159.81,
+          141.2
+        ],
+        "mean_rgb_tinted": {
+          "Plaster_White.Folktails": [
+            176.09,
+            159.81,
+            141.2
+          ]
+        },
+        "pixel_rect": [
+          468,
+          4,
+          788,
+          324
+        ],
+        "reason": "large smooth white-plaster area (cream flat roof / plaster walls)",
+        "reject_tags": [
+          "hazard-stripes",
+          "faction-banner/logo",
+          "text",
+          "uv-margin/canvas",
+          "repair-plate",
+          "plank-seam",
+          "grille/rib/pattern"
+        ],
+        "size_px": [
+          320,
+          320
+        ],
+        "std": 9.97,
+        "std_by_channel": [
+          6.36,
+          7.35,
+          9.97
+        ],
+        "std_max": 10.0,
+        "target_rgb": [
+          174.0,
+          157.0,
+          138.0
+        ],
+        "uv_rect": [
+          0.457031,
+          0.683594,
+          0.769531,
+          0.996094
+        ]
+      },
+      "patch_class": "plaster",
+      "shared_uv_group": null,
+      "texture": "Plaster_D_White.Folktails.png",
+      "texture_path": "C:\\Users\\user\\.hdbf\\sdk\\vanilla-tex-extra\\Plaster_D_White.Folktails.png",
+      "texture_sha256": "1a3b0dd719832eae461b0acd77e0a9235d7a485d671ffd2e4c324736b6d71930",
+      "texture_size": [
+        1024,
+        1024
+      ],
+      "texture_source": "vanilla-tex-extra"
+    },
+    "Plaster_D_White.IronTeeth.png": {
+      "patch": {
+        "color_distance": 4.74,
+        "color_distance_max": 12.0,
+        "hard_std_cap": 30.0,
+        "hazard_fraction": 0.0,
+        "mean_rgb": [
+          176.09,
+          159.81,
+          141.2
+        ],
+        "mean_rgb_tinted": {
+          "Plaster_Orange.IronTeeth": [
+            147.09,
+            77.09,
+            36.54
+          ]
+        },
+        "pixel_rect": [
+          468,
+          4,
+          788,
+          324
+        ],
+        "reason": "large smooth white-plaster area; the orange IronTeeth plaster variant is supplied by the material _Color tint",
+        "reject_tags": [
+          "hazard-stripes",
+          "faction-banner/logo",
+          "text",
+          "uv-margin/canvas",
+          "repair-plate",
+          "plank-seam",
+          "grille/rib/pattern"
+        ],
+        "size_px": [
+          320,
+          320
+        ],
+        "std": 9.97,
+        "std_by_channel": [
+          6.36,
+          7.35,
+          9.97
+        ],
+        "std_max": 10.0,
+        "target_rgb": [
+          174.0,
+          157.0,
+          138.0
+        ],
+        "uv_rect": [
+          0.457031,
+          0.683594,
+          0.769531,
+          0.996094
+        ]
+      },
+      "patch_class": "plaster",
+      "shared_uv_group": null,
+      "texture": "Plaster_D_White.IronTeeth.png",
+      "texture_path": "C:\\Users\\user\\.hdbf\\sdk\\vanilla-tex-extra\\Plaster_D_White.IronTeeth.png",
+      "texture_sha256": "1a3b0dd719832eae461b0acd77e0a9235d7a485d671ffd2e4c324736b6d71930",
+      "texture_size": [
+        1024,
+        1024
+      ],
+      "texture_source": "vanilla-tex-extra"
+    },
+    "RoofPlanks_D.png": {
+      "patch": {
+        "color_distance": 0.72,
+        "color_distance_max": 18.0,
+        "hard_std_cap": 30.0,
+        "hazard_fraction": 0.0,
+        "mean_rgb": [
+          37.85,
+          39.6,
+          30.42
+        ],
+        "mean_rgb_tinted": {
+          "RoofPlanks.IronTeeth": [
+            37.85,
+            39.6,
+            30.42
+          ]
+        },
+        "pixel_rect": [
+          4,
+          756,
+          260,
+          1012
+        ],
+        "reason": "shared construction-stage UV window (construction_wood): construction stage shares one UV set across factions: BaseWood_Brown.Folktails (wood slot, FT) and RoofPlanks.IronTeeth (wood slot, IT) must sample the same normalized window; both are representative dark raw-timber tones and both stay under their class std budget inside this window",
+        "reject_tags": [
+          "hazard-stripes",
+          "faction-banner/logo",
+          "text",
+          "uv-margin/canvas",
+          "repair-plate",
+          "plank-seam",
+          "grille/rib/pattern"
+        ],
+        "size_px": [
+          256,
+          256
+        ],
+        "std": 13.55,
+        "std_by_channel": [
+          11.72,
+          13.55,
+          12.05
+        ],
+        "std_max": 16.0,
+        "target_rgb": [
+          38.0,
+          40.0,
+          31.0
+        ],
+        "uv_rect": [
+          0.003906,
+          0.011719,
+          0.253906,
+          0.261719
+        ]
+      },
+      "patch_class": "roof_planks",
+      "shared_uv_group": "construction_wood",
+      "texture": "RoofPlanks_D.png",
+      "texture_path": "C:\\Users\\user\\.hdbf\\sdk\\vanilla-tex-extra\\RoofPlanks_D.png",
+      "texture_sha256": "e3379a99496304fae3817a8678491998a2f2b85cba186ef96a41fdf1b7c7599a",
+      "texture_size": [
+        1024,
+        1024
+      ],
+      "texture_source": "vanilla-tex-extra"
+    },
+    "WindowsAtlas_D.Folktails.png": {
+      "patch": {
+        "color_distance": 37.69,
+        "color_distance_max": 45.0,
+        "hard_std_cap": 30.0,
+        "hazard_fraction": 0.0,
+        "mean_rgb": [
+          122.32,
+          133.66,
+          139.66
+        ],
+        "mean_rgb_tinted": {
+          "WindowsAtlas.Folktails": [
+            122.32,
+            133.66,
+            139.66
+          ]
+        },
+        "pixel_rect": [
+          828,
+          772,
+          1020,
+          964
+        ],
+        "reason": "interior of a flat glass pane (bottom-right pane gradient area), not the tan atlas backdrop and not a window frame",
+        "reject_tags": [
+          "hazard-stripes",
+          "faction-banner/logo",
+          "text",
+          "uv-margin/canvas",
+          "repair-plate",
+          "plank-seam",
+          "grille/rib/pattern"
+        ],
+        "size_px": [
+          192,
+          192
+        ],
+        "std": 11.54,
+        "std_by_channel": [
+          11.54,
+          9.22,
+          9.23
+        ],
+        "std_max": 12.0,
+        "target_rgb": [
+          140.0,
+          154.0,
+          166.0
+        ],
+        "uv_rect": [
+          0.808594,
+          0.058594,
+          0.996094,
+          0.246094
+        ]
+      },
+      "patch_class": "glass",
+      "shared_uv_group": null,
+      "texture": "WindowsAtlas_D.Folktails.png",
+      "texture_path": "C:\\Users\\user\\.hdbf\\sdk\\vanilla-tex-extra\\WindowsAtlas_D.Folktails.png",
+      "texture_sha256": "32b5598efeb9f92c581e71d894724266bbfa5366bc45d6d8967e4dfb1b3c13ef",
+      "texture_size": [
+        1024,
+        1024
+      ],
+      "texture_source": "vanilla-tex-extra"
+    },
+    "WindowsAtlas_D.IronTeeth.png": {
+      "patch": {
+        "color_distance": 37.69,
+        "color_distance_max": 45.0,
+        "hard_std_cap": 30.0,
+        "hazard_fraction": 0.0,
+        "mean_rgb": [
+          122.32,
+          133.66,
+          139.66
+        ],
+        "mean_rgb_tinted": {
+          "WindowsAtlas.IronTeeth": [
+            122.32,
+            133.66,
+            139.66
+          ]
+        },
+        "pixel_rect": [
+          828,
+          772,
+          1020,
+          964
+        ],
+        "reason": "interior of a flat glass pane (bottom-right pane gradient area), not the tan atlas backdrop and not a window frame",
+        "reject_tags": [
+          "hazard-stripes",
+          "faction-banner/logo",
+          "text",
+          "uv-margin/canvas",
+          "repair-plate",
+          "plank-seam",
+          "grille/rib/pattern"
+        ],
+        "size_px": [
+          192,
+          192
+        ],
+        "std": 11.54,
+        "std_by_channel": [
+          11.54,
+          9.22,
+          9.23
+        ],
+        "std_max": 12.0,
+        "target_rgb": [
+          140.0,
+          154.0,
+          166.0
+        ],
+        "uv_rect": [
+          0.808594,
+          0.058594,
+          0.996094,
+          0.246094
+        ]
+      },
+      "patch_class": "glass",
+      "shared_uv_group": null,
+      "texture": "WindowsAtlas_D.IronTeeth.png",
+      "texture_path": "C:\\Users\\user\\.hdbf\\sdk\\vanilla-tex-extra\\WindowsAtlas_D.IronTeeth.png",
+      "texture_sha256": "f8caf53222c65e17ef16c34edbca8abf7cdfd0b928105239ee137a5bd28751f2",
+      "texture_size": [
+        1024,
+        1024
+      ],
+      "texture_source": "vanilla-tex-extra"
+    }
+  },
+  "texture_roots": {
+    "vanilla-tex-all": "C:\\Users\\user\\.hdbf\\sdk\\vanilla-tex-all",
+    "vanilla-tex-extra": "C:\\Users\\user\\.hdbf\\sdk\\vanilla-tex-extra"
+  },
+  "thresholds": {
+    "color_distance_max": 18.0,
+    "hard_std_cap": 30.0,
+    "patch_size_range_px": [
+      128,
+      512
+    ],
+    "std_definition": "max over R,G,B of the population std of the patch pixels (raw sRGB 0..255 bytes) - recomputed by art/png_stats.py",
+    "std_max_by_class": {
+      "details": 26.0,
+      "forged_planks": 27.0,
+      "glass": 12.0,
+      "metal": 14.0,
+      "moss": 16.0,
+      "plaster": 10.0,
+      "roof_planks": 16.0,
+      "wood": 18.0
+    },
+    "std_max_default": 18.0
+  },
+  "unused_materials": {
+    "PaintedMetal.Folktails": {
+      "hazard_reference_pixel_rect": [
+        64,
+        64,
+        320,
+        320
+      ],
+      "hazard_reference_stats": {
+        "mean_rgb": [
+          107.98,
+          89.62,
+          37.06
+        ],
+        "std": 58.83,
+        "std_by_channel": [
+          58.8325,
+          44.8709,
+          19.9075
+        ]
+      },
+      "hazard_reference_uv_rect": [
+        0.0625,
+        0.6875,
+        0.3125,
+        0.9375
+      ],
+      "material": "PaintedMetal.Folktails",
+      "policy": "never use on a shell or any large face (ART-05 user bug)",
+      "reason": "whole albedo is yellow/black hazard stripe paint - the texture that made the top tier look like a warning sign",
+      "texture": "PaintedMetal_D.Folktails.png",
+      "texture_path": "C:\\Users\\user\\.hdbf\\sdk\\vanilla-tex-all\\PaintedMetal_D.Folktails.png",
+      "texture_sha256": "240f11af8472973b376899902bdf1c7e634e7d9c2bfca386cee80d2fb39c41f7",
+      "texture_size": [
+        1024,
+        1024
+      ],
+      "texture_source": "vanilla-tex-all"
+    },
+    "PaintedMetal.IronTeeth": {
+      "hazard_reference_pixel_rect": [
+        64,
+        64,
+        320,
+        320
+      ],
+      "hazard_reference_stats": {
+        "mean_rgb": [
+          58.76,
+          69.25,
+          72.14
+        ],
+        "std": 30.6,
+        "std_by_channel": [
+          15.73,
+          24.6126,
+          30.6046
+        ]
+      },
+      "hazard_reference_uv_rect": [
+        0.0625,
+        0.6875,
+        0.3125,
+        0.9375
+      ],
+      "material": "PaintedMetal.IronTeeth",
+      "policy": "never use on a shell or any large face (ART-05 user bug)",
+      "reason": "whole albedo is blue/black hazard stripe paint",
+      "texture": "PaintedMetal_D.IronTeeth.png",
+      "texture_path": "C:\\Users\\user\\.hdbf\\sdk\\vanilla-tex-all\\PaintedMetal_D.IronTeeth.png",
+      "texture_sha256": "bf92c8ff3cb19deb047f37137360b6770c0176529d65e500e911930b7684b6f8",
+      "texture_size": [
+        1024,
+        1024
+      ],
+      "texture_source": "vanilla-tex-all"
+    }
+  },
+  "uv_convention": "pixel_rect = [x0, y0, x1, y1], TOP-LEFT pixel origin, exclusive x1/y1 (same as art/atlas_layout.REGIONS and art/png_stats.py). uv_rect = [u0, v0, u1, v1] with u0=x0/W, u1=x1/W, v0=1-y1/H, v1=1-y0/H (bottom-left UV origin, i.e. art/atlas_layout.px_rect_to_uv flips v)."
+}

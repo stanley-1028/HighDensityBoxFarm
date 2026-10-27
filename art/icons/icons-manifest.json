@@ -1,6 +1,7 @@
 {
   "asset": "HDBF (Timberborn High-Density Box Farm) tier building icons",
   "card": "ART-04",
+  "material_card": "ART-05 (icons render the real vanilla _D materials)",
   "generator": "art/render_icons.py",
   "command": "blender.exe -b --factory-startup -noaudio --python art\\render_icons.py",
   "blender_version": "4.2.1 LTS",
@@ -117,37 +118,1173 @@
       {
         "label": "previous run (icons-manifest.json on disk at start)",
         "file_sha256": {
-          "art/icons/BoxFarm.Advanced.128.png": "6d4b8012a7b2cbeeb9dab783eb83dcd8ee14fee40cead4632cf160ade4521bc7",
-          "art/icons/BoxFarm.Advanced.png": "e0137d7dff8dbcf6ee66bac16007c03ddb2429e4601d8b51a9a7dd77eaf39206",
-          "art/icons/BoxFarm.Basic.128.png": "c611c815492587a80de3bca9f9f41febb97ed48a10e2766385ca1ddd784ad12d",
-          "art/icons/BoxFarm.Basic.png": "df6e0c5c8b7c99443a5b138fd5e4e43072545136b8575ae93b6211504ae711ac",
-          "art/icons/BoxFarm.Intermediate.128.png": "1eb50aeeaaa3cc4c458387c755551c373a23a340a73df58e868be1e60d7c3244",
-          "art/icons/BoxFarm.Intermediate.png": "434729b89bf7eb37de7eeb10fe9cf99836f89fcdf9b25796dd0d55fc49edcf88",
-          "art/icons/BoxFarm.Top.128.png": "ce70af287b9e4c44e408e8eac375625cc82072515efec16c3036230ace6e70a2",
-          "art/icons/BoxFarm.Top.png": "8e2709b35549aa8b1c7a14e4174d7c4a5b65ad3476851bdc6874337ab537311e"
+          "art/icons/BoxFarm.Advanced.128.png": "a1299bd9f54b99067c7fd3328250da8e1952081547178504701b37a6de7afdb1",
+          "art/icons/BoxFarm.Advanced.png": "236099ac4772d448fa0be53cf3415e9b6bc3fcb279354206d2deecc9d65d700c",
+          "art/icons/BoxFarm.Basic.128.png": "6627492a772db5c776567f4578e657aaf2edd4d68c0ad731a091fee46e0ac274",
+          "art/icons/BoxFarm.Basic.png": "0a8ee93ab6e2b538f00d57068581c38e557246df1aae3b48c84154c656b7b1bd",
+          "art/icons/BoxFarm.Intermediate.128.png": "f289b02fae443ee6efe76fcc63dbf742794be57bec8bbd24f6e874e883b194f2",
+          "art/icons/BoxFarm.Intermediate.png": "f565e02dae8d8022b60dc063e37ec04edb3c811efe228524e7660467fdd3ee43",
+          "art/icons/BoxFarm.Top.128.png": "06fb09eb7882726c7fb5f14b1659e2961c4f55cfa037949b00a7b582dafdeb26",
+          "art/icons/BoxFarm.Top.png": "cd8f9daa67509dc985313e6d2147fa2ecb5adcbf746bd0a093ce0dc5006adf33"
         }
       },
       {
         "label": "this run (files on disk now)",
         "file_sha256": {
-          "art/icons/BoxFarm.Advanced.128.png": "dc52749a61e88aff52480abb744cf040039157e024f8ade06f296b69321b405b",
-          "art/icons/BoxFarm.Advanced.png": "c415c31eb26d75d42ce0328d03a8fe376adce1724f030d7d9e299231d8c45b54",
-          "art/icons/BoxFarm.Basic.128.png": "db5310f6f49ebeface898ec39761c38df515aa04888c377e7d1c72197007d46e",
-          "art/icons/BoxFarm.Basic.png": "c564c80390bd459b77128b1aa1ba367b139f9b4f1cb1480894a1b3afda7d8f4c",
-          "art/icons/BoxFarm.Intermediate.128.png": "5ab18c94fd523b1d7d536ef0eae6b0bd3edfd43d085567a92b99713bf45d1443",
-          "art/icons/BoxFarm.Intermediate.png": "d546312321798ad9846550670c3bc7a9db12784cb7236396dee81b44c4ac0062",
-          "art/icons/BoxFarm.Top.128.png": "15ab3ba4960f96232e6b43fd4cd78cc3eec8d1ab14af579af360a98c78c95f1a",
-          "art/icons/BoxFarm.Top.png": "8968fc99e260fb078028d19127d2f027d02146d4668e319c38e794c53c156b50"
+          "art/icons/BoxFarm.Advanced.128.png": "a1299bd9f54b99067c7fd3328250da8e1952081547178504701b37a6de7afdb1",
+          "art/icons/BoxFarm.Advanced.png": "236099ac4772d448fa0be53cf3415e9b6bc3fcb279354206d2deecc9d65d700c",
+          "art/icons/BoxFarm.Basic.128.png": "6627492a772db5c776567f4578e657aaf2edd4d68c0ad731a091fee46e0ac274",
+          "art/icons/BoxFarm.Basic.png": "0a8ee93ab6e2b538f00d57068581c38e557246df1aae3b48c84154c656b7b1bd",
+          "art/icons/BoxFarm.Intermediate.128.png": "f289b02fae443ee6efe76fcc63dbf742794be57bec8bbd24f6e874e883b194f2",
+          "art/icons/BoxFarm.Intermediate.png": "f565e02dae8d8022b60dc063e37ec04edb3c811efe228524e7660467fdd3ee43",
+          "art/icons/BoxFarm.Top.128.png": "06fb09eb7882726c7fb5f14b1659e2961c4f55cfa037949b00a7b582dafdeb26",
+          "art/icons/BoxFarm.Top.png": "cd8f9daa67509dc985313e6d2147fa2ecb5adcbf746bd0a093ce0dc5006adf33"
         }
       }
     ],
-    "png_sha256_identical": false
+    "png_sha256_identical": true
   },
   "downscale": {
     "from": 512,
     "to": 128,
     "method": "alpha-aware premultiplied 4x4 box filter (numpy), written with bpy image API"
   },
+  "materials": {
+    "note": "Every icon is rendered with the real vanilla `_D` albedo PNG of each mapped MaterialCollection material multiplied by its `_Color` tint, bound by art/preview_materials.py - the same albedo the game resolves. The fake ART-01 atlas is not used. Glass is rendered opaque (the game material has cutout off). The vanilla `_BumpMap` normal maps are NOT bound: the extracted Unity normal assets are not valid Blender tangent-space normal maps and produce mottled shading artifacts (evidence in the ART-05 report) - albedo * tint is the honest look.",
+    "binding": {
+      "map_path": "art/material_texture_map.json",
+      "map_used": true,
+      "map_schema": "hdbf.material_texture_map/v1",
+      "map_materials": 17,
+      "texture_roots": {
+        "vanilla-tex-all": "C:\\Users\\user\\.hdbf\\sdk\\vanilla-tex-all",
+        "vanilla-tex-extra": "C:\\Users\\user\\.hdbf\\sdk\\vanilla-tex-extra"
+      },
+      "table_warnings": []
+    },
+    "per_tier": {
+      "Basic": {
+        "material_map_key": [
+          "Basic",
+          "Folktails",
+          false
+        ],
+        "normal_maps": false,
+        "counts": {
+          "slots": 2,
+          "bound": 2,
+          "fallback": 0
+        },
+        "slots": [
+          {
+            "slot": "M_HDBF_Wood",
+            "vanilla_material": "BaseWood_Brown.Folktails",
+            "status": "bound",
+            "texture": "BaseWood_1K_D_Brown.png",
+            "texture_source": "vanilla-tex-all",
+            "texture_size": [
+              1024,
+              1024
+            ],
+            "tint": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "normal_texture": "BaseWood_1K_N.png",
+            "patch": {
+              "color_distance": 4.25,
+              "color_distance_max": 18.0,
+              "hard_std_cap": 30.0,
+              "hazard_fraction": 0.0,
+              "mean_rgb": [
+                54.47,
+                40.38,
+                27.02
+              ],
+              "mean_rgb_tinted": [
+                54.47,
+                40.38,
+                27.02
+              ],
+              "pixel_rect": [
+                4,
+                756,
+                260,
+                1012
+              ],
+              "reason": "shared construction-stage UV window (construction_wood): construction stage shares one UV set across factions: BaseWood_Brown.Folktails (wood slot, FT) and RoofPlanks.IronTeeth (wood slot, IT) must sample the same normalized window; both are representative dark raw-timber tones and both stay under their class std budget inside this window",
+              "reject_tags": [
+                "hazard-stripes",
+                "faction-banner/logo",
+                "text",
+                "uv-margin/canvas",
+                "repair-plate",
+                "plank-seam",
+                "grille/rib/pattern"
+              ],
+              "size_px": [
+                256,
+                256
+              ],
+              "std": 17.73,
+              "std_by_channel": [
+                17.73,
+                17.68,
+                12.52
+              ],
+              "std_max": 18.0,
+              "target_rgb": [
+                56.0,
+                43.0,
+                30.0
+              ],
+              "uv_rect": [
+                0.003906,
+                0.011719,
+                0.253906,
+                0.261719
+              ]
+            },
+            "uv_bbox": [
+              0.007812249939888716,
+              0.016601812094449997,
+              0.2490231841802597,
+              0.2578127384185791
+            ],
+            "uv_inside_patch": true
+          },
+          {
+            "slot": "M_HDBF_Fabric",
+            "vanilla_material": "Moss.Folktails",
+            "status": "bound",
+            "texture": "Moss_D.Folktails.png",
+            "texture_source": "vanilla-tex-all",
+            "texture_size": [
+              1024,
+              1024
+            ],
+            "tint": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "normal_texture": "Plaster_N.Folktails.png",
+            "patch": {
+              "color_distance": 0.44,
+              "color_distance_max": 18.0,
+              "hard_std_cap": 30.0,
+              "hazard_fraction": 0.0,
+              "mean_rgb": [
+                43.2,
+                48.63,
+                20.88
+              ],
+              "mean_rgb_tinted": [
+                43.2,
+                48.63,
+                20.88
+              ],
+              "pixel_rect": [
+                188,
+                292,
+                444,
+                548
+              ],
+              "reason": "uniform moss/foliage area (green accents of the basic tier)",
+              "reject_tags": [
+                "hazard-stripes",
+                "faction-banner/logo",
+                "text",
+                "uv-margin/canvas",
+                "repair-plate",
+                "plank-seam",
+                "grille/rib/pattern"
+              ],
+              "size_px": [
+                256,
+                256
+              ],
+              "std": 13.1,
+              "std_by_channel": [
+                12.2,
+                13.1,
+                6.69
+              ],
+              "std_max": 16.0,
+              "target_rgb": [
+                43.0,
+                49.0,
+                21.0
+              ],
+              "uv_rect": [
+                0.183594,
+                0.464844,
+                0.433594,
+                0.714844
+              ]
+            },
+            "uv_bbox": [
+              0.1875002533197403,
+              0.4697268009185791,
+              0.4287111759185791,
+              0.7109377384185791
+            ],
+            "uv_inside_patch": true
+          }
+        ],
+        "warnings": []
+      },
+      "Intermediate": {
+        "material_map_key": [
+          "Intermediate",
+          "Folktails",
+          false
+        ],
+        "normal_maps": false,
+        "counts": {
+          "slots": 3,
+          "bound": 3,
+          "fallback": 0
+        },
+        "slots": [
+          {
+            "slot": "M_HDBF_Wood",
+            "vanilla_material": "BaseWood_LightBrown.Folktails",
+            "status": "bound",
+            "texture": "BaseWood_1K_D_White.png",
+            "texture_source": "vanilla-tex-all",
+            "texture_size": [
+              1024,
+              1024
+            ],
+            "tint": [
+              0.6604,
+              0.5552,
+              0.4081
+            ],
+            "normal_texture": "BaseWood_1K_N.png",
+            "patch": {
+              "color_distance": 6.34,
+              "color_distance_max": 18.0,
+              "hard_std_cap": 30.0,
+              "hazard_fraction": 0.0,
+              "mean_rgb": [
+                148.4,
+                135.11,
+                117.52
+              ],
+              "mean_rgb_tinted": [
+                98.0,
+                75.01,
+                47.96
+              ],
+              "pixel_rect": [
+                20,
+                244,
+                212,
+                436
+              ],
+              "reason": "whitewashed timber grain (vanilla tint supplies the pale/warm variant); avoids the blank canvas corner, knots and plates",
+              "reject_tags": [
+                "hazard-stripes",
+                "faction-banner/logo",
+                "text",
+                "uv-margin/canvas",
+                "repair-plate",
+                "plank-seam",
+                "grille/rib/pattern"
+              ],
+              "size_px": [
+                192,
+                192
+              ],
+              "std": 14.47,
+              "std_by_channel": [
+                13.76,
+                14.47,
+                14.44
+              ],
+              "std_max": 18.0,
+              "target_rgb": [
+                152.0,
+                139.0,
+                121.0
+              ],
+              "uv_rect": [
+                0.019531,
+                0.574219,
+                0.207031,
+                0.761719
+              ]
+            },
+            "uv_bbox": [
+              0.023437250405550003,
+              0.5791018009185791,
+              0.2021481841802597,
+              0.7578127384185791
+            ],
+            "uv_inside_patch": true
+          },
+          {
+            "slot": "M_HDBF_Glass",
+            "vanilla_material": "WindowsAtlas.Folktails",
+            "status": "bound",
+            "texture": "WindowsAtlas_D.Folktails.png",
+            "texture_source": "vanilla-tex-extra",
+            "texture_size": [
+              1024,
+              1024
+            ],
+            "tint": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "normal_texture": "WindowsAtlas_N.Folktails.png",
+            "patch": {
+              "color_distance": 37.69,
+              "color_distance_max": 45.0,
+              "hard_std_cap": 30.0,
+              "hazard_fraction": 0.0,
+              "mean_rgb": [
+                122.32,
+                133.66,
+                139.66
+              ],
+              "mean_rgb_tinted": [
+                122.32,
+                133.66,
+                139.66
+              ],
+              "pixel_rect": [
+                828,
+                772,
+                1020,
+                964
+              ],
+              "reason": "interior of a flat glass pane (bottom-right pane gradient area), not the tan atlas backdrop and not a window frame",
+              "reject_tags": [
+                "hazard-stripes",
+                "faction-banner/logo",
+                "text",
+                "uv-margin/canvas",
+                "repair-plate",
+                "plank-seam",
+                "grille/rib/pattern"
+              ],
+              "size_px": [
+                192,
+                192
+              ],
+              "std": 11.54,
+              "std_by_channel": [
+                11.54,
+                9.22,
+                9.23
+              ],
+              "std_max": 12.0,
+              "target_rgb": [
+                140.0,
+                154.0,
+                166.0
+              ],
+              "uv_rect": [
+                0.808594,
+                0.058594,
+                0.996094,
+                0.246094
+              ]
+            },
+            "uv_bbox": [
+              0.8144533634185791,
+              0.0634768158197403,
+              0.9912111759185791,
+              0.2421877533197403
+            ],
+            "uv_inside_patch": true
+          },
+          {
+            "slot": "M_HDBF_Fabric",
+            "vanilla_material": "Plaster_White.Folktails",
+            "status": "bound",
+            "texture": "Plaster_D_White.Folktails.png",
+            "texture_source": "vanilla-tex-extra",
+            "texture_size": [
+              1024,
+              1024
+            ],
+            "tint": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "normal_texture": "Plaster_N.Folktails.png",
+            "patch": {
+              "color_distance": 4.74,
+              "color_distance_max": 12.0,
+              "hard_std_cap": 30.0,
+              "hazard_fraction": 0.0,
+              "mean_rgb": [
+                176.09,
+                159.81,
+                141.2
+              ],
+              "mean_rgb_tinted": [
+                176.09,
+                159.81,
+                141.2
+              ],
+              "pixel_rect": [
+                468,
+                4,
+                788,
+                324
+              ],
+              "reason": "large smooth white-plaster area (cream flat roof / plaster walls)",
+              "reject_tags": [
+                "hazard-stripes",
+                "faction-banner/logo",
+                "text",
+                "uv-margin/canvas",
+                "repair-plate",
+                "plank-seam",
+                "grille/rib/pattern"
+              ],
+              "size_px": [
+                320,
+                320
+              ],
+              "std": 9.97,
+              "std_by_channel": [
+                6.36,
+                7.35,
+                9.97
+              ],
+              "std_max": 10.0,
+              "target_rgb": [
+                174.0,
+                157.0,
+                138.0
+              ],
+              "uv_rect": [
+                0.457031,
+                0.683594,
+                0.769531,
+                0.996094
+              ]
+            },
+            "uv_bbox": [
+              0.4619138240814209,
+              0.6884768009185791,
+              0.7646481990814209,
+              0.9921877384185791
+            ],
+            "uv_inside_patch": true
+          }
+        ],
+        "warnings": []
+      },
+      "Advanced": {
+        "material_map_key": [
+          "Advanced",
+          "Folktails",
+          false
+        ],
+        "normal_maps": false,
+        "counts": {
+          "slots": 4,
+          "bound": 4,
+          "fallback": 0
+        },
+        "slots": [
+          {
+            "slot": "M_HDBF_Wood",
+            "vanilla_material": "BaseWood_White.Folktails",
+            "status": "bound",
+            "texture": "BaseWood_1K_D_White.png",
+            "texture_source": "vanilla-tex-all",
+            "texture_size": [
+              1024,
+              1024
+            ],
+            "tint": [
+              0.8868,
+              0.8641,
+              0.8324
+            ],
+            "normal_texture": "BaseWood_1K_N.png",
+            "patch": {
+              "color_distance": 6.34,
+              "color_distance_max": 18.0,
+              "hard_std_cap": 30.0,
+              "hazard_fraction": 0.0,
+              "mean_rgb": [
+                148.4,
+                135.11,
+                117.52
+              ],
+              "mean_rgb_tinted": [
+                131.6,
+                116.75,
+                97.82
+              ],
+              "pixel_rect": [
+                20,
+                244,
+                212,
+                436
+              ],
+              "reason": "whitewashed timber grain (vanilla tint supplies the pale/warm variant); avoids the blank canvas corner, knots and plates",
+              "reject_tags": [
+                "hazard-stripes",
+                "faction-banner/logo",
+                "text",
+                "uv-margin/canvas",
+                "repair-plate",
+                "plank-seam",
+                "grille/rib/pattern"
+              ],
+              "size_px": [
+                192,
+                192
+              ],
+              "std": 14.47,
+              "std_by_channel": [
+                13.76,
+                14.47,
+                14.44
+              ],
+              "std_max": 18.0,
+              "target_rgb": [
+                152.0,
+                139.0,
+                121.0
+              ],
+              "uv_rect": [
+                0.019531,
+                0.574219,
+                0.207031,
+                0.761719
+              ]
+            },
+            "uv_bbox": [
+              0.023437250405550003,
+              0.5791018009185791,
+              0.2011716216802597,
+              0.7578127384185791
+            ],
+            "uv_inside_patch": true
+          },
+          {
+            "slot": "M_HDBF_Metal",
+            "vanilla_material": "BaseMetal.Folktails",
+            "status": "bound",
+            "texture": "BaseMetal_D1.png",
+            "texture_source": "vanilla-tex-extra",
+            "texture_size": [
+              1024,
+              1024
+            ],
+            "tint": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "normal_texture": "BaseMetal_N.png",
+            "patch": {
+              "color_distance": 1.28,
+              "color_distance_max": 22.0,
+              "hard_std_cap": 30.0,
+              "hazard_fraction": 0.0,
+              "mean_rgb": [
+                111.96,
+                100.15,
+                76.73
+              ],
+              "mean_rgb_tinted": [
+                111.96,
+                100.15,
+                76.73
+              ],
+              "pixel_rect": [
+                68,
+                132,
+                388,
+                452
+              ],
+              "reason": "shared construction-stage UV window (construction_metal): construction stage shares one UV set across factions: BaseMetal.Folktails and BaseMetal.IronTeeth (metal slot) must sample the same normalized window; the two vanilla sheet-metal textures have the same atlas layout, so one plain-sheet window is flat and representative in both",
+              "reject_tags": [
+                "hazard-stripes",
+                "faction-banner/logo",
+                "text",
+                "uv-margin/canvas",
+                "repair-plate",
+                "plank-seam",
+                "grille/rib/pattern"
+              ],
+              "size_px": [
+                320,
+                320
+              ],
+              "std": 11.29,
+              "std_by_channel": [
+                7.51,
+                9.49,
+                11.29
+              ],
+              "std_max": 14.0,
+              "target_rgb": [
+                112.0,
+                100.0,
+                78.0
+              ],
+              "uv_rect": [
+                0.066406,
+                0.558594,
+                0.378906,
+                0.871094
+              ]
+            },
+            "uv_bbox": [
+              0.0703122466802597,
+              0.5634768009185791,
+              0.3740231990814209,
+              0.8671877384185791
+            ],
+            "uv_inside_patch": true
+          },
+          {
+            "slot": "M_HDBF_Glass",
+            "vanilla_material": "WindowsAtlas.Folktails",
+            "status": "bound",
+            "texture": "WindowsAtlas_D.Folktails.png",
+            "texture_source": "vanilla-tex-extra",
+            "texture_size": [
+              1024,
+              1024
+            ],
+            "tint": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "normal_texture": "WindowsAtlas_N.Folktails.png",
+            "patch": {
+              "color_distance": 37.69,
+              "color_distance_max": 45.0,
+              "hard_std_cap": 30.0,
+              "hazard_fraction": 0.0,
+              "mean_rgb": [
+                122.32,
+                133.66,
+                139.66
+              ],
+              "mean_rgb_tinted": [
+                122.32,
+                133.66,
+                139.66
+              ],
+              "pixel_rect": [
+                828,
+                772,
+                1020,
+                964
+              ],
+              "reason": "interior of a flat glass pane (bottom-right pane gradient area), not the tan atlas backdrop and not a window frame",
+              "reject_tags": [
+                "hazard-stripes",
+                "faction-banner/logo",
+                "text",
+                "uv-margin/canvas",
+                "repair-plate",
+                "plank-seam",
+                "grille/rib/pattern"
+              ],
+              "size_px": [
+                192,
+                192
+              ],
+              "std": 11.54,
+              "std_by_channel": [
+                11.54,
+                9.22,
+                9.23
+              ],
+              "std_max": 12.0,
+              "target_rgb": [
+                140.0,
+                154.0,
+                166.0
+              ],
+              "uv_rect": [
+                0.808594,
+                0.058594,
+                0.996094,
+                0.246094
+              ]
+            },
+            "uv_bbox": [
+              0.8125002384185791,
+              0.0644533783197403,
+              0.9902346134185791,
+              0.2314455658197403
+            ],
+            "uv_inside_patch": true
+          },
+          {
+            "slot": "M_HDBF_Fabric",
+            "vanilla_material": "Details.Folktails",
+            "status": "bound",
+            "texture": "Details_D.Folktails.png",
+            "texture_source": "vanilla-tex-extra",
+            "texture_size": [
+              1024,
+              1024
+            ],
+            "tint": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "normal_texture": "Details_N.png",
+            "patch": {
+              "color_distance": 0.67,
+              "color_distance_max": 25.0,
+              "hard_std_cap": 30.0,
+              "hazard_fraction": 0.0,
+              "mean_rgb": [
+                105.26,
+                80.45,
+                48.28
+              ],
+              "mean_rgb_tinted": [
+                105.26,
+                80.45,
+                48.28
+              ],
+              "pixel_rect": [
+                100,
+                748,
+                356,
+                1004
+              ],
+              "reason": "dark timber floor-plank block from the detail atlas; the whole top half (faction banner + logo + sack + flag strip) is excluded",
+              "reject_tags": [
+                "hazard-stripes",
+                "faction-banner/logo",
+                "text",
+                "uv-margin/canvas",
+                "repair-plate",
+                "plank-seam",
+                "grille/rib/pattern"
+              ],
+              "size_px": [
+                256,
+                256
+              ],
+              "std": 23.73,
+              "std_by_channel": [
+                23.73,
+                21.25,
+                17.15
+              ],
+              "std_max": 26.0,
+              "target_rgb": [
+                105.0,
+                81.0,
+                48.0
+              ],
+              "uv_rect": [
+                0.097656,
+                0.019531,
+                0.347656,
+                0.269531
+              ]
+            },
+            "uv_bbox": [
+              0.1035153716802597,
+              0.024413812905550003,
+              0.3417966365814209,
+              0.2656247615814209
+            ],
+            "uv_inside_patch": true
+          }
+        ],
+        "warnings": []
+      },
+      "Top": {
+        "material_map_key": [
+          "Top",
+          "Folktails",
+          false
+        ],
+        "normal_maps": false,
+        "counts": {
+          "slots": 4,
+          "bound": 4,
+          "fallback": 0
+        },
+        "slots": [
+          {
+            "slot": "M_HDBF_Wood",
+            "vanilla_material": "IrregularPlanks_Brown.Folktails",
+            "status": "bound",
+            "texture": "IrregularPlanks_D_Brown.png",
+            "texture_source": "vanilla-tex-all",
+            "texture_size": [
+              1024,
+              1024
+            ],
+            "tint": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "normal_texture": "IrregularPlanks_N.png",
+            "patch": {
+              "color_distance": 1.69,
+              "color_distance_max": 18.0,
+              "hard_std_cap": 30.0,
+              "hazard_fraction": 0.0,
+              "mean_rgb": [
+                50.97,
+                37.95,
+                26.16
+              ],
+              "mean_rgb_tinted": [
+                50.97,
+                37.95,
+                26.16
+              ],
+              "pixel_rect": [
+                4,
+                204,
+                260,
+                460
+              ],
+              "reason": "dark irregular plank field, single-plank tone",
+              "reject_tags": [
+                "hazard-stripes",
+                "faction-banner/logo",
+                "text",
+                "uv-margin/canvas",
+                "repair-plate",
+                "plank-seam",
+                "grille/rib/pattern"
+              ],
+              "size_px": [
+                256,
+                256
+              ],
+              "std": 17.88,
+              "std_by_channel": [
+                17.88,
+                16.44,
+                11.09
+              ],
+              "std_max": 18.0,
+              "target_rgb": [
+                52.0,
+                39.0,
+                27.0
+              ],
+              "uv_rect": [
+                0.003906,
+                0.550781,
+                0.253906,
+                0.800781
+              ]
+            },
+            "uv_bbox": [
+              0.012695062905550003,
+              0.5664060115814209,
+              0.2421872466802597,
+              0.7832028865814209
+            ],
+            "uv_inside_patch": true
+          },
+          {
+            "slot": "M_HDBF_Metal",
+            "vanilla_material": "Details.Folktails",
+            "status": "bound",
+            "texture": "Details_D.Folktails.png",
+            "texture_source": "vanilla-tex-extra",
+            "texture_size": [
+              1024,
+              1024
+            ],
+            "tint": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "normal_texture": "Details_N.png",
+            "patch": {
+              "color_distance": 0.67,
+              "color_distance_max": 25.0,
+              "hard_std_cap": 30.0,
+              "hazard_fraction": 0.0,
+              "mean_rgb": [
+                105.26,
+                80.45,
+                48.28
+              ],
+              "mean_rgb_tinted": [
+                105.26,
+                80.45,
+                48.28
+              ],
+              "pixel_rect": [
+                100,
+                748,
+                356,
+                1004
+              ],
+              "reason": "dark timber floor-plank block from the detail atlas; the whole top half (faction banner + logo + sack + flag strip) is excluded",
+              "reject_tags": [
+                "hazard-stripes",
+                "faction-banner/logo",
+                "text",
+                "uv-margin/canvas",
+                "repair-plate",
+                "plank-seam",
+                "grille/rib/pattern"
+              ],
+              "size_px": [
+                256,
+                256
+              ],
+              "std": 23.73,
+              "std_by_channel": [
+                23.73,
+                21.25,
+                17.15
+              ],
+              "std_max": 26.0,
+              "target_rgb": [
+                105.0,
+                81.0,
+                48.0
+              ],
+              "uv_rect": [
+                0.097656,
+                0.019531,
+                0.347656,
+                0.269531
+              ]
+            },
+            "uv_bbox": [
+              0.1015622466802597,
+              0.024413812905550003,
+              0.3427731990814209,
+              0.2656247615814209
+            ],
+            "uv_inside_patch": true
+          },
+          {
+            "slot": "M_HDBF_Glass",
+            "vanilla_material": "WindowsAtlas.Folktails",
+            "status": "bound",
+            "texture": "WindowsAtlas_D.Folktails.png",
+            "texture_source": "vanilla-tex-extra",
+            "texture_size": [
+              1024,
+              1024
+            ],
+            "tint": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "normal_texture": "WindowsAtlas_N.Folktails.png",
+            "patch": {
+              "color_distance": 37.69,
+              "color_distance_max": 45.0,
+              "hard_std_cap": 30.0,
+              "hazard_fraction": 0.0,
+              "mean_rgb": [
+                122.32,
+                133.66,
+                139.66
+              ],
+              "mean_rgb_tinted": [
+                122.32,
+                133.66,
+                139.66
+              ],
+              "pixel_rect": [
+                828,
+                772,
+                1020,
+                964
+              ],
+              "reason": "interior of a flat glass pane (bottom-right pane gradient area), not the tan atlas backdrop and not a window frame",
+              "reject_tags": [
+                "hazard-stripes",
+                "faction-banner/logo",
+                "text",
+                "uv-margin/canvas",
+                "repair-plate",
+                "plank-seam",
+                "grille/rib/pattern"
+              ],
+              "size_px": [
+                192,
+                192
+              ],
+              "std": 11.54,
+              "std_by_channel": [
+                11.54,
+                9.22,
+                9.23
+              ],
+              "std_max": 12.0,
+              "target_rgb": [
+                140.0,
+                154.0,
+                166.0
+              ],
+              "uv_rect": [
+                0.808594,
+                0.058594,
+                0.996094,
+                0.246094
+              ]
+            },
+            "uv_bbox": [
+              0.8125002384185791,
+              0.0722658783197403,
+              0.9892580509185791,
+              0.2421877533197403
+            ],
+            "uv_inside_patch": true
+          },
+          {
+            "slot": "M_HDBF_Fabric",
+            "vanilla_material": "BaseMetal.Folktails",
+            "status": "bound",
+            "texture": "BaseMetal_D1.png",
+            "texture_source": "vanilla-tex-extra",
+            "texture_size": [
+              1024,
+              1024
+            ],
+            "tint": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "normal_texture": "BaseMetal_N.png",
+            "patch": {
+              "color_distance": 1.28,
+              "color_distance_max": 22.0,
+              "hard_std_cap": 30.0,
+              "hazard_fraction": 0.0,
+              "mean_rgb": [
+                111.96,
+                100.15,
+                76.73
+              ],
+              "mean_rgb_tinted": [
+                111.96,
+                100.15,
+                76.73
+              ],
+              "pixel_rect": [
+                68,
+                132,
+                388,
+                452
+              ],
+              "reason": "shared construction-stage UV window (construction_metal): construction stage shares one UV set across factions: BaseMetal.Folktails and BaseMetal.IronTeeth (metal slot) must sample the same normalized window; the two vanilla sheet-metal textures have the same atlas layout, so one plain-sheet window is flat and representative in both",
+              "reject_tags": [
+                "hazard-stripes",
+                "faction-banner/logo",
+                "text",
+                "uv-margin/canvas",
+                "repair-plate",
+                "plank-seam",
+                "grille/rib/pattern"
+              ],
+              "size_px": [
+                320,
+                320
+              ],
+              "std": 11.29,
+              "std_by_channel": [
+                7.51,
+                9.49,
+                11.29
+              ],
+              "std_max": 14.0,
+              "target_rgb": [
+                112.0,
+                100.0,
+                78.0
+              ],
+              "uv_rect": [
+                0.066406,
+                0.558594,
+                0.378906,
+                0.871094
+              ]
+            },
+            "uv_bbox": [
+              0.0712888091802597,
+              0.5634768009185791,
+              0.3740231990814209,
+              0.8652346134185791
+            ],
+            "uv_inside_patch": true
+          }
+        ],
+        "warnings": []
+      }
+    }
+  },
+  "data_icons": [
+    {
+      "path": "data/Icons/BoxFarmBasic.png",
+      "source": "art/icons/BoxFarm.Basic.128.png",
+      "tier": "Basic",
+      "width": 128,
+      "height": 128,
+      "mode": "RGBA",
+      "bytes": 18011,
+      "sha256": "6627492a772db5c776567f4578e657aaf2edd4d68c0ad731a091fee46e0ac274"
+    },
+    {
+      "path": "data/Icons/BoxFarmIntermediate.png",
+      "source": "art/icons/BoxFarm.Intermediate.128.png",
+      "tier": "Intermediate",
+      "width": 128,
+      "height": 128,
+      "mode": "RGBA",
+      "bytes": 19040,
+      "sha256": "f289b02fae443ee6efe76fcc63dbf742794be57bec8bbd24f6e874e883b194f2"
+    },
+    {
+      "path": "data/Icons/BoxFarmAdvanced.png",
+      "source": "art/icons/BoxFarm.Advanced.128.png",
+      "tier": "Advanced",
+      "width": 128,
+      "height": 128,
+      "mode": "RGBA",
+      "bytes": 18738,
+      "sha256": "a1299bd9f54b99067c7fd3328250da8e1952081547178504701b37a6de7afdb1"
+    },
+    {
+      "path": "data/Icons/BoxFarmTop.png",
+      "source": "art/icons/BoxFarm.Top.128.png",
+      "tier": "Top",
+      "width": 128,
+      "height": 128,
+      "mode": "RGBA",
+      "bytes": 20346,
+      "sha256": "06fb09eb7882726c7fb5f14b1659e2961c4f55cfa037949b00a7b582dafdeb26"
+    }
+  ],
   "files": [
     {
       "path": "art/icons/BoxFarm.Basic.png",
@@ -156,8 +1293,8 @@
       "height": 512,
       "mode": "RGBA",
       "bit_depth": 8,
-      "bytes": 285329,
-      "sha256": "c564c80390bd459b77128b1aa1ba367b139f9b4f1cb1480894a1b3afda7d8f4c",
+      "bytes": 271258,
+      "sha256": "0a8ee93ab6e2b538f00d57068581c38e557246df1aae3b48c84154c656b7b1bd",
       "source_model": "art/models/Basic.Folktails/LOD0.fbx",
       "source_triangles": 5850,
       "alpha": {
@@ -169,9 +1306,9 @@
       },
       "coverage": 0.4178,
       "mean_rgb_covered": [
-        111,
-        84,
-        67
+        79,
+        71,
+        65
       ]
     },
     {
@@ -181,8 +1318,8 @@
       "height": 128,
       "mode": "RGBA",
       "bit_depth": 8,
-      "bytes": 18628,
-      "sha256": "db5310f6f49ebeface898ec39761c38df515aa04888c377e7d1c72197007d46e",
+      "bytes": 18011,
+      "sha256": "6627492a772db5c776567f4578e657aaf2edd4d68c0ad731a091fee46e0ac274",
       "source_model": "art/models/Basic.Folktails/LOD0.fbx",
       "source_triangles": 5850,
       "alpha": {
@@ -194,9 +1331,9 @@
       },
       "coverage": 0.4175,
       "mean_rgb_covered": [
-        111,
-        84,
-        67
+        79,
+        71,
+        65
       ]
     },
     {
@@ -206,8 +1343,8 @@
       "height": 512,
       "mode": "RGBA",
       "bit_depth": 8,
-      "bytes": 291648,
-      "sha256": "d546312321798ad9846550670c3bc7a9db12784cb7236396dee81b44c4ac0062",
+      "bytes": 284570,
+      "sha256": "f565e02dae8d8022b60dc063e37ec04edb3c811efe228524e7660467fdd3ee43",
       "source_model": "art/models/Intermediate.Folktails/LOD0.fbx",
       "source_triangles": 5854,
       "alpha": {
@@ -219,9 +1356,9 @@
       },
       "coverage": 0.4226,
       "mean_rgb_covered": [
-        162,
-        147,
-        127
+        166,
+        152,
+        135
       ]
     },
     {
@@ -231,8 +1368,8 @@
       "height": 128,
       "mode": "RGBA",
       "bit_depth": 8,
-      "bytes": 19302,
-      "sha256": "5ab18c94fd523b1d7d536ef0eae6b0bd3edfd43d085567a92b99713bf45d1443",
+      "bytes": 19040,
+      "sha256": "f289b02fae443ee6efe76fcc63dbf742794be57bec8bbd24f6e874e883b194f2",
       "source_model": "art/models/Intermediate.Folktails/LOD0.fbx",
       "source_triangles": 5854,
       "alpha": {
@@ -244,9 +1381,9 @@
       },
       "coverage": 0.4223,
       "mean_rgb_covered": [
-        162,
-        148,
-        127
+        166,
+        152,
+        135
       ]
     },
     {
@@ -256,8 +1393,8 @@
       "height": 512,
       "mode": "RGBA",
       "bit_depth": 8,
-      "bytes": 282496,
-      "sha256": "c415c31eb26d75d42ce0328d03a8fe376adce1724f030d7d9e299231d8c45b54",
+      "bytes": 277797,
+      "sha256": "236099ac4772d448fa0be53cf3415e9b6bc3fcb279354206d2deecc9d65d700c",
       "source_model": "art/models/Advanced.Folktails/LOD0.fbx",
       "source_triangles": 5850,
       "alpha": {
@@ -269,9 +1406,9 @@
       },
       "coverage": 0.4252,
       "mean_rgb_covered": [
+        138,
         128,
-        134,
-        143
+        110
       ]
     },
     {
@@ -281,8 +1418,8 @@
       "height": 128,
       "mode": "RGBA",
       "bit_depth": 8,
-      "bytes": 18298,
-      "sha256": "dc52749a61e88aff52480abb744cf040039157e024f8ade06f296b69321b405b",
+      "bytes": 18738,
+      "sha256": "a1299bd9f54b99067c7fd3328250da8e1952081547178504701b37a6de7afdb1",
       "source_model": "art/models/Advanced.Folktails/LOD0.fbx",
       "source_triangles": 5850,
       "alpha": {
@@ -294,9 +1431,9 @@
       },
       "coverage": 0.4246,
       "mean_rgb_covered": [
+        138,
         128,
-        134,
-        143
+        110
       ]
     },
     {
@@ -306,8 +1443,8 @@
       "height": 512,
       "mode": "RGBA",
       "bit_depth": 8,
-      "bytes": 289474,
-      "sha256": "8968fc99e260fb078028d19127d2f027d02146d4668e319c38e794c53c156b50",
+      "bytes": 296571,
+      "sha256": "cd8f9daa67509dc985313e6d2147fa2ecb5adcbf746bd0a093ce0dc5006adf33",
       "source_model": "art/models/Top.Folktails/LOD0.fbx",
       "source_triangles": 5918,
       "alpha": {
@@ -319,9 +1456,9 @@
       },
       "coverage": 0.4265,
       "mean_rgb_covered": [
-        123,
-        129,
-        137
+        134,
+        114,
+        91
       ]
     },
     {
@@ -331,8 +1468,8 @@
       "height": 128,
       "mode": "RGBA",
       "bit_depth": 8,
-      "bytes": 18832,
-      "sha256": "15ab3ba4960f96232e6b43fd4cd78cc3eec8d1ab14af579af360a98c78c95f1a",
+      "bytes": 20346,
+      "sha256": "06fb09eb7882726c7fb5f14b1659e2961c4f55cfa037949b00a7b582dafdeb26",
       "source_model": "art/models/Top.Folktails/LOD0.fbx",
       "source_triangles": 5918,
       "alpha": {
@@ -344,9 +1481,9 @@
       },
       "coverage": 0.4262,
       "mean_rgb_covered": [
-        123,
-        129,
-        137
+        134,
+        114,
+        91
       ]
     }
   ],
@@ -356,65 +1493,77 @@
       "source_model": "art/models/Basic.Folktails/LOD0.fbx",
       "source_triangles": 5850,
       "source_mesh_objects": 1,
-      "coverage_512": 0.4178
+      "coverage_512": 0.4178,
+      "material_slots_bound": 2,
+      "material_slots_total": 2,
+      "material_fallbacks": 0
     },
     {
       "tier": "Intermediate",
       "source_model": "art/models/Intermediate.Folktails/LOD0.fbx",
       "source_triangles": 5854,
       "source_mesh_objects": 1,
-      "coverage_512": 0.4226
+      "coverage_512": 0.4226,
+      "material_slots_bound": 3,
+      "material_slots_total": 3,
+      "material_fallbacks": 0
     },
     {
       "tier": "Advanced",
       "source_model": "art/models/Advanced.Folktails/LOD0.fbx",
       "source_triangles": 5850,
       "source_mesh_objects": 1,
-      "coverage_512": 0.4252
+      "coverage_512": 0.4252,
+      "material_slots_bound": 4,
+      "material_slots_total": 4,
+      "material_fallbacks": 0
     },
     {
       "tier": "Top",
       "source_model": "art/models/Top.Folktails/LOD0.fbx",
       "source_triangles": 5918,
       "source_mesh_objects": 1,
-      "coverage_512": 0.4265
+      "coverage_512": 0.4265,
+      "material_slots_bound": 4,
+      "material_slots_total": 4,
+      "material_fallbacks": 0
     }
   ],
   "pairwise_differences_512": [
     {
       "a": "Basic",
       "b": "Intermediate",
-      "mean_abs_rgb_diff": 63.285,
+      "mean_abs_rgb_diff": 82.516,
       "coverage_delta": 0.0048
     },
     {
       "a": "Basic",
       "b": "Advanced",
-      "mean_abs_rgb_diff": 61.948,
+      "mean_abs_rgb_diff": 60.063,
       "coverage_delta": 0.0074
     },
     {
       "a": "Basic",
       "b": "Top",
-      "mean_abs_rgb_diff": 58.134,
+      "mean_abs_rgb_diff": 50.02,
       "coverage_delta": 0.0087
     },
     {
       "a": "Intermediate",
       "b": "Advanced",
-      "mean_abs_rgb_diff": 33.955,
+      "mean_abs_rgb_diff": 36.331,
       "coverage_delta": 0.0026
     },
     {
       "a": "Intermediate",
       "b": "Top",
-      "mean_abs_rgb_diff": 40.406,
+      "mean_abs_rgb_diff": 49.305,
       "coverage_delta": 0.0039
     },
     {
       "a": "Advanced",
       "b": "Top",
-      "mean_abs_rgb_diff": 24.865,
+      "mean_abs_rgb_diff": 27.572,
       "coverage_delta": 0.0013
     }
   ],

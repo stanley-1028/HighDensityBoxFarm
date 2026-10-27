@@ -160,48 +160,65 @@ MATERIAL_WHITELIST = {
 
 #: ART-01 material slot -> vanilla material asset name, per tier/faction.
 #: The ART-01 slot meanings are fixed (0 Wood, 1 Metal, 2 Glass, 3 Fabric);
-#: each tier maps them onto the card's material strategy:
-#:   Basic        = dark timber + moss / roof planks (2 slots)
-#:   Intermediate = honey planks + cream plaster + glass (3 slots)
-#:   Advanced     = painted metal + glass + wood patches (4 slots)
-#:   Top          = heavy base metal + glass + riveted plates (4 slots)
-#:   Construction = raw wood + bare metal          (2 slots)
+#: each tier maps them onto the card's material strategy.  ART-05 (2026-10-27)
+#: re-mapped the metal-heavy tiers after the user's in-game texture-bug report:
+#:   Basic        = dark timber + moss / dark roof planks          (2 slots)
+#:   Intermediate = light/honey timber + plaster + glass            (3 slots)
+#:   Advanced     = painted/base metal shell + glass + wood patches (4 slots)
+#:   Top          = dark heavy plated shell + glass + metal/copper accents
+#:   Construction = raw wood + bare metal                           (2 slots)
+#:
+#: **PaintedMetal.* is banned from MATERIAL_MAP on purpose.**  Its whole albedo
+#: PNG is a yellow/black (FT) resp. blue/black (IT) warning-stripe texture; using
+#: it for a large shell is exactly the "yellow/black top tier" the user reported.
+#: It stays in MATERIAL_WHITELIST so the whitelist stays a superset of the real
+#: faction MaterialCollection, but it must never be assigned to a shipped model
+#: (asserted below and re-checked by the art validators and L1 tests).
 MATERIAL_MAP = {
     ("Basic", "Folktails", False):
-        # v2.2 reference-image upgrade: dark-brown rough planks + vanilla moss
-        # accents (the thatched roof was replaced by a dark timber plank roof, so
-        # the second slot now carries the moss/foliage material instead of thatch).
+        # v2.2 reference-image upgrade kept: dark-brown rough timber + vanilla
+        # moss accents (the thatched roof was replaced by a dark timber roof, so
+        # the second slot carries the moss/foliage material instead of thatch).
         {"M_HDBF_Wood": "BaseWood_Brown.Folktails",
          "M_HDBF_Fabric": "Moss.Folktails"},
     ("Basic", "IronTeeth", False):
         {"M_HDBF_Wood": "BaseWood_DarkBrown.IronTeeth",
          "M_HDBF_Fabric": "RoofPlanks.IronTeeth"},
     ("Intermediate", "Folktails", False):
-        {"M_HDBF_Wood": "IrregularPlanks_LightBrown.Folktails",
+        # honey timber (BaseWood_1K_D_White * warm _Color tint) + cream plaster.
+        {"M_HDBF_Wood": "BaseWood_LightBrown.Folktails",
          "M_HDBF_Glass": "WindowsAtlas.Folktails",
          "M_HDBF_Fabric": "Plaster_White.Folktails"},
     ("Intermediate", "IronTeeth", False):
-        {"M_HDBF_Wood": "IrregularPlanks_DarkBrown.IronTeeth",
+        # light-grey timber + the orange IronTeeth plaster tint.
+        {"M_HDBF_Wood": "BaseWood_Grey.IronTeeth",
          "M_HDBF_Glass": "WindowsAtlas.IronTeeth",
          "M_HDBF_Fabric": "Plaster_Orange.IronTeeth"},
     ("Advanced", "Folktails", False):
+        # ART-05: PaintedMetal (yellow/black hazard) -> BaseMetal flat painted
+        # sheet metal; whitewashed timber patch plates + detail/rivet plates.
         {"M_HDBF_Wood": "BaseWood_White.Folktails",
-         "M_HDBF_Metal": "PaintedMetal.Folktails",
-         "M_HDBF_Glass": "WindowsAtlas.Folktails",
-         "M_HDBF_Fabric": "Details.Folktails"},
-    ("Advanced", "IronTeeth", False):
-        {"M_HDBF_Wood": "BaseWood_Grey.IronTeeth",
-         "M_HDBF_Metal": "PaintedMetal.IronTeeth",
-         "M_HDBF_Glass": "WindowsAtlas.IronTeeth",
-         "M_HDBF_Fabric": "Details.IronTeeth"},
-    ("Top", "Folktails", False):
-        {"M_HDBF_Wood": "IrregularPlanks_Brown.Folktails",
          "M_HDBF_Metal": "BaseMetal.Folktails",
          "M_HDBF_Glass": "WindowsAtlas.Folktails",
          "M_HDBF_Fabric": "Details.Folktails"},
-    ("Top", "IronTeeth", False):
-        {"M_HDBF_Wood": "BaseWood_DarkBrown.IronTeeth",
+    ("Advanced", "IronTeeth", False):
+        # ART-05: grey-blue BaseMetal steel shell + dark detail plates.
+        {"M_HDBF_Wood": "IrregularPlanks_MetalForged.IronTeeth",
          "M_HDBF_Metal": "BaseMetal.IronTeeth",
+         "M_HDBF_Glass": "WindowsAtlas.IronTeeth",
+         "M_HDBF_Fabric": "Details.IronTeeth"},
+    ("Top", "Folktails", False):
+        # ART-05: dark heavy plated shell from the Details atlas (its banner /
+        # logo / canvas regions are excluded from the patch) + steel accents.
+        {"M_HDBF_Wood": "IrregularPlanks_Brown.Folktails",
+         "M_HDBF_Metal": "Details.Folktails",
+         "M_HDBF_Glass": "WindowsAtlas.Folktails",
+         "M_HDBF_Fabric": "BaseMetal.Folktails"},
+    ("Top", "IronTeeth", False):
+        # ART-05: dark heavy plated shell + forged copper/steel accents ("brass"
+        # accent language of the reference lineup) + very dark timber trim.
+        {"M_HDBF_Wood": "BaseWood_DarkBrown.IronTeeth",
+         "M_HDBF_Metal": "Details.IronTeeth",
          "M_HDBF_Glass": "WindowsAtlas.IronTeeth",
          "M_HDBF_Fabric": "IrregularPlanks_MetalForged.IronTeeth"},
 }
@@ -210,8 +227,15 @@ for _tier in TIERS:
         "M_HDBF_Wood": "BaseWood_Brown.Folktails",
         "M_HDBF_Metal": "BaseMetal.Folktails",
     }
+    # ART-05: the construction stage is ONE shared source mesh (same geometry +
+    # UVs) exported for both factions, so the wood slot must use materials whose
+    # patches were searched JOINTLY and share the same UV window (see
+    # `construction_shared_patches` in art/material_texture_map.json):
+    #   BaseWood_Brown.Folktails (FT) <-> RoofPlanks.IronTeeth (IT)
+    #   BaseMetal.Folktails (FT)      <-> BaseMetal.IronTeeth (IT)
+    # RoofPlanks reads as raw dark construction timber for the IronTeeth greybox.
     MATERIAL_MAP[(_tier, "IronTeeth", True)] = {
-        "M_HDBF_Wood": "BaseWood_DarkBrown.IronTeeth",
+        "M_HDBF_Wood": "RoofPlanks.IronTeeth",
         "M_HDBF_Metal": "BaseMetal.IronTeeth",
     }
 
@@ -225,6 +249,15 @@ for _faction, _names in MATERIAL_WHITELIST.items():
 for (_t, _f, _c), _mapping in MATERIAL_MAP.items():
     for _target in _mapping.values():
         assert _target.endswith("." + _f), (_t, _f, _target)
+
+# ART-05 hard rule: the warning-stripe paint materials must never be mapped to a
+# shipped model (user bug 2026-10-27: yellow/black top tier).  Enforced again by
+# art/validate_timbermesh.py, art/validate_models.py and the L1 contract tests.
+BANNED_MATERIALS = ("PaintedMetal.Folktails", "PaintedMetal.IronTeeth")
+for _mapping in MATERIAL_MAP.values():
+    for _target in _mapping.values():
+        assert _target not in BANNED_MATERIALS, (
+            "BANNED_MATERIALS used in MATERIAL_MAP: %r" % (_target,))
 
 
 # --------------------------------------------------------------------------- #

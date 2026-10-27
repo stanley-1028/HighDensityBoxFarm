@@ -1,12 +1,12 @@
 # Art contract — HDBF v2 3×3×1 indoor box farm `.timbermesh` models
 
-> **状态**：v2.2「参考图驱动的材质/开窗升级」交付（2026-10-26），离线验证完成；**未实机验证**。
+> **状态**：v2.3 / **ART-05「真实原版材质贴图 patch」修复**交付（2026-10-27），离线验证完成；**未实机验证**。
 > **适用**：模组 2.2.0 / v2 美术卡 + `art/references/` 升级卡（REQ-V2-BLD-01/03/04/06、REQ-V2-ART-01..04）。
-> **变更摘要（v2.2）**：按 `art/references/` 的 7 张 Seedream 参考图做了一轮**材质分区 + 开窗比例 + 四档可辨度**
-> 升级（木框包边 / 大面积分格玻璃 / 金属补丁+铆钉 / 苔藓点缀 / 分层室内剪影，四档递进），
-> 外包络 3×3×1、平屋顶行走面 y=1.00、3 个 `#Port#`、0 个 `#Slot#`、flat-patch 材质的**硬契约不变**。
-> 16 个 `.timbermesh` 的**文件名与资产路径不变**；参考图里与本契约冲突的做法（屋顶立管、外伸台阶、斜玻璃顶、
-> 出占地的脚手架）**没有照抄**，见 §8。
+> **本次修复（ART-05）针对用户 2026-10-27 实机截图缺陷**：四档模型表面呈**棋盘/拼布块**、顶级出现**黄黑警示条纹**。
+> 根因：ART-04 的 flat-patch UV 假设所有原版材质共用一张 2048 ART-01 图集；实际每个原版
+> `MaterialCollection` 材质有自己的 1024² `_D` 反照率贴图 + 材质 `_Color` 染色。本版把
+> **每个材质的真实贴图与其低方差代表区域 patch** 作为唯一 UV 契约（`art/material_texture_map.json`），
+> 预览/图标也改为采样同一批真实贴图，不再使用自造图集。几何/外包络/平屋顶/端口/无 `#Slot#` 契约不变。
 
 > **文件名保留说明。** `data/ART_PLACEHOLDER.md` 被 `tools/validate`、`docs/REQ_TRACEABILITY.md`、
 > `docs/ARCHITECTURE.md`、`docs/OPS.md` 引用；改名会造成悬空引用。文件名是历史遗留，内容早已不是占位美术。
@@ -28,78 +28,70 @@ ART_CONTRACT: material=flat-patch
 ART_CONTRACT: ground-crops-hidden=BUILD-05
 ```
 
+> `ART_CONTRACT: material=flat-patch` 自 ART-05 起语义为：**同一材质的每个面都映射到该材质真实
+> `_D` 贴图上的同一个固定 patch**（"flat patch" 指“一个材质一个固定采样区”，不再指 ART-01 的 2048 图集）。
+> 材质名仍是**当前阵营的原版 `MaterialCollection` 材质资产名**；`PaintedMetal.*`（整张黄黑/蓝黑警示条
+> 贴图）被列入禁用清单，不得用于外壳（见 §6）。
+
 ---
 
-## 1. v2.2 升级内容（相对 v2）
+## 1. ART-05 变更摘要（相对 v2.2）
 
-参考图只做**美术方向依据**，不直接进游戏；游戏资产仍是 `art/gen_models_v2.py` 产出的 `.timbermesh`。
-
-| 项 | v2（本文件上一版） | v2.2（本版） |
+| 项 | v2.2（ART-04） | v2.3（ART-05，本版） |
 |---|---|---|
-| 立面分区 | 每档「一种墙 + 开口切洞 + 少量框料」 | **木框包边 / 大面积分格玻璃 / 金属补丁+铆钉 / 苔藓点缀** 四层语言；四档递进 |
-| Basic | 全开放木棚 + 茅草/帆布屋顶，无门 | **深棕粗木板**（`BaseWood_Brown`）+ **原版苔藓**（`Moss.Folktails`，仅 Folktails）+ 两跨开放窗 + **正面居中木门** + 斜撑 + 木屋面板 |
-| Intermediate | 2 扇小窗 + 抹灰带 | **蜂蜜/浅棕木框 + 温室大玻璃分格**（侧墙玻璃 **54.0%**）+ **奶油石膏平屋顶/墙带**（`Plaster_White/Orange`） |
-| Advanced | 4+4 小玻璃格 + 金属带 | **蓝灰金属壳/框 + 大玻璃幕（分格 mullion）+ 木板补丁 + 铆接金属带**（钢构视觉占比 > 木） |
-| Top | 5+5 小玻璃格 + 百叶 | **深色重钢 + 更密构架（3×3 / 2×3 分格、竖向肋）+ 铆钉/法兰 + 工业金属平屋顶**（仍**平屋顶**，无斜玻璃顶） |
-| 入口 | Basic 无门；Top 门在背面 | 四档**正面居中门**（Basic/Intermediate 木门，Advanced/Top 金属门）；**齐平门槛 + 内侧踏步**，无伸出占地的台阶 |
-| 室内表达 | 3 层静态货架 | 3 层静态货架 + **成排作物剪影**（托盘+叶簇，纯装饰几何，非 600 个槽位模型）；开阔档直接可见，玻璃档透玻璃可见 |
-| 屋顶 | 板 + 齐平 0.04 收边 | **框式平台**：周边框梁（frame 材质，顶面=1.00 同高）+ 板缝/板格 + 平台下缘梁；顶面仍是单一平面 y=1.00，**其上 0 几何** |
-| flat patch 角色 | 10 个 | **12 个**：新增 `moss`（苔藓/作物剪影）、`plaster`（奶油石膏）、`planks_dark`（IronTeeth 屋面板） |
-| 生成确定性 | FBX 每次重写内嵌 CreationTimeStamp/UID | **FBX 时间戳与对象 UID 均固定**：两次生成 50/50 源模型逐字节一致 |
-
-**交付的 16 个 `.timbermesh`（文件名/路径不变）：**
-
-* **8 个成品模型（LOD0）**：`BoxFarm.<Tier>.<Faction>.Model.timbermesh`
-* **8 个施工阶段模型**：`BoxFarm.<Tier>.<Faction>.ConstructionStage0.Model.timbermesh`
-
-tiers = `Basic` / `Intermediate` / `Advanced` / `Top`；factions = `Folktails` / `IronTeeth`。
+| UV 基准 | 假设所有原版材质共用 2048² ART-01 图集，patch 是图集像素矩形 | **每个材质用自己的真实 1024² `_D` 贴图**；patch 是该贴图上的低方差代表区域（`art/material_texture_map.json`） |
+| 材质来源真相 | 按材质名猜图集内容 | 从**游戏内真实 Material 资产**读出 `_MainTex` + `_Color`（AssetStudio 枚举 + `Timberborn.PrefabOptimization` IL 交叉验证，见 §6.1） |
+| 面 UV | 落在图集任意内容 → 实机棋盘/拼布 | 同材质所有面落在同一真实贴图 patch 的确定性子矩形内（每面逐点断言在 patch 内） |
+| Advanced 外壳 | `PaintedMetal.*`（**整张黄黑/蓝黑警示条**） | `BaseMetal.Folktails`（橄榄灰烤漆钢板）/ `BaseMetal.IronTeeth`（蓝灰钢板）；**PaintedMetal 完全禁用** |
+| Top 外壳 | `BaseMetal.*` | `Details.*`（深色厚板/铆接件区域）+ `BaseMetal.Folktails`（钢板强调）/ `IrregularPlanks_MetalForged.IronTeeth`（锻造铜/钢板强调） |
+| Basic / Intermediate | 深棕木板 / 蜂蜜木板 + 石膏 + 玻璃 | 同档位语义，但改用低方差代表 patch：`BaseWood_Brown`（深棕木纹）/ `BaseWood_LightBrown`（蜂蜜木）/ `BaseWood_Grey` + `Plaster_White/Orange` |
+| 预览/图标 | 用 `art/gen_textures.py` 自造 2048 伪图集渲染 → “预览好看、实机崩” | **直接加载真实 `_D` PNG + 材质 `_Color` 染色**（`art/preview_materials.py`），与实机采样一致 |
+| 验证器 | C7 检查 UV 在 ART-04 role patch 内 | C7/C11 检查 UV 在**材质真实 patch** 内；C10/C12 材质贴图映射覆盖；C11/C13 从真实 PNG 复测 patch 的 mean RGB/std；C12/C14 黄黑警示材质禁用；负向对照 3/3 必须 FAIL |
 
 ---
 
 ## 2. 模型清单（实测 values；资产路径冻结）
 
 | Tier | Faction | Kind | `TimbermeshSpec.Model` 资产路径（无扩展名） | 文件（`data/Buildings/Food/BoxFarm/`） | Bytes | Tris | Vertices |
-|---|---|---|---|---:|---:|---:|
-| Basic | Folktails | finished LOD0 | `Buildings/Food/BoxFarm/BoxFarm.Basic.Folktails.Model` | `BoxFarm.Basic.Folktails.Model.timbermesh` | 135810 | 5850 | 13664 |
-| Basic | IronTeeth | finished LOD0 | `Buildings/Food/BoxFarm/BoxFarm.Basic.IronTeeth.Model` | `BoxFarm.Basic.IronTeeth.Model.timbermesh` | 135169 | 5850 | 13638 |
-| Intermediate | Folktails | finished LOD0 | `Buildings/Food/BoxFarm/BoxFarm.Intermediate.Folktails.Model` | `BoxFarm.Intermediate.Folktails.Model.timbermesh` | 130181 | 5854 | 13556 |
-| Intermediate | IronTeeth | finished LOD0 | `Buildings/Food/BoxFarm/BoxFarm.Intermediate.IronTeeth.Model` | `BoxFarm.Intermediate.IronTeeth.Model.timbermesh` | 129979 | 5854 | 13564 |
-| Advanced | Folktails | finished LOD0 | `Buildings/Food/BoxFarm/BoxFarm.Advanced.Folktails.Model` | `BoxFarm.Advanced.Folktails.Model.timbermesh` | 131715 | 5850 | 13537 |
-| Advanced | IronTeeth | finished LOD0 | `Buildings/Food/BoxFarm/BoxFarm.Advanced.IronTeeth.Model` | `BoxFarm.Advanced.IronTeeth.Model.timbermesh` | 131584 | 5850 | 13545 |
-| Top | Folktails | finished LOD0 | `Buildings/Food/BoxFarm/BoxFarm.Top.Folktails.Model` | `BoxFarm.Top.Folktails.Model.timbermesh` | 130630 | 5918 | 13612 |
-| Top | IronTeeth | finished LOD0 | `Buildings/Food/BoxFarm/BoxFarm.Top.IronTeeth.Model` | `BoxFarm.Top.IronTeeth.Model.timbermesh` | 130428 | 5918 | 13620 |
-| Basic | Folktails | construction stage | `Buildings/Food/BoxFarm/BoxFarm.Basic.Folktails.ConstructionStage0.Model` | `BoxFarm.Basic.Folktails.ConstructionStage0.Model.timbermesh` | 22617 | 864 | 2166 |
-| Basic | IronTeeth | construction stage | `Buildings/Food/BoxFarm/BoxFarm.Basic.IronTeeth.ConstructionStage0.Model` | `BoxFarm.Basic.IronTeeth.ConstructionStage0.Model.timbermesh` | 22622 | 864 | 2166 |
-| Intermediate | Folktails | construction stage | `Buildings/Food/BoxFarm/BoxFarm.Intermediate.Folktails.ConstructionStage0.Model` | `BoxFarm.Intermediate.Folktails.ConstructionStage0.Model.timbermesh` | 22626 | 864 | 2166 |
-| Intermediate | IronTeeth | construction stage | `Buildings/Food/BoxFarm/BoxFarm.Intermediate.IronTeeth.ConstructionStage0.Model` | `BoxFarm.Intermediate.IronTeeth.ConstructionStage0.Model.timbermesh` | 22631 | 864 | 2166 |
-| Advanced | Folktails | construction stage | `Buildings/Food/BoxFarm/BoxFarm.Advanced.Folktails.ConstructionStage0.Model` | `BoxFarm.Advanced.Folktails.ConstructionStage0.Model.timbermesh` | 22621 | 864 | 2166 |
-| Advanced | IronTeeth | construction stage | `Buildings/Food/BoxFarm/BoxFarm.Advanced.IronTeeth.ConstructionStage0.Model` | `BoxFarm.Advanced.IronTeeth.ConstructionStage0.Model.timbermesh` | 22625 | 864 | 2166 |
-| Top | Folktails | construction stage | `Buildings/Food/BoxFarm/BoxFarm.Top.Folktails.ConstructionStage0.Model` | `BoxFarm.Top.Folktails.ConstructionStage0.Model.timbermesh` | 22614 | 864 | 2166 |
-| Top | IronTeeth | construction stage | `Buildings/Food/BoxFarm/BoxFarm.Top.IronTeeth.ConstructionStage0.Model` | `BoxFarm.Top.IronTeeth.ConstructionStage0.Model.timbermesh` | 22619 | 864 | 2166 |
+|---|---|---|---:|---:|---:|---:|
+| Basic | Folktails | finished LOD0 | `Buildings/Food/BoxFarm/BoxFarm.Basic.Folktails.Model` | `BoxFarm.Basic.Folktails.Model.timbermesh` | 137112 | 5850 | 13662 |
+| Basic | IronTeeth | finished LOD0 | `Buildings/Food/BoxFarm/BoxFarm.Basic.IronTeeth.Model` | `BoxFarm.Basic.IronTeeth.Model.timbermesh` | 131612 | 5850 | 13638 |
+| Intermediate | Folktails | finished LOD0 | `Buildings/Food/BoxFarm/BoxFarm.Intermediate.Folktails.Model` | `BoxFarm.Intermediate.Folktails.Model.timbermesh` | 131560 | 5854 | 13554 |
+| Intermediate | IronTeeth | finished LOD0 | `Buildings/Food/BoxFarm/BoxFarm.Intermediate.IronTeeth.Model` | `BoxFarm.Intermediate.IronTeeth.Model.timbermesh` | 128163 | 5854 | 13564 |
+| Advanced | Folktails | finished LOD0 | `Buildings/Food/BoxFarm/BoxFarm.Advanced.Folktails.Model` | `BoxFarm.Advanced.Folktails.Model.timbermesh` | 133058 | 5850 | 13539 |
+| Advanced | IronTeeth | finished LOD0 | `Buildings/Food/BoxFarm/BoxFarm.Advanced.IronTeeth.Model` | `BoxFarm.Advanced.IronTeeth.Model.timbermesh` | 133106 | 5850 | 13549 |
+| Top | Folktails | finished LOD0 | `Buildings/Food/BoxFarm/BoxFarm.Top.Folktails.Model` | `BoxFarm.Top.Folktails.Model.timbermesh` | 131620 | 5918 | 13610 |
+| Top | IronTeeth | finished LOD0 | `Buildings/Food/BoxFarm/BoxFarm.Top.IronTeeth.Model` | `BoxFarm.Top.IronTeeth.Model.timbermesh` | 131781 | 5918 | 13620 |
+| Basic | Folktails | construction stage | `Buildings/Food/BoxFarm/BoxFarm.Basic.Folktails.ConstructionStage0.Model` | `BoxFarm.Basic.Folktails.ConstructionStage0.Model.timbermesh` | 22810 | 864 | 2166 |
+| Basic | IronTeeth | construction stage | `Buildings/Food/BoxFarm/BoxFarm.Basic.IronTeeth.ConstructionStage0.Model` | `BoxFarm.Basic.IronTeeth.ConstructionStage0.Model.timbermesh` | 22810 | 864 | 2166 |
+| Intermediate | Folktails | construction stage | `Buildings/Food/BoxFarm/BoxFarm.Intermediate.Folktails.ConstructionStage0.Model` | `BoxFarm.Intermediate.Folktails.ConstructionStage0.Model.timbermesh` | 22821 | 864 | 2166 |
+| Intermediate | IronTeeth | construction stage | `Buildings/Food/BoxFarm/BoxFarm.Intermediate.IronTeeth.ConstructionStage0.Model` | `BoxFarm.Intermediate.IronTeeth.ConstructionStage0.Model.timbermesh` | 22817 | 864 | 2166 |
+| Advanced | Folktails | construction stage | `Buildings/Food/BoxFarm/BoxFarm.Advanced.Folktails.ConstructionStage0.Model` | `BoxFarm.Advanced.Folktails.ConstructionStage0.Model.timbermesh` | 22815 | 864 | 2166 |
+| Advanced | IronTeeth | construction stage | `Buildings/Food/BoxFarm/BoxFarm.Advanced.IronTeeth.ConstructionStage0.Model` | `BoxFarm.Advanced.IronTeeth.ConstructionStage0.Model.timbermesh` | 22812 | 864 | 2166 |
+| Top | Folktails | construction stage | `Buildings/Food/BoxFarm/BoxFarm.Top.Folktails.ConstructionStage0.Model` | `BoxFarm.Top.Folktails.ConstructionStage0.Model.timbermesh` | 22808 | 864 | 2166 |
+| Top | IronTeeth | construction stage | `Buildings/Food/BoxFarm/BoxFarm.Top.IronTeeth.ConstructionStage0.Model` | `BoxFarm.Top.IronTeeth.ConstructionStage0.Model.timbermesh` | 22806 | 864 | 2166 |
 
-合计：**1,236,471 bytes / 53,856 tris / 126,064 vertices**（成品 8 档 1,095,496 B / 46,944 tris；施工 8 档 140,975 B / 6,912 tris）。
-每档 LOD0 三角预算 6,000，最高 **5,918**（v2 最高 5,958，本版未放松预算）。每个文件 **4 个节点**：1 root mesh + 3 个端口空节点；**0 个 `#Slot#`**。
-
-`art/timbermesh/*.timbermesh` 与 `data/Buildings/Food/BoxFarm/*.timbermesh` 逐字节一致
-（**16/16 SHA-256 相同**，2026-10-26 实测）。SHA-256：
+合计：**1,240,511 bytes / 53,856 tris / 126,064 vertices**（成品 8 档 1,098,512 B / 46,944 tris；施工 8 档 141,999 B / 6,912 tris）。
+每档 LOD0 三角预算 6,000，最高 **5,918**。每个文件 **4 个节点**：1 root mesh + 3 个端口空节点；**0 个 `#Slot#`**。
+`art/timbermesh/*.timbermesh` 与 `data/Buildings/Food/BoxFarm/*.timbermesh` 逐字节一致（16/16 SHA-256 相同，见 `art/timbermesh/export-determinism.txt`）：
 
 ```text
-BoxFarm.Basic.Folktails.Model                              afa14a1124a9f21fd7d675a87b3fd5bb001399a454e625433f12b12388f427e2
-BoxFarm.Basic.IronTeeth.Model                              73e5a5b0f3dd2850d002c262445e2f52080605905fd1c08eae3a1bdc60d946a0
-BoxFarm.Intermediate.Folktails.Model                       43622a6e25d9f6ea86de47f0be61bf294baa6615d43fd059ed571a46b760cecd
-BoxFarm.Intermediate.IronTeeth.Model                       1855f2606662095a34bddea04e444a49e04fd03816c9ffeb466d2ff8421c1fbf
-BoxFarm.Advanced.Folktails.Model                           62daa625a29a0772e1c2fffda03584a3cc562a4c67f5fb9a9aad5a2ce286fb59
-BoxFarm.Advanced.IronTeeth.Model                           8c911b3198191f89c09938f2ae86914bd31cdd1e5f60849e391947a4a6c3c2b7
-BoxFarm.Top.Folktails.Model                                aa333816b1d6ef33d7885f3fecd6ca42720443b441f4d7acd2e93f8f550f343e
-BoxFarm.Top.IronTeeth.Model                                1f90464aa39ffae955f7a7280c24940ac4e96b623346c2955c9e94ab026c26b5
-BoxFarm.Basic.Folktails.ConstructionStage0.Model           532bae8f15ec20afc5b06fa6156021b111facdaef899eba4d7dc7b1a8f656c90
-BoxFarm.Basic.IronTeeth.ConstructionStage0.Model           994342b907db7aa702cda79799a72b0abde2319a85900cc8a9a9974f99076c84
-BoxFarm.Intermediate.Folktails.ConstructionStage0.Model    38c65687f422164781b3cd6873fa12d04c4f4c431e3c578d7ccf2142c5cfd6d0
-BoxFarm.Intermediate.IronTeeth.ConstructionStage0.Model    b453234f208af760ad2be8db80c855a3af6087af3ad2a7404b1e909f511dc3fb
-BoxFarm.Advanced.Folktails.ConstructionStage0.Model        018bb4b6d5b5dbe50fbca76ea15ffcb988fa6b06e8c15730fd929d8f5296e868
-BoxFarm.Advanced.IronTeeth.ConstructionStage0.Model        b2c878b710bec9d4926eaebefe2637faa964f11d21d236e78a4288db005d3098
-BoxFarm.Top.Folktails.ConstructionStage0.Model             8b4a58444a183696b846b4135f3f7079ea8784fd71c3c7e1cba3814fd8dad2be
-BoxFarm.Top.IronTeeth.ConstructionStage0.Model             94231f0a684bcef48a4c1a0eaf0b9f548cde07ad1975cfe3277678d702801e30
+BoxFarm.Advanced.Folktails.Model                           96476b32d104f0fba82f933fecee95f73a6caa6b9e9b3b86b01325b8038ef648
+BoxFarm.Advanced.IronTeeth.Model                           77225b3cd13f654b7ea0956fbc1dbb3d69044042430bee199a73fae25295cf35
+BoxFarm.Basic.Folktails.Model                              856faee1468fea35f2cb4859bc5690f380168a55978b81e60caf137bce3cdbea
+BoxFarm.Basic.IronTeeth.Model                              5ac0175f04ff63f32548aa45abb2a320ed0b1c7a4ea9bf4f7fc6627f4012d18e
+BoxFarm.Intermediate.Folktails.Model                       bdc0a19b34065e1d30b441f35f28c3d4cbe6d7386a4b968c6faedb12b35d213f
+BoxFarm.Intermediate.IronTeeth.Model                       13adc447cf9baa71e80b91ea5b911d41b232ba5adbb74cd6db91a1adcf100c0d
+BoxFarm.Top.Folktails.Model                                34ae271a77842cd5023dca3b197818a35380bfba71a9e3fc777ec316ba0e5f75
+BoxFarm.Top.IronTeeth.Model                                61bed1f2277395c54639ed81c0a1c4baaf90820757767eb9ab25479daac70955
+BoxFarm.Advanced.Folktails.ConstructionStage0.Model        8d4aebf8ab988084e4e81d2feca95c32cb575ebc376715e1b2fa88fc8233bed5
+BoxFarm.Advanced.IronTeeth.ConstructionStage0.Model        0a9a8634d15378ce6b6c3b53ed1c3aa7f2809e148445feda20e61c338e9c4c7c
+BoxFarm.Basic.Folktails.ConstructionStage0.Model           91081dd74171ee15cf697e3fb8303650f7179360f85464a3642ee4a0d110e607
+BoxFarm.Basic.IronTeeth.ConstructionStage0.Model           a0b851bf9d3f13cbc31e03e8a054d821920d2b1d505c6cf23ebba7d0d89f81d3
+BoxFarm.Intermediate.Folktails.ConstructionStage0.Model    df6219f2b57029c1fd288101b2db2bb611a54128782908355942b4b4a6b5b694
+BoxFarm.Intermediate.IronTeeth.ConstructionStage0.Model    2c34f2b7fff184da767674d77dcf3518fb46b5bae031c85dc1942703857c37a7
+BoxFarm.Top.Folktails.ConstructionStage0.Model             041c6e38bf8a18e0107d2a6ca16dabf0e719eaf86906e5582bfea263e8511a84
+BoxFarm.Top.IronTeeth.ConstructionStage0.Model             b1de924ea7dcbcab7d6f09d4a44c959d684e40002d652ce12986c30ebc09b4f5
 ```
 
 ---
@@ -167,7 +159,7 @@ size=3.000/1.000/3.000  min=-0.000/-0.000/-0.000  (tolerance +-0.02)   16/16 PAS
 
 模型里唯一的空节点是 3 个 `#Port#` 标记；**没有任何 `#Slot#` / `#Slot#Crop_*` 节点**，
 也没有槽体/土壤/作物实体。8 个蓝图的根节点仍**不含** `TransformSlotInitializerSpec` /
-`WorkplaceSlotManagerSpec`（沿用 ART-04 结论：自定义网格没有 Seat/Entrance 插槽，声明会在放置时抛异常）。
+`WorkplaceSlotManagerSpec`（自定义网格没有 Seat/Entrance 插槽，声明会在放置时抛异常）。
 
 | 空节点 | contract space（中心轴心） | 游戏 export space（block-corner） | 朝外 | 语义 |
 |---|---|---|---|---|
@@ -177,55 +169,95 @@ size=3.000/1.000/3.000  min=-0.000/-0.000/-0.000  (tolerance +-0.02)   16/16 PAS
 
 实测：`art/validate_timbermesh.py` C6 对 16/16 文件：**3/3 端口存在且唯一、位置偏差 0.0000**
 （容差 0.02）、vertexCount=0、无 mesh、**0 个 `#Slot#`**。源模型（FBX/GLB）中端口空节点位置与
-local +Z 朝向也由 `art/validate_models.py` C5 双检。
-
-> **参考图冲突处理**：参考图把三根立管放在**屋顶/顶面**；按 REQ-V2-BLD-03/06 端口必须在**后立面/侧立面、
-> 低于屋面**。本版保持冻结坐标：Power、Logistics 在**后立面**（+Z），Pipe 在**左侧短边**（−X，v1 契约位置）；
-> 三者都在屋面以下，屋顶顶面保持空。
+local +Z 朝向由 `art/validate_models.py` C5 双检。
 
 ---
 
-## 6. 材质：原版 `MaterialCollection` 名称 + flat-patch UV
+## 6. 材质：原版 `MaterialCollection` 名称 + 真实贴图 patch（ART-05 核心）
 
-16 个文件里的材质名全部是**当前阵营的原版材质资产名**（游戏按名字在 `MaterialCollection` 解析；
-不附带任何自订贴图/材质 AssetBundle；v2.2 新增的 `Moss.Folktails` 也是原版
-`MaterialCollection.Folktails` 已列出的材质，见 `C:\Users\user\.hdbf\ref\Blueprints\MaterialCollections`）。
-UV 沿用 ART-04 的 **flat patch** 策略：同一材质槽的所有面映射到该材质的一个固定小 UV 矩形
-（`art/material_patches.py`，v2.2 共 **12 个 patch**、64 texels/grid），造型细节由几何承担。
-`art/validate_models.py` C7 对 25 个源模型（FBX+GLB）逐三角形检查：**所有 UV 都落在其材质自己的 flat patch 内**。
+### 6.1 材质 → 真实贴图的技术事实（不是猜测）
 
-| Tier | Faction | # | 材质（原版资产名） | v2.2 视觉分工 |
-|---|---|---:|---|---|
-| Basic | Folktails | 2 | `BaseWood_Brown.Folktails`, `Moss.Folktails` | 深棕粗木板（墙/框/屋顶）+ 苔藓/作物剪影 |
-| Basic | IronTeeth | 2 | `BaseWood_DarkBrown.IronTeeth`, `RoofPlanks.IronTeeth` | 深色木板 + 深色屋面板 |
-| Intermediate | Folktails | 3 | `IrregularPlanks_LightBrown.Folktails`, `Plaster_White.Folktails`, `WindowsAtlas.Folktails` | 蜂蜜/浅棕木框 + 奶油石膏 + 大玻璃 |
-| Intermediate | IronTeeth | 3 | `IrregularPlanks_DarkBrown.IronTeeth`, `Plaster_Orange.IronTeeth`, `WindowsAtlas.IronTeeth` | 深棕木框 + 暖石膏 + 大玻璃 |
-| Advanced | Folktails | 4 | `BaseWood_White.Folktails`, `PaintedMetal.Folktails`, `Details.Folktails`, `WindowsAtlas.Folktails` | 金属壳/框 + 玻璃幕 + 木板补丁 + 铆接带 |
-| Advanced | IronTeeth | 4 | `BaseWood_Grey.IronTeeth`, `PaintedMetal.IronTeeth`, `Details.IronTeeth`, `WindowsAtlas.IronTeeth` | 蓝灰金属壳/框 + 玻璃幕 + 木板补丁 + 铆接带 |
-| Top | Folktails | 4 | `IrregularPlanks_Brown.Folktails`, `BaseMetal.Folktails`, `Details.Folktails`, `WindowsAtlas.Folktails` | 重钢 + 铆钉/法兰 + 密构架 + 暗色木点缀 |
-| Top | IronTeeth | 4 | `BaseWood_DarkBrown.IronTeeth`, `BaseMetal.IronTeeth`, `IrregularPlanks_MetalForged.IronTeeth`, `WindowsAtlas.IronTeeth` | 深色重钢 + 铆钉/法兰 + 密构架 + 锻木板 |
-| construction（8 档） | 各自阵营 | 2 | Folktails: `BaseWood_Brown.Folktails`, `BaseMetal.Folktails` / IronTeeth: `BaseWood_DarkBrown.IronTeeth`, `BaseMetal.IronTeeth` | 原木 + 裸金属 |
+* 游戏按名字从**当前阵营**的 `MaterialCollection` 解析材质（`Timberborn.TimbermeshMaterials.MaterialRepository`）；
+  材质名不带自订 PBR / AssetBundle。
+* 每个材质有**自己的** `_MainTex`（1024×1024 `_D` 反照率 PNG）与材质 `_Color` 染色。
+  本表由**游戏安装目录的真实 Material 资产**读出（AssetStudioModCLI 枚举 `resources.assets` 的 Material +
+  自写 probe 解析 `m_SavedProperties._MainTex / _Color`，2026-10-27）。
+* 运行时 UV 语义（`Timberborn.PrefabOptimization.AutoAtlaser` / `AutoAtlasingPrefabOptimizer` IL 实测）：
+  阵营 auto-atlas 会把网格 UV 重映射为 `uv_atlas = uv * (1/sizeMultiplier) + cell_offset`，即
+  **材质自己贴图内的归一化位置被保留**；不在 auto-atlas 里的材质直接 1:1 采样；`_Color` 乘到采样结果上。
+  因此 patch 用“该材质贴图的归一化 UV 矩形”表达即可在实机得到正确采样。
 
-flat-patch 角色表（权威＝`art/material_patches.py`，机器可读＝`art/material_slots.json`；v2.2 新增 3 个角色）：
+### 6.2 四档材质映射（`art/timbermesh_common.py MATERIAL_MAP`，权威）
 
-| patch id | atlas 分區 | pixel rect | UV rect (u0,v0,u1,v1) | texels | 原版材質名 |
----|---|---|---:|---:|---|
-| `wood_plain` | wood | 96,352,480,736 | 0.046875,0.640625,0.234375,0.828125 | 384×384 | BaseWood_Brown.Folktails, BaseWood_DarkBrown.IronTeeth |
-| `wood_light` | wood | 96,1056,480,1440 | 0.046875,0.296875,0.234375,0.484375 | 384×384 | BaseWood_LightBrown/White.Folktails, BaseWood_Grey.IronTeeth |
-| `planks_light` | wood | 96,1568,480,1952 | 0.046875,0.046875,0.234375,0.234375 | 384×384 | IrregularPlanks_LightBrown.Folktails, IrregularPlanks_DarkBrown.IronTeeth |
-| `planks_brown` | wood | 528,352,784,608 | 0.257812,0.703125,0.382812,0.828125 | 256×256 | IrregularPlanks_Brown.Folktails |
-| `planks_dark` **(新)** | wood | 528,700,784,956 | 0.257812,0.533203,0.382812,0.658203 | 256×256 | RoofPlanks.IronTeeth（Basic IronTeeth 屋面板） |
-| `metal_base` | metal | 1056,384,1440,768 | 0.515625,0.625,0.703125,0.8125 | 384×384 | BaseMetal.Folktails/IronTeeth |
-| `metal_painted` | metal | 1056,1088,1440,1472 | 0.515625,0.28125,0.703125,0.46875 | 384×384 | PaintedMetal.Folktails/IronTeeth |
-| `metal_details` | metal | 1056,1568,1312,1824 | 0.515625,0.109375,0.640625,0.234375 | 256×256 | Details.Folktails/IronTeeth, IrregularPlanks_MetalForged.IronTeeth |
-| `glass` | glass | 1744,704,1832,792 | 0.851562,0.613281,0.894531,0.65625 | 88×88 | WindowsAtlas.Folktails/IronTeeth |
-| `plaster` **(改)** | plaster | 1872,288,2000,416 | 0.914062,0.796875,0.976562,0.859375 | 128×128 | Plaster_White.Folktails, Plaster_Orange.IronTeeth |
-| `roof` | thatch | 1872,1472,2000,1600 | 0.914062,0.21875,0.976562,0.28125 | 128×128 | ThatchedRoof.Folktails（保留映射；本版模型不再使用） |
-| `moss` **(新)** | moss | 1900,940,2020,1060 | 0.927734,0.482422,0.986328,0.541016 | 120×120 | Moss.Folktails |
+| Tier | Faction | 槽位 → 原版材质 | 视觉意图 |
+|---|---|---|---|
+| Basic | Folktails | `M_HDBF_Wood`=`BaseWood_Brown.Folktails`；`M_HDBF_Fabric`=`Moss.Folktails` | 深棕粗木板 + 苔藓/作物剪影 |
+| Basic | IronTeeth | `M_HDBF_Wood`=`BaseWood_DarkBrown.IronTeeth`；`M_HDBF_Fabric`=`RoofPlanks.IronTeeth` | 深色木板 + 深色屋面板 |
+| Intermediate | Folktails | `M_HDBF_Wood`=`BaseWood_LightBrown.Folktails`；`M_HDBF_Glass`=`WindowsAtlas.Folktails`；`M_HDBF_Fabric`=`Plaster_White.Folktails` | 蜂蜜浅木 + 奶油石膏 + 大玻璃 |
+| Intermediate | IronTeeth | `M_HDBF_Wood`=`BaseWood_Grey.IronTeeth`；`M_HDBF_Glass`=`WindowsAtlas.IronTeeth`；`M_HDBF_Fabric`=`Plaster_Orange.IronTeeth` | 浅灰木 + 暖橘石膏 + 大玻璃 |
+| Advanced | Folktails | `M_HDBF_Wood`=`BaseWood_White.Folktails`；`M_HDBF_Metal`=`BaseMetal.Folktails`；`M_HDBF_Glass`=`WindowsAtlas.Folktails`；`M_HDBF_Fabric`=`Details.Folktails` | 烤漆钢板壳 + 白木补丁 + 玻璃 + 细节板 |
+| Advanced | IronTeeth | `M_HDBF_Wood`=`IrregularPlanks_MetalForged.IronTeeth`；`M_HDBF_Metal`=`BaseMetal.IronTeeth`；`M_HDBF_Glass`=`WindowsAtlas.IronTeeth`；`M_HDBF_Fabric`=`Details.IronTeeth` | **蓝灰钢板壳** + 玻璃幕 + 细节板 |
+| Top | Folktails | `M_HDBF_Wood`=`IrregularPlanks_Brown.Folktails`；`M_HDBF_Metal`=`Details.Folktails`；`M_HDBF_Glass`=`WindowsAtlas.Folktails`；`M_HDBF_Fabric`=`BaseMetal.Folktails` | 深色厚板/铆接壳 + 钢板强调 + 玻璃 |
+| Top | IronTeeth | `M_HDBF_Wood`=`BaseWood_DarkBrown.IronTeeth`；`M_HDBF_Metal`=`Details.IronTeeth`；`M_HDBF_Glass`=`WindowsAtlas.IronTeeth`；`M_HDBF_Fabric`=`IrregularPlanks_MetalForged.IronTeeth` | 深色厚板壳 + 锻造铜/钢板强调（“黄铜点缀”） + 玻璃 |
+| construction（8 档） | Folktails | `M_HDBF_Wood`=`BaseWood_Brown.Folktails`；`M_HDBF_Metal`=`BaseMetal.Folktails` | 原木框架 + 裸钢板 |
+| construction（8 档） | IronTeeth | `M_HDBF_Wood`=`RoofPlanks.IronTeeth`；`M_HDBF_Metal`=`BaseMetal.IronTeeth` | 深色原木框架 + 裸钢板（共享 UV 集，见 §9） |
 
-**诚实的限制**：flat patch 采样的是**原版材质贴图上的固定小区域**，不是我们绘制的 PBR 贴图；离线预览里的
-颜色来自 `art/gen_textures.py` 画的 2048² 图集（只为预览/图标服务），**实机里采样的是原版材质贴图**，
-观感（放大、法线/粗糙度、mipmap）**待实机确认**。自订 PBR 材质仍需 Unity AssetBundle，本卡未做。
+> **PaintedMetal 禁用**：`PaintedMetal.Folktails` / `PaintedMetal.IronTeeth` 的整张 `_D` 贴图就是
+> 黄黑 / 蓝黑**警示条纹**，大面积使用正是用户截图里的“黄黑顶级”。它们仍留在 `MATERIAL_WHITELIST`
+> （白名单是真实 MaterialCollection 的超集），但 `MATERIAL_MAP` 断言禁止使用，验证器与 L1 测试双重禁止。
+
+### 6.3 材质 → 真实贴图 → patch 表（权威＝`art/material_texture_map.json`）
+
+`std` = patch 内 R/G/B 三通道总体标准差的**最大值**（sRGB 0–255 原始字节）；阈值为按材质分级预算
+（wood 18 / metal 14 / glass 12 / plaster 10 / details 26 / moss 16 / roof_planks 16 / forged_planks 27，
+硬上限 30）。**负向对照**：把 patch 换成 PaintedMetal 黄黑条纹区（std≈58–60）必须 FAIL。
+
+| 材质（原版资产名） | 真实 `_D` 贴图 | `_Color` tint | patch pixel rect | patch UV rect (u0,v0,u1,v1) | mean RGB | std / max |
+|---|---|---|---|---:|---:|---:|---:|
+| `BaseMetal.Folktails` | `BaseMetal_D1.png` | (1.00,1.00,1.00) | 68,132,388,452 | 0.066406,0.558594,0.378906,0.871094 | (112.0,100.2,76.7) | 11.29/14.0 |
+| `BaseMetal.IronTeeth` | `BaseMetal_D2.png` | (1.00,1.00,1.00) | 68,132,388,452 | 0.066406,0.558594,0.378906,0.871094 | (110.8,106.1,106.2) | 10.68/14.0 |
+| `BaseWood_Brown.Folktails` | `BaseWood_1K_D_Brown.png` | (1.00,1.00,1.00) | 4,756,260,1012 | 0.003906,0.011719,0.253906,0.261719 | (54.5,40.4,27.0) | 17.73/18.0 |
+| `BaseWood_DarkBrown.IronTeeth` | `BaseWood_1K_D_Grey.png` | (0.3113,0.2673,0.2071) | 364,308,508,452 | 0.355469,0.558594,0.496094,0.699219 | (135.7,129.9,121.0) | 17.93/18.0 |
+| `BaseWood_Grey.IronTeeth` | `BaseWood_1K_D_Grey.png` | (0.6226,0.5796,0.5257) | 364,308,508,452 | 0.355469,0.558594,0.496094,0.699219 | (135.7,129.9,121.0) | 17.93/18.0 |
+| `BaseWood_LightBrown.Folktails` | `BaseWood_1K_D_White.png` | (0.6604,0.5552,0.4081) | 20,244,212,436 | 0.019531,0.574219,0.207031,0.761719 | (148.4,135.1,117.5) | 14.47/18.0 |
+| `BaseWood_White.Folktails` | `BaseWood_1K_D_White.png` | (0.8868,0.8641,0.8324) | 20,244,212,436 | 0.019531,0.574219,0.207031,0.761719 | (148.4,135.1,117.5) | 14.47/18.0 |
+| `Details.Folktails` | `Details_D.Folktails.png` | (1.00,1.00,1.00) | 100,748,356,1004 | 0.097656,0.019531,0.347656,0.269531 | (105.3,80.5,48.3) | 23.73/26.0 |
+| `Details.IronTeeth` | `Details_D.IronTeeth.png` | (1.00,1.00,1.00) | 196,748,452,1004 | 0.191406,0.019531,0.441406,0.269531 | (89.2,75.0,58.0) | 25.40/26.0 |
+| `IrregularPlanks_Brown.Folktails` | `IrregularPlanks_D_Brown.png` | (1.00,1.00,1.00) | 4,204,260,460 | 0.003906,0.550781,0.253906,0.800781 | (51.0,38.0,26.2) | 17.88/18.0 |
+| `IrregularPlanks_MetalForged.IronTeeth` | `PlanksWithMetal_D.png` | (1.00,1.00,1.00) | 636,372,860,596 | 0.621094,0.417969,0.839844,0.636719 | (94.9,73.7,57.6) | 26.26/27.0 |
+| `Moss.Folktails` | `Moss_D.Folktails.png` | (1.00,1.00,1.00) | 188,292,444,548 | 0.183594,0.464844,0.433594,0.714844 | (43.2,48.6,20.9) | 13.10/16.0 |
+| `Plaster_Orange.IronTeeth` | `Plaster_D_White.IronTeeth.png` | (0.8353,0.4824,0.2588) | 468,4,788,324 | 0.457031,0.683594,0.769531,0.996094 | (176.1,159.8,141.2) | 9.97/10.0 |
+| `Plaster_White.Folktails` | `Plaster_D_White.Folktails.png` | (1.00,1.00,1.00) | 468,4,788,324 | 0.457031,0.683594,0.769531,0.996094 | (176.1,159.8,141.2) | 9.97/10.0 |
+| `RoofPlanks.IronTeeth` | `RoofPlanks_D.png` | (1.00,1.00,1.00) | 4,756,260,1012 | 0.003906,0.011719,0.253906,0.261719 | (37.9,39.6,30.4) | 13.55/16.0 |
+| `WindowsAtlas.Folktails` | `WindowsAtlas_D.Folktails.png` | (1.00,1.00,1.00) | 828,772,1020,964 | 0.808594,0.058594,0.996094,0.246094 | (122.3,133.7,139.7) | 11.54/12.0 |
+| `WindowsAtlas.IronTeeth` | `WindowsAtlas_D.IronTeeth.png` | (1.00,1.00,1.00) | 828,772,1020,964 | 0.808594,0.058594,0.996094,0.246094 | (122.3,133.7,139.7) | 11.54/12.0 |
+
+贴图根目录（只读引用，**不复制进发布包**）：`%USERPROFILE%\.hdbf\sdk\vanilla-tex-all` 与
+`%USERPROFILE%\.hdbf\sdk\vanilla-tex-extra`（每张 1024×1024 8-bit RGBA PNG，sha256 记录在 JSON 中）。
+
+patch 选择规则（`art/material_texture_analysis.py`，确定性）：在真实贴图上滑动方窗，要求
+**std ≤ 该材质分级预算**、**窗内均值与材质代表色距离 ≤ 逐材质色差预算**（默认 18/255，玻璃等窄带区域单独放宽）、
+并**禁止**含黄黑警示条 / 阵营横幅 logo / 画布留白 / 补板 / 板缝 / 铆接花纹窗口；在满足条件的窗口中取
+“最大尺寸 + 最小 std+色差”（保证既均匀又像该材质）。同一贴图被多个材质共用时（如 `BaseWood_1K_D_White`
+同时供 LightBrown/White）**共用同一个 patch**，这样 `_Color` 染色不同、采样位置相同。
+
+### 6.4 UV 分配
+
+* 每个面按投影尺寸映射到该材质 patch 内的一个子矩形，texel 密度固定 **32 px/grid**（真实贴图 1024²；
+  等价于 ART-04 在 2048² 上的 64 px/grid，**子矩形密度保持不变**），距 patch 边 4 px 保护带；
+* 生成器对每个面做**硬断言**：所有 UV 必须落在 patch `uv_rect` 内，否则生成失败（不会静默出界）；
+* 同一材质的所有面都落在同一 patch 内 → 实机不会出现跨材质/跨贴图内容的棋盘。
+
+### 6.5 诚实的限制
+
+* patch 取的是原版贴图上的固定代表区域，不是我们绘制的 PBR；**单面颜色会随 patch 内纹理细节有轻微变化**，
+  但不再跨区域跳变。
+* 材质 `_Color` tint 的乘法语义来自 shader 属性 + `EnvironmentMaterialProperties` IL（`_Color` 被读取/写回）；
+  预览按 sRGB 乘法近似，实机最终亮度受游戏光照/tonemap 影响，**待实机确认**。
+* `BaseWood_Brown` 本身是**很深的棕色**（patch 均值约 54/40/27）；Basic 档实机会是**深棕近黑木屋**，
+  这是原版材质真实颜色，不是渲染错误。FT 阵营的 `MaterialCollection` **没有**蓝灰/深灰“重钢”材质，
+  因此 FT 的 Advanced 用 `BaseMetal.Folktails`（橄榄灰烤漆钢板）、Top 用 `Details.Folktails`（深色厚板/铆接件）；
+  IT 的 Advanced 才真正呈现蓝灰钢板（`BaseMetal_D2`）。详见 §12。
 
 ---
 
@@ -233,24 +265,23 @@ flat-patch 角色表（权威＝`art/material_patches.py`，机器可读＝`art/
 
 3×3×1 只有 1 格高，室内用**静态装饰**表达密度，不生成 600 个槽位模型、不生成作物实体：
 
-* **3 层静态货架**（每档相同层数，材料不同）+ **成排作物剪影**（托盘 + 叶簇，deterministic 小件）
-  位于前半室内，Basic 通过开放窗口直接可见，其余档透过玻璃可见；`validate_models.py` C4 逐档检测
-  ≥2 个不同高度的水平货架层（实测 15–16 层/模型，远高于门槛 2）。
-* **开窗方式分档**：Basic = 2 跨开放窗 + 正面中门（无玻璃，C4 强制 glass=0）；
+* **3 层静态货架** + **成排作物剪影**（托盘 + 叶簇，deterministic 小件）位于前半室内；
+  Basic 通过开放窗口直接可见，其余档透过玻璃可见。
+* **开窗方式分档**：Basic = 两跨开放窗 + 正面中门（无玻璃）；
   Intermediate = 7 樘温室大玻璃（2×2 分格）+ 门；Advanced = 7 樘金属框玻璃幕（2×2 分格）+ 木板补丁；
   Top = 8 樘工业玻璃（前 3×3、侧 2×3 更密分格）+ 金属门 + 背部百叶。
-* **玻璃占比（v2.2 新增客观指标，来自 `art/material_slots.json`）**：
+* **玻璃占比（来自 `art/material_slots.json`）**：
 
-  | Tier | 侧墙玻璃占比（left+right / 2×墙带面积） | 正面玻璃占比 | 玻璃可见面积 grid² | C4 玻璃面积（含盒体，门槛） |
-  |---|---:|---:|---:|---:|
-  | Basic | 0.0% | 0.0% | 0.000 | 0.000（必须 0） |
-  | Intermediate | **54.0%**（目标 45–55%） | 41.7% | 4.026 | 8.049（≥0.35） |
-  | Advanced | **53.3%** | 37.7% | 3.896 | 7.922（≥0.60） |
-  | Top | **53.5%** | 34.8% | 3.474 | 7.076（≥0.85） |
+  | Tier | 侧墙玻璃占比（left+right / 2×墙带面积） | 正面玻璃占比 | 玻璃可见面积 grid² |
+  |---|---:|---:|---:|
+  | Basic | 0.0% | 0.0% | 0.000 |
+  | Intermediate | 54.0% | 41.7% | 4.026 |
+  | Advanced | 53.3% | 37.7% | 3.896 |
+  | Top | 53.5% | 34.8% | 3.474 |
 
 * **50% 镜头可辨（C9）**：以 32 px/grid 多视向 material/silhouette/glass/port 栅格比较，
-  **12/12 tier pair PASS**，每对至少 2/4 个判据不同；最紧的是 Intermediate vs Advanced（material 0.942、
-  windows 0.032、plan 0.04，3/4 类）与 Advanced vs Top（material 0.296、windows 0.045、plan 0.02、ports 0.48，4/4 类）。
+  **12/12 tier pair PASS**（每对至少 2/4 判据不同）。ART-05 后材质集合四档互不相同（见 §6.2），
+  可辨度只增不减；实机 50% 可辨仍待截图确认。
 
 ---
 
@@ -258,130 +289,140 @@ flat-patch 角色表（权威＝`art/material_patches.py`，机器可读＝`art/
 
 | 参考图 | 采纳 | 不采纳（与硬契约冲突） | 本版做法 |
 |---|---|---|---|
-| `ref-basic-folktails.jpg` | 深棕粗木板、板缝、**苔藓点缀**、斜撑、开放两跨、室内农产货架剪影 | 门前 2–3 级**外伸台阶**；屋顶边缘厚凸起 | 齐平门槛 + 内侧踏步；屋顶框梁收在 1.00 以下 |
-| `ref-intermediate-folktails.jpg` | 蜂蜜/浅棕木框、**大面积温室玻璃分格**、奶油/浅色平屋顶、背部短管 | 立面顶部**斜玻璃**；屋顶立管 | 垂直玻璃 + 平屋顶；端口在后立面/侧面、低于屋面 |
-| `ref-industrial-ironteeth.jpg` | **蓝灰金属壳/框**、金属分格、铆钉、**木板补丁**、金属门、法兰/粗管、金属平屋顶 | 屋顶边缘凸起金属边框；门前格栅台阶 | 框梁/补丁全部在 1.00 内；门槛齐平 |
-| `ref-tier-lineup.jpg` | 四档**材质/开窗层层递进**、同尺寸同镜头、50% 可辨目标 | 第 3/4 栋仍带**斜玻璃顶** | 全部平屋顶；用材质/分格/框架密度/屋顶板缝区分 |
-| `ref-interior-cutaway.jpg` | 多层货架密度、成排作物剪影、暖色室内感 | 室内层高 >1 格；600 槽动态模型；前景水池 | 1 格高静态 3 层货架 + 作物剪影（纯装饰） |
-| `ref-construction-greybox.jpg` | 灰盒/木框架/脚手架语言、板材堆 | **脚手架伸出占地、高于 1 格** | 脚手架收进 3×3、全部 <1.00；端口节点保留 |
-| `ref-roof-stacking.jpg` | 平屋顶**承托上方建筑**的贴合关系 | 上层建筑本身（不是本卡范围） | 顶面 y=1.00 单一平台、其上 0 几何；叠放实机待验 |
+| `ref-basic-folktails.jpg` | 深棕粗木板、板缝、苔藓点缀、斜撑、开放两跨、室内农产货架剪影 | 门前外伸台阶；屋顶边缘厚凸起 | 齐平门槛 + 内侧踏步；屋顶框梁收在 1.00 以下 |
+| `ref-intermediate-folktails.jpg` | 蜂蜜/浅棕木框、大面积温室玻璃分格、奶油/浅色平屋顶 | 立面顶部斜玻璃；屋顶立管 | 垂直玻璃 + 平屋顶；端口在后立面/侧面、低于屋面 |
+| `ref-industrial-ironteeth.jpg` | 蓝灰金属壳/框、金属分格、铆钉、木板补丁、金属门、法兰/粗管 | 屋顶边缘凸起金属边框；门前格栅台阶 | 框梁/补丁全部在 1.00 内；门槛齐平 |
+| `ref-tier-lineup.jpg` | 四档材质/开窗层层递进、同尺寸同镜头、50% 可辨目标 | 第 3/4 栋仍带斜玻璃顶 | 全部平屋顶；用材质/分格/框架密度/屋顶板缝区分 |
+| `ref-interior-cutaway.jpg` | 多层货架密度、成排作物剪影、暖色室内感 | 室内层高 >1 格；600 槽动态模型 | 1 格高静态 3 层货架 + 作物剪影（纯装饰） |
+| `ref-construction-greybox.jpg` | 灰盒/木框架/脚手架语言、板材堆 | 脚手架伸出占地、高于 1 格 | 脚手架收进 3×3、全部 <1.00；端口节点保留 |
 
 ---
 
 ## 9. 施工阶段（REQ-V2-ART-03）
 
-`data/Buildings/Food/BoxFarm/` 的 8 个 `*.ConstructionStage0.Model.timbermesh` 由同一份共享灰盒
-**参考图语言**导出（每 tier×faction 一份文件，只有路径/`Model.Name` 不同）：3×3×1 包络、
-**木框架 + 内部钢脚手架（立杆/横杆/斜撑，全部在占地内）+ 半建墙体 + 同一平坦空屋顶**
-（走行面 1.00、其上无几何）、2 个材质（原木 + 裸金属）、**864 tris**。
-蓝图的 `Children.#Unfinished.Children.ConstructionStage0.TimbermeshSpec.Model` 路径不变；
-完工替换由蓝图侧完成（本卡不改蓝图）。
+`data/Buildings/Food/BoxFarm/` 的 8 个 `*ConstructionStage0.Model.timbermesh` 由**同一份共享灰盒源模型**
+（`art/models/ConstructionStage0/ConstructionStage0.fbx`，3×3×1、木框架 + 内部钢脚手架 + 半建墙体 +
+同一平坦空屋顶、864 tris）导出，每 tier×faction 一份文件（路径/`Model.Name` 不同）。
+
+**ART-05 关键点：施工阶段只有一套烘焙 UV，却要同时满足两个阵营的材质**。解决方式不是复制源模型，
+而是把施工阶段的两个材质对**联合搜索到同一个 UV 窗口**（`material_texture_map.json` →
+`construction_shared_patches`）：
+
+| 槽位 | Folktails 材质 | IronTeeth 材质 | 共用 UV 窗口（两者相同） |
+|---|---|---|---|
+| `M_HDBF_Wood` | `BaseWood_Brown.Folktails` | `RoofPlanks.IronTeeth` | 0.003906,0.011719,0.253906,0.261719 |
+| `M_HDBF_Metal` | `BaseMetal.Folktails` | `BaseMetal.IronTeeth` | 0.066406,0.558594,0.378906,0.871094 |
+
+因此 16 个 `.timbermesh` 里：FT 施工件材质 = {`BaseWood_Brown.Folktails`, `BaseMetal.Folktails`}，
+IT 施工件材质 = {`RoofPlanks.IronTeeth`, `BaseMetal.IronTeeth`}，但 UV 完全相同且各自都在自己的 patch 内。
+蓝图 `Children.#Unfinished.Children.ConstructionStage0.TimbermeshSpec.Model` 路径不变。
 
 ---
 
-## 10. 复现命令（工作区根目录）
+## 10. 复现命令（工作区根目录；确定性、无时间戳）
 
 沙箱约束：构建/中间产物写 `%TEMP%`；Blender 用 4.2.1 headless（`--factory-startup`）。
 
 ```powershell
 $env:BLENDER_USER_CONFIG = "$env:TEMP\blender-config"
 $b = 'C:\Users\user\.hdbf\sdk\blender-4.2.1-windows-x64\blender.exe'
+$py = 'python'   # 任意 Python 3.11+（需 numpy/Pillow；Blender 自带 Python 也可）
 
-# 0)（仅当图集区域/材质 patch 有变化时）重建 3 张 2048² 图集（v2.2 有变化：moss/plaster/planks_dark）
-& $b -b --factory-startup -noaudio --python art\gen_textures.py
-#    （连跑两次，第二次输出 CROSS-RUN DETERMINISM: PASS；第一次在内容变更后显示 FAIL 属预期）
+# 0) ART-05 材质→真实贴图→patch 映射表（读游戏安装目录的 vanilla _D PNG，只读）
+#    需要 %USERPROFILE%\.hdbf\sdk\vanilla-tex-all 与 vanilla-tex-extra（AssetStudio 解包的游戏贴图）
+& $py art\material_texture_analysis.py --verify     # 复现性检查（PASS 才继续）
+& $py art\material_texture_analysis.py              # 重新生成 art\material_texture_map.json
+#    可选：& $py art\material_texture_analysis.py --swatches .tmp-art05\swatches（人工目检 patch）
 
 # 1) 生成 25 个源模型（8 tier×faction × LOD0/1/2 + ConstructionStage0）+ material_slots.json
 & $b -b --factory-startup -noaudio --python art\gen_models_v2.py
 
-# 2) 验证源模型（FBX 重导入 + GLB 导入双检；C1-C10；写 art/validation-report.txt）
+# 2) 验证源模型（FBX 重导入 + GLB 导入双检；C1-C14 + 负向对照；写 art/validation-report.txt）
 & $b -b --factory-startup -noaudio --python art\validate_models.py
 
 # 3) 导出 16 个 .timbermesh + export-manifest.json（exit 0 = 16/16）
 & $b -b --factory-startup -noaudio --python art\export_timbermesh.py
 
-# 4) 验证 16 个 .timbermesh（纯 Python，无需 Blender；写 art/timbermesh-validation.txt）
-python art\validate_timbermesh.py
+# 4) 验证 16 个 .timbermesh（纯 Python，无需 Blender；C1-C12 + 负向对照；写 art/timbermesh-validation.txt）
+& $py art\validate_timbermesh.py
 
-# 5) 预览（离线渲染，非游戏截图；双阵营 + 50% A/B）
+# 5) 预览（真实 _D 贴图 + 材质 _Color；离线渲染，非游戏截图；双阵营 + 50% A/B）
 & $b -b --factory-startup -noaudio --python art\render_previews.py
 
-# 6) 部署 16 个 .timbermesh 到 data/
+# 6) 图标（真实 _D 贴图；512px 源 + 128px 发布图标 + manifest）
+& $b -b --factory-startup -noaudio --python art\render_icons.py
+
+# 7) 部署 16 个 .timbermesh 到 data/
 Copy-Item art\timbermesh\BoxFarm.*.timbermesh data\Buildings\Food\BoxFarm\ -Force
 
-# 7) L1（含 ArtModelContractTests）
-dotnet run --project tests\HDBF.Tests -c Release -m:1 -p:HdbfWorkRoot="$env:TEMP\hdbf-art2"
+# 8) L1（含 ArtModelContractTests + V2MaterialPatchContractTests）
+dotnet run --project tests\HDBF.Tests -c Release -m:1 -p:HdbfWorkRoot="$env:TEMP\hdbf-art05"
+
+# 9) 发布门禁（44 gates）
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File build.ps1 -WorkRoot "$env:TEMP\hdbf-art05-gate"
 ```
 
-**确定性**：v2.2 固定了 Blender FBX 导出器的 `CreationTimeStamp` 与对象 UID（`gen_models_v2.py`
-的 `pin_fbx_timestamp()` / `pin_fbx_uids()`），因此两次完整“生成→导出”结果一致：
-`art/timbermesh/export-determinism.txt` 记录两次导出 16/16 SHA-256 相同；
-两份验证报告（`art/validation-report.txt`、`art/timbermesh-validation.txt`）均为**无时间戳的确定性报告**。
-图集：`art/gen_textures.py` 连跑两次逐字节相同（CROSS-RUN PASS）。
-源模型：两次 `gen_models_v2.py` 的 50/50 文件 SHA-256 相同（含 FBX）。
+**确定性**：
+
+* `art/material_texture_analysis.py --verify` 重算出的 JSON 与提交版**逐字节一致**，且每个 patch 的
+  mean RGB/std 都从真实 PNG 字节重新导出核对（PASS）。
+* 两次完整 `gen_models_v2.py` → `export_timbermesh.py`：16/16 `.timbermesh` 与 manifest SHA-256 相同
+  （`art/timbermesh/export-determinism.txt`）。
+* 两份验证报告（`art/validation-report.txt`、`art/timbermesh-validation.txt`）均为**无时间戳的确定性报告**。
 
 ---
 
-## 11. 验证摘要（本次实测，离线，2026-10-26）
+## 11. 验证摘要（本次实测，离线）
 
 | 检查 | 命令 | 结果 |
 |---|---|---|
-| 源模型 C1–C10（25 模型，FBX+GLB 双检） | `blender ... --python art\validate_models.py` | **OVERALL VERDICT: PASS**，exit 0；C8 LOD 收缩 PASS；C9 12/12 tier pair PASS；C10 material_slots.json 一致（12 patches） |
-| 16 个 `.timbermesh` C1–C8 | `python art\validate_timbermesh.py` | **FILES: 16/16 present; 16 PASS, 0 FAIL**；**CHECKS: 128 PASS, 0 FAIL, 0 NOT RUN**；**OVERALL VERDICT: PASS**，exit 0 |
-| `data` ↔ `art` 一致性 | `Get-FileHash` | **16/16 SHA-256 相同** |
+| 材质映射表复现性 | `python art\material_texture_analysis.py --verify` | **PASS**：17 材质 / 15 真实贴图，JSON 逐字节可复现，mean RGB/std 从真实 PNG 复算一致 |
+| 源模型 C1–C14（25 模型，FBX+GLB 双检） | `blender ... --python art\validate_models.py` | **OVERALL VERDICT: PASS**，exit 0（C7/C11 UV 落在真实 patch 内；C12/C13/C14 材质贴图/方差/警示材质；负向对照 3/3 被拒绝） |
+| 16 个 `.timbermesh` C1–C12 + 负向对照 | `python art\validate_timbermesh.py` | **FILES: 16/16 present; 16 PASS, 0 FAIL**；**OVERALL VERDICT: PASS**，exit 0；负向对照 3/3 被拒绝 |
+| `data` ↔ `art` 一致性 | SHA-256 对比 | **16/16 相同** |
 | 导出确定性 | 两次 `art/export_timbermesh.py` | 16/16 `.timbermesh` + manifest SHA-256 相同 |
-| 生成确定性 | 两次 `gen_models_v2.py` / `gen_textures.py` | 50/50 源模型逐字节一致；图集 CROSS-RUN PASS |
-| 预览 | `blender ... --python art\render_previews.py` | **48 张 8-bit PNG PASS**（8 模型 × 5 视角 + 施工 2 + 6 张 A/B 合图） |
-| L1 数据契约 | `dotnet run --project tests\HDBF.Tests -c Release -m:1 -p:HdbfWorkRoot="$env:TEMP\hdbf-art2"` | **PASSED 530 / FAILED 0**（含 `ArtModelContractTests`） |
-
-`.timbermesh` 检查明细（`art/timbermesh-validation.txt`）：
-
-* C1 zlib+protobuf 解析；C2 `Model.name`/`version`；C3 严格 3.00×1.00×3.00 且 min=(0,0,0)；
-* C4 三角预算 ≤6000/档（实测 5850–5918）；C5 材质白名单/数量（含 `Moss.Folktails`）；
-* **C6 3 端口 + 0 #Slot# + 平屋顶**；C7 顶点属性；C8 拓扑/uv0。
+| 预览 | `blender ... --python art\render_previews.py` | 48 张 8-bit PNG（8 模型 × 5 视角 + 施工 2 + 6 张 A/B 合图），材质绑定 28/28 槽位真实贴图，UV 28/28 落在 patch 内 |
+| 图标 | `blender ... --python art\render_icons.py` | 4×512 + 4×128 图标 + manifest；`data/Icons/BoxFarm*.png` 已替换（128×128、`.meta.json` 保留） |
+| L1 数据契约 | `dotnet run --project tests\HDBF.Tests ...` | **PASSED 577 / FAILED 0**（含 `ArtModelContractTests` + 新增 `V2MaterialPatchContractTests`） |
+| 发布门禁 | `build.ps1 -WorkRoot ...` | **RELEASE GATES PASSED**（44 gates） |
 
 ---
 
 ## 12. 未完成 / 显式偏差（绝不隐瞒）
 
-1. **8 个蓝图与碰撞盒仍是旧的 3×2 足迹**（`BlockObjectSpec.Size={X:3,Y:2,Z:1}`、
-   `CollidersSpec` 3×1×2）。本卡按任务约束**不改蓝图**；实机放置仍会出现“模型 3 深、碰撞 2 深”的不一致。
-   必须先由蓝图卡把 `BlockObjectSpec`/`CollidersSpec`/`Stackable` 顶层块与端口 transput 改为 3×3×1 后再实机验收。
-2. **未实机验证**：没有部署、没有启动游戏、没有跑 `build.ps1`；所有“看起来如何/是否可叠放”的结论都是离线的。
-3. **屋顶叠放 A/B**（REQ-V2-BLD-04/07）仍待实机用一座原版小建筑验证；本卡只保证模型侧
-   “走行面 1.00、其上无几何、收边齐平、平台平面 2.84–2.98”。
-4. **材质外观**：flat patch 是原版材质贴图的固定采样区，不是自订 PBR；离线预览用 `art/gen_textures.py`
-   的程序化图集，**实机观感（颜色/法线/roughness/mipmap）未确认**。v2.2 的“奶油石膏/苔藓/屋面板”颜色
-   在实机由原版材质决定（`Plaster_White` / `Moss.Folktails` / `RoofPlanks`），预览图不代表实机最终颜色。
-5. **“烟灰玻璃”无法用材质表达**：4 个材质槽冻结（`M_HDBF_*`）且玻璃只能用 `WindowsAtlas`；本版用
-   **更密的深色金属构架 + 更窄玻璃分格**表达 Top 的“重工业/烟灰”观感，玻璃本身材质与其它档相同。
-6. **阵营差异是材质/细节差**：Basic/Intermediate 两阵营共用同一木构几何，差异在材质（苔藓 vs 屋面板、
-   奶油 vs 暖石膏）与倒角；Advanced/Top 差异在金属材质（`PaintedMetal.Folktails` 偏橄榄、`.IronTeeth` 蓝灰）。
-7. **苔藓只出现在 Basic.Folktails**：`Moss.Folktails` 只在 Folktails 的 MaterialCollection 里；IronTeeth
-   没有对等苔藓材质，Basic.IronTeeth 用深色屋面板，**不能为了对称而编造不存在的原版材质名**。
-8. **顶点色是否被 shader 使用未知**：16/16 文件带非白 `color` 顶点属性，但游戏 shader 是否消费未验证。
-9. **端口空节点 rotation 为 identity**（导出器只写位置；朝向记录在契约里，游戏侧当前无消费者）。
+1. **仍需用户实机截图确认**：本次仍是离线验证（没有部署/启动游戏/实机截图）。材质、UV、颜色都按
+   **游戏内真实 Material 资产的 `_MainTex`/`_Color`** 与 **AutoAtlaser IL** 推导，但“实机看是否正确”
+   必须由用户截图验收（尤其是深色 Basic 与 FT/Top 的深色厚板外壳）。
+2. **FT 没有蓝灰/深灰“重钢”材质**：Folktails 的 `MaterialCollection` 里唯一的金属材质是
+   `BaseMetal.Folktails`（橄榄灰烤漆钢板，`BaseMetal_D1`），没有 IronTeeth 的蓝灰钢板（`BaseMetal_D2`）。
+   因此 FT 的 Advanced 是橄榄灰烤漆钢板、Top 是 `Details.Folktails` 深色厚板/铆接件 + 钢板强调；
+   **“蓝灰金属+玻璃”在 IT 上才完整成立**。这是原版资产集限制，不是映射错误。
+3. **PaintedMetal 保留在白名单但禁用**：它是真实原版材质（黄黑/蓝黑警示条），为保持白名单=原版集合超集
+   而保留；`MATERIAL_MAP` 断言 + 两个验证器 + L1 测试都禁止它出现在任何发布模型里。
+4. **Basic 实机会很暗**：`BaseWood_Brown` 的真实贴图本身是深棕（patch 均值 ~54/40/27），
+   Basic 档会是“深棕近黑木屋”。这是原版材质真实颜色；如果用户认为太暗，只能改用更浅的原版木材质
+   （例如 `BaseWood_LightBrown`）——那会改变“深棕”档位语义，需要用户确认。
+5. **材质 `_Color` 乘法与预览 sRGB 近似**：IL 证明 `_Color` 被读取/写回，但 shader 中精确的线性/色彩空间
+   处理与游戏 tonemap 未实机验证；预览按 sRGB 乘法近似，可能比游戏偏暗/偏亮。
+6. **预览/图标是离线 studio 渲染**，不是游戏截图；光照（3 盏 sun + 世界环境光）与游戏昼夜/雾气不同，
+   颜色以实机为准。图标/预览只用于“同一模型比四档/看轮廓”，不冒充实机截图。
+7. **8 个蓝图与碰撞盒仍是旧的 3×2 足迹**（`BlockObjectSpec.Size={X:3,Y:2,Z:1}`、`CollidersSpec` 3×1×2），
+   本卡按约束**不改蓝图**；实机放置仍会出现“模型 3 深、碰撞 2 深”的不一致，需蓝图卡处理。
+8. **屋顶叠放 A/B**（REQ-V2-BLD-04/07）仍待实机用一座原版小建筑验证。
+9. **顶点色是否被 shader 使用未知**：16/16 文件带非白 `color` 顶点属性，游戏 shader 是否消费未验证。
 10. **只导出 LOD0** `.timbermesh`；LOD1/2 只存在于 `art/models/**` 源资产，游戏端依赖
     `Timberborn.PrefabOptimization` 自动生成，切换质量未实机确认。
-11. **施工阶段蓝本**：`Children.#Unfinished` 仍使用 `ConstructionBase3x2#nested`（旧 3×2 建造基座，
-    另一处需随蓝图卡一起改），本卡只更新灰盒模型。
-12. **图标未重渲染**：`data/Icons/BoxFarm*.png` 仍是上一版模型渲染；图标属于蓝图/图标卡范围
-    （本卡只允许改 art/** 与 data/Buildings 下 .timbermesh 与本文档），建造菜单呈现**待后续卡/实机确认**。
-13. **FBX 容器字节确定性是 v2.2 新做的**：通过固定导出器时间戳与对象 UID 实现；BLENDER 升级大版本后
-    需重跑并确认（脚本会在无法 patch 时打印 WARNING，不会静默）。
+11. **施工阶段蓝本**：`Children.#Unfinished` 仍使用 `ConstructionBase3x2#nested`（旧 3×2 建造基座），
+    另一处需随蓝图卡一起改，本卡只更新灰盒模型。
+12. **旧 ART-01 图集/`art/gen_textures.py` 退居预览兜底**：`art/textures/atlas_*.png` 仍在仓库里
+    （源 FBX 的 Blender 材质引用它、`gen_models.py` v1 兼容），但**预览/图标与实机都不再用它**
+    （预览/图标由 `art/preview_materials.py` 直接加载真实 `_D` PNG）。`art/material_patches.py` 的
+    ART-04 role 表保留为 import 兼容/预览兜底，标注 deprecated。
+13. **`material_slots.json` 已改成 ART-05 结构**：删除旧 `atlas` 块与 role-based `material_patches`，
+    新增 `material_texture_map` 摘要、`material_texture_patches`、`construction_faction_materials`、`uv_space`；
+    下游若仍读旧字段需要同步（仓库内验证器/测试已同步）。
 14. `art/README.md` / `art/README-timbermesh.md` 保留 ART-04 历史内容（本文档、`art/validate_*.py`、
-    `art/timbermesh/export-manifest.json` 是 v2.2 现行契约与数值）。`README-timbermesh.md` 顶部已加 v2.2 速查表。
-15. **`material_slots.json` 的 ConstructionStage0 条目是阵营无关的**（只有 1 个 key，列 Folktails 材质名）；
-    4 个 IronTeeth 施工 `.timbermesh` 实际用 IronTeeth 材质（`MATERIAL_MAP` 正确、白名单校验通过），
-    但 JSON 不单独描述该变体。这是沿用 v2 的 JSON 结构（C10 的 key 契约不允许拆成两个 key）。
-16. **C10 “12 flat patches” 是记录数，不是“全部被几何使用”**：`roof`（`ThatchedRoof.Folktails`）本版没有
-    模型使用（保留映射以覆盖任何未来 Basic 茅草屋面板），实际被 16 档几何使用到的是 11 个 role。
-17. **C6 的 top-face `face=/ext=` 是“近顶带（±0.01）内、平台平面 ±0.02 内”顶点统计**，会把 Advanced/Top
-    位于平台边缘的 y≈0.997 金属铆钉底算进去，所以报告里 `ext=2.98/3.00` 而真正的共面屋面板
-    （|y−1|≤1e-4、精确平面内）恰好跨满冻结平面 2.96/2.98。没有几何超过走行面；这是度量口径差异。
-18. **C9 的 Intermediate↔Advanced / Intermediate↔Top 余量偏薄**（windows 0.032 vs 门槛 0.030、
-    silhouette 0.003/0.005 vs 0.02、ports 0.04 vs 0.10；靠 material + roof-plan 过 3/4 类）。
-    若未来调相机/指标或改屋顶平面，这两对可能翻转，重跑时必须复核。
+    `art/material_texture_map.json`、`art/timbermesh/export-manifest.json` 是现行契约与数值）。
 
 ---
 
@@ -401,14 +442,18 @@ Buildings/Food/BoxFarm/BoxFarm.Basic.Folktails.Model
 
 ## 14. 后续修改美术时
 
-1. 改 `art/gen_models_v2.py`（几何/材质分区）与（必要时）`art/atlas_layout.py` / `art/material_patches.py`
-   / `art/gen_textures.py` → 重跑 §10 的 0–5 步；保持外包络 3×3×1、平屋顶走行面 1.00、3 端口、0 `#Slot#`、
-   材质白名单与 flat-patch UV（新增/改名材质必须同步 `timbermesh_common.MATERIAL_WHITELIST` 与
-   `material_patches.ROLE_OF_MATERIAL`，且仍是**原版 MaterialCollection 名称**）。
-2. 重跑后必须：`art/validation-report.txt` PASS、`art/timbermesh-validation.txt` PASS、
-   `data/` 16 文件与 `art/timbermesh/` 逐字节一致、本文 §2/§3/§4/§5/§6/§7 数值同步更新。
-3. 蓝图/碰撞/叠放块与图标属于蓝图卡，不要在本卡范围内改。
+1. 改材质时先改 `art/material_texture_analysis.py` 的 `MATERIAL_TEXTURES` / `TEXTURE_HINTS`
+   （材质→真实贴图/`_Color`/代表色/patch 预算 → 重新生成 JSON 并 `--verify`），再改
+   `art/gen_models_v2.py` / `art/timbermesh_common.py`；新增/改名材质必须同步
+   `timbermesh_common.MATERIAL_WHITELIST`（且仍是**原版 MaterialCollection 名称**）。
+2. 重跑 §10 的 1–9 步；必须：两个验证器 PASS（含负向对照 3/3 被拒绝）、`data/` 16 文件与
+   `art/timbermesh/` 逐字节一致、L1 `FAILED 0`、`build.ps1` RELEASE GATES PASSED，
+   并同步更新本文档 §2/§3/§4/§5/§6/§7 数值与 SHA-256。
+3. 严禁把 `PaintedMetal.*` 用于外壳；严禁回到“所有材质共用一张假图集”的 patch 假设
+   （`V2MaterialPatchContractTests` 会红）。
+4. 蓝图/碰撞/叠放块与图标路径属于蓝图卡，不要在本卡范围内改（图标仅重渲染，不换路径）。
 
-## 15. 图标刷新（2026-10-27）
-v2.2 模型定稿后重新跑 `art/render_icons.py`（4 x 512 RGBA + 4 x 128 RGBA，判定 PASS），data/Icons/BoxFarm*.png 已替换为 128px 新渲染；L1 530/530、build.ps1 44 gates PASS。
-
+## 15. 图标与预览刷新（ART-05，2026-10-27）
+模型定稿后重跑 `art\render_previews.py` 与 `art\render_icons.py`：预览/图标直接加载真实 `_D` PNG + 材质
+`_Color` tint（`art/preview_materials.py`），不再使用自造 2048 图集。`data/Icons/BoxFarm*.png` 已替换为
+128px 真实材质渲染（`.meta.json` 保留 `{"isSprite": true}`）。

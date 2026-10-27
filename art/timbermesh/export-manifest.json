@@ -118,7 +118,7 @@
         "BaseWood_Brown.Folktails",
         "Moss.Folktails"
       ],
-      "vertices": 13664,
+      "vertices": 13662,
       "nodes": [
         "BoxFarm.Basic.Folktails.Model",
         "#Port#Power",
@@ -147,8 +147,8 @@
       "version": 0,
       "name": "BoxFarm.Basic.Folktails.Model",
       "file": "art/timbermesh/BoxFarm.Basic.Folktails.Model.timbermesh",
-      "bytes": 135810,
-      "sha256": "afa14a1124a9f21fd7d675a87b3fd5bb001399a454e625433f12b12388f427e2",
+      "bytes": 137112,
+      "sha256": "856faee1468fea35f2cb4859bc5690f380168a55978b81e60caf137bce3cdbea",
       "source": "art/models/Basic.Folktails/LOD0.fbx",
       "object": "SM_HDBF_BoxFarm_Basic_Folktails_LOD0",
       "material_slots_object": [
@@ -222,8 +222,8 @@
       "version": 0,
       "name": "BoxFarm.Basic.IronTeeth.Model",
       "file": "art/timbermesh/BoxFarm.Basic.IronTeeth.Model.timbermesh",
-      "bytes": 135169,
-      "sha256": "73e5a5b0f3dd2850d002c262445e2f52080605905fd1c08eae3a1bdc60d946a0",
+      "bytes": 131612,
+      "sha256": "5ac0175f04ff63f32548aa45abb2a320ed0b1c7a4ea9bf4f7fc6627f4012d18e",
       "source": "art/models/Basic.IronTeeth/LOD0.fbx",
       "object": "SM_HDBF_BoxFarm_Basic_IronTeeth_LOD0",
       "material_slots_object": [
@@ -265,11 +265,11 @@
       ],
       "triangles": 5854,
       "materials": [
-        "IrregularPlanks_LightBrown.Folktails",
+        "BaseWood_LightBrown.Folktails",
         "Plaster_White.Folktails",
         "WindowsAtlas.Folktails"
       ],
-      "vertices": 13556,
+      "vertices": 13554,
       "nodes": [
         "BoxFarm.Intermediate.Folktails.Model",
         "#Port#Power",
@@ -298,12 +298,12 @@
       "version": 0,
       "name": "BoxFarm.Intermediate.Folktails.Model",
       "file": "art/timbermesh/BoxFarm.Intermediate.Folktails.Model.timbermesh",
-      "bytes": 130181,
-      "sha256": "43622a6e25d9f6ea86de47f0be61bf294baa6615d43fd059ed571a46b760cecd",
+      "bytes": 131560,
+      "sha256": "bdc0a19b34065e1d30b441f35f28c3d4cbe6d7386a4b968c6faedb12b35d213f",
       "source": "art/models/Intermediate.Folktails/LOD0.fbx",
       "object": "SM_HDBF_BoxFarm_Intermediate_Folktails_LOD0",
       "material_slots_object": [
-        "IrregularPlanks_LightBrown.Folktails",
+        "BaseWood_LightBrown.Folktails",
         "WindowsAtlas.Folktails",
         "Plaster_White.Folktails"
       ],
@@ -342,7 +342,7 @@
       ],
       "triangles": 5854,
       "materials": [
-        "IrregularPlanks_DarkBrown.IronTeeth",
+        "BaseWood_Grey.IronTeeth",
         "Plaster_Orange.IronTeeth",
         "WindowsAtlas.IronTeeth"
       ],
@@ -375,12 +375,12 @@
       "version": 0,
       "name": "BoxFarm.Intermediate.IronTeeth.Model",
       "file": "art/timbermesh/BoxFarm.Intermediate.IronTeeth.Model.timbermesh",
-      "bytes": 129979,
-      "sha256": "1855f2606662095a34bddea04e444a49e04fd03816c9ffeb466d2ff8421c1fbf",
+      "bytes": 128163,
+      "sha256": "13adc447cf9baa71e80b91ea5b911d41b232ba5adbb74cd6db91a1adcf100c0d",
       "source": "art/models/Intermediate.IronTeeth/LOD0.fbx",
       "object": "SM_HDBF_BoxFarm_Intermediate_IronTeeth_LOD0",
       "material_slots_object": [
-        "IrregularPlanks_DarkBrown.IronTeeth",
+        "BaseWood_Grey.IronTeeth",
         "WindowsAtlas.IronTeeth",
         "Plaster_Orange.IronTeeth"
       ],
@@ -419,12 +419,12 @@
       ],
       "triangles": 5850,
       "materials": [
-        "PaintedMetal.Folktails",
+        "BaseMetal.Folktails",
         "Details.Folktails",
         "BaseWood_White.Folktails",
         "WindowsAtlas.Folktails"
       ],
-      "vertices": 13537,
+      "vertices": 13539,
       "nodes": [
         "BoxFarm.Advanced.Folktails.Model",
         "#Port#Power",
@@ -453,13 +453,13 @@
       "version": 0,
       "name": "BoxFarm.Advanced.Folktails.Model",
       "file": "art/timbermesh/BoxFarm.Advanced.Folktails.Model.timbermesh",
-      "bytes": 131715,
-      "sha256": "62daa625a29a0772e1c2fffda03584a3cc562a4c67f5fb9a9aad5a2ce286fb59",
+      "bytes": 133058,
+      "sha256": "96476b32d104f0fba82f933fecee95f73a6caa6b9e9b3b86b01325b8038ef648",
       "source": "art/models/Advanced.Folktails/LOD0.fbx",
       "object": "SM_HDBF_BoxFarm_Advanced_Folktails_LOD0",
       "material_slots_object": [
         "BaseWood_White.Folktails",
-        "PaintedMetal.Folktails",
+        "BaseMetal.Folktails",
         "WindowsAtlas.Folktails",
         "Details.Folktails"
       ],
@@ -498,12 +498,12 @@
       ],
       "triangles": 5850,
       "materials": [
-        "PaintedMetal.IronTeeth",
+        "BaseMetal.IronTeeth",
         "Details.IronTeeth",
-        "BaseWood_Grey.IronTeeth",
+        "IrregularPlanks_MetalForged.IronTeeth",
         "WindowsAtlas.IronTeeth"
       ],
-      "vertices": 13545,
+      "vertices": 13549,
       "nodes": [
         "BoxFarm.Advanced.IronTeeth.Model",
         "#Port#Power",
@@ -532,13 +532,13 @@
       "version": 0,
       "name": "BoxFarm.Advanced.IronTeeth.Model",
       "file": "art/timbermesh/BoxFarm.Advanced.IronTeeth.Model.timbermesh",
-      "bytes": 131584,
-      "sha256": "8c911b3198191f89c09938f2ae86914bd31cdd1e5f60849e391947a4a6c3c2b7",
+      "bytes": 133106,
+      "sha256": "77225b3cd13f654b7ea0956fbc1dbb3d69044042430bee199a73fae25295cf35",
       "source": "art/models/Advanced.IronTeeth/LOD0.fbx",
       "object": "SM_HDBF_BoxFarm_Advanced_IronTeeth_LOD0",
       "material_slots_object": [
-        "BaseWood_Grey.IronTeeth",
-        "PaintedMetal.IronTeeth",
+        "IrregularPlanks_MetalForged.IronTeeth",
+        "BaseMetal.IronTeeth",
         "WindowsAtlas.IronTeeth",
         "Details.IronTeeth"
       ],
@@ -577,12 +577,12 @@
       ],
       "triangles": 5918,
       "materials": [
-        "BaseMetal.Folktails",
         "Details.Folktails",
+        "BaseMetal.Folktails",
         "IrregularPlanks_Brown.Folktails",
         "WindowsAtlas.Folktails"
       ],
-      "vertices": 13612,
+      "vertices": 13610,
       "nodes": [
         "BoxFarm.Top.Folktails.Model",
         "#Port#Power",
@@ -611,15 +611,15 @@
       "version": 0,
       "name": "BoxFarm.Top.Folktails.Model",
       "file": "art/timbermesh/BoxFarm.Top.Folktails.Model.timbermesh",
-      "bytes": 130630,
-      "sha256": "aa333816b1d6ef33d7885f3fecd6ca42720443b441f4d7acd2e93f8f550f343e",
+      "bytes": 131620,
+      "sha256": "34ae271a77842cd5023dca3b197818a35380bfba71a9e3fc777ec316ba0e5f75",
       "source": "art/models/Top.Folktails/LOD0.fbx",
       "object": "SM_HDBF_BoxFarm_Top_Folktails_LOD0",
       "material_slots_object": [
         "IrregularPlanks_Brown.Folktails",
-        "BaseMetal.Folktails",
+        "Details.Folktails",
         "WindowsAtlas.Folktails",
-        "Details.Folktails"
+        "BaseMetal.Folktails"
       ],
       "vertex_colors": {
         "created_white": false,
@@ -656,7 +656,7 @@
       ],
       "triangles": 5918,
       "materials": [
-        "BaseMetal.IronTeeth",
+        "Details.IronTeeth",
         "IrregularPlanks_MetalForged.IronTeeth",
         "BaseWood_DarkBrown.IronTeeth",
         "WindowsAtlas.IronTeeth"
@@ -690,13 +690,13 @@
       "version": 0,
       "name": "BoxFarm.Top.IronTeeth.Model",
       "file": "art/timbermesh/BoxFarm.Top.IronTeeth.Model.timbermesh",
-      "bytes": 130428,
-      "sha256": "1f90464aa39ffae955f7a7280c24940ac4e96b623346c2955c9e94ab026c26b5",
+      "bytes": 131781,
+      "sha256": "61bed1f2277395c54639ed81c0a1c4baaf90820757767eb9ab25479daac70955",
       "source": "art/models/Top.IronTeeth/LOD0.fbx",
       "object": "SM_HDBF_BoxFarm_Top_IronTeeth_LOD0",
       "material_slots_object": [
         "BaseWood_DarkBrown.IronTeeth",
-        "BaseMetal.IronTeeth",
+        "Details.IronTeeth",
         "WindowsAtlas.IronTeeth",
         "IrregularPlanks_MetalForged.IronTeeth"
       ],
@@ -767,8 +767,8 @@
       "version": 0,
       "name": "BoxFarm.Basic.Folktails.ConstructionStage0.Model",
       "file": "art/timbermesh/BoxFarm.Basic.Folktails.ConstructionStage0.Model.timbermesh",
-      "bytes": 22617,
-      "sha256": "532bae8f15ec20afc5b06fa6156021b111facdaef899eba4d7dc7b1a8f656c90",
+      "bytes": 22810,
+      "sha256": "91081dd74171ee15cf697e3fb8303650f7179360f85464a3642ee4a0d110e607",
       "source": "art/models/ConstructionStage0/ConstructionStage0.fbx",
       "object": "SM_HDBF_BoxFarm_ConstructionStage0",
       "material_slots_object": [
@@ -810,7 +810,7 @@
       ],
       "triangles": 864,
       "materials": [
-        "BaseWood_DarkBrown.IronTeeth",
+        "RoofPlanks.IronTeeth",
         "BaseMetal.IronTeeth"
       ],
       "vertices": 2166,
@@ -842,12 +842,12 @@
       "version": 0,
       "name": "BoxFarm.Basic.IronTeeth.ConstructionStage0.Model",
       "file": "art/timbermesh/BoxFarm.Basic.IronTeeth.ConstructionStage0.Model.timbermesh",
-      "bytes": 22622,
-      "sha256": "994342b907db7aa702cda79799a72b0abde2319a85900cc8a9a9974f99076c84",
+      "bytes": 22810,
+      "sha256": "a0b851bf9d3f13cbc31e03e8a054d821920d2b1d505c6cf23ebba7d0d89f81d3",
       "source": "art/models/ConstructionStage0/ConstructionStage0.fbx",
       "object": "SM_HDBF_BoxFarm_ConstructionStage0",
       "material_slots_object": [
-        "BaseWood_DarkBrown.IronTeeth",
+        "RoofPlanks.IronTeeth",
         "BaseMetal.IronTeeth"
       ],
       "vertex_colors": {
@@ -917,8 +917,8 @@
       "version": 0,
       "name": "BoxFarm.Intermediate.Folktails.ConstructionStage0.Model",
       "file": "art/timbermesh/BoxFarm.Intermediate.Folktails.ConstructionStage0.Model.timbermesh",
-      "bytes": 22626,
-      "sha256": "38c65687f422164781b3cd6873fa12d04c4f4c431e3c578d7ccf2142c5cfd6d0",
+      "bytes": 22821,
+      "sha256": "df6219f2b57029c1fd288101b2db2bb611a54128782908355942b4b4a6b5b694",
       "source": "art/models/ConstructionStage0/ConstructionStage0.fbx",
       "object": "SM_HDBF_BoxFarm_ConstructionStage0",
       "material_slots_object": [
@@ -960,7 +960,7 @@
       ],
       "triangles": 864,
       "materials": [
-        "BaseWood_DarkBrown.IronTeeth",
+        "RoofPlanks.IronTeeth",
         "BaseMetal.IronTeeth"
       ],
       "vertices": 2166,
@@ -992,12 +992,12 @@
       "version": 0,
       "name": "BoxFarm.Intermediate.IronTeeth.ConstructionStage0.Model",
       "file": "art/timbermesh/BoxFarm.Intermediate.IronTeeth.ConstructionStage0.Model.timbermesh",
-      "bytes": 22631,
-      "sha256": "b453234f208af760ad2be8db80c855a3af6087af3ad2a7404b1e909f511dc3fb",
+      "bytes": 22817,
+      "sha256": "2c34f2b7fff184da767674d77dcf3518fb46b5bae031c85dc1942703857c37a7",
       "source": "art/models/ConstructionStage0/ConstructionStage0.fbx",
       "object": "SM_HDBF_BoxFarm_ConstructionStage0",
       "material_slots_object": [
-        "BaseWood_DarkBrown.IronTeeth",
+        "RoofPlanks.IronTeeth",
         "BaseMetal.IronTeeth"
       ],
       "vertex_colors": {
@@ -1067,8 +1067,8 @@
       "version": 0,
       "name": "BoxFarm.Advanced.Folktails.ConstructionStage0.Model",
       "file": "art/timbermesh/BoxFarm.Advanced.Folktails.ConstructionStage0.Model.timbermesh",
-      "bytes": 22621,
-      "sha256": "018bb4b6d5b5dbe50fbca76ea15ffcb988fa6b06e8c15730fd929d8f5296e868",
+      "bytes": 22815,
+      "sha256": "8d4aebf8ab988084e4e81d2feca95c32cb575ebc376715e1b2fa88fc8233bed5",
       "source": "art/models/ConstructionStage0/ConstructionStage0.fbx",
       "object": "SM_HDBF_BoxFarm_ConstructionStage0",
       "material_slots_object": [
@@ -1110,7 +1110,7 @@
       ],
       "triangles": 864,
       "materials": [
-        "BaseWood_DarkBrown.IronTeeth",
+        "RoofPlanks.IronTeeth",
         "BaseMetal.IronTeeth"
       ],
       "vertices": 2166,
@@ -1142,12 +1142,12 @@
       "version": 0,
       "name": "BoxFarm.Advanced.IronTeeth.ConstructionStage0.Model",
       "file": "art/timbermesh/BoxFarm.Advanced.IronTeeth.ConstructionStage0.Model.timbermesh",
-      "bytes": 22625,
-      "sha256": "b2c878b710bec9d4926eaebefe2637faa964f11d21d236e78a4288db005d3098",
+      "bytes": 22812,
+      "sha256": "0a9a8634d15378ce6b6c3b53ed1c3aa7f2809e148445feda20e61c338e9c4c7c",
       "source": "art/models/ConstructionStage0/ConstructionStage0.fbx",
       "object": "SM_HDBF_BoxFarm_ConstructionStage0",
       "material_slots_object": [
-        "BaseWood_DarkBrown.IronTeeth",
+        "RoofPlanks.IronTeeth",
         "BaseMetal.IronTeeth"
       ],
       "vertex_colors": {
@@ -1217,8 +1217,8 @@
       "version": 0,
       "name": "BoxFarm.Top.Folktails.ConstructionStage0.Model",
       "file": "art/timbermesh/BoxFarm.Top.Folktails.ConstructionStage0.Model.timbermesh",
-      "bytes": 22614,
-      "sha256": "8b4a58444a183696b846b4135f3f7079ea8784fd71c3c7e1cba3814fd8dad2be",
+      "bytes": 22808,
+      "sha256": "041c6e38bf8a18e0107d2a6ca16dabf0e719eaf86906e5582bfea263e8511a84",
       "source": "art/models/ConstructionStage0/ConstructionStage0.fbx",
       "object": "SM_HDBF_BoxFarm_ConstructionStage0",
       "material_slots_object": [
@@ -1260,7 +1260,7 @@
       ],
       "triangles": 864,
       "materials": [
-        "BaseWood_DarkBrown.IronTeeth",
+        "RoofPlanks.IronTeeth",
         "BaseMetal.IronTeeth"
       ],
       "vertices": 2166,
@@ -1292,12 +1292,12 @@
       "version": 0,
       "name": "BoxFarm.Top.IronTeeth.ConstructionStage0.Model",
       "file": "art/timbermesh/BoxFarm.Top.IronTeeth.ConstructionStage0.Model.timbermesh",
-      "bytes": 22619,
-      "sha256": "94231f0a684bcef48a4c1a0eaf0b9f548cde07ad1975cfe3277678d702801e30",
+      "bytes": 22806,
+      "sha256": "b1de924ea7dcbcab7d6f09d4a44c959d684e40002d652ce12986c30ebc09b4f5",
       "source": "art/models/ConstructionStage0/ConstructionStage0.fbx",
       "object": "SM_HDBF_BoxFarm_ConstructionStage0",
       "material_slots_object": [
-        "BaseWood_DarkBrown.IronTeeth",
+        "RoofPlanks.IronTeeth",
         "BaseMetal.IronTeeth"
       ],
       "vertex_colors": {

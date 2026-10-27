@@ -6,9 +6,10 @@ report:     deterministic (identical inputs -> byte-identical report;
 mode:       Blender 4.2.1 LTS, FBX re-import + GLB import (both checked)
 numpy:      1.24.3
 contract:   art/atlas_layout.py (envelope, flat roof, ports, tier materials, indoor expression)
-            art/material_patches.py (flat-patch UV), art/timbermesh_common.py (export contract)
-files:      25 source models (8 tier x faction x 3 LOD = 24 + ConstructionStage0)
-tolerances: envelope +-0.020 grid, flat top +-0.005, ports +-0.020, tri budget +-20%, LOD shrink <=2%, UV patch +-0.0002
+            art/material_texture_map.json (ART-05 per-material real _D texture patches), art/material_patches.py (accessor), art/timbermesh_common.py (export contract)
+files:      25 source models
+tolerances: envelope +-0.020 grid, flat top +-0.005, ports +-0.020, tri budget +-20%, LOD shrink <=2%, uv0-in-material-patch +-1e-04, patch mean +-0.5 / std +-0.5
+ART-05:     every material resolves to its OWN 1024x1024 vanilla _D albedo + _Color tint; C7/C11 prove the FBX/GLB uv0 stays inside that material's patch, C12-C14 prove the map covers every used material, the recorded patch mean RGB/std match the real PNG bytes (art/png_stats.py) and no PaintedMetal hazard stripe is shipped
 50%-camera C9: 32 px/grid raster (128x128); a tier pair must differ on >=2 of {material>=0.05, windows>=0.03, silhouette>=0.02, roof-plan>=0.015, ports>=10%}
 
 ----------------------------------------------------------------------------------------------------------------------
@@ -23,6 +24,12 @@ CHECKS
   C8  LOD bounding-box shrink <= 2%
   C9  four tiers distinguishable at the 50% camera
   C10 material_slots.json agrees with the meshes
+  C11 material patch UV containment
+
+CROSS-MODEL MATERIAL CHECKS (C12-C14; see their sections below)
+  C12 art/material_texture_map.json schema + coverage of every material assigned by MATERIAL_MAP
+  C13 real vanilla _D PNG patch mean RGB / std re-verification (SKIP only when no texture root exists)
+  C14 hazard / large-shell policy (PaintedMetal.* forbidden, no hazard patch shipped, exclusion rects respected)
 
 FILE SET  PASS  all 54 expected files present; atlas PNGs are 2048x2048
         - 54 expected files scanned (25 models x FBX+GLB + 3 atlas PNGs + material_slots.json)
@@ -84,9 +91,18 @@ Basic.Folktails.LOD0
   C6  materials                              PASS  material slot set matches ATLAS TIER_MATERIALS (['M_HDBF_Fabric', 'M_HDBF_Wood'])
         - fbx: ['M_HDBF_Fabric', 'M_HDBF_Wood']
         - glb: ['M_HDBF_Fabric', 'M_HDBF_Wood']
-  C7  flat-patch UV                          PASS  every face of one material samples that material's fixed flat UV patch
-        - fbx: all UVs inside their material flat patches (5850 triangles, 4 px patch gutter)
-        - glb: all UVs inside their material flat patches (5850 triangles, 4 px patch gutter)
+  C7  flat-patch UV                          PASS  every face of one material samples that material's real-_D texture patch (C11 reports per-material min/max)
+        - fbx PASS Basic.Folktails.LOD0                   slot=M_HDBF_Fabric material=Moss.Folktails                   patch uv=[0.183594, 0.464844, 0.433594, 0.714844] uv0 u=[0.187500, 0.428711] v=[0.469727, 0.710938] values=1728
+        - fbx PASS Basic.Folktails.LOD0                   slot=M_HDBF_Wood  material=BaseWood_Brown.Folktails         patch uv=[0.003906, 0.011719, 0.253906, 0.261719] uv0 u=[0.007812, 0.249023] v=[0.016602, 0.257813] values=15822
+        - fbx: 2 material slot group(s) / 2 material(s), 17550 uv0 corner(s) checked against the real-texture patches
+        - glb PASS Basic.Folktails.LOD0                   slot=M_HDBF_Fabric material=Moss.Folktails                   patch uv=[0.183594, 0.464844, 0.433594, 0.714844] uv0 u=[0.187500, 0.428711] v=[0.469727, 0.710938] values=1728
+        - glb PASS Basic.Folktails.LOD0                   slot=M_HDBF_Wood  material=BaseWood_Brown.Folktails         patch uv=[0.003906, 0.011719, 0.253906, 0.261719] uv0 u=[0.007812, 0.249023] v=[0.016602, 0.257813] values=15822
+        - glb: 2 material slot group(s) / 2 material(s), 17550 uv0 corner(s) checked against the real-texture patches
+  C11 material patch UV containment          PASS  2 material(s) / 35100 uv0 value(s) inside their real-_D texture patch (tolerance 1e-04, all contexts: ['Basic.Folktails.LOD0'])
+        - fbx PASS Basic.Folktails.LOD0                   slot=M_HDBF_Fabric material=Moss.Folktails                   patch uv=[0.183594, 0.464844, 0.433594, 0.714844] uv0 u=[0.187500, 0.428711] v=[0.469727, 0.710938] values=1728
+        - fbx PASS Basic.Folktails.LOD0                   slot=M_HDBF_Wood  material=BaseWood_Brown.Folktails         patch uv=[0.003906, 0.011719, 0.253906, 0.261719] uv0 u=[0.007812, 0.249023] v=[0.016602, 0.257813] values=15822
+        - glb PASS Basic.Folktails.LOD0                   slot=M_HDBF_Fabric material=Moss.Folktails                   patch uv=[0.183594, 0.464844, 0.433594, 0.714844] uv0 u=[0.187500, 0.428711] v=[0.469727, 0.710938] values=1728
+        - glb PASS Basic.Folktails.LOD0                   slot=M_HDBF_Wood  material=BaseWood_Brown.Folktails         patch uv=[0.003906, 0.011719, 0.253906, 0.261719] uv0 u=[0.007812, 0.249023] v=[0.016602, 0.257813] values=15822
 ----------------------------------------------------------------------------------------------------------------------
 Basic.Folktails.LOD1
   C1  parse                                  PASS  FBX and GLB imported; both carry one body mesh + 3 empties
@@ -106,9 +122,18 @@ Basic.Folktails.LOD1
   C6  materials                              PASS  material slot set matches ATLAS TIER_MATERIALS (['M_HDBF_Fabric', 'M_HDBF_Wood'])
         - fbx: ['M_HDBF_Fabric', 'M_HDBF_Wood']
         - glb: ['M_HDBF_Fabric', 'M_HDBF_Wood']
-  C7  flat-patch UV                          PASS  every face of one material samples that material's fixed flat UV patch
-        - fbx: all UVs inside their material flat patches (2378 triangles, 4 px patch gutter)
-        - glb: all UVs inside their material flat patches (2378 triangles, 4 px patch gutter)
+  C7  flat-patch UV                          PASS  every face of one material samples that material's real-_D texture patch (C11 reports per-material min/max)
+        - fbx PASS Basic.Folktails.LOD1                   slot=M_HDBF_Fabric material=Moss.Folktails                   patch uv=[0.183594, 0.464844, 0.433594, 0.714844] uv0 u=[0.190430, 0.417969] v=[0.477539, 0.707031] values=180
+        - fbx PASS Basic.Folktails.LOD1                   slot=M_HDBF_Wood  material=BaseWood_Brown.Folktails         patch uv=[0.003906, 0.011719, 0.253906, 0.261719] uv0 u=[0.007812, 0.249023] v=[0.016602, 0.257813] values=6954
+        - fbx: 2 material slot group(s) / 2 material(s), 7134 uv0 corner(s) checked against the real-texture patches
+        - glb PASS Basic.Folktails.LOD1                   slot=M_HDBF_Fabric material=Moss.Folktails                   patch uv=[0.183594, 0.464844, 0.433594, 0.714844] uv0 u=[0.190430, 0.417969] v=[0.477539, 0.707031] values=180
+        - glb PASS Basic.Folktails.LOD1                   slot=M_HDBF_Wood  material=BaseWood_Brown.Folktails         patch uv=[0.003906, 0.011719, 0.253906, 0.261719] uv0 u=[0.007812, 0.249023] v=[0.016602, 0.257813] values=6954
+        - glb: 2 material slot group(s) / 2 material(s), 7134 uv0 corner(s) checked against the real-texture patches
+  C11 material patch UV containment          PASS  2 material(s) / 14268 uv0 value(s) inside their real-_D texture patch (tolerance 1e-04, all contexts: ['Basic.Folktails.LOD1'])
+        - fbx PASS Basic.Folktails.LOD1                   slot=M_HDBF_Fabric material=Moss.Folktails                   patch uv=[0.183594, 0.464844, 0.433594, 0.714844] uv0 u=[0.190430, 0.417969] v=[0.477539, 0.707031] values=180
+        - fbx PASS Basic.Folktails.LOD1                   slot=M_HDBF_Wood  material=BaseWood_Brown.Folktails         patch uv=[0.003906, 0.011719, 0.253906, 0.261719] uv0 u=[0.007812, 0.249023] v=[0.016602, 0.257813] values=6954
+        - glb PASS Basic.Folktails.LOD1                   slot=M_HDBF_Fabric material=Moss.Folktails                   patch uv=[0.183594, 0.464844, 0.433594, 0.714844] uv0 u=[0.190430, 0.417969] v=[0.477539, 0.707031] values=180
+        - glb PASS Basic.Folktails.LOD1                   slot=M_HDBF_Wood  material=BaseWood_Brown.Folktails         patch uv=[0.003906, 0.011719, 0.253906, 0.261719] uv0 u=[0.007812, 0.249023] v=[0.016602, 0.257813] values=6954
 ----------------------------------------------------------------------------------------------------------------------
 Basic.Folktails.LOD2
   C1  parse                                  PASS  FBX and GLB imported; both carry one body mesh + 3 empties
@@ -128,9 +153,18 @@ Basic.Folktails.LOD2
   C6  materials                              PASS  material slot set matches ATLAS TIER_MATERIALS (['M_HDBF_Fabric', 'M_HDBF_Wood'])
         - fbx: ['M_HDBF_Fabric', 'M_HDBF_Wood']
         - glb: ['M_HDBF_Fabric', 'M_HDBF_Wood']
-  C7  flat-patch UV                          PASS  every face of one material samples that material's fixed flat UV patch
-        - fbx: all UVs inside their material flat patches (790 triangles, 4 px patch gutter)
-        - glb: all UVs inside their material flat patches (790 triangles, 4 px patch gutter)
+  C7  flat-patch UV                          PASS  every face of one material samples that material's real-_D texture patch (C11 reports per-material min/max)
+        - fbx PASS Basic.Folktails.LOD2                   slot=M_HDBF_Fabric material=Moss.Folktails                   patch uv=[0.183594, 0.464844, 0.433594, 0.714844] uv0 u=[0.191407, 0.384766] v=[0.488281, 0.661133] values=36
+        - fbx PASS Basic.Folktails.LOD2                   slot=M_HDBF_Wood  material=BaseWood_Brown.Folktails         patch uv=[0.003906, 0.011719, 0.253906, 0.261719] uv0 u=[0.007812, 0.248047] v=[0.016602, 0.257813] values=2334
+        - fbx: 2 material slot group(s) / 2 material(s), 2370 uv0 corner(s) checked against the real-texture patches
+        - glb PASS Basic.Folktails.LOD2                   slot=M_HDBF_Fabric material=Moss.Folktails                   patch uv=[0.183594, 0.464844, 0.433594, 0.714844] uv0 u=[0.191407, 0.384766] v=[0.488281, 0.661133] values=36
+        - glb PASS Basic.Folktails.LOD2                   slot=M_HDBF_Wood  material=BaseWood_Brown.Folktails         patch uv=[0.003906, 0.011719, 0.253906, 0.261719] uv0 u=[0.007812, 0.248047] v=[0.016602, 0.257813] values=2334
+        - glb: 2 material slot group(s) / 2 material(s), 2370 uv0 corner(s) checked against the real-texture patches
+  C11 material patch UV containment          PASS  2 material(s) / 4740 uv0 value(s) inside their real-_D texture patch (tolerance 1e-04, all contexts: ['Basic.Folktails.LOD2'])
+        - fbx PASS Basic.Folktails.LOD2                   slot=M_HDBF_Fabric material=Moss.Folktails                   patch uv=[0.183594, 0.464844, 0.433594, 0.714844] uv0 u=[0.191407, 0.384766] v=[0.488281, 0.661133] values=36
+        - fbx PASS Basic.Folktails.LOD2                   slot=M_HDBF_Wood  material=BaseWood_Brown.Folktails         patch uv=[0.003906, 0.011719, 0.253906, 0.261719] uv0 u=[0.007812, 0.248047] v=[0.016602, 0.257813] values=2334
+        - glb PASS Basic.Folktails.LOD2                   slot=M_HDBF_Fabric material=Moss.Folktails                   patch uv=[0.183594, 0.464844, 0.433594, 0.714844] uv0 u=[0.191407, 0.384766] v=[0.488281, 0.661133] values=36
+        - glb PASS Basic.Folktails.LOD2                   slot=M_HDBF_Wood  material=BaseWood_Brown.Folktails         patch uv=[0.003906, 0.011719, 0.253906, 0.261719] uv0 u=[0.007812, 0.248047] v=[0.016602, 0.257813] values=2334
 ----------------------------------------------------------------------------------------------------------------------
 Basic.IronTeeth.LOD0
   C1  parse                                  PASS  FBX and GLB imported; both carry one body mesh + 3 empties
@@ -154,9 +188,18 @@ Basic.IronTeeth.LOD0
   C6  materials                              PASS  material slot set matches ATLAS TIER_MATERIALS (['M_HDBF_Fabric', 'M_HDBF_Wood'])
         - fbx: ['M_HDBF_Fabric', 'M_HDBF_Wood']
         - glb: ['M_HDBF_Fabric', 'M_HDBF_Wood']
-  C7  flat-patch UV                          PASS  every face of one material samples that material's fixed flat UV patch
-        - fbx: all UVs inside their material flat patches (5850 triangles, 4 px patch gutter)
-        - glb: all UVs inside their material flat patches (5850 triangles, 4 px patch gutter)
+  C7  flat-patch UV                          PASS  every face of one material samples that material's real-_D texture patch (C11 reports per-material min/max)
+        - fbx PASS Basic.IronTeeth.LOD0                   slot=M_HDBF_Fabric material=RoofPlanks.IronTeeth             patch uv=[0.003906, 0.011719, 0.253906, 0.261719] uv0 u=[0.007812, 0.242187] v=[0.025391, 0.257813] values=282
+        - fbx PASS Basic.IronTeeth.LOD0                   slot=M_HDBF_Wood  material=BaseWood_DarkBrown.IronTeeth     patch uv=[0.355469, 0.558594, 0.496094, 0.699219] uv0 u=[0.359375, 0.491211] v=[0.563477, 0.695313] values=17268
+        - fbx: 2 material slot group(s) / 2 material(s), 17550 uv0 corner(s) checked against the real-texture patches
+        - glb PASS Basic.IronTeeth.LOD0                   slot=M_HDBF_Fabric material=RoofPlanks.IronTeeth             patch uv=[0.003906, 0.011719, 0.253906, 0.261719] uv0 u=[0.007812, 0.242187] v=[0.025391, 0.257813] values=282
+        - glb PASS Basic.IronTeeth.LOD0                   slot=M_HDBF_Wood  material=BaseWood_DarkBrown.IronTeeth     patch uv=[0.355469, 0.558594, 0.496094, 0.699219] uv0 u=[0.359375, 0.491211] v=[0.563477, 0.695313] values=17268
+        - glb: 2 material slot group(s) / 2 material(s), 17550 uv0 corner(s) checked against the real-texture patches
+  C11 material patch UV containment          PASS  2 material(s) / 35100 uv0 value(s) inside their real-_D texture patch (tolerance 1e-04, all contexts: ['Basic.IronTeeth.LOD0'])
+        - fbx PASS Basic.IronTeeth.LOD0                   slot=M_HDBF_Fabric material=RoofPlanks.IronTeeth             patch uv=[0.003906, 0.011719, 0.253906, 0.261719] uv0 u=[0.007812, 0.242187] v=[0.025391, 0.257813] values=282
+        - fbx PASS Basic.IronTeeth.LOD0                   slot=M_HDBF_Wood  material=BaseWood_DarkBrown.IronTeeth     patch uv=[0.355469, 0.558594, 0.496094, 0.699219] uv0 u=[0.359375, 0.491211] v=[0.563477, 0.695313] values=17268
+        - glb PASS Basic.IronTeeth.LOD0                   slot=M_HDBF_Fabric material=RoofPlanks.IronTeeth             patch uv=[0.003906, 0.011719, 0.253906, 0.261719] uv0 u=[0.007812, 0.242187] v=[0.025391, 0.257813] values=282
+        - glb PASS Basic.IronTeeth.LOD0                   slot=M_HDBF_Wood  material=BaseWood_DarkBrown.IronTeeth     patch uv=[0.355469, 0.558594, 0.496094, 0.699219] uv0 u=[0.359375, 0.491211] v=[0.563477, 0.695313] values=17268
 ----------------------------------------------------------------------------------------------------------------------
 Basic.IronTeeth.LOD1
   C1  parse                                  PASS  FBX and GLB imported; both carry one body mesh + 3 empties
@@ -176,9 +219,18 @@ Basic.IronTeeth.LOD1
   C6  materials                              PASS  material slot set matches ATLAS TIER_MATERIALS (['M_HDBF_Fabric', 'M_HDBF_Wood'])
         - fbx: ['M_HDBF_Fabric', 'M_HDBF_Wood']
         - glb: ['M_HDBF_Fabric', 'M_HDBF_Wood']
-  C7  flat-patch UV                          PASS  every face of one material samples that material's fixed flat UV patch
-        - fbx: all UVs inside their material flat patches (2362 triangles, 4 px patch gutter)
-        - glb: all UVs inside their material flat patches (2362 triangles, 4 px patch gutter)
+  C7  flat-patch UV                          PASS  every face of one material samples that material's real-_D texture patch (C11 reports per-material min/max)
+        - fbx PASS Basic.IronTeeth.LOD1                   slot=M_HDBF_Fabric material=RoofPlanks.IronTeeth             patch uv=[0.003906, 0.011719, 0.253906, 0.261719] uv0 u=[0.010742, 0.246093] v=[0.030274, 0.252930] values=174
+        - fbx PASS Basic.IronTeeth.LOD1                   slot=M_HDBF_Wood  material=BaseWood_DarkBrown.IronTeeth     patch uv=[0.355469, 0.558594, 0.496094, 0.699219] uv0 u=[0.359375, 0.491211] v=[0.563477, 0.695313] values=6912
+        - fbx: 2 material slot group(s) / 2 material(s), 7086 uv0 corner(s) checked against the real-texture patches
+        - glb PASS Basic.IronTeeth.LOD1                   slot=M_HDBF_Fabric material=RoofPlanks.IronTeeth             patch uv=[0.003906, 0.011719, 0.253906, 0.261719] uv0 u=[0.010742, 0.246093] v=[0.030274, 0.252930] values=174
+        - glb PASS Basic.IronTeeth.LOD1                   slot=M_HDBF_Wood  material=BaseWood_DarkBrown.IronTeeth     patch uv=[0.355469, 0.558594, 0.496094, 0.699219] uv0 u=[0.359375, 0.491211] v=[0.563477, 0.695313] values=6912
+        - glb: 2 material slot group(s) / 2 material(s), 7086 uv0 corner(s) checked against the real-texture patches
+  C11 material patch UV containment          PASS  2 material(s) / 14172 uv0 value(s) inside their real-_D texture patch (tolerance 1e-04, all contexts: ['Basic.IronTeeth.LOD1'])
+        - fbx PASS Basic.IronTeeth.LOD1                   slot=M_HDBF_Fabric material=RoofPlanks.IronTeeth             patch uv=[0.003906, 0.011719, 0.253906, 0.261719] uv0 u=[0.010742, 0.246093] v=[0.030274, 0.252930] values=174
+        - fbx PASS Basic.IronTeeth.LOD1                   slot=M_HDBF_Wood  material=BaseWood_DarkBrown.IronTeeth     patch uv=[0.355469, 0.558594, 0.496094, 0.699219] uv0 u=[0.359375, 0.491211] v=[0.563477, 0.695313] values=6912
+        - glb PASS Basic.IronTeeth.LOD1                   slot=M_HDBF_Fabric material=RoofPlanks.IronTeeth             patch uv=[0.003906, 0.011719, 0.253906, 0.261719] uv0 u=[0.010742, 0.246093] v=[0.030274, 0.252930] values=174
+        - glb PASS Basic.IronTeeth.LOD1                   slot=M_HDBF_Wood  material=BaseWood_DarkBrown.IronTeeth     patch uv=[0.355469, 0.558594, 0.496094, 0.699219] uv0 u=[0.359375, 0.491211] v=[0.563477, 0.695313] values=6912
 ----------------------------------------------------------------------------------------------------------------------
 Basic.IronTeeth.LOD2
   C1  parse                                  PASS  FBX and GLB imported; both carry one body mesh + 3 empties
@@ -198,9 +250,18 @@ Basic.IronTeeth.LOD2
   C6  materials                              PASS  material slot set matches ATLAS TIER_MATERIALS (['M_HDBF_Fabric', 'M_HDBF_Wood'])
         - fbx: ['M_HDBF_Fabric', 'M_HDBF_Wood']
         - glb: ['M_HDBF_Fabric', 'M_HDBF_Wood']
-  C7  flat-patch UV                          PASS  every face of one material samples that material's fixed flat UV patch
-        - fbx: all UVs inside their material flat patches (790 triangles, 4 px patch gutter)
-        - glb: all UVs inside their material flat patches (790 triangles, 4 px patch gutter)
+  C7  flat-patch UV                          PASS  every face of one material samples that material's real-_D texture patch (C11 reports per-material min/max)
+        - fbx PASS Basic.IronTeeth.LOD2                   slot=M_HDBF_Fabric material=RoofPlanks.IronTeeth             patch uv=[0.003906, 0.011719, 0.253906, 0.261719] uv0 u=[0.047851, 0.198242] v=[0.047852, 0.219727] values=30
+        - fbx PASS Basic.IronTeeth.LOD2                   slot=M_HDBF_Wood  material=BaseWood_DarkBrown.IronTeeth     patch uv=[0.355469, 0.558594, 0.496094, 0.699219] uv0 u=[0.359375, 0.491211] v=[0.563477, 0.695313] values=2340
+        - fbx: 2 material slot group(s) / 2 material(s), 2370 uv0 corner(s) checked against the real-texture patches
+        - glb PASS Basic.IronTeeth.LOD2                   slot=M_HDBF_Fabric material=RoofPlanks.IronTeeth             patch uv=[0.003906, 0.011719, 0.253906, 0.261719] uv0 u=[0.047851, 0.198242] v=[0.047852, 0.219727] values=30
+        - glb PASS Basic.IronTeeth.LOD2                   slot=M_HDBF_Wood  material=BaseWood_DarkBrown.IronTeeth     patch uv=[0.355469, 0.558594, 0.496094, 0.699219] uv0 u=[0.359375, 0.491211] v=[0.563477, 0.695313] values=2340
+        - glb: 2 material slot group(s) / 2 material(s), 2370 uv0 corner(s) checked against the real-texture patches
+  C11 material patch UV containment          PASS  2 material(s) / 4740 uv0 value(s) inside their real-_D texture patch (tolerance 1e-04, all contexts: ['Basic.IronTeeth.LOD2'])
+        - fbx PASS Basic.IronTeeth.LOD2                   slot=M_HDBF_Fabric material=RoofPlanks.IronTeeth             patch uv=[0.003906, 0.011719, 0.253906, 0.261719] uv0 u=[0.047851, 0.198242] v=[0.047852, 0.219727] values=30
+        - fbx PASS Basic.IronTeeth.LOD2                   slot=M_HDBF_Wood  material=BaseWood_DarkBrown.IronTeeth     patch uv=[0.355469, 0.558594, 0.496094, 0.699219] uv0 u=[0.359375, 0.491211] v=[0.563477, 0.695313] values=2340
+        - glb PASS Basic.IronTeeth.LOD2                   slot=M_HDBF_Fabric material=RoofPlanks.IronTeeth             patch uv=[0.003906, 0.011719, 0.253906, 0.261719] uv0 u=[0.047851, 0.198242] v=[0.047852, 0.219727] values=30
+        - glb PASS Basic.IronTeeth.LOD2                   slot=M_HDBF_Wood  material=BaseWood_DarkBrown.IronTeeth     patch uv=[0.355469, 0.558594, 0.496094, 0.699219] uv0 u=[0.359375, 0.491211] v=[0.563477, 0.695313] values=2340
 ----------------------------------------------------------------------------------------------------------------------
 Intermediate.Folktails.LOD0
   C1  parse                                  PASS  FBX and GLB imported; both carry one body mesh + 3 empties
@@ -224,9 +285,22 @@ Intermediate.Folktails.LOD0
   C6  materials                              PASS  material slot set matches ATLAS TIER_MATERIALS (['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Wood'])
         - fbx: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Wood']
         - glb: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Wood']
-  C7  flat-patch UV                          PASS  every face of one material samples that material's fixed flat UV patch
-        - fbx: all UVs inside their material flat patches (5854 triangles, 4 px patch gutter)
-        - glb: all UVs inside their material flat patches (5854 triangles, 4 px patch gutter)
+  C7  flat-patch UV                          PASS  every face of one material samples that material's real-_D texture patch (C11 reports per-material min/max)
+        - fbx PASS Intermediate.Folktails.LOD0            slot=M_HDBF_Fabric material=Plaster_White.Folktails          patch uv=[0.457031, 0.683594, 0.769531, 0.996094] uv0 u=[0.461914, 0.764648] v=[0.688477, 0.992188] values=1146
+        - fbx PASS Intermediate.Folktails.LOD0            slot=M_HDBF_Glass material=WindowsAtlas.Folktails           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.814453, 0.991211] v=[0.063477, 0.242188] values=252
+        - fbx PASS Intermediate.Folktails.LOD0            slot=M_HDBF_Wood  material=BaseWood_LightBrown.Folktails    patch uv=[0.019531, 0.574219, 0.207031, 0.761719] uv0 u=[0.023437, 0.202148] v=[0.579102, 0.757813] values=16164
+        - fbx: 3 material slot group(s) / 3 material(s), 17562 uv0 corner(s) checked against the real-texture patches
+        - glb PASS Intermediate.Folktails.LOD0            slot=M_HDBF_Fabric material=Plaster_White.Folktails          patch uv=[0.457031, 0.683594, 0.769531, 0.996094] uv0 u=[0.461914, 0.764648] v=[0.688477, 0.992188] values=1146
+        - glb PASS Intermediate.Folktails.LOD0            slot=M_HDBF_Glass material=WindowsAtlas.Folktails           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.814453, 0.991211] v=[0.063477, 0.242188] values=252
+        - glb PASS Intermediate.Folktails.LOD0            slot=M_HDBF_Wood  material=BaseWood_LightBrown.Folktails    patch uv=[0.019531, 0.574219, 0.207031, 0.761719] uv0 u=[0.023437, 0.202148] v=[0.579102, 0.757813] values=16164
+        - glb: 3 material slot group(s) / 3 material(s), 17562 uv0 corner(s) checked against the real-texture patches
+  C11 material patch UV containment          PASS  3 material(s) / 35124 uv0 value(s) inside their real-_D texture patch (tolerance 1e-04, all contexts: ['Intermediate.Folktails.LOD0'])
+        - fbx PASS Intermediate.Folktails.LOD0            slot=M_HDBF_Fabric material=Plaster_White.Folktails          patch uv=[0.457031, 0.683594, 0.769531, 0.996094] uv0 u=[0.461914, 0.764648] v=[0.688477, 0.992188] values=1146
+        - fbx PASS Intermediate.Folktails.LOD0            slot=M_HDBF_Glass material=WindowsAtlas.Folktails           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.814453, 0.991211] v=[0.063477, 0.242188] values=252
+        - fbx PASS Intermediate.Folktails.LOD0            slot=M_HDBF_Wood  material=BaseWood_LightBrown.Folktails    patch uv=[0.019531, 0.574219, 0.207031, 0.761719] uv0 u=[0.023437, 0.202148] v=[0.579102, 0.757813] values=16164
+        - glb PASS Intermediate.Folktails.LOD0            slot=M_HDBF_Fabric material=Plaster_White.Folktails          patch uv=[0.457031, 0.683594, 0.769531, 0.996094] uv0 u=[0.461914, 0.764648] v=[0.688477, 0.992188] values=1146
+        - glb PASS Intermediate.Folktails.LOD0            slot=M_HDBF_Glass material=WindowsAtlas.Folktails           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.814453, 0.991211] v=[0.063477, 0.242188] values=252
+        - glb PASS Intermediate.Folktails.LOD0            slot=M_HDBF_Wood  material=BaseWood_LightBrown.Folktails    patch uv=[0.019531, 0.574219, 0.207031, 0.761719] uv0 u=[0.023437, 0.202148] v=[0.579102, 0.757813] values=16164
 ----------------------------------------------------------------------------------------------------------------------
 Intermediate.Folktails.LOD1
   C1  parse                                  PASS  FBX and GLB imported; both carry one body mesh + 3 empties
@@ -246,9 +320,22 @@ Intermediate.Folktails.LOD1
   C6  materials                              PASS  material slot set matches ATLAS TIER_MATERIALS (['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Wood'])
         - fbx: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Wood']
         - glb: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Wood']
-  C7  flat-patch UV                          PASS  every face of one material samples that material's fixed flat UV patch
-        - fbx: all UVs inside their material flat patches (2362 triangles, 4 px patch gutter)
-        - glb: all UVs inside their material flat patches (2362 triangles, 4 px patch gutter)
+  C7  flat-patch UV                          PASS  every face of one material samples that material's real-_D texture patch (C11 reports per-material min/max)
+        - fbx PASS Intermediate.Folktails.LOD1            slot=M_HDBF_Fabric material=Plaster_White.Folktails          patch uv=[0.457031, 0.683594, 0.769531, 0.996094] uv0 u=[0.469726, 0.762695] v=[0.688477, 0.992188] values=498
+        - fbx PASS Intermediate.Folktails.LOD1            slot=M_HDBF_Glass material=WindowsAtlas.Folktails           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.812500, 0.986328] v=[0.067383, 0.232422] values=252
+        - fbx PASS Intermediate.Folktails.LOD1            slot=M_HDBF_Wood  material=BaseWood_LightBrown.Folktails    patch uv=[0.019531, 0.574219, 0.207031, 0.761719] uv0 u=[0.023437, 0.202148] v=[0.579102, 0.757813] values=6336
+        - fbx: 3 material slot group(s) / 3 material(s), 7086 uv0 corner(s) checked against the real-texture patches
+        - glb PASS Intermediate.Folktails.LOD1            slot=M_HDBF_Fabric material=Plaster_White.Folktails          patch uv=[0.457031, 0.683594, 0.769531, 0.996094] uv0 u=[0.469726, 0.762695] v=[0.688477, 0.992188] values=498
+        - glb PASS Intermediate.Folktails.LOD1            slot=M_HDBF_Glass material=WindowsAtlas.Folktails           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.812500, 0.986328] v=[0.067383, 0.232422] values=252
+        - glb PASS Intermediate.Folktails.LOD1            slot=M_HDBF_Wood  material=BaseWood_LightBrown.Folktails    patch uv=[0.019531, 0.574219, 0.207031, 0.761719] uv0 u=[0.023437, 0.202148] v=[0.579102, 0.757813] values=6336
+        - glb: 3 material slot group(s) / 3 material(s), 7086 uv0 corner(s) checked against the real-texture patches
+  C11 material patch UV containment          PASS  3 material(s) / 14172 uv0 value(s) inside their real-_D texture patch (tolerance 1e-04, all contexts: ['Intermediate.Folktails.LOD1'])
+        - fbx PASS Intermediate.Folktails.LOD1            slot=M_HDBF_Fabric material=Plaster_White.Folktails          patch uv=[0.457031, 0.683594, 0.769531, 0.996094] uv0 u=[0.469726, 0.762695] v=[0.688477, 0.992188] values=498
+        - fbx PASS Intermediate.Folktails.LOD1            slot=M_HDBF_Glass material=WindowsAtlas.Folktails           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.812500, 0.986328] v=[0.067383, 0.232422] values=252
+        - fbx PASS Intermediate.Folktails.LOD1            slot=M_HDBF_Wood  material=BaseWood_LightBrown.Folktails    patch uv=[0.019531, 0.574219, 0.207031, 0.761719] uv0 u=[0.023437, 0.202148] v=[0.579102, 0.757813] values=6336
+        - glb PASS Intermediate.Folktails.LOD1            slot=M_HDBF_Fabric material=Plaster_White.Folktails          patch uv=[0.457031, 0.683594, 0.769531, 0.996094] uv0 u=[0.469726, 0.762695] v=[0.688477, 0.992188] values=498
+        - glb PASS Intermediate.Folktails.LOD1            slot=M_HDBF_Glass material=WindowsAtlas.Folktails           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.812500, 0.986328] v=[0.067383, 0.232422] values=252
+        - glb PASS Intermediate.Folktails.LOD1            slot=M_HDBF_Wood  material=BaseWood_LightBrown.Folktails    patch uv=[0.019531, 0.574219, 0.207031, 0.761719] uv0 u=[0.023437, 0.202148] v=[0.579102, 0.757813] values=6336
 ----------------------------------------------------------------------------------------------------------------------
 Intermediate.Folktails.LOD2
   C1  parse                                  PASS  FBX and GLB imported; both carry one body mesh + 3 empties
@@ -268,9 +355,22 @@ Intermediate.Folktails.LOD2
   C6  materials                              PASS  material slot set matches ATLAS TIER_MATERIALS (['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Wood'])
         - fbx: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Wood']
         - glb: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Wood']
-  C7  flat-patch UV                          PASS  every face of one material samples that material's fixed flat UV patch
-        - fbx: all UVs inside their material flat patches (810 triangles, 4 px patch gutter)
-        - glb: all UVs inside their material flat patches (810 triangles, 4 px patch gutter)
+  C7  flat-patch UV                          PASS  every face of one material samples that material's real-_D texture patch (C11 reports per-material min/max)
+        - fbx PASS Intermediate.Folktails.LOD2            slot=M_HDBF_Fabric material=Plaster_White.Folktails          patch uv=[0.457031, 0.683594, 0.769531, 0.996094] uv0 u=[0.471679, 0.753906] v=[0.698242, 0.980469] values=318
+        - fbx PASS Intermediate.Folktails.LOD2            slot=M_HDBF_Glass material=WindowsAtlas.Folktails           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.812500, 0.970703] v=[0.064453, 0.239258] values=252
+        - fbx PASS Intermediate.Folktails.LOD2            slot=M_HDBF_Wood  material=BaseWood_LightBrown.Folktails    patch uv=[0.019531, 0.574219, 0.207031, 0.761719] uv0 u=[0.023437, 0.202148] v=[0.579102, 0.757813] values=1860
+        - fbx: 3 material slot group(s) / 3 material(s), 2430 uv0 corner(s) checked against the real-texture patches
+        - glb PASS Intermediate.Folktails.LOD2            slot=M_HDBF_Fabric material=Plaster_White.Folktails          patch uv=[0.457031, 0.683594, 0.769531, 0.996094] uv0 u=[0.471679, 0.753906] v=[0.698242, 0.980469] values=318
+        - glb PASS Intermediate.Folktails.LOD2            slot=M_HDBF_Glass material=WindowsAtlas.Folktails           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.812500, 0.970703] v=[0.064453, 0.239258] values=252
+        - glb PASS Intermediate.Folktails.LOD2            slot=M_HDBF_Wood  material=BaseWood_LightBrown.Folktails    patch uv=[0.019531, 0.574219, 0.207031, 0.761719] uv0 u=[0.023437, 0.202148] v=[0.579102, 0.757813] values=1860
+        - glb: 3 material slot group(s) / 3 material(s), 2430 uv0 corner(s) checked against the real-texture patches
+  C11 material patch UV containment          PASS  3 material(s) / 4860 uv0 value(s) inside their real-_D texture patch (tolerance 1e-04, all contexts: ['Intermediate.Folktails.LOD2'])
+        - fbx PASS Intermediate.Folktails.LOD2            slot=M_HDBF_Fabric material=Plaster_White.Folktails          patch uv=[0.457031, 0.683594, 0.769531, 0.996094] uv0 u=[0.471679, 0.753906] v=[0.698242, 0.980469] values=318
+        - fbx PASS Intermediate.Folktails.LOD2            slot=M_HDBF_Glass material=WindowsAtlas.Folktails           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.812500, 0.970703] v=[0.064453, 0.239258] values=252
+        - fbx PASS Intermediate.Folktails.LOD2            slot=M_HDBF_Wood  material=BaseWood_LightBrown.Folktails    patch uv=[0.019531, 0.574219, 0.207031, 0.761719] uv0 u=[0.023437, 0.202148] v=[0.579102, 0.757813] values=1860
+        - glb PASS Intermediate.Folktails.LOD2            slot=M_HDBF_Fabric material=Plaster_White.Folktails          patch uv=[0.457031, 0.683594, 0.769531, 0.996094] uv0 u=[0.471679, 0.753906] v=[0.698242, 0.980469] values=318
+        - glb PASS Intermediate.Folktails.LOD2            slot=M_HDBF_Glass material=WindowsAtlas.Folktails           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.812500, 0.970703] v=[0.064453, 0.239258] values=252
+        - glb PASS Intermediate.Folktails.LOD2            slot=M_HDBF_Wood  material=BaseWood_LightBrown.Folktails    patch uv=[0.019531, 0.574219, 0.207031, 0.761719] uv0 u=[0.023437, 0.202148] v=[0.579102, 0.757813] values=1860
 ----------------------------------------------------------------------------------------------------------------------
 Intermediate.IronTeeth.LOD0
   C1  parse                                  PASS  FBX and GLB imported; both carry one body mesh + 3 empties
@@ -294,9 +394,22 @@ Intermediate.IronTeeth.LOD0
   C6  materials                              PASS  material slot set matches ATLAS TIER_MATERIALS (['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Wood'])
         - fbx: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Wood']
         - glb: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Wood']
-  C7  flat-patch UV                          PASS  every face of one material samples that material's fixed flat UV patch
-        - fbx: all UVs inside their material flat patches (5854 triangles, 4 px patch gutter)
-        - glb: all UVs inside their material flat patches (5854 triangles, 4 px patch gutter)
+  C7  flat-patch UV                          PASS  every face of one material samples that material's real-_D texture patch (C11 reports per-material min/max)
+        - fbx PASS Intermediate.IronTeeth.LOD0            slot=M_HDBF_Fabric material=Plaster_Orange.IronTeeth         patch uv=[0.457031, 0.683594, 0.769531, 0.996094] uv0 u=[0.461914, 0.764648] v=[0.690430, 0.992188] values=1146
+        - fbx PASS Intermediate.IronTeeth.LOD0            slot=M_HDBF_Glass material=WindowsAtlas.IronTeeth           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.812500, 0.991211] v=[0.064453, 0.239258] values=252
+        - fbx PASS Intermediate.IronTeeth.LOD0            slot=M_HDBF_Wood  material=BaseWood_Grey.IronTeeth          patch uv=[0.355469, 0.558594, 0.496094, 0.699219] uv0 u=[0.359375, 0.491211] v=[0.563477, 0.695313] values=16164
+        - fbx: 3 material slot group(s) / 3 material(s), 17562 uv0 corner(s) checked against the real-texture patches
+        - glb PASS Intermediate.IronTeeth.LOD0            slot=M_HDBF_Fabric material=Plaster_Orange.IronTeeth         patch uv=[0.457031, 0.683594, 0.769531, 0.996094] uv0 u=[0.461914, 0.764648] v=[0.690430, 0.992188] values=1146
+        - glb PASS Intermediate.IronTeeth.LOD0            slot=M_HDBF_Glass material=WindowsAtlas.IronTeeth           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.812500, 0.991211] v=[0.064453, 0.239258] values=252
+        - glb PASS Intermediate.IronTeeth.LOD0            slot=M_HDBF_Wood  material=BaseWood_Grey.IronTeeth          patch uv=[0.355469, 0.558594, 0.496094, 0.699219] uv0 u=[0.359375, 0.491211] v=[0.563477, 0.695313] values=16164
+        - glb: 3 material slot group(s) / 3 material(s), 17562 uv0 corner(s) checked against the real-texture patches
+  C11 material patch UV containment          PASS  3 material(s) / 35124 uv0 value(s) inside their real-_D texture patch (tolerance 1e-04, all contexts: ['Intermediate.IronTeeth.LOD0'])
+        - fbx PASS Intermediate.IronTeeth.LOD0            slot=M_HDBF_Fabric material=Plaster_Orange.IronTeeth         patch uv=[0.457031, 0.683594, 0.769531, 0.996094] uv0 u=[0.461914, 0.764648] v=[0.690430, 0.992188] values=1146
+        - fbx PASS Intermediate.IronTeeth.LOD0            slot=M_HDBF_Glass material=WindowsAtlas.IronTeeth           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.812500, 0.991211] v=[0.064453, 0.239258] values=252
+        - fbx PASS Intermediate.IronTeeth.LOD0            slot=M_HDBF_Wood  material=BaseWood_Grey.IronTeeth          patch uv=[0.355469, 0.558594, 0.496094, 0.699219] uv0 u=[0.359375, 0.491211] v=[0.563477, 0.695313] values=16164
+        - glb PASS Intermediate.IronTeeth.LOD0            slot=M_HDBF_Fabric material=Plaster_Orange.IronTeeth         patch uv=[0.457031, 0.683594, 0.769531, 0.996094] uv0 u=[0.461914, 0.764648] v=[0.690430, 0.992188] values=1146
+        - glb PASS Intermediate.IronTeeth.LOD0            slot=M_HDBF_Glass material=WindowsAtlas.IronTeeth           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.812500, 0.991211] v=[0.064453, 0.239258] values=252
+        - glb PASS Intermediate.IronTeeth.LOD0            slot=M_HDBF_Wood  material=BaseWood_Grey.IronTeeth          patch uv=[0.355469, 0.558594, 0.496094, 0.699219] uv0 u=[0.359375, 0.491211] v=[0.563477, 0.695313] values=16164
 ----------------------------------------------------------------------------------------------------------------------
 Intermediate.IronTeeth.LOD1
   C1  parse                                  PASS  FBX and GLB imported; both carry one body mesh + 3 empties
@@ -316,9 +429,22 @@ Intermediate.IronTeeth.LOD1
   C6  materials                              PASS  material slot set matches ATLAS TIER_MATERIALS (['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Wood'])
         - fbx: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Wood']
         - glb: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Wood']
-  C7  flat-patch UV                          PASS  every face of one material samples that material's fixed flat UV patch
-        - fbx: all UVs inside their material flat patches (2362 triangles, 4 px patch gutter)
-        - glb: all UVs inside their material flat patches (2362 triangles, 4 px patch gutter)
+  C7  flat-patch UV                          PASS  every face of one material samples that material's real-_D texture patch (C11 reports per-material min/max)
+        - fbx PASS Intermediate.IronTeeth.LOD1            slot=M_HDBF_Fabric material=Plaster_Orange.IronTeeth         patch uv=[0.457031, 0.683594, 0.769531, 0.996094] uv0 u=[0.466797, 0.762695] v=[0.692383, 0.989258] values=498
+        - fbx PASS Intermediate.IronTeeth.LOD1            slot=M_HDBF_Glass material=WindowsAtlas.IronTeeth           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.814453, 0.988281] v=[0.072266, 0.240235] values=252
+        - fbx PASS Intermediate.IronTeeth.LOD1            slot=M_HDBF_Wood  material=BaseWood_Grey.IronTeeth          patch uv=[0.355469, 0.558594, 0.496094, 0.699219] uv0 u=[0.359375, 0.491211] v=[0.563477, 0.695313] values=6336
+        - fbx: 3 material slot group(s) / 3 material(s), 7086 uv0 corner(s) checked against the real-texture patches
+        - glb PASS Intermediate.IronTeeth.LOD1            slot=M_HDBF_Fabric material=Plaster_Orange.IronTeeth         patch uv=[0.457031, 0.683594, 0.769531, 0.996094] uv0 u=[0.466797, 0.762695] v=[0.692383, 0.989258] values=498
+        - glb PASS Intermediate.IronTeeth.LOD1            slot=M_HDBF_Glass material=WindowsAtlas.IronTeeth           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.814453, 0.988281] v=[0.072266, 0.240235] values=252
+        - glb PASS Intermediate.IronTeeth.LOD1            slot=M_HDBF_Wood  material=BaseWood_Grey.IronTeeth          patch uv=[0.355469, 0.558594, 0.496094, 0.699219] uv0 u=[0.359375, 0.491211] v=[0.563477, 0.695313] values=6336
+        - glb: 3 material slot group(s) / 3 material(s), 7086 uv0 corner(s) checked against the real-texture patches
+  C11 material patch UV containment          PASS  3 material(s) / 14172 uv0 value(s) inside their real-_D texture patch (tolerance 1e-04, all contexts: ['Intermediate.IronTeeth.LOD1'])
+        - fbx PASS Intermediate.IronTeeth.LOD1            slot=M_HDBF_Fabric material=Plaster_Orange.IronTeeth         patch uv=[0.457031, 0.683594, 0.769531, 0.996094] uv0 u=[0.466797, 0.762695] v=[0.692383, 0.989258] values=498
+        - fbx PASS Intermediate.IronTeeth.LOD1            slot=M_HDBF_Glass material=WindowsAtlas.IronTeeth           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.814453, 0.988281] v=[0.072266, 0.240235] values=252
+        - fbx PASS Intermediate.IronTeeth.LOD1            slot=M_HDBF_Wood  material=BaseWood_Grey.IronTeeth          patch uv=[0.355469, 0.558594, 0.496094, 0.699219] uv0 u=[0.359375, 0.491211] v=[0.563477, 0.695313] values=6336
+        - glb PASS Intermediate.IronTeeth.LOD1            slot=M_HDBF_Fabric material=Plaster_Orange.IronTeeth         patch uv=[0.457031, 0.683594, 0.769531, 0.996094] uv0 u=[0.466797, 0.762695] v=[0.692383, 0.989258] values=498
+        - glb PASS Intermediate.IronTeeth.LOD1            slot=M_HDBF_Glass material=WindowsAtlas.IronTeeth           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.814453, 0.988281] v=[0.072266, 0.240235] values=252
+        - glb PASS Intermediate.IronTeeth.LOD1            slot=M_HDBF_Wood  material=BaseWood_Grey.IronTeeth          patch uv=[0.355469, 0.558594, 0.496094, 0.699219] uv0 u=[0.359375, 0.491211] v=[0.563477, 0.695313] values=6336
 ----------------------------------------------------------------------------------------------------------------------
 Intermediate.IronTeeth.LOD2
   C1  parse                                  PASS  FBX and GLB imported; both carry one body mesh + 3 empties
@@ -338,9 +464,22 @@ Intermediate.IronTeeth.LOD2
   C6  materials                              PASS  material slot set matches ATLAS TIER_MATERIALS (['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Wood'])
         - fbx: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Wood']
         - glb: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Wood']
-  C7  flat-patch UV                          PASS  every face of one material samples that material's fixed flat UV patch
-        - fbx: all UVs inside their material flat patches (810 triangles, 4 px patch gutter)
-        - glb: all UVs inside their material flat patches (810 triangles, 4 px patch gutter)
+  C7  flat-patch UV                          PASS  every face of one material samples that material's real-_D texture patch (C11 reports per-material min/max)
+        - fbx PASS Intermediate.IronTeeth.LOD2            slot=M_HDBF_Fabric material=Plaster_Orange.IronTeeth         patch uv=[0.457031, 0.683594, 0.769531, 0.996094] uv0 u=[0.463867, 0.761719] v=[0.688477, 0.985352] values=318
+        - fbx PASS Intermediate.IronTeeth.LOD2            slot=M_HDBF_Glass material=WindowsAtlas.IronTeeth           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.819336, 0.973633] v=[0.076172, 0.238282] values=252
+        - fbx PASS Intermediate.IronTeeth.LOD2            slot=M_HDBF_Wood  material=BaseWood_Grey.IronTeeth          patch uv=[0.355469, 0.558594, 0.496094, 0.699219] uv0 u=[0.359375, 0.491211] v=[0.563477, 0.695313] values=1860
+        - fbx: 3 material slot group(s) / 3 material(s), 2430 uv0 corner(s) checked against the real-texture patches
+        - glb PASS Intermediate.IronTeeth.LOD2            slot=M_HDBF_Fabric material=Plaster_Orange.IronTeeth         patch uv=[0.457031, 0.683594, 0.769531, 0.996094] uv0 u=[0.463867, 0.761719] v=[0.688477, 0.985352] values=318
+        - glb PASS Intermediate.IronTeeth.LOD2            slot=M_HDBF_Glass material=WindowsAtlas.IronTeeth           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.819336, 0.973633] v=[0.076172, 0.238281] values=252
+        - glb PASS Intermediate.IronTeeth.LOD2            slot=M_HDBF_Wood  material=BaseWood_Grey.IronTeeth          patch uv=[0.355469, 0.558594, 0.496094, 0.699219] uv0 u=[0.359375, 0.491211] v=[0.563477, 0.695313] values=1860
+        - glb: 3 material slot group(s) / 3 material(s), 2430 uv0 corner(s) checked against the real-texture patches
+  C11 material patch UV containment          PASS  3 material(s) / 4860 uv0 value(s) inside their real-_D texture patch (tolerance 1e-04, all contexts: ['Intermediate.IronTeeth.LOD2'])
+        - fbx PASS Intermediate.IronTeeth.LOD2            slot=M_HDBF_Fabric material=Plaster_Orange.IronTeeth         patch uv=[0.457031, 0.683594, 0.769531, 0.996094] uv0 u=[0.463867, 0.761719] v=[0.688477, 0.985352] values=318
+        - fbx PASS Intermediate.IronTeeth.LOD2            slot=M_HDBF_Glass material=WindowsAtlas.IronTeeth           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.819336, 0.973633] v=[0.076172, 0.238282] values=252
+        - fbx PASS Intermediate.IronTeeth.LOD2            slot=M_HDBF_Wood  material=BaseWood_Grey.IronTeeth          patch uv=[0.355469, 0.558594, 0.496094, 0.699219] uv0 u=[0.359375, 0.491211] v=[0.563477, 0.695313] values=1860
+        - glb PASS Intermediate.IronTeeth.LOD2            slot=M_HDBF_Fabric material=Plaster_Orange.IronTeeth         patch uv=[0.457031, 0.683594, 0.769531, 0.996094] uv0 u=[0.463867, 0.761719] v=[0.688477, 0.985352] values=318
+        - glb PASS Intermediate.IronTeeth.LOD2            slot=M_HDBF_Glass material=WindowsAtlas.IronTeeth           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.819336, 0.973633] v=[0.076172, 0.238281] values=252
+        - glb PASS Intermediate.IronTeeth.LOD2            slot=M_HDBF_Wood  material=BaseWood_Grey.IronTeeth          patch uv=[0.355469, 0.558594, 0.496094, 0.699219] uv0 u=[0.359375, 0.491211] v=[0.563477, 0.695313] values=1860
 ----------------------------------------------------------------------------------------------------------------------
 Advanced.Folktails.LOD0
   C1  parse                                  PASS  FBX and GLB imported; both carry one body mesh + 3 empties
@@ -364,9 +503,26 @@ Advanced.Folktails.LOD0
   C6  materials                              PASS  material slot set matches ATLAS TIER_MATERIALS (['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood'])
         - fbx: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood']
         - glb: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood']
-  C7  flat-patch UV                          PASS  every face of one material samples that material's fixed flat UV patch
-        - fbx: all UVs inside their material flat patches (5850 triangles, 4 px patch gutter)
-        - glb: all UVs inside their material flat patches (5850 triangles, 4 px patch gutter)
+  C7  flat-patch UV                          PASS  every face of one material samples that material's real-_D texture patch (C11 reports per-material min/max)
+        - fbx PASS Advanced.Folktails.LOD0                slot=M_HDBF_Fabric material=Details.Folktails                patch uv=[0.097656, 0.019531, 0.347656, 0.269531] uv0 u=[0.103515, 0.341797] v=[0.024414, 0.265625] values=972
+        - fbx PASS Advanced.Folktails.LOD0                slot=M_HDBF_Glass material=WindowsAtlas.Folktails           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.812500, 0.990235] v=[0.064453, 0.231446] values=288
+        - fbx PASS Advanced.Folktails.LOD0                slot=M_HDBF_Metal material=BaseMetal.Folktails              patch uv=[0.066406, 0.558594, 0.378906, 0.871094] uv0 u=[0.070312, 0.374023] v=[0.563477, 0.867188] values=14022
+        - fbx PASS Advanced.Folktails.LOD0                slot=M_HDBF_Wood  material=BaseWood_White.Folktails         patch uv=[0.019531, 0.574219, 0.207031, 0.761719] uv0 u=[0.023437, 0.201172] v=[0.579102, 0.757813] values=2268
+        - fbx: 4 material slot group(s) / 4 material(s), 17550 uv0 corner(s) checked against the real-texture patches
+        - glb PASS Advanced.Folktails.LOD0                slot=M_HDBF_Fabric material=Details.Folktails                patch uv=[0.097656, 0.019531, 0.347656, 0.269531] uv0 u=[0.103515, 0.341797] v=[0.024414, 0.265625] values=972
+        - glb PASS Advanced.Folktails.LOD0                slot=M_HDBF_Glass material=WindowsAtlas.Folktails           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.812500, 0.990235] v=[0.064453, 0.231446] values=288
+        - glb PASS Advanced.Folktails.LOD0                slot=M_HDBF_Metal material=BaseMetal.Folktails              patch uv=[0.066406, 0.558594, 0.378906, 0.871094] uv0 u=[0.070312, 0.374023] v=[0.563477, 0.867188] values=14022
+        - glb PASS Advanced.Folktails.LOD0                slot=M_HDBF_Wood  material=BaseWood_White.Folktails         patch uv=[0.019531, 0.574219, 0.207031, 0.761719] uv0 u=[0.023437, 0.201172] v=[0.579102, 0.757813] values=2268
+        - glb: 4 material slot group(s) / 4 material(s), 17550 uv0 corner(s) checked against the real-texture patches
+  C11 material patch UV containment          PASS  4 material(s) / 35100 uv0 value(s) inside their real-_D texture patch (tolerance 1e-04, all contexts: ['Advanced.Folktails.LOD0'])
+        - fbx PASS Advanced.Folktails.LOD0                slot=M_HDBF_Fabric material=Details.Folktails                patch uv=[0.097656, 0.019531, 0.347656, 0.269531] uv0 u=[0.103515, 0.341797] v=[0.024414, 0.265625] values=972
+        - fbx PASS Advanced.Folktails.LOD0                slot=M_HDBF_Glass material=WindowsAtlas.Folktails           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.812500, 0.990235] v=[0.064453, 0.231446] values=288
+        - fbx PASS Advanced.Folktails.LOD0                slot=M_HDBF_Metal material=BaseMetal.Folktails              patch uv=[0.066406, 0.558594, 0.378906, 0.871094] uv0 u=[0.070312, 0.374023] v=[0.563477, 0.867188] values=14022
+        - fbx PASS Advanced.Folktails.LOD0                slot=M_HDBF_Wood  material=BaseWood_White.Folktails         patch uv=[0.019531, 0.574219, 0.207031, 0.761719] uv0 u=[0.023437, 0.201172] v=[0.579102, 0.757813] values=2268
+        - glb PASS Advanced.Folktails.LOD0                slot=M_HDBF_Fabric material=Details.Folktails                patch uv=[0.097656, 0.019531, 0.347656, 0.269531] uv0 u=[0.103515, 0.341797] v=[0.024414, 0.265625] values=972
+        - glb PASS Advanced.Folktails.LOD0                slot=M_HDBF_Glass material=WindowsAtlas.Folktails           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.812500, 0.990235] v=[0.064453, 0.231446] values=288
+        - glb PASS Advanced.Folktails.LOD0                slot=M_HDBF_Metal material=BaseMetal.Folktails              patch uv=[0.066406, 0.558594, 0.378906, 0.871094] uv0 u=[0.070312, 0.374023] v=[0.563477, 0.867188] values=14022
+        - glb PASS Advanced.Folktails.LOD0                slot=M_HDBF_Wood  material=BaseWood_White.Folktails         patch uv=[0.019531, 0.574219, 0.207031, 0.761719] uv0 u=[0.023437, 0.201172] v=[0.579102, 0.757813] values=2268
 ----------------------------------------------------------------------------------------------------------------------
 Advanced.Folktails.LOD1
   C1  parse                                  PASS  FBX and GLB imported; both carry one body mesh + 3 empties
@@ -386,9 +542,26 @@ Advanced.Folktails.LOD1
   C6  materials                              PASS  material slot set matches ATLAS TIER_MATERIALS (['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood'])
         - fbx: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood']
         - glb: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood']
-  C7  flat-patch UV                          PASS  every face of one material samples that material's fixed flat UV patch
-        - fbx: all UVs inside their material flat patches (2362 triangles, 4 px patch gutter)
-        - glb: all UVs inside their material flat patches (2362 triangles, 4 px patch gutter)
+  C7  flat-patch UV                          PASS  every face of one material samples that material's real-_D texture patch (C11 reports per-material min/max)
+        - fbx PASS Advanced.Folktails.LOD1                slot=M_HDBF_Fabric material=Details.Folktails                patch uv=[0.097656, 0.019531, 0.347656, 0.269531] uv0 u=[0.103515, 0.339844] v=[0.053711, 0.258789] values=216
+        - fbx PASS Advanced.Folktails.LOD1                slot=M_HDBF_Glass material=WindowsAtlas.Folktails           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.814453, 0.991211] v=[0.065430, 0.234375] values=252
+        - fbx PASS Advanced.Folktails.LOD1                slot=M_HDBF_Metal material=BaseMetal.Folktails              patch uv=[0.066406, 0.558594, 0.378906, 0.871094] uv0 u=[0.070312, 0.374023] v=[0.563477, 0.867188] values=6294
+        - fbx PASS Advanced.Folktails.LOD1                slot=M_HDBF_Wood  material=BaseWood_White.Folktails         patch uv=[0.019531, 0.574219, 0.207031, 0.761719] uv0 u=[0.024414, 0.202148] v=[0.583008, 0.756836] values=324
+        - fbx: 4 material slot group(s) / 4 material(s), 7086 uv0 corner(s) checked against the real-texture patches
+        - glb PASS Advanced.Folktails.LOD1                slot=M_HDBF_Fabric material=Details.Folktails                patch uv=[0.097656, 0.019531, 0.347656, 0.269531] uv0 u=[0.103515, 0.339844] v=[0.053711, 0.258789] values=216
+        - glb PASS Advanced.Folktails.LOD1                slot=M_HDBF_Glass material=WindowsAtlas.Folktails           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.814453, 0.991211] v=[0.065430, 0.234375] values=252
+        - glb PASS Advanced.Folktails.LOD1                slot=M_HDBF_Metal material=BaseMetal.Folktails              patch uv=[0.066406, 0.558594, 0.378906, 0.871094] uv0 u=[0.070312, 0.374023] v=[0.563477, 0.867188] values=6294
+        - glb PASS Advanced.Folktails.LOD1                slot=M_HDBF_Wood  material=BaseWood_White.Folktails         patch uv=[0.019531, 0.574219, 0.207031, 0.761719] uv0 u=[0.024414, 0.202148] v=[0.583008, 0.756836] values=324
+        - glb: 4 material slot group(s) / 4 material(s), 7086 uv0 corner(s) checked against the real-texture patches
+  C11 material patch UV containment          PASS  4 material(s) / 14172 uv0 value(s) inside their real-_D texture patch (tolerance 1e-04, all contexts: ['Advanced.Folktails.LOD1'])
+        - fbx PASS Advanced.Folktails.LOD1                slot=M_HDBF_Fabric material=Details.Folktails                patch uv=[0.097656, 0.019531, 0.347656, 0.269531] uv0 u=[0.103515, 0.339844] v=[0.053711, 0.258789] values=216
+        - fbx PASS Advanced.Folktails.LOD1                slot=M_HDBF_Glass material=WindowsAtlas.Folktails           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.814453, 0.991211] v=[0.065430, 0.234375] values=252
+        - fbx PASS Advanced.Folktails.LOD1                slot=M_HDBF_Metal material=BaseMetal.Folktails              patch uv=[0.066406, 0.558594, 0.378906, 0.871094] uv0 u=[0.070312, 0.374023] v=[0.563477, 0.867188] values=6294
+        - fbx PASS Advanced.Folktails.LOD1                slot=M_HDBF_Wood  material=BaseWood_White.Folktails         patch uv=[0.019531, 0.574219, 0.207031, 0.761719] uv0 u=[0.024414, 0.202148] v=[0.583008, 0.756836] values=324
+        - glb PASS Advanced.Folktails.LOD1                slot=M_HDBF_Fabric material=Details.Folktails                patch uv=[0.097656, 0.019531, 0.347656, 0.269531] uv0 u=[0.103515, 0.339844] v=[0.053711, 0.258789] values=216
+        - glb PASS Advanced.Folktails.LOD1                slot=M_HDBF_Glass material=WindowsAtlas.Folktails           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.814453, 0.991211] v=[0.065430, 0.234375] values=252
+        - glb PASS Advanced.Folktails.LOD1                slot=M_HDBF_Metal material=BaseMetal.Folktails              patch uv=[0.066406, 0.558594, 0.378906, 0.871094] uv0 u=[0.070312, 0.374023] v=[0.563477, 0.867188] values=6294
+        - glb PASS Advanced.Folktails.LOD1                slot=M_HDBF_Wood  material=BaseWood_White.Folktails         patch uv=[0.019531, 0.574219, 0.207031, 0.761719] uv0 u=[0.024414, 0.202148] v=[0.583008, 0.756836] values=324
 ----------------------------------------------------------------------------------------------------------------------
 Advanced.Folktails.LOD2
   C1  parse                                  PASS  FBX and GLB imported; both carry one body mesh + 3 empties
@@ -408,9 +581,26 @@ Advanced.Folktails.LOD2
   C6  materials                              PASS  material slot set matches ATLAS TIER_MATERIALS (['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood'])
         - fbx: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood']
         - glb: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood']
-  C7  flat-patch UV                          PASS  every face of one material samples that material's fixed flat UV patch
-        - fbx: all UVs inside their material flat patches (810 triangles, 4 px patch gutter)
-        - glb: all UVs inside their material flat patches (810 triangles, 4 px patch gutter)
+  C7  flat-patch UV                          PASS  every face of one material samples that material's real-_D texture patch (C11 reports per-material min/max)
+        - fbx PASS Advanced.Folktails.LOD2                slot=M_HDBF_Fabric material=Details.Folktails                patch uv=[0.097656, 0.019531, 0.347656, 0.269531] uv0 u=[0.102539, 0.339844] v=[0.032226, 0.262695] values=180
+        - fbx PASS Advanced.Folktails.LOD2                slot=M_HDBF_Glass material=WindowsAtlas.Folktails           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.812500, 0.987305] v=[0.063477, 0.241211] values=252
+        - fbx PASS Advanced.Folktails.LOD2                slot=M_HDBF_Metal material=BaseMetal.Folktails              patch uv=[0.066406, 0.558594, 0.378906, 0.871094] uv0 u=[0.070312, 0.370117] v=[0.563477, 0.865235] values=1854
+        - fbx PASS Advanced.Folktails.LOD2                slot=M_HDBF_Wood  material=BaseWood_White.Folktails         patch uv=[0.019531, 0.574219, 0.207031, 0.761719] uv0 u=[0.024414, 0.189453] v=[0.582031, 0.746094] values=144
+        - fbx: 4 material slot group(s) / 4 material(s), 2430 uv0 corner(s) checked against the real-texture patches
+        - glb PASS Advanced.Folktails.LOD2                slot=M_HDBF_Fabric material=Details.Folktails                patch uv=[0.097656, 0.019531, 0.347656, 0.269531] uv0 u=[0.102539, 0.339844] v=[0.032226, 0.262695] values=180
+        - glb PASS Advanced.Folktails.LOD2                slot=M_HDBF_Glass material=WindowsAtlas.Folktails           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.812500, 0.987305] v=[0.063477, 0.241211] values=252
+        - glb PASS Advanced.Folktails.LOD2                slot=M_HDBF_Metal material=BaseMetal.Folktails              patch uv=[0.066406, 0.558594, 0.378906, 0.871094] uv0 u=[0.070312, 0.370117] v=[0.563477, 0.865235] values=1854
+        - glb PASS Advanced.Folktails.LOD2                slot=M_HDBF_Wood  material=BaseWood_White.Folktails         patch uv=[0.019531, 0.574219, 0.207031, 0.761719] uv0 u=[0.024414, 0.189453] v=[0.582031, 0.746094] values=144
+        - glb: 4 material slot group(s) / 4 material(s), 2430 uv0 corner(s) checked against the real-texture patches
+  C11 material patch UV containment          PASS  4 material(s) / 4860 uv0 value(s) inside their real-_D texture patch (tolerance 1e-04, all contexts: ['Advanced.Folktails.LOD2'])
+        - fbx PASS Advanced.Folktails.LOD2                slot=M_HDBF_Fabric material=Details.Folktails                patch uv=[0.097656, 0.019531, 0.347656, 0.269531] uv0 u=[0.102539, 0.339844] v=[0.032226, 0.262695] values=180
+        - fbx PASS Advanced.Folktails.LOD2                slot=M_HDBF_Glass material=WindowsAtlas.Folktails           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.812500, 0.987305] v=[0.063477, 0.241211] values=252
+        - fbx PASS Advanced.Folktails.LOD2                slot=M_HDBF_Metal material=BaseMetal.Folktails              patch uv=[0.066406, 0.558594, 0.378906, 0.871094] uv0 u=[0.070312, 0.370117] v=[0.563477, 0.865235] values=1854
+        - fbx PASS Advanced.Folktails.LOD2                slot=M_HDBF_Wood  material=BaseWood_White.Folktails         patch uv=[0.019531, 0.574219, 0.207031, 0.761719] uv0 u=[0.024414, 0.189453] v=[0.582031, 0.746094] values=144
+        - glb PASS Advanced.Folktails.LOD2                slot=M_HDBF_Fabric material=Details.Folktails                patch uv=[0.097656, 0.019531, 0.347656, 0.269531] uv0 u=[0.102539, 0.339844] v=[0.032226, 0.262695] values=180
+        - glb PASS Advanced.Folktails.LOD2                slot=M_HDBF_Glass material=WindowsAtlas.Folktails           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.812500, 0.987305] v=[0.063477, 0.241211] values=252
+        - glb PASS Advanced.Folktails.LOD2                slot=M_HDBF_Metal material=BaseMetal.Folktails              patch uv=[0.066406, 0.558594, 0.378906, 0.871094] uv0 u=[0.070312, 0.370117] v=[0.563477, 0.865235] values=1854
+        - glb PASS Advanced.Folktails.LOD2                slot=M_HDBF_Wood  material=BaseWood_White.Folktails         patch uv=[0.019531, 0.574219, 0.207031, 0.761719] uv0 u=[0.024414, 0.189453] v=[0.582031, 0.746094] values=144
 ----------------------------------------------------------------------------------------------------------------------
 Advanced.IronTeeth.LOD0
   C1  parse                                  PASS  FBX and GLB imported; both carry one body mesh + 3 empties
@@ -434,9 +624,26 @@ Advanced.IronTeeth.LOD0
   C6  materials                              PASS  material slot set matches ATLAS TIER_MATERIALS (['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood'])
         - fbx: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood']
         - glb: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood']
-  C7  flat-patch UV                          PASS  every face of one material samples that material's fixed flat UV patch
-        - fbx: all UVs inside their material flat patches (5850 triangles, 4 px patch gutter)
-        - glb: all UVs inside their material flat patches (5850 triangles, 4 px patch gutter)
+  C7  flat-patch UV                          PASS  every face of one material samples that material's real-_D texture patch (C11 reports per-material min/max)
+        - fbx PASS Advanced.IronTeeth.LOD0                slot=M_HDBF_Fabric material=Details.IronTeeth                patch uv=[0.191406, 0.019531, 0.441406, 0.269531] uv0 u=[0.199218, 0.435547] v=[0.026367, 0.265625] values=972
+        - fbx PASS Advanced.IronTeeth.LOD0                slot=M_HDBF_Glass material=WindowsAtlas.IronTeeth           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.812500, 0.988281] v=[0.074219, 0.238282] values=288
+        - fbx PASS Advanced.IronTeeth.LOD0                slot=M_HDBF_Metal material=BaseMetal.IronTeeth              patch uv=[0.066406, 0.558594, 0.378906, 0.871094] uv0 u=[0.070312, 0.374023] v=[0.563477, 0.867188] values=14022
+        - fbx PASS Advanced.IronTeeth.LOD0                slot=M_HDBF_Wood  material=IrregularPlanks_MetalForged.IronTeeth patch uv=[0.621094, 0.417969, 0.839844, 0.636719] uv0 u=[0.625000, 0.834961] v=[0.422852, 0.632813] values=2268
+        - fbx: 4 material slot group(s) / 4 material(s), 17550 uv0 corner(s) checked against the real-texture patches
+        - glb PASS Advanced.IronTeeth.LOD0                slot=M_HDBF_Fabric material=Details.IronTeeth                patch uv=[0.191406, 0.019531, 0.441406, 0.269531] uv0 u=[0.199218, 0.435547] v=[0.026367, 0.265625] values=972
+        - glb PASS Advanced.IronTeeth.LOD0                slot=M_HDBF_Glass material=WindowsAtlas.IronTeeth           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.812500, 0.988281] v=[0.074219, 0.238281] values=288
+        - glb PASS Advanced.IronTeeth.LOD0                slot=M_HDBF_Metal material=BaseMetal.IronTeeth              patch uv=[0.066406, 0.558594, 0.378906, 0.871094] uv0 u=[0.070312, 0.374023] v=[0.563477, 0.867188] values=14022
+        - glb PASS Advanced.IronTeeth.LOD0                slot=M_HDBF_Wood  material=IrregularPlanks_MetalForged.IronTeeth patch uv=[0.621094, 0.417969, 0.839844, 0.636719] uv0 u=[0.625000, 0.834961] v=[0.422852, 0.632813] values=2268
+        - glb: 4 material slot group(s) / 4 material(s), 17550 uv0 corner(s) checked against the real-texture patches
+  C11 material patch UV containment          PASS  4 material(s) / 35100 uv0 value(s) inside their real-_D texture patch (tolerance 1e-04, all contexts: ['Advanced.IronTeeth.LOD0'])
+        - fbx PASS Advanced.IronTeeth.LOD0                slot=M_HDBF_Fabric material=Details.IronTeeth                patch uv=[0.191406, 0.019531, 0.441406, 0.269531] uv0 u=[0.199218, 0.435547] v=[0.026367, 0.265625] values=972
+        - fbx PASS Advanced.IronTeeth.LOD0                slot=M_HDBF_Glass material=WindowsAtlas.IronTeeth           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.812500, 0.988281] v=[0.074219, 0.238282] values=288
+        - fbx PASS Advanced.IronTeeth.LOD0                slot=M_HDBF_Metal material=BaseMetal.IronTeeth              patch uv=[0.066406, 0.558594, 0.378906, 0.871094] uv0 u=[0.070312, 0.374023] v=[0.563477, 0.867188] values=14022
+        - fbx PASS Advanced.IronTeeth.LOD0                slot=M_HDBF_Wood  material=IrregularPlanks_MetalForged.IronTeeth patch uv=[0.621094, 0.417969, 0.839844, 0.636719] uv0 u=[0.625000, 0.834961] v=[0.422852, 0.632813] values=2268
+        - glb PASS Advanced.IronTeeth.LOD0                slot=M_HDBF_Fabric material=Details.IronTeeth                patch uv=[0.191406, 0.019531, 0.441406, 0.269531] uv0 u=[0.199218, 0.435547] v=[0.026367, 0.265625] values=972
+        - glb PASS Advanced.IronTeeth.LOD0                slot=M_HDBF_Glass material=WindowsAtlas.IronTeeth           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.812500, 0.988281] v=[0.074219, 0.238281] values=288
+        - glb PASS Advanced.IronTeeth.LOD0                slot=M_HDBF_Metal material=BaseMetal.IronTeeth              patch uv=[0.066406, 0.558594, 0.378906, 0.871094] uv0 u=[0.070312, 0.374023] v=[0.563477, 0.867188] values=14022
+        - glb PASS Advanced.IronTeeth.LOD0                slot=M_HDBF_Wood  material=IrregularPlanks_MetalForged.IronTeeth patch uv=[0.621094, 0.417969, 0.839844, 0.636719] uv0 u=[0.625000, 0.834961] v=[0.422852, 0.632813] values=2268
 ----------------------------------------------------------------------------------------------------------------------
 Advanced.IronTeeth.LOD1
   C1  parse                                  PASS  FBX and GLB imported; both carry one body mesh + 3 empties
@@ -456,9 +663,26 @@ Advanced.IronTeeth.LOD1
   C6  materials                              PASS  material slot set matches ATLAS TIER_MATERIALS (['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood'])
         - fbx: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood']
         - glb: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood']
-  C7  flat-patch UV                          PASS  every face of one material samples that material's fixed flat UV patch
-        - fbx: all UVs inside their material flat patches (2362 triangles, 4 px patch gutter)
-        - glb: all UVs inside their material flat patches (2362 triangles, 4 px patch gutter)
+  C7  flat-patch UV                          PASS  every face of one material samples that material's real-_D texture patch (C11 reports per-material min/max)
+        - fbx PASS Advanced.IronTeeth.LOD1                slot=M_HDBF_Fabric material=Details.IronTeeth                patch uv=[0.191406, 0.019531, 0.441406, 0.269531] uv0 u=[0.206054, 0.421875] v=[0.026367, 0.252929] values=216
+        - fbx PASS Advanced.IronTeeth.LOD1                slot=M_HDBF_Glass material=WindowsAtlas.IronTeeth           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.814453, 0.987305] v=[0.066407, 0.229492] values=252
+        - fbx PASS Advanced.IronTeeth.LOD1                slot=M_HDBF_Metal material=BaseMetal.IronTeeth              patch uv=[0.066406, 0.558594, 0.378906, 0.871094] uv0 u=[0.070312, 0.374023] v=[0.563477, 0.867188] values=6294
+        - fbx PASS Advanced.IronTeeth.LOD1                slot=M_HDBF_Wood  material=IrregularPlanks_MetalForged.IronTeeth patch uv=[0.621094, 0.417969, 0.839844, 0.636719] uv0 u=[0.628906, 0.831055] v=[0.425781, 0.631836] values=324
+        - fbx: 4 material slot group(s) / 4 material(s), 7086 uv0 corner(s) checked against the real-texture patches
+        - glb PASS Advanced.IronTeeth.LOD1                slot=M_HDBF_Fabric material=Details.IronTeeth                patch uv=[0.191406, 0.019531, 0.441406, 0.269531] uv0 u=[0.206054, 0.421875] v=[0.026367, 0.252929] values=216
+        - glb PASS Advanced.IronTeeth.LOD1                slot=M_HDBF_Glass material=WindowsAtlas.IronTeeth           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.814453, 0.987305] v=[0.066406, 0.229492] values=252
+        - glb PASS Advanced.IronTeeth.LOD1                slot=M_HDBF_Metal material=BaseMetal.IronTeeth              patch uv=[0.066406, 0.558594, 0.378906, 0.871094] uv0 u=[0.070312, 0.374023] v=[0.563477, 0.867188] values=6294
+        - glb PASS Advanced.IronTeeth.LOD1                slot=M_HDBF_Wood  material=IrregularPlanks_MetalForged.IronTeeth patch uv=[0.621094, 0.417969, 0.839844, 0.636719] uv0 u=[0.628906, 0.831055] v=[0.425781, 0.631836] values=324
+        - glb: 4 material slot group(s) / 4 material(s), 7086 uv0 corner(s) checked against the real-texture patches
+  C11 material patch UV containment          PASS  4 material(s) / 14172 uv0 value(s) inside their real-_D texture patch (tolerance 1e-04, all contexts: ['Advanced.IronTeeth.LOD1'])
+        - fbx PASS Advanced.IronTeeth.LOD1                slot=M_HDBF_Fabric material=Details.IronTeeth                patch uv=[0.191406, 0.019531, 0.441406, 0.269531] uv0 u=[0.206054, 0.421875] v=[0.026367, 0.252929] values=216
+        - fbx PASS Advanced.IronTeeth.LOD1                slot=M_HDBF_Glass material=WindowsAtlas.IronTeeth           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.814453, 0.987305] v=[0.066407, 0.229492] values=252
+        - fbx PASS Advanced.IronTeeth.LOD1                slot=M_HDBF_Metal material=BaseMetal.IronTeeth              patch uv=[0.066406, 0.558594, 0.378906, 0.871094] uv0 u=[0.070312, 0.374023] v=[0.563477, 0.867188] values=6294
+        - fbx PASS Advanced.IronTeeth.LOD1                slot=M_HDBF_Wood  material=IrregularPlanks_MetalForged.IronTeeth patch uv=[0.621094, 0.417969, 0.839844, 0.636719] uv0 u=[0.628906, 0.831055] v=[0.425781, 0.631836] values=324
+        - glb PASS Advanced.IronTeeth.LOD1                slot=M_HDBF_Fabric material=Details.IronTeeth                patch uv=[0.191406, 0.019531, 0.441406, 0.269531] uv0 u=[0.206054, 0.421875] v=[0.026367, 0.252929] values=216
+        - glb PASS Advanced.IronTeeth.LOD1                slot=M_HDBF_Glass material=WindowsAtlas.IronTeeth           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.814453, 0.987305] v=[0.066406, 0.229492] values=252
+        - glb PASS Advanced.IronTeeth.LOD1                slot=M_HDBF_Metal material=BaseMetal.IronTeeth              patch uv=[0.066406, 0.558594, 0.378906, 0.871094] uv0 u=[0.070312, 0.374023] v=[0.563477, 0.867188] values=6294
+        - glb PASS Advanced.IronTeeth.LOD1                slot=M_HDBF_Wood  material=IrregularPlanks_MetalForged.IronTeeth patch uv=[0.621094, 0.417969, 0.839844, 0.636719] uv0 u=[0.628906, 0.831055] v=[0.425781, 0.631836] values=324
 ----------------------------------------------------------------------------------------------------------------------
 Advanced.IronTeeth.LOD2
   C1  parse                                  PASS  FBX and GLB imported; both carry one body mesh + 3 empties
@@ -478,9 +702,26 @@ Advanced.IronTeeth.LOD2
   C6  materials                              PASS  material slot set matches ATLAS TIER_MATERIALS (['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood'])
         - fbx: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood']
         - glb: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood']
-  C7  flat-patch UV                          PASS  every face of one material samples that material's fixed flat UV patch
-        - fbx: all UVs inside their material flat patches (810 triangles, 4 px patch gutter)
-        - glb: all UVs inside their material flat patches (810 triangles, 4 px patch gutter)
+  C7  flat-patch UV                          PASS  every face of one material samples that material's real-_D texture patch (C11 reports per-material min/max)
+        - fbx PASS Advanced.IronTeeth.LOD2                slot=M_HDBF_Fabric material=Details.IronTeeth                patch uv=[0.191406, 0.019531, 0.441406, 0.269531] uv0 u=[0.197265, 0.432617] v=[0.027344, 0.258789] values=180
+        - fbx PASS Advanced.IronTeeth.LOD2                slot=M_HDBF_Glass material=WindowsAtlas.IronTeeth           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.814453, 0.990235] v=[0.063477, 0.242188] values=252
+        - fbx PASS Advanced.IronTeeth.LOD2                slot=M_HDBF_Metal material=BaseMetal.IronTeeth              patch uv=[0.066406, 0.558594, 0.378906, 0.871094] uv0 u=[0.070312, 0.374023] v=[0.563477, 0.867188] values=1854
+        - fbx PASS Advanced.IronTeeth.LOD2                slot=M_HDBF_Wood  material=IrregularPlanks_MetalForged.IronTeeth patch uv=[0.621094, 0.417969, 0.839844, 0.636719] uv0 u=[0.626953, 0.825196] v=[0.427735, 0.608399] values=144
+        - fbx: 4 material slot group(s) / 4 material(s), 2430 uv0 corner(s) checked against the real-texture patches
+        - glb PASS Advanced.IronTeeth.LOD2                slot=M_HDBF_Fabric material=Details.IronTeeth                patch uv=[0.191406, 0.019531, 0.441406, 0.269531] uv0 u=[0.197265, 0.432617] v=[0.027344, 0.258789] values=180
+        - glb PASS Advanced.IronTeeth.LOD2                slot=M_HDBF_Glass material=WindowsAtlas.IronTeeth           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.814453, 0.990235] v=[0.063477, 0.242188] values=252
+        - glb PASS Advanced.IronTeeth.LOD2                slot=M_HDBF_Metal material=BaseMetal.IronTeeth              patch uv=[0.066406, 0.558594, 0.378906, 0.871094] uv0 u=[0.070312, 0.374023] v=[0.563477, 0.867188] values=1854
+        - glb PASS Advanced.IronTeeth.LOD2                slot=M_HDBF_Wood  material=IrregularPlanks_MetalForged.IronTeeth patch uv=[0.621094, 0.417969, 0.839844, 0.636719] uv0 u=[0.626953, 0.825196] v=[0.427735, 0.608399] values=144
+        - glb: 4 material slot group(s) / 4 material(s), 2430 uv0 corner(s) checked against the real-texture patches
+  C11 material patch UV containment          PASS  4 material(s) / 4860 uv0 value(s) inside their real-_D texture patch (tolerance 1e-04, all contexts: ['Advanced.IronTeeth.LOD2'])
+        - fbx PASS Advanced.IronTeeth.LOD2                slot=M_HDBF_Fabric material=Details.IronTeeth                patch uv=[0.191406, 0.019531, 0.441406, 0.269531] uv0 u=[0.197265, 0.432617] v=[0.027344, 0.258789] values=180
+        - fbx PASS Advanced.IronTeeth.LOD2                slot=M_HDBF_Glass material=WindowsAtlas.IronTeeth           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.814453, 0.990235] v=[0.063477, 0.242188] values=252
+        - fbx PASS Advanced.IronTeeth.LOD2                slot=M_HDBF_Metal material=BaseMetal.IronTeeth              patch uv=[0.066406, 0.558594, 0.378906, 0.871094] uv0 u=[0.070312, 0.374023] v=[0.563477, 0.867188] values=1854
+        - fbx PASS Advanced.IronTeeth.LOD2                slot=M_HDBF_Wood  material=IrregularPlanks_MetalForged.IronTeeth patch uv=[0.621094, 0.417969, 0.839844, 0.636719] uv0 u=[0.626953, 0.825196] v=[0.427735, 0.608399] values=144
+        - glb PASS Advanced.IronTeeth.LOD2                slot=M_HDBF_Fabric material=Details.IronTeeth                patch uv=[0.191406, 0.019531, 0.441406, 0.269531] uv0 u=[0.197265, 0.432617] v=[0.027344, 0.258789] values=180
+        - glb PASS Advanced.IronTeeth.LOD2                slot=M_HDBF_Glass material=WindowsAtlas.IronTeeth           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.814453, 0.990235] v=[0.063477, 0.242188] values=252
+        - glb PASS Advanced.IronTeeth.LOD2                slot=M_HDBF_Metal material=BaseMetal.IronTeeth              patch uv=[0.066406, 0.558594, 0.378906, 0.871094] uv0 u=[0.070312, 0.374023] v=[0.563477, 0.867188] values=1854
+        - glb PASS Advanced.IronTeeth.LOD2                slot=M_HDBF_Wood  material=IrregularPlanks_MetalForged.IronTeeth patch uv=[0.621094, 0.417969, 0.839844, 0.636719] uv0 u=[0.626953, 0.825196] v=[0.427735, 0.608399] values=144
 ----------------------------------------------------------------------------------------------------------------------
 Top.Folktails.LOD0
   C1  parse                                  PASS  FBX and GLB imported; both carry one body mesh + 3 empties
@@ -504,9 +745,26 @@ Top.Folktails.LOD0
   C6  materials                              PASS  material slot set matches ATLAS TIER_MATERIALS (['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood'])
         - fbx: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood']
         - glb: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood']
-  C7  flat-patch UV                          PASS  every face of one material samples that material's fixed flat UV patch
-        - fbx: all UVs inside their material flat patches (5918 triangles, 4 px patch gutter)
-        - glb: all UVs inside their material flat patches (5918 triangles, 4 px patch gutter)
+  C7  flat-patch UV                          PASS  every face of one material samples that material's real-_D texture patch (C11 reports per-material min/max)
+        - fbx PASS Top.Folktails.LOD0                     slot=M_HDBF_Fabric material=BaseMetal.Folktails              patch uv=[0.066406, 0.558594, 0.378906, 0.871094] uv0 u=[0.071289, 0.374023] v=[0.563477, 0.865235] values=2052
+        - fbx PASS Top.Folktails.LOD0                     slot=M_HDBF_Glass material=WindowsAtlas.Folktails           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.812500, 0.989258] v=[0.072266, 0.242188] values=324
+        - fbx PASS Top.Folktails.LOD0                     slot=M_HDBF_Metal material=Details.Folktails                patch uv=[0.097656, 0.019531, 0.347656, 0.269531] uv0 u=[0.101562, 0.342773] v=[0.024414, 0.265625] values=15198
+        - fbx PASS Top.Folktails.LOD0                     slot=M_HDBF_Wood  material=IrregularPlanks_Brown.Folktails  patch uv=[0.003906, 0.550781, 0.253906, 0.800781] uv0 u=[0.012695, 0.242187] v=[0.566406, 0.783203] values=180
+        - fbx: 4 material slot group(s) / 4 material(s), 17754 uv0 corner(s) checked against the real-texture patches
+        - glb PASS Top.Folktails.LOD0                     slot=M_HDBF_Fabric material=BaseMetal.Folktails              patch uv=[0.066406, 0.558594, 0.378906, 0.871094] uv0 u=[0.071289, 0.374023] v=[0.563477, 0.865235] values=2052
+        - glb PASS Top.Folktails.LOD0                     slot=M_HDBF_Glass material=WindowsAtlas.Folktails           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.812500, 0.989258] v=[0.072266, 0.242188] values=324
+        - glb PASS Top.Folktails.LOD0                     slot=M_HDBF_Metal material=Details.Folktails                patch uv=[0.097656, 0.019531, 0.347656, 0.269531] uv0 u=[0.101562, 0.342773] v=[0.024414, 0.265625] values=15198
+        - glb PASS Top.Folktails.LOD0                     slot=M_HDBF_Wood  material=IrregularPlanks_Brown.Folktails  patch uv=[0.003906, 0.550781, 0.253906, 0.800781] uv0 u=[0.012695, 0.242187] v=[0.566406, 0.783203] values=180
+        - glb: 4 material slot group(s) / 4 material(s), 17754 uv0 corner(s) checked against the real-texture patches
+  C11 material patch UV containment          PASS  4 material(s) / 35508 uv0 value(s) inside their real-_D texture patch (tolerance 1e-04, all contexts: ['Top.Folktails.LOD0'])
+        - fbx PASS Top.Folktails.LOD0                     slot=M_HDBF_Fabric material=BaseMetal.Folktails              patch uv=[0.066406, 0.558594, 0.378906, 0.871094] uv0 u=[0.071289, 0.374023] v=[0.563477, 0.865235] values=2052
+        - fbx PASS Top.Folktails.LOD0                     slot=M_HDBF_Glass material=WindowsAtlas.Folktails           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.812500, 0.989258] v=[0.072266, 0.242188] values=324
+        - fbx PASS Top.Folktails.LOD0                     slot=M_HDBF_Metal material=Details.Folktails                patch uv=[0.097656, 0.019531, 0.347656, 0.269531] uv0 u=[0.101562, 0.342773] v=[0.024414, 0.265625] values=15198
+        - fbx PASS Top.Folktails.LOD0                     slot=M_HDBF_Wood  material=IrregularPlanks_Brown.Folktails  patch uv=[0.003906, 0.550781, 0.253906, 0.800781] uv0 u=[0.012695, 0.242187] v=[0.566406, 0.783203] values=180
+        - glb PASS Top.Folktails.LOD0                     slot=M_HDBF_Fabric material=BaseMetal.Folktails              patch uv=[0.066406, 0.558594, 0.378906, 0.871094] uv0 u=[0.071289, 0.374023] v=[0.563477, 0.865235] values=2052
+        - glb PASS Top.Folktails.LOD0                     slot=M_HDBF_Glass material=WindowsAtlas.Folktails           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.812500, 0.989258] v=[0.072266, 0.242188] values=324
+        - glb PASS Top.Folktails.LOD0                     slot=M_HDBF_Metal material=Details.Folktails                patch uv=[0.097656, 0.019531, 0.347656, 0.269531] uv0 u=[0.101562, 0.342773] v=[0.024414, 0.265625] values=15198
+        - glb PASS Top.Folktails.LOD0                     slot=M_HDBF_Wood  material=IrregularPlanks_Brown.Folktails  patch uv=[0.003906, 0.550781, 0.253906, 0.800781] uv0 u=[0.012695, 0.242187] v=[0.566406, 0.783203] values=180
 ----------------------------------------------------------------------------------------------------------------------
 Top.Folktails.LOD1
   C1  parse                                  PASS  FBX and GLB imported; both carry one body mesh + 3 empties
@@ -526,9 +784,26 @@ Top.Folktails.LOD1
   C6  materials                              PASS  material slot set matches ATLAS TIER_MATERIALS (['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood'])
         - fbx: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood']
         - glb: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood']
-  C7  flat-patch UV                          PASS  every face of one material samples that material's fixed flat UV patch
-        - fbx: all UVs inside their material flat patches (2362 triangles, 4 px patch gutter)
-        - glb: all UVs inside their material flat patches (2362 triangles, 4 px patch gutter)
+  C7  flat-patch UV                          PASS  every face of one material samples that material's real-_D texture patch (C11 reports per-material min/max)
+        - fbx PASS Top.Folktails.LOD1                     slot=M_HDBF_Fabric material=BaseMetal.Folktails              patch uv=[0.066406, 0.558594, 0.378906, 0.871094] uv0 u=[0.074218, 0.372070] v=[0.570313, 0.867188] values=288
+        - fbx PASS Top.Folktails.LOD1                     slot=M_HDBF_Glass material=WindowsAtlas.Folktails           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.815430, 0.986328] v=[0.067383, 0.240235] values=288
+        - fbx PASS Top.Folktails.LOD1                     slot=M_HDBF_Metal material=Details.Folktails                patch uv=[0.097656, 0.019531, 0.347656, 0.269531] uv0 u=[0.101562, 0.342773] v=[0.024414, 0.265625] values=6366
+        - fbx PASS Top.Folktails.LOD1                     slot=M_HDBF_Wood  material=IrregularPlanks_Brown.Folktails  patch uv=[0.003906, 0.550781, 0.253906, 0.800781] uv0 u=[0.009765, 0.221679] v=[0.561523, 0.790039] values=144
+        - fbx: 4 material slot group(s) / 4 material(s), 7086 uv0 corner(s) checked against the real-texture patches
+        - glb PASS Top.Folktails.LOD1                     slot=M_HDBF_Fabric material=BaseMetal.Folktails              patch uv=[0.066406, 0.558594, 0.378906, 0.871094] uv0 u=[0.074218, 0.372070] v=[0.570313, 0.867188] values=288
+        - glb PASS Top.Folktails.LOD1                     slot=M_HDBF_Glass material=WindowsAtlas.Folktails           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.815430, 0.986328] v=[0.067383, 0.240235] values=288
+        - glb PASS Top.Folktails.LOD1                     slot=M_HDBF_Metal material=Details.Folktails                patch uv=[0.097656, 0.019531, 0.347656, 0.269531] uv0 u=[0.101562, 0.342773] v=[0.024414, 0.265625] values=6366
+        - glb PASS Top.Folktails.LOD1                     slot=M_HDBF_Wood  material=IrregularPlanks_Brown.Folktails  patch uv=[0.003906, 0.550781, 0.253906, 0.800781] uv0 u=[0.009765, 0.221679] v=[0.561523, 0.790039] values=144
+        - glb: 4 material slot group(s) / 4 material(s), 7086 uv0 corner(s) checked against the real-texture patches
+  C11 material patch UV containment          PASS  4 material(s) / 14172 uv0 value(s) inside their real-_D texture patch (tolerance 1e-04, all contexts: ['Top.Folktails.LOD1'])
+        - fbx PASS Top.Folktails.LOD1                     slot=M_HDBF_Fabric material=BaseMetal.Folktails              patch uv=[0.066406, 0.558594, 0.378906, 0.871094] uv0 u=[0.074218, 0.372070] v=[0.570313, 0.867188] values=288
+        - fbx PASS Top.Folktails.LOD1                     slot=M_HDBF_Glass material=WindowsAtlas.Folktails           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.815430, 0.986328] v=[0.067383, 0.240235] values=288
+        - fbx PASS Top.Folktails.LOD1                     slot=M_HDBF_Metal material=Details.Folktails                patch uv=[0.097656, 0.019531, 0.347656, 0.269531] uv0 u=[0.101562, 0.342773] v=[0.024414, 0.265625] values=6366
+        - fbx PASS Top.Folktails.LOD1                     slot=M_HDBF_Wood  material=IrregularPlanks_Brown.Folktails  patch uv=[0.003906, 0.550781, 0.253906, 0.800781] uv0 u=[0.009765, 0.221679] v=[0.561523, 0.790039] values=144
+        - glb PASS Top.Folktails.LOD1                     slot=M_HDBF_Fabric material=BaseMetal.Folktails              patch uv=[0.066406, 0.558594, 0.378906, 0.871094] uv0 u=[0.074218, 0.372070] v=[0.570313, 0.867188] values=288
+        - glb PASS Top.Folktails.LOD1                     slot=M_HDBF_Glass material=WindowsAtlas.Folktails           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.815430, 0.986328] v=[0.067383, 0.240235] values=288
+        - glb PASS Top.Folktails.LOD1                     slot=M_HDBF_Metal material=Details.Folktails                patch uv=[0.097656, 0.019531, 0.347656, 0.269531] uv0 u=[0.101562, 0.342773] v=[0.024414, 0.265625] values=6366
+        - glb PASS Top.Folktails.LOD1                     slot=M_HDBF_Wood  material=IrregularPlanks_Brown.Folktails  patch uv=[0.003906, 0.550781, 0.253906, 0.800781] uv0 u=[0.009765, 0.221679] v=[0.561523, 0.790039] values=144
 ----------------------------------------------------------------------------------------------------------------------
 Top.Folktails.LOD2
   C1  parse                                  PASS  FBX and GLB imported; both carry one body mesh + 3 empties
@@ -548,9 +823,26 @@ Top.Folktails.LOD2
   C6  materials                              PASS  material slot set matches ATLAS TIER_MATERIALS (['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood'])
         - fbx: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood']
         - glb: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood']
-  C7  flat-patch UV                          PASS  every face of one material samples that material's fixed flat UV patch
-        - fbx: all UVs inside their material flat patches (814 triangles, 4 px patch gutter)
-        - glb: all UVs inside their material flat patches (814 triangles, 4 px patch gutter)
+  C7  flat-patch UV                          PASS  every face of one material samples that material's real-_D texture patch (C11 reports per-material min/max)
+        - fbx PASS Top.Folktails.LOD2                     slot=M_HDBF_Fabric material=BaseMetal.Folktails              patch uv=[0.066406, 0.558594, 0.378906, 0.871094] uv0 u=[0.083984, 0.372070] v=[0.566406, 0.859375] values=288
+        - fbx PASS Top.Folktails.LOD2                     slot=M_HDBF_Glass material=WindowsAtlas.Folktails           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.817383, 0.988281] v=[0.064453, 0.239258] values=288
+        - fbx PASS Top.Folktails.LOD2                     slot=M_HDBF_Metal material=Details.Folktails                patch uv=[0.097656, 0.019531, 0.347656, 0.269531] uv0 u=[0.101562, 0.342773] v=[0.024414, 0.265625] values=1758
+        - fbx PASS Top.Folktails.LOD2                     slot=M_HDBF_Wood  material=IrregularPlanks_Brown.Folktails  patch uv=[0.003906, 0.550781, 0.253906, 0.800781] uv0 u=[0.015625, 0.240234] v=[0.555664, 0.788086] values=108
+        - fbx: 4 material slot group(s) / 4 material(s), 2442 uv0 corner(s) checked against the real-texture patches
+        - glb PASS Top.Folktails.LOD2                     slot=M_HDBF_Fabric material=BaseMetal.Folktails              patch uv=[0.066406, 0.558594, 0.378906, 0.871094] uv0 u=[0.083984, 0.372070] v=[0.566406, 0.859375] values=288
+        - glb PASS Top.Folktails.LOD2                     slot=M_HDBF_Glass material=WindowsAtlas.Folktails           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.817383, 0.988281] v=[0.064453, 0.239258] values=288
+        - glb PASS Top.Folktails.LOD2                     slot=M_HDBF_Metal material=Details.Folktails                patch uv=[0.097656, 0.019531, 0.347656, 0.269531] uv0 u=[0.101562, 0.342773] v=[0.024414, 0.265625] values=1758
+        - glb PASS Top.Folktails.LOD2                     slot=M_HDBF_Wood  material=IrregularPlanks_Brown.Folktails  patch uv=[0.003906, 0.550781, 0.253906, 0.800781] uv0 u=[0.015625, 0.240234] v=[0.555664, 0.788086] values=108
+        - glb: 4 material slot group(s) / 4 material(s), 2442 uv0 corner(s) checked against the real-texture patches
+  C11 material patch UV containment          PASS  4 material(s) / 4884 uv0 value(s) inside their real-_D texture patch (tolerance 1e-04, all contexts: ['Top.Folktails.LOD2'])
+        - fbx PASS Top.Folktails.LOD2                     slot=M_HDBF_Fabric material=BaseMetal.Folktails              patch uv=[0.066406, 0.558594, 0.378906, 0.871094] uv0 u=[0.083984, 0.372070] v=[0.566406, 0.859375] values=288
+        - fbx PASS Top.Folktails.LOD2                     slot=M_HDBF_Glass material=WindowsAtlas.Folktails           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.817383, 0.988281] v=[0.064453, 0.239258] values=288
+        - fbx PASS Top.Folktails.LOD2                     slot=M_HDBF_Metal material=Details.Folktails                patch uv=[0.097656, 0.019531, 0.347656, 0.269531] uv0 u=[0.101562, 0.342773] v=[0.024414, 0.265625] values=1758
+        - fbx PASS Top.Folktails.LOD2                     slot=M_HDBF_Wood  material=IrregularPlanks_Brown.Folktails  patch uv=[0.003906, 0.550781, 0.253906, 0.800781] uv0 u=[0.015625, 0.240234] v=[0.555664, 0.788086] values=108
+        - glb PASS Top.Folktails.LOD2                     slot=M_HDBF_Fabric material=BaseMetal.Folktails              patch uv=[0.066406, 0.558594, 0.378906, 0.871094] uv0 u=[0.083984, 0.372070] v=[0.566406, 0.859375] values=288
+        - glb PASS Top.Folktails.LOD2                     slot=M_HDBF_Glass material=WindowsAtlas.Folktails           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.817383, 0.988281] v=[0.064453, 0.239258] values=288
+        - glb PASS Top.Folktails.LOD2                     slot=M_HDBF_Metal material=Details.Folktails                patch uv=[0.097656, 0.019531, 0.347656, 0.269531] uv0 u=[0.101562, 0.342773] v=[0.024414, 0.265625] values=1758
+        - glb PASS Top.Folktails.LOD2                     slot=M_HDBF_Wood  material=IrregularPlanks_Brown.Folktails  patch uv=[0.003906, 0.550781, 0.253906, 0.800781] uv0 u=[0.015625, 0.240234] v=[0.555664, 0.788086] values=108
 ----------------------------------------------------------------------------------------------------------------------
 Top.IronTeeth.LOD0
   C1  parse                                  PASS  FBX and GLB imported; both carry one body mesh + 3 empties
@@ -574,9 +866,26 @@ Top.IronTeeth.LOD0
   C6  materials                              PASS  material slot set matches ATLAS TIER_MATERIALS (['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood'])
         - fbx: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood']
         - glb: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood']
-  C7  flat-patch UV                          PASS  every face of one material samples that material's fixed flat UV patch
-        - fbx: all UVs inside their material flat patches (5918 triangles, 4 px patch gutter)
-        - glb: all UVs inside their material flat patches (5918 triangles, 4 px patch gutter)
+  C7  flat-patch UV                          PASS  every face of one material samples that material's real-_D texture patch (C11 reports per-material min/max)
+        - fbx PASS Top.IronTeeth.LOD0                     slot=M_HDBF_Fabric material=IrregularPlanks_MetalForged.IronTeeth patch uv=[0.621094, 0.417969, 0.839844, 0.636719] uv0 u=[0.625000, 0.834961] v=[0.422852, 0.632813] values=2052
+        - fbx PASS Top.IronTeeth.LOD0                     slot=M_HDBF_Glass material=WindowsAtlas.IronTeeth           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.813477, 0.987305] v=[0.063477, 0.238282] values=324
+        - fbx PASS Top.IronTeeth.LOD0                     slot=M_HDBF_Metal material=Details.IronTeeth                patch uv=[0.191406, 0.019531, 0.441406, 0.269531] uv0 u=[0.195312, 0.436523] v=[0.024414, 0.265625] values=15198
+        - fbx PASS Top.IronTeeth.LOD0                     slot=M_HDBF_Wood  material=BaseWood_DarkBrown.IronTeeth     patch uv=[0.355469, 0.558594, 0.496094, 0.699219] uv0 u=[0.365235, 0.487305] v=[0.565430, 0.689453] values=180
+        - fbx: 4 material slot group(s) / 4 material(s), 17754 uv0 corner(s) checked against the real-texture patches
+        - glb PASS Top.IronTeeth.LOD0                     slot=M_HDBF_Fabric material=IrregularPlanks_MetalForged.IronTeeth patch uv=[0.621094, 0.417969, 0.839844, 0.636719] uv0 u=[0.625000, 0.834961] v=[0.422852, 0.632813] values=2052
+        - glb PASS Top.IronTeeth.LOD0                     slot=M_HDBF_Glass material=WindowsAtlas.IronTeeth           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.813477, 0.987305] v=[0.063477, 0.238281] values=324
+        - glb PASS Top.IronTeeth.LOD0                     slot=M_HDBF_Metal material=Details.IronTeeth                patch uv=[0.191406, 0.019531, 0.441406, 0.269531] uv0 u=[0.195312, 0.436523] v=[0.024414, 0.265625] values=15198
+        - glb PASS Top.IronTeeth.LOD0                     slot=M_HDBF_Wood  material=BaseWood_DarkBrown.IronTeeth     patch uv=[0.355469, 0.558594, 0.496094, 0.699219] uv0 u=[0.365235, 0.487305] v=[0.565430, 0.689453] values=180
+        - glb: 4 material slot group(s) / 4 material(s), 17754 uv0 corner(s) checked against the real-texture patches
+  C11 material patch UV containment          PASS  4 material(s) / 35508 uv0 value(s) inside their real-_D texture patch (tolerance 1e-04, all contexts: ['Top.IronTeeth.LOD0'])
+        - fbx PASS Top.IronTeeth.LOD0                     slot=M_HDBF_Fabric material=IrregularPlanks_MetalForged.IronTeeth patch uv=[0.621094, 0.417969, 0.839844, 0.636719] uv0 u=[0.625000, 0.834961] v=[0.422852, 0.632813] values=2052
+        - fbx PASS Top.IronTeeth.LOD0                     slot=M_HDBF_Glass material=WindowsAtlas.IronTeeth           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.813477, 0.987305] v=[0.063477, 0.238282] values=324
+        - fbx PASS Top.IronTeeth.LOD0                     slot=M_HDBF_Metal material=Details.IronTeeth                patch uv=[0.191406, 0.019531, 0.441406, 0.269531] uv0 u=[0.195312, 0.436523] v=[0.024414, 0.265625] values=15198
+        - fbx PASS Top.IronTeeth.LOD0                     slot=M_HDBF_Wood  material=BaseWood_DarkBrown.IronTeeth     patch uv=[0.355469, 0.558594, 0.496094, 0.699219] uv0 u=[0.365235, 0.487305] v=[0.565430, 0.689453] values=180
+        - glb PASS Top.IronTeeth.LOD0                     slot=M_HDBF_Fabric material=IrregularPlanks_MetalForged.IronTeeth patch uv=[0.621094, 0.417969, 0.839844, 0.636719] uv0 u=[0.625000, 0.834961] v=[0.422852, 0.632813] values=2052
+        - glb PASS Top.IronTeeth.LOD0                     slot=M_HDBF_Glass material=WindowsAtlas.IronTeeth           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.813477, 0.987305] v=[0.063477, 0.238281] values=324
+        - glb PASS Top.IronTeeth.LOD0                     slot=M_HDBF_Metal material=Details.IronTeeth                patch uv=[0.191406, 0.019531, 0.441406, 0.269531] uv0 u=[0.195312, 0.436523] v=[0.024414, 0.265625] values=15198
+        - glb PASS Top.IronTeeth.LOD0                     slot=M_HDBF_Wood  material=BaseWood_DarkBrown.IronTeeth     patch uv=[0.355469, 0.558594, 0.496094, 0.699219] uv0 u=[0.365235, 0.487305] v=[0.565430, 0.689453] values=180
 ----------------------------------------------------------------------------------------------------------------------
 Top.IronTeeth.LOD1
   C1  parse                                  PASS  FBX and GLB imported; both carry one body mesh + 3 empties
@@ -596,9 +905,26 @@ Top.IronTeeth.LOD1
   C6  materials                              PASS  material slot set matches ATLAS TIER_MATERIALS (['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood'])
         - fbx: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood']
         - glb: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood']
-  C7  flat-patch UV                          PASS  every face of one material samples that material's fixed flat UV patch
-        - fbx: all UVs inside their material flat patches (2362 triangles, 4 px patch gutter)
-        - glb: all UVs inside their material flat patches (2362 triangles, 4 px patch gutter)
+  C7  flat-patch UV                          PASS  every face of one material samples that material's real-_D texture patch (C11 reports per-material min/max)
+        - fbx PASS Top.IronTeeth.LOD1                     slot=M_HDBF_Fabric material=IrregularPlanks_MetalForged.IronTeeth patch uv=[0.621094, 0.417969, 0.839844, 0.636719] uv0 u=[0.630860, 0.833008] v=[0.425781, 0.627930] values=288
+        - fbx PASS Top.IronTeeth.LOD1                     slot=M_HDBF_Glass material=WindowsAtlas.IronTeeth           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.815430, 0.988281] v=[0.065430, 0.236328] values=288
+        - fbx PASS Top.IronTeeth.LOD1                     slot=M_HDBF_Metal material=Details.IronTeeth                patch uv=[0.191406, 0.019531, 0.441406, 0.269531] uv0 u=[0.195312, 0.436523] v=[0.024414, 0.265625] values=6366
+        - fbx PASS Top.IronTeeth.LOD1                     slot=M_HDBF_Wood  material=BaseWood_DarkBrown.IronTeeth     patch uv=[0.355469, 0.558594, 0.496094, 0.699219] uv0 u=[0.359375, 0.481446] v=[0.563477, 0.690430] values=144
+        - fbx: 4 material slot group(s) / 4 material(s), 7086 uv0 corner(s) checked against the real-texture patches
+        - glb PASS Top.IronTeeth.LOD1                     slot=M_HDBF_Fabric material=IrregularPlanks_MetalForged.IronTeeth patch uv=[0.621094, 0.417969, 0.839844, 0.636719] uv0 u=[0.630860, 0.833008] v=[0.425781, 0.627930] values=288
+        - glb PASS Top.IronTeeth.LOD1                     slot=M_HDBF_Glass material=WindowsAtlas.IronTeeth           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.815430, 0.988281] v=[0.065430, 0.236328] values=288
+        - glb PASS Top.IronTeeth.LOD1                     slot=M_HDBF_Metal material=Details.IronTeeth                patch uv=[0.191406, 0.019531, 0.441406, 0.269531] uv0 u=[0.195312, 0.436523] v=[0.024414, 0.265625] values=6366
+        - glb PASS Top.IronTeeth.LOD1                     slot=M_HDBF_Wood  material=BaseWood_DarkBrown.IronTeeth     patch uv=[0.355469, 0.558594, 0.496094, 0.699219] uv0 u=[0.359375, 0.481446] v=[0.563477, 0.690430] values=144
+        - glb: 4 material slot group(s) / 4 material(s), 7086 uv0 corner(s) checked against the real-texture patches
+  C11 material patch UV containment          PASS  4 material(s) / 14172 uv0 value(s) inside their real-_D texture patch (tolerance 1e-04, all contexts: ['Top.IronTeeth.LOD1'])
+        - fbx PASS Top.IronTeeth.LOD1                     slot=M_HDBF_Fabric material=IrregularPlanks_MetalForged.IronTeeth patch uv=[0.621094, 0.417969, 0.839844, 0.636719] uv0 u=[0.630860, 0.833008] v=[0.425781, 0.627930] values=288
+        - fbx PASS Top.IronTeeth.LOD1                     slot=M_HDBF_Glass material=WindowsAtlas.IronTeeth           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.815430, 0.988281] v=[0.065430, 0.236328] values=288
+        - fbx PASS Top.IronTeeth.LOD1                     slot=M_HDBF_Metal material=Details.IronTeeth                patch uv=[0.191406, 0.019531, 0.441406, 0.269531] uv0 u=[0.195312, 0.436523] v=[0.024414, 0.265625] values=6366
+        - fbx PASS Top.IronTeeth.LOD1                     slot=M_HDBF_Wood  material=BaseWood_DarkBrown.IronTeeth     patch uv=[0.355469, 0.558594, 0.496094, 0.699219] uv0 u=[0.359375, 0.481446] v=[0.563477, 0.690430] values=144
+        - glb PASS Top.IronTeeth.LOD1                     slot=M_HDBF_Fabric material=IrregularPlanks_MetalForged.IronTeeth patch uv=[0.621094, 0.417969, 0.839844, 0.636719] uv0 u=[0.630860, 0.833008] v=[0.425781, 0.627930] values=288
+        - glb PASS Top.IronTeeth.LOD1                     slot=M_HDBF_Glass material=WindowsAtlas.IronTeeth           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.815430, 0.988281] v=[0.065430, 0.236328] values=288
+        - glb PASS Top.IronTeeth.LOD1                     slot=M_HDBF_Metal material=Details.IronTeeth                patch uv=[0.191406, 0.019531, 0.441406, 0.269531] uv0 u=[0.195312, 0.436523] v=[0.024414, 0.265625] values=6366
+        - glb PASS Top.IronTeeth.LOD1                     slot=M_HDBF_Wood  material=BaseWood_DarkBrown.IronTeeth     patch uv=[0.355469, 0.558594, 0.496094, 0.699219] uv0 u=[0.359375, 0.481446] v=[0.563477, 0.690430] values=144
 ----------------------------------------------------------------------------------------------------------------------
 Top.IronTeeth.LOD2
   C1  parse                                  PASS  FBX and GLB imported; both carry one body mesh + 3 empties
@@ -618,9 +944,26 @@ Top.IronTeeth.LOD2
   C6  materials                              PASS  material slot set matches ATLAS TIER_MATERIALS (['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood'])
         - fbx: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood']
         - glb: ['M_HDBF_Fabric', 'M_HDBF_Glass', 'M_HDBF_Metal', 'M_HDBF_Wood']
-  C7  flat-patch UV                          PASS  every face of one material samples that material's fixed flat UV patch
-        - fbx: all UVs inside their material flat patches (814 triangles, 4 px patch gutter)
-        - glb: all UVs inside their material flat patches (814 triangles, 4 px patch gutter)
+  C7  flat-patch UV                          PASS  every face of one material samples that material's real-_D texture patch (C11 reports per-material min/max)
+        - fbx PASS Top.IronTeeth.LOD2                     slot=M_HDBF_Fabric material=IrregularPlanks_MetalForged.IronTeeth patch uv=[0.621094, 0.417969, 0.839844, 0.636719] uv0 u=[0.628906, 0.834961] v=[0.422852, 0.624024] values=288
+        - fbx PASS Top.IronTeeth.LOD2                     slot=M_HDBF_Glass material=WindowsAtlas.IronTeeth           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.817383, 0.989258] v=[0.063477, 0.239258] values=288
+        - fbx PASS Top.IronTeeth.LOD2                     slot=M_HDBF_Metal material=Details.IronTeeth                patch uv=[0.191406, 0.019531, 0.441406, 0.269531] uv0 u=[0.195312, 0.436523] v=[0.025390, 0.265625] values=1758
+        - fbx PASS Top.IronTeeth.LOD2                     slot=M_HDBF_Wood  material=BaseWood_DarkBrown.IronTeeth     patch uv=[0.355469, 0.558594, 0.496094, 0.699219] uv0 u=[0.360352, 0.491211] v=[0.575196, 0.691406] values=108
+        - fbx: 4 material slot group(s) / 4 material(s), 2442 uv0 corner(s) checked against the real-texture patches
+        - glb PASS Top.IronTeeth.LOD2                     slot=M_HDBF_Fabric material=IrregularPlanks_MetalForged.IronTeeth patch uv=[0.621094, 0.417969, 0.839844, 0.636719] uv0 u=[0.628906, 0.834961] v=[0.422852, 0.624024] values=288
+        - glb PASS Top.IronTeeth.LOD2                     slot=M_HDBF_Glass material=WindowsAtlas.IronTeeth           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.817383, 0.989258] v=[0.063477, 0.239258] values=288
+        - glb PASS Top.IronTeeth.LOD2                     slot=M_HDBF_Metal material=Details.IronTeeth                patch uv=[0.191406, 0.019531, 0.441406, 0.269531] uv0 u=[0.195312, 0.436523] v=[0.025390, 0.265625] values=1758
+        - glb PASS Top.IronTeeth.LOD2                     slot=M_HDBF_Wood  material=BaseWood_DarkBrown.IronTeeth     patch uv=[0.355469, 0.558594, 0.496094, 0.699219] uv0 u=[0.360352, 0.491211] v=[0.575196, 0.691406] values=108
+        - glb: 4 material slot group(s) / 4 material(s), 2442 uv0 corner(s) checked against the real-texture patches
+  C11 material patch UV containment          PASS  4 material(s) / 4884 uv0 value(s) inside their real-_D texture patch (tolerance 1e-04, all contexts: ['Top.IronTeeth.LOD2'])
+        - fbx PASS Top.IronTeeth.LOD2                     slot=M_HDBF_Fabric material=IrregularPlanks_MetalForged.IronTeeth patch uv=[0.621094, 0.417969, 0.839844, 0.636719] uv0 u=[0.628906, 0.834961] v=[0.422852, 0.624024] values=288
+        - fbx PASS Top.IronTeeth.LOD2                     slot=M_HDBF_Glass material=WindowsAtlas.IronTeeth           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.817383, 0.989258] v=[0.063477, 0.239258] values=288
+        - fbx PASS Top.IronTeeth.LOD2                     slot=M_HDBF_Metal material=Details.IronTeeth                patch uv=[0.191406, 0.019531, 0.441406, 0.269531] uv0 u=[0.195312, 0.436523] v=[0.025390, 0.265625] values=1758
+        - fbx PASS Top.IronTeeth.LOD2                     slot=M_HDBF_Wood  material=BaseWood_DarkBrown.IronTeeth     patch uv=[0.355469, 0.558594, 0.496094, 0.699219] uv0 u=[0.360352, 0.491211] v=[0.575196, 0.691406] values=108
+        - glb PASS Top.IronTeeth.LOD2                     slot=M_HDBF_Fabric material=IrregularPlanks_MetalForged.IronTeeth patch uv=[0.621094, 0.417969, 0.839844, 0.636719] uv0 u=[0.628906, 0.834961] v=[0.422852, 0.624024] values=288
+        - glb PASS Top.IronTeeth.LOD2                     slot=M_HDBF_Glass material=WindowsAtlas.IronTeeth           patch uv=[0.808594, 0.058594, 0.996094, 0.246094] uv0 u=[0.817383, 0.989258] v=[0.063477, 0.239258] values=288
+        - glb PASS Top.IronTeeth.LOD2                     slot=M_HDBF_Metal material=Details.IronTeeth                patch uv=[0.191406, 0.019531, 0.441406, 0.269531] uv0 u=[0.195312, 0.436523] v=[0.025390, 0.265625] values=1758
+        - glb PASS Top.IronTeeth.LOD2                     slot=M_HDBF_Wood  material=BaseWood_DarkBrown.IronTeeth     patch uv=[0.355469, 0.558594, 0.496094, 0.699219] uv0 u=[0.360352, 0.491211] v=[0.575196, 0.691406] values=108
 ----------------------------------------------------------------------------------------------------------------------
 ConstructionStage0
   C1  parse                                  PASS  FBX and GLB imported; both carry one body mesh + 3 empties
@@ -640,9 +983,26 @@ ConstructionStage0
   C6  materials                              PASS  material slot set matches ATLAS TIER_MATERIALS (['M_HDBF_Metal', 'M_HDBF_Wood'])
         - fbx: ['M_HDBF_Metal', 'M_HDBF_Wood']
         - glb: ['M_HDBF_Metal', 'M_HDBF_Wood']
-  C7  flat-patch UV                          PASS  every face of one material samples that material's fixed flat UV patch
-        - fbx: all UVs inside their material flat patches (864 triangles, 4 px patch gutter)
-        - glb: all UVs inside their material flat patches (864 triangles, 4 px patch gutter)
+  C7  flat-patch UV                          PASS  every face of one material samples that material's real-_D texture patch (C11 reports per-material min/max)
+        - fbx PASS ConstructionStage0 shared source / Folktails slot=M_HDBF_Metal material=BaseMetal.Folktails              patch uv=[0.066406, 0.558594, 0.378906, 0.871094] uv0 u=[0.071289, 0.374023] v=[0.563477, 0.867188] values=1812
+        - fbx PASS ConstructionStage0 shared source / Folktails slot=M_HDBF_Wood  material=BaseWood_Brown.Folktails         patch uv=[0.003906, 0.011719, 0.253906, 0.261719] uv0 u=[0.007812, 0.249023] v=[0.018555, 0.254883] values=780
+        - fbx PASS ConstructionStage0 shared source / IronTeeth slot=M_HDBF_Metal material=BaseMetal.IronTeeth              patch uv=[0.066406, 0.558594, 0.378906, 0.871094] uv0 u=[0.071289, 0.374023] v=[0.563477, 0.867188] values=1812
+        - fbx PASS ConstructionStage0 shared source / IronTeeth slot=M_HDBF_Wood  material=RoofPlanks.IronTeeth             patch uv=[0.003906, 0.011719, 0.253906, 0.261719] uv0 u=[0.007812, 0.249023] v=[0.018555, 0.254883] values=780
+        - fbx: 4 material slot group(s) / 4 material(s), 5184 uv0 corner(s) checked against the real-texture patches
+        - glb PASS ConstructionStage0 shared source / Folktails slot=M_HDBF_Metal material=BaseMetal.Folktails              patch uv=[0.066406, 0.558594, 0.378906, 0.871094] uv0 u=[0.071289, 0.374023] v=[0.563477, 0.867188] values=1812
+        - glb PASS ConstructionStage0 shared source / Folktails slot=M_HDBF_Wood  material=BaseWood_Brown.Folktails         patch uv=[0.003906, 0.011719, 0.253906, 0.261719] uv0 u=[0.007812, 0.249023] v=[0.018555, 0.254883] values=780
+        - glb PASS ConstructionStage0 shared source / IronTeeth slot=M_HDBF_Metal material=BaseMetal.IronTeeth              patch uv=[0.066406, 0.558594, 0.378906, 0.871094] uv0 u=[0.071289, 0.374023] v=[0.563477, 0.867188] values=1812
+        - glb PASS ConstructionStage0 shared source / IronTeeth slot=M_HDBF_Wood  material=RoofPlanks.IronTeeth             patch uv=[0.003906, 0.011719, 0.253906, 0.261719] uv0 u=[0.007812, 0.249023] v=[0.018555, 0.254883] values=780
+        - glb: 4 material slot group(s) / 4 material(s), 5184 uv0 corner(s) checked against the real-texture patches
+  C11 material patch UV containment          PASS  4 material(s) / 10368 uv0 value(s) inside their real-_D texture patch (tolerance 1e-04, all contexts: ['ConstructionStage0 shared source / Folktails', 'ConstructionStage0 shared source / IronTeeth'])
+        - fbx PASS ConstructionStage0 shared source / Folktails slot=M_HDBF_Metal material=BaseMetal.Folktails              patch uv=[0.066406, 0.558594, 0.378906, 0.871094] uv0 u=[0.071289, 0.374023] v=[0.563477, 0.867188] values=1812
+        - fbx PASS ConstructionStage0 shared source / Folktails slot=M_HDBF_Wood  material=BaseWood_Brown.Folktails         patch uv=[0.003906, 0.011719, 0.253906, 0.261719] uv0 u=[0.007812, 0.249023] v=[0.018555, 0.254883] values=780
+        - fbx PASS ConstructionStage0 shared source / IronTeeth slot=M_HDBF_Metal material=BaseMetal.IronTeeth              patch uv=[0.066406, 0.558594, 0.378906, 0.871094] uv0 u=[0.071289, 0.374023] v=[0.563477, 0.867188] values=1812
+        - fbx PASS ConstructionStage0 shared source / IronTeeth slot=M_HDBF_Wood  material=RoofPlanks.IronTeeth             patch uv=[0.003906, 0.011719, 0.253906, 0.261719] uv0 u=[0.007812, 0.249023] v=[0.018555, 0.254883] values=780
+        - glb PASS ConstructionStage0 shared source / Folktails slot=M_HDBF_Metal material=BaseMetal.Folktails              patch uv=[0.066406, 0.558594, 0.378906, 0.871094] uv0 u=[0.071289, 0.374023] v=[0.563477, 0.867188] values=1812
+        - glb PASS ConstructionStage0 shared source / Folktails slot=M_HDBF_Wood  material=BaseWood_Brown.Folktails         patch uv=[0.003906, 0.011719, 0.253906, 0.261719] uv0 u=[0.007812, 0.249023] v=[0.018555, 0.254883] values=780
+        - glb PASS ConstructionStage0 shared source / IronTeeth slot=M_HDBF_Metal material=BaseMetal.IronTeeth              patch uv=[0.066406, 0.558594, 0.378906, 0.871094] uv0 u=[0.071289, 0.374023] v=[0.563477, 0.867188] values=1812
+        - glb PASS ConstructionStage0 shared source / IronTeeth slot=M_HDBF_Wood  material=RoofPlanks.IronTeeth             patch uv=[0.003906, 0.011719, 0.253906, 0.261719] uv0 u=[0.007812, 0.249023] v=[0.018555, 0.254883] values=780
 
 ======================================================================================================================
 C8: LOD BOUNDING BOX
@@ -685,8 +1045,89 @@ C9: FOUR TIERS DISTINGUISHABLE AT THE 50% CAMERA (LOD0)
 ======================================================================================================================
 C10: material_slots.json
 ======================================================================================================================
-  PASS  material_slots.json agrees with the meshes material_slots.json (envelope, roof rule, ports, plans, triangles, materials, 12 flat patches) agrees with the measured meshes
-        - 9 models, 12 patch records validated against the meshes
+  PASS  material_slots.json agrees with the meshes material_slots.json (envelope, roof rule, ports, plans, triangles, materials, 17 real-texture patch records) agrees with the measured meshes
+        - 17 per-material real-texture patch record(s) cross-checked against art/material_texture_map.json
+        - 28 per-model slot/patch record(s) cross-checked for 9 model(s)
+        - 9 models, 17 patch records validated against the meshes
+
+======================================================================================================================
+C12-C14: MATERIAL TEXTURE PATCH CHECKS (ART-05, cross-model)
+======================================================================================================================
+map:        material_patches.load_material_texture_map()
+map schema: 'hdbf.material_texture_map/v1'; texture roots: env HDBF_VANILLA_TEX_ROOT / HDBF_VANILLA_TEX_ALL / HDBF_VANILLA_TEX_EXTRA > map texture_path > map.texture_roots > defaults
+patch stats: mean RGB + std (max channel std, 0..255) re-measured from the real vanilla _D PNG with art/png_stats.py; recorded mean +-0.5, std +-0.5, std <= std_max
+
+----------------------------------------------------------------------------------------------------------------------
+C12 material patch map coverage                              PASS
+  schema 'hdbf.material_texture_map/v1' ok; all 17 required material(s) have a real-texture patch record (17 usable, 2 unused/reference)
+        - map source: material_patches.load_material_texture_map()
+        - schema='hdbf.material_texture_map/v1'; 17 material record(s) + 2 unused/reference record(s); 17 required material(s) (every timbermesh_common.MATERIAL_MAP target + any vanilla material name on a source mesh)
+        - texture root(s) available: 2 of 2 candidate(s) (first: C:\Users\user\.hdbf\sdk\vanilla-tex-all)
+----------------------------------------------------------------------------------------------------------------------
+C13 real _D texture variance re-verification                 PASS
+  all 17 patch record(s) re-verified from the real vanilla _D PNGs: recorded mean RGB / std match the decoded pixels (mean +-0.5, std +-0.5) and std <= std_max
+        - decoded 15 unique vanilla _D PNG file(s) with art/png_stats.py (decoder: pure-python); mean/std recomputed from the raw sRGB bytes
+        - PASS BaseMetal.Folktails                BaseMetal_D1.png               px=(68, 132, 388, 452)  uv=(0.066406, 0.558594, 0.378906, 0.871094) mean=(111.96, 100.15, 76.73) std=11.290 std_max=14.00
+        - PASS BaseMetal.IronTeeth                BaseMetal_D2.png               px=(68, 132, 388, 452)  uv=(0.066406, 0.558594, 0.378906, 0.871094) mean=(110.81, 106.12, 106.19) std=10.676 std_max=14.00
+        - PASS BaseWood_Brown.Folktails           BaseWood_1K_D_Brown.png        px=(4, 756, 260, 1012)  uv=(0.003906, 0.011719, 0.253906, 0.261719) mean=(54.47, 40.38, 27.02) std=17.735 std_max=18.00
+        - PASS BaseWood_DarkBrown.IronTeeth       BaseWood_1K_D_Grey.png         px=(364, 308, 508, 452) uv=(0.355469, 0.558594, 0.496094, 0.699219) mean=(135.71, 129.88, 120.96) std=17.934 std_max=18.00
+        - PASS BaseWood_Grey.IronTeeth            BaseWood_1K_D_Grey.png         px=(364, 308, 508, 452) uv=(0.355469, 0.558594, 0.496094, 0.699219) mean=(135.71, 129.88, 120.96) std=17.934 std_max=18.00
+        - PASS BaseWood_LightBrown.Folktails      BaseWood_1K_D_White.png        px=(20, 244, 212, 436)  uv=(0.019531, 0.574219, 0.207031, 0.761719) mean=(148.40, 135.11, 117.52) std=14.473 std_max=18.00
+        - PASS BaseWood_White.Folktails           BaseWood_1K_D_White.png        px=(20, 244, 212, 436)  uv=(0.019531, 0.574219, 0.207031, 0.761719) mean=(148.40, 135.11, 117.52) std=14.473 std_max=18.00
+        - PASS Details.Folktails                  Details_D.Folktails.png        px=(100, 748, 356, 1004) uv=(0.097656, 0.019531, 0.347656, 0.269531) mean=(105.26, 80.45, 48.28) std=23.732 std_max=26.00
+        - PASS Details.IronTeeth                  Details_D.IronTeeth.png        px=(196, 748, 452, 1004) uv=(0.191406, 0.019531, 0.441406, 0.269531) mean=(89.18, 74.98, 57.97) std=25.399 std_max=26.00
+        - PASS IrregularPlanks_Brown.Folktails    IrregularPlanks_D_Brown.png    px=(4, 204, 260, 460)   uv=(0.003906, 0.550781, 0.253906, 0.800781) mean=(50.97, 37.95, 26.16) std=17.878 std_max=18.00
+        - PASS IrregularPlanks_MetalForged.IronTeeth PlanksWithMetal_D.png          px=(636, 372, 860, 596) uv=(0.621094, 0.417969, 0.839844, 0.636719) mean=(94.91, 73.74, 57.63) std=26.265 std_max=27.00
+        - PASS Moss.Folktails                     Moss_D.Folktails.png           px=(188, 292, 444, 548) uv=(0.183594, 0.464844, 0.433594, 0.714844) mean=(43.20, 48.63, 20.88) std=13.102 std_max=16.00
+        - PASS Plaster_Orange.IronTeeth           Plaster_D_White.IronTeeth.png  px=(468, 4, 788, 324)   uv=(0.457031, 0.683594, 0.769531, 0.996094) mean=(176.09, 159.81, 141.20) std=9.972 std_max=10.00
+        - PASS Plaster_White.Folktails            Plaster_D_White.Folktails.png  px=(468, 4, 788, 324)   uv=(0.457031, 0.683594, 0.769531, 0.996094) mean=(176.09, 159.81, 141.20) std=9.972 std_max=10.00
+        - PASS RoofPlanks.IronTeeth               RoofPlanks_D.png               px=(4, 756, 260, 1012)  uv=(0.003906, 0.011719, 0.253906, 0.261719) mean=(37.85, 39.60, 30.42) std=13.548 std_max=16.00
+        - PASS WindowsAtlas.Folktails             WindowsAtlas_D.Folktails.png   px=(828, 772, 1020, 964) uv=(0.808594, 0.058594, 0.996094, 0.246094) mean=(122.32, 133.66, 139.66) std=11.536 std_max=12.00
+        - PASS WindowsAtlas.IronTeeth             WindowsAtlas_D.IronTeeth.png   px=(828, 772, 1020, 964) uv=(0.808594, 0.058594, 0.996094, 0.246094) mean=(122.32, 133.66, 139.66) std=11.536 std_max=12.00
+        - texture root resolution: env HDBF_VANILLA_TEX_ROOT / HDBF_VANILLA_TEX_ALL / HDBF_VANILLA_TEX_EXTRA > map texture_path > map.texture_roots > built-in defaults
+----------------------------------------------------------------------------------------------------------------------
+C14 hazard / large-shell material policy                     PASS
+  2 forbidden warning-stripe material(s) declared and unused; no hazard-tagged patch is shipped; 2 exclusion rect(s) respected
+        - forbidden large-shell/hazard materials declared: ['PaintedMetal.Folktails', 'PaintedMetal.IronTeeth']
+        - no forbidden material is used by a shipped or scheduled model
+        - 2 recorded hazard/logo/text exclusion rect(s) checked against the usable patches
+        - no usable patch overlaps a recorded exclusion rect
+        - shipped/scheduled materials: ['BaseMetal.Folktails', 'BaseMetal.IronTeeth', 'BaseWood_Brown.Folktails', 'BaseWood_DarkBrown.IronTeeth', 'BaseWood_Grey.IronTeeth', 'BaseWood_LightBrown.Folktails', 'BaseWood_White.Folktails', 'Details.Folktails', 'Details.IronTeeth', 'IrregularPlanks_Brown.Folktails', 'IrregularPlanks_MetalForged.IronTeeth', 'Moss.Folktails', 'Plaster_Orange.IronTeeth', 'Plaster_White.Folktails', 'RoofPlanks.IronTeeth', 'WindowsAtlas.Folktails', 'WindowsAtlas.IronTeeth']
+
+----------------------------------------------------------------------------------------------------------------------
+PATCH TABLE (per material: real _D texture, pixel rect, uv rect, re-measured mean RGB, std, std_max)
+  RES  MATERIAL                           TEXTURE                        PIXEL RECT           UV RECT                                MEAN RGB (measured)  MEAN RGB (recorded)          STD  STD_MAX
+  PASS BaseMetal.Folktails                BaseMetal_D1.png               (68, 132, 388, 452)  (0.066406, 0.558594, 0.378906, 0.871094) (111.96, 100.15, 76.73) (111.96, 100.15, 76.73)   11.290    14.00
+  PASS BaseMetal.IronTeeth                BaseMetal_D2.png               (68, 132, 388, 452)  (0.066406, 0.558594, 0.378906, 0.871094) (110.81, 106.12, 106.19) (110.81, 106.12, 106.19)   10.676    14.00
+  PASS BaseWood_Brown.Folktails           BaseWood_1K_D_Brown.png        (4, 756, 260, 1012)  (0.003906, 0.011719, 0.253906, 0.261719) (54.47, 40.38, 27.02) (54.47, 40.38, 27.02)     17.735    18.00
+  PASS BaseWood_DarkBrown.IronTeeth       BaseWood_1K_D_Grey.png         (364, 308, 508, 452) (0.355469, 0.558594, 0.496094, 0.699219) (135.71, 129.88, 120.96) (135.71, 129.88, 120.96)   17.934    18.00
+  PASS BaseWood_Grey.IronTeeth            BaseWood_1K_D_Grey.png         (364, 308, 508, 452) (0.355469, 0.558594, 0.496094, 0.699219) (135.71, 129.88, 120.96) (135.71, 129.88, 120.96)   17.934    18.00
+  PASS BaseWood_LightBrown.Folktails      BaseWood_1K_D_White.png        (20, 244, 212, 436)  (0.019531, 0.574219, 0.207031, 0.761719) (148.40, 135.11, 117.52) (148.40, 135.11, 117.52)   14.473    18.00
+  PASS BaseWood_White.Folktails           BaseWood_1K_D_White.png        (20, 244, 212, 436)  (0.019531, 0.574219, 0.207031, 0.761719) (148.40, 135.11, 117.52) (148.40, 135.11, 117.52)   14.473    18.00
+  PASS Details.Folktails                  Details_D.Folktails.png        (100, 748, 356, 1004) (0.097656, 0.019531, 0.347656, 0.269531) (105.26, 80.45, 48.28) (105.26, 80.45, 48.28)    23.732    26.00
+  PASS Details.IronTeeth                  Details_D.IronTeeth.png        (196, 748, 452, 1004) (0.191406, 0.019531, 0.441406, 0.269531) (89.18, 74.98, 57.97) (89.18, 74.98, 57.96)     25.399    26.00
+  PASS IrregularPlanks_Brown.Folktails    IrregularPlanks_D_Brown.png    (4, 204, 260, 460)   (0.003906, 0.550781, 0.253906, 0.800781) (50.97, 37.95, 26.16) (50.97, 37.95, 26.16)     17.878    18.00
+  PASS IrregularPlanks_MetalForged.IronTeeth PlanksWithMetal_D.png          (636, 372, 860, 596) (0.621094, 0.417969, 0.839844, 0.636719) (94.91, 73.74, 57.63) (94.91, 73.74, 57.63)     26.265    27.00
+  PASS Moss.Folktails                     Moss_D.Folktails.png           (188, 292, 444, 548) (0.183594, 0.464844, 0.433594, 0.714844) (43.20, 48.63, 20.88) (43.20, 48.63, 20.88)     13.102    16.00
+  PASS Plaster_Orange.IronTeeth           Plaster_D_White.IronTeeth.png  (468, 4, 788, 324)   (0.457031, 0.683594, 0.769531, 0.996094) (176.09, 159.81, 141.20) (176.09, 159.81, 141.20)    9.972    10.00
+  PASS Plaster_White.Folktails            Plaster_D_White.Folktails.png  (468, 4, 788, 324)   (0.457031, 0.683594, 0.769531, 0.996094) (176.09, 159.81, 141.20) (176.09, 159.81, 141.20)    9.972    10.00
+  PASS RoofPlanks.IronTeeth               RoofPlanks_D.png               (4, 756, 260, 1012)  (0.003906, 0.011719, 0.253906, 0.261719) (37.85, 39.60, 30.42) (37.85, 39.60, 30.42)     13.548    16.00
+  PASS WindowsAtlas.Folktails             WindowsAtlas_D.Folktails.png   (828, 772, 1020, 964) (0.808594, 0.058594, 0.996094, 0.246094) (122.32, 133.66, 139.66) (122.32, 133.66, 139.66)   11.536    12.00
+  PASS WindowsAtlas.IronTeeth             WindowsAtlas_D.IronTeeth.png   (828, 772, 1020, 964) (0.808594, 0.058594, 0.996094, 0.246094) (122.32, 133.66, 139.66) (122.32, 133.66, 139.66)   11.536    12.00
+
+======================================================================================================================
+NEGATIVE CONTROLS (requirement D: each control must be rejected)
+======================================================================================================================
+[1] REJECTED    one real source uv0 shifted outside its material patch (uv containment)
+     source=Basic.Folktails.LOD0.FBX slot='M_HDBF_Fabric' material='Moss.Folktails' uv0=(0.230469, 0.538086) -> (0.733594, 0.538086): moved 0.5031 in u (> one patch width 0.2500) outside patch uv=[0.183594, 0.464844, 0.433594, 0.714844]; containment checker REJECTED (FAIL)
+     rejected by C11: negative control: 1 uv0 value(s) of material 'Moss.Folktails' lie outside its patch uv_rect [0.183594, 0.464844, 0.433594, 0.714844] +-1e-04 (first: [(0, 0.733594, 0.538086)])
+[2] REJECTED    synthetic 192x192 yellow-black hazard-stripe patch record (texture variance/hazard)
+     mode=real PaintedMetal_D.Folktails.png resolved via texture_roots['vanilla-tex-all']; patch px=(384, 416, 576, 608) uv=(0.375000, 0.406250, 0.562500, 0.593750); recorded std=60.019; std_max=18.000 -> REJECTED
+     rejected by C13: re-measured std 60.0192 > std_max 18.0000 (the patch is not uniform - hazard stripes, a logo/text region or several materials in one patch)
+[3] REJECTED    one required material removed from an in-memory map copy (coverage)
+     mode=in-memory copy of art/material_texture_map.json; removed required material 'BaseMetal.Folktails'; coverage checker -> FAIL
+     rejected by C12: 1 required material(s) have no entry in art/material_texture_map.json: ['BaseMetal.Folktails']
+NEGATIVE CONTROLS: PASS 3/3
 
 ======================================================================================================================
 FLAT ROOF EVIDENCE (contract space; walking surface == apex)
@@ -734,7 +1175,8 @@ ENVELOPE TABLE (contract space, finished LOD0 models)
 ======================================================================================================================
 VERDICT
 ======================================================================================================================
+NEGATIVE CONTROLS: PASS 3/3 (each control must be REJECTED)
 OVERALL VERDICT: PASS
-  every expected source model passes C1-C10 under the v2 3x3x1 flat-roof contract.
+  every expected source model passes C1-C11 (the ART-05 real-texture patches included) and the cross-model C12-C14 material checks, under the v2 3x3x1 flat-roof contract.
 
 report written by art/validate_models.py (offline validation, not an in-game check)

@@ -46,6 +46,10 @@
   四档图标从新模型重渲染（`data/Icons/BoxFarm*.png`）。
 * 【修改】面板：改为原版 UXML/USS 控件；删除重复头部与棕/米黄大底；文字统一暖白 `#F2EBDD`；
   水罐/覆盖率/维护/动力/模式/策略/输出分区与按钮补齐；实时覆盖率（满罐=100%，不再载入显示 0%）。
+* 【修复】材质/贴图：原 flat-patch UV 假设所有材质共享同一张 2048 atlas，实机出现棋盘拼布与
+  黄黑警示条。改为**逐材质使用其真实原版 `_D` 贴图**的低方差 patch（`art/material_texture_map.json`
+  记录材质→贴图→patch→mean/std），预览/图标改用同一真实贴图；禁止 `PaintedMetal` 用于大面积外壳。
+  16 个 `.timbermesh` 重导出，验证器新增 C11–C14 + 负向对照；L1 577/577、44 gates PASS。
 * 门禁：L1 564/564、`build.ps1` 44 checks PASS。
 
 ## [0.2.0] — 2026-10-26（v2.1 实现完成；实机覆盖范围见 VERIFICATION §26.3）

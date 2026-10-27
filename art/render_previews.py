@@ -19,8 +19,21 @@ IronTeeth set is ``<Tier>.IronTeeth_*.png``.  After the per-model renders the
     art/previews/faction_ab_top_50.png                  (2 panels, FT vs IT)
     art/previews/tiers_factions_scale50_grid.png        (4x2, all 8 models)
 
+ART-05 (2026-10-27): the imported FBX materials are re-bound by
+``art/preview_materials.py`` to the REAL vanilla ``_D`` albedo PNG of each
+mapped MaterialCollection material multiplied by its ``_Color`` tint, exactly
+the albedo the game samples - the self-made ART-01 atlas is no longer used for
+previews.  (The vanilla ``_BumpMap`` normal maps are not bound by default: the
+extracted Unity normal assets are not valid Blender tangent-space normal maps
+and would add mottled shading artifacts; see art/preview_materials.py.)
+See that module for the slot -> material -> texture chain.
+
 Usage (from the workspace root):
     blender.exe -b --factory-startup -noaudio --python art\\render_previews.py
+
+Debug knobs (never used for a shipped render):
+    HDBF_PREVIEW_ONLY=Basic.Folktails[,ConstructionStage0]  render a subset only
+    HDBF_PREVIEW_OUT_DIR=<dir>                              write elsewhere
 
 Outputs:
     art/previews/<Tier>_front.png   (asset front = -Z; camera looks at the facade)
@@ -77,6 +90,12 @@ try:
 except Exception as exc:  # pragma: no cover
     sys.stderr.write("BLOCKED: cannot import art/atlas_layout.py: %s\n" % exc)
     sys.exit(2)
+try:
+    import preview_materials as PM
+except Exception as exc:  # pragma: no cover
+    sys.stderr.write("BLOCKED: cannot import art/preview_materials.py: %s\n"
+                     % exc)
+    sys.exit(2)
 
 RESOLUTION = 512
 SAMPLES = 24
@@ -94,14 +113,6 @@ def _sun_rotation(elevation_deg, azimuth_deg):
                   -math.cos(az) * math.cos(el),
                   -math.sin(el)))
     return ray.to_track_quat("-Z", "Y").to_euler()
-FALLBACK_COLORS = {
-    # neutral, contract-consistent albedo fallbacks used only when an imported
-    # material has no image texture node (renders stay geometry-true).
-    "M_HDBF_Wood": (0.31, 0.18, 0.09, 1.0),
-    "M_HDBF_Metal": (0.50, 0.51, 0.52, 1.0),
-    "M_HDBF_Glass": (0.42, 0.55, 0.52, 0.62),
-    "M_HDBF_Fabric": (0.66, 0.55, 0.38, 1.0),
-}
 
 
 # --------------------------------------------------------------------------- #
@@ -247,76 +258,26 @@ def import_model(path):
             bpy.data.objects.remove(ob, do_unlink=True)
 
 
-def _principled(mat):
-    if not mat.use_nodes or mat.node_tree is None:
-        return None
-    for node in mat.node_tree.nodes:
-        if node.type == "BSDF_PRINCIPLED":
-            return node
-    return None
+def bind_model_materials(tier, faction, book, construction=False):
+    """Bind the real vanilla ``_D`` textures/tints to the imported materials.
 
-
-def material_fallbacks():
-    """Give untextured/broken-texture materials contract-consistent colours.
-
-    Textures referenced by the FBX are loaded lazily by Blender; if an atlas PNG
-    is missing or was being rewritten when imported, the image has no data and
-    would render as flat magenta.  Such broken texture nodes are disconnected
-    here and the material falls back to the documented contract albedo, so a
-    preview always shows real geometry with honest (never fabricated) shading.
+    Delegates to ``art/preview_materials.py``; returns its JSON-ready report.
+    The documented slot colour fallback (used only when a real texture file is
+    unavailable) is applied inside that module and is reported as a warning.
     """
-    changed = []
-    for mat in bpy.data.materials:
-        if mat is None:
-            continue
-        has_tex = False
-        if mat.use_nodes and mat.node_tree is not None:
-            nt = mat.node_tree
-            broken = []
-            for node in list(nt.nodes):
-                if node.type == "TEX_IMAGE":
-                    img = node.image
-                    if img is None or img.size[0] == 0 or img.size[1] == 0:
-                        broken.append(node)
-            for node in broken:
-                for link in list(node.outputs["Color"].links):
-                    nt.links.remove(link)
-                nt.nodes.remove(node)
-            # a Normal Map node left without a colour input would shade wrongly
-            for node in list(nt.nodes):
-                if node.type == "NORMAL_MAP" and not node.inputs["Color"].links:
-                    for link in list(node.outputs["Normal"].links):
-                        nt.links.remove(link)
-                    nt.nodes.remove(node)
-            for node in nt.nodes:
-                if node.type == "TEX_IMAGE":
-                    img = node.image
-                    if img is not None and img.size[0] > 0 and img.size[1] > 0:
-                        has_tex = True
-                        break
-        if has_tex:
-            continue
-        key = None
-        for name in FALLBACK_COLORS:
-            if name in mat.name:
-                key = name
-                break
-        if key is None:
-            continue
-        color = FALLBACK_COLORS[key]
-        mat.diffuse_color = color
-        bsdf = _principled(mat)
-        if bsdf is not None:
-            try:
-                bsdf.inputs["Base Color"].default_value = color
-                params = A.MATERIAL_PARAMS[key]
-                bsdf.inputs["Metallic"].default_value = params["metallic"]
-                bsdf.inputs["Roughness"].default_value = params["roughness"]
-                bsdf.inputs["Alpha"].default_value = params["alpha"]
-            except Exception:
-                pass
-        changed.append(mat.name)
-    return changed
+    try:
+        return PM.bind_scene_materials(tier, faction, construction, book=book)
+    except Exception as exc:                              # noqa: BLE001
+        return {
+            "context": {"tier": tier, "faction": faction,
+                        "construction": bool(construction),
+                        "label": "%s.%s" % (tier, faction)},
+            "normal_maps": False,
+            "slots": [], "warnings": [
+                "material binding raised %s: %s; imported material left as is"
+                % (type(exc).__name__, exc)],
+            "counts": {"slots": 0, "bound": 0, "fallback": 1},
+        }
 
 
 # --------------------------------------------------------------------------- #
@@ -474,8 +435,15 @@ def main():
             "Run: blender.exe -b --factory-startup -noaudio --python "
             "art\\render_previews.py\n" % BPY_ERR)
         return 2
+    global PREVIEW_DIR
+    out_override = os.environ.get("HDBF_PREVIEW_OUT_DIR", "").strip()
+    if out_override:
+        PREVIEW_DIR = os.path.abspath(out_override)
+        sys.stdout.write("DEBUG: HDBF_PREVIEW_OUT_DIR=%s\n" % PREVIEW_DIR)
     os.makedirs(PREVIEW_DIR, exist_ok=True)
     renderer = Renderer()
+    book = PM.MaterialTextureBook()
+    bind_reports = []
     missing = []
     jobs = []
     for tier in A.TIERS:
@@ -503,9 +471,23 @@ def main():
         construction = None
         sys.stdout.write("note: construction stage model missing; skipping its "
                          "optional preview\n")
+    only = os.environ.get("HDBF_PREVIEW_ONLY", "").strip()
+    if only:
+        wanted = [item.strip() for item in only.split(",") if item.strip()]
+        jobs = [job for job in jobs
+                if ("%s.%s" % (job[0], job[1])) in wanted or job[0] in wanted]
+        if construction and A.CONSTRUCTION_STAGE not in wanted:
+            construction = None
+        sys.stdout.write("DEBUG: HDBF_PREVIEW_ONLY=%s -> %d model(s)%s\n"
+                         % (only, len(jobs),
+                            " + construction" if construction else ""))
     out = []
     out.append("HDBF preview render: %d model(s) (tier x faction) -> %s"
                % (len(jobs), PREVIEW_DIR))
+    out.append(book.describe())
+    if book.warnings:
+        for warning in book.warnings:
+            out.append("  MATERIAL WARNING: %s" % warning)
     views = [("front", "front", ORTHO_SCALE),
              ("side", "side", ORTHO_SCALE),
              ("top", "top", ORTHO_SCALE),
@@ -515,11 +497,13 @@ def main():
         reset_scene()
         try:
             import_model(path)      # also strips any imported cameras/lights
-            material_fallbacks()
         except Exception as exc:
             out.append("  %-14s FAILED to import %s: %s: %s"
                        % (tier + "." + faction, path, type(exc).__name__, exc))
             continue
+        report = bind_model_materials(tier, faction, book)
+        bind_reports.append(report)
+        out.extend(PM.format_binding_report(report))
         setup_world_and_light()
         setup_cycles()
         cams = make_cameras()
@@ -542,11 +526,21 @@ def main():
         reset_scene()
         try:
             import_model(construction)
-            material_fallbacks()
         except Exception as exc:
             out.append("  Construction FAILED to import: %s: %s"
                        % (type(exc).__name__, exc))
         else:
+            # the shared greybox source is exported once per faction; the single
+            # preview uses the Folktails textures (same gating as its legacy
+            # faction-less file name) - noted in the report on purpose.
+            out.append("  ConstructionStage0: shared source mesh, preview uses "
+                       "the Folktails material set (both factions share the "
+                       "same geometry; the IronTeeth variant only differs in "
+                       "textures)")
+            report = bind_model_materials(A.CONSTRUCTION_STAGE, "Folktails",
+                                          book, construction=True)
+            bind_reports.append(report)
+            out.extend(PM.format_binding_report(report))
             setup_world_and_light()
             setup_cycles()
             cams = make_cameras()
@@ -572,18 +566,39 @@ def main():
         renderer.results.append((dst, ok, size, detail))
     if renderer.fallback_note:
         out.append("ENGINE NOTE: %s" % renderer.fallback_note)
+    material_bound = 0
+    material_slots = 0
+    material_fallbacks = 0
+    fail_reports = 0
+    for report in bind_reports:
+        counts = report["counts"]
+        material_bound += counts["bound"]
+        material_slots += counts["slots"]
+        material_fallbacks += counts["fallback"]
+        if counts["fallback"] > 0 or counts["slots"] == 0:
+            fail_reports += 1
+    out.append("")
+    out.append("material binding: %d/%d imported material slot(s) bound to the "
+               "real vanilla _D texture%s"
+               % (material_bound, material_slots,
+                  "" if material_fallbacks == 0
+                  else "; %d used the documented slot-colour FALLBACK"
+                  % material_fallbacks))
     fails = [r for r in renderer.results if not r[1]]
     out.append("rendered %d/%d previews with %s engine%s"
                % (len(renderer.results) - len(fails), len(renderer.results),
                   renderer.engine,
                   " (fallback)" if renderer.engine != "CYCLES" else ""))
-    if fails:
-        out.append("VERDICT: FAIL (%d preview(s) missing/invalid)" % len(fails))
+    if fails or fail_reports:
+        out.append("VERDICT: FAIL (%d preview problem(s), %d model context(s) "
+                   "with a material fallback/binding problem)"
+                   % (len(fails), fail_reports))
         for path, _ok, _size, err in fails:
             out.append("  bad: %s (%s)" % (path, err))
     else:
-        out.append("VERDICT: PASS - %d preview image(s) rendered and verified as "
-                   "8-bit PNG" % len(renderer.results))
+        out.append("VERDICT: PASS - %d preview image(s) rendered from the real "
+                   "vanilla materials and verified as 8-bit PNG"
+                   % len(renderer.results))
     out.append("elapsed: %.1fs" % (time.time() - started))
     text = "\n".join(out)
     sys.stdout.write(text + "\n")
@@ -592,7 +607,7 @@ def main():
         sys.stderr.flush()
     except Exception:
         pass
-    return 1 if fails else 0
+    return 1 if (fails or fail_reports) else 0
 
 
 if __name__ == "__main__":

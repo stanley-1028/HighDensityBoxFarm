@@ -1,22 +1,28 @@
 # HDBF v2 .timbermesh export determinism evidence
-# two consecutive full runs of art/export_timbermesh.py on the same art/models/**
-# produced the same 16 .timbermesh files and the same art/timbermesh/export-manifest.json
-# (including every per-file SHA-256).  Rebuilt for the v2.2 reference-image upgrade.
-# RESULT: PASS - deterministic (16/16 identical)
+# ART-05 (2026-10-27): UVs now map every face of a vanilla material into ONE patch of
+# that material real 1024x1024 _D albedo texture (art/material_texture_map.json); the
+# fake shared 2048 ART-01 atlas assumption that caused the in-game checkerboard /
+# yellow-black hazard-stripe bug is gone.
+#
+# Procedure: two consecutive full runs of art/export_timbermesh.py on the same
+# art/models/** (25 FBX/GLB sources) with the same Blender 4.2.1 / plugin.
+# Observation: art/timbermesh/export-manifest.json was byte-identical across both runs
+# and all 16 .timbermesh SHA-256 values are identical across both runs.
+# RESULT: PASS - deterministic (16/16 identical, manifest identical)
 
-018bb4b6d5b5dbe50fbca76ea15ffcb988fa6b06e8c15730fd929d8f5296e868  BoxFarm.Advanced.Folktails.ConstructionStage0.Model.timbermesh
-62daa625a29a0772e1c2fffda03584a3cc562a4c67f5fb9a9aad5a2ce286fb59  BoxFarm.Advanced.Folktails.Model.timbermesh
-b2c878b710bec9d4926eaebefe2637faa964f11d21d236e78a4288db005d3098  BoxFarm.Advanced.IronTeeth.ConstructionStage0.Model.timbermesh
-8c911b3198191f89c09938f2ae86914bd31cdd1e5f60849e391947a4a6c3c2b7  BoxFarm.Advanced.IronTeeth.Model.timbermesh
-532bae8f15ec20afc5b06fa6156021b111facdaef899eba4d7dc7b1a8f656c90  BoxFarm.Basic.Folktails.ConstructionStage0.Model.timbermesh
-afa14a1124a9f21fd7d675a87b3fd5bb001399a454e625433f12b12388f427e2  BoxFarm.Basic.Folktails.Model.timbermesh
-994342b907db7aa702cda79799a72b0abde2319a85900cc8a9a9974f99076c84  BoxFarm.Basic.IronTeeth.ConstructionStage0.Model.timbermesh
-73e5a5b0f3dd2850d002c262445e2f52080605905fd1c08eae3a1bdc60d946a0  BoxFarm.Basic.IronTeeth.Model.timbermesh
-38c65687f422164781b3cd6873fa12d04c4f4c431e3c578d7ccf2142c5cfd6d0  BoxFarm.Intermediate.Folktails.ConstructionStage0.Model.timbermesh
-43622a6e25d9f6ea86de47f0be61bf294baa6615d43fd059ed571a46b760cecd  BoxFarm.Intermediate.Folktails.Model.timbermesh
-b453234f208af760ad2be8db80c855a3af6087af3ad2a7404b1e909f511dc3fb  BoxFarm.Intermediate.IronTeeth.ConstructionStage0.Model.timbermesh
-1855f2606662095a34bddea04e444a49e04fd03816c9ffeb466d2ff8421c1fbf  BoxFarm.Intermediate.IronTeeth.Model.timbermesh
-8b4a58444a183696b846b4135f3f7079ea8784fd71c3c7e1cba3814fd8dad2be  BoxFarm.Top.Folktails.ConstructionStage0.Model.timbermesh
-aa333816b1d6ef33d7885f3fecd6ca42720443b441f4d7acd2e93f8f550f343e  BoxFarm.Top.Folktails.Model.timbermesh
-94231f0a684bcef48a4c1a0eaf0b9f548cde07ad1975cfe3277678d702801e30  BoxFarm.Top.IronTeeth.ConstructionStage0.Model.timbermesh
-1f90464aa39ffae955f7a7280c24940ac4e96b623346c2955c9e94ab026c26b5  BoxFarm.Top.IronTeeth.Model.timbermesh
+8d4aebf8ab988084e4e81d2feca95c32cb575ebc376715e1b2fa88fc8233bed5  BoxFarm.Advanced.Folktails.ConstructionStage0.Model.timbermesh
+96476b32d104f0fba82f933fecee95f73a6caa6b9e9b3b86b01325b8038ef648  BoxFarm.Advanced.Folktails.Model.timbermesh
+0a9a8634d15378ce6b6c3b53ed1c3aa7f2809e148445feda20e61c338e9c4c7c  BoxFarm.Advanced.IronTeeth.ConstructionStage0.Model.timbermesh
+77225b3cd13f654b7ea0956fbc1dbb3d69044042430bee199a73fae25295cf35  BoxFarm.Advanced.IronTeeth.Model.timbermesh
+91081dd74171ee15cf697e3fb8303650f7179360f85464a3642ee4a0d110e607  BoxFarm.Basic.Folktails.ConstructionStage0.Model.timbermesh
+856faee1468fea35f2cb4859bc5690f380168a55978b81e60caf137bce3cdbea  BoxFarm.Basic.Folktails.Model.timbermesh
+a0b851bf9d3f13cbc31e03e8a054d821920d2b1d505c6cf23ebba7d0d89f81d3  BoxFarm.Basic.IronTeeth.ConstructionStage0.Model.timbermesh
+5ac0175f04ff63f32548aa45abb2a320ed0b1c7a4ea9bf4f7fc6627f4012d18e  BoxFarm.Basic.IronTeeth.Model.timbermesh
+df6219f2b57029c1fd288101b2db2bb611a54128782908355942b4b4a6b5b694  BoxFarm.Intermediate.Folktails.ConstructionStage0.Model.timbermesh
+bdc0a19b34065e1d30b441f35f28c3d4cbe6d7386a4b968c6faedb12b35d213f  BoxFarm.Intermediate.Folktails.Model.timbermesh
+2c34f2b7fff184da767674d77dcf3518fb46b5bae031c85dc1942703857c37a7  BoxFarm.Intermediate.IronTeeth.ConstructionStage0.Model.timbermesh
+13adc447cf9baa71e80b91ea5b911d41b232ba5adbb74cd6db91a1adcf100c0d  BoxFarm.Intermediate.IronTeeth.Model.timbermesh
+041c6e38bf8a18e0107d2a6ca16dabf0e719eaf86906e5582bfea263e8511a84  BoxFarm.Top.Folktails.ConstructionStage0.Model.timbermesh
+34ae271a77842cd5023dca3b197818a35380bfba71a9e3fc777ec316ba0e5f75  BoxFarm.Top.Folktails.Model.timbermesh
+b1de924ea7dcbcab7d6f09d4a44c959d684e40002d652ce12986c30ebc09b4f5  BoxFarm.Top.IronTeeth.ConstructionStage0.Model.timbermesh
+61bed1f2277395c54639ed81c0a1c4baaf90820757767eb9ab25479daac70955  BoxFarm.Top.IronTeeth.Model.timbermesh

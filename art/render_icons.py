@@ -8,10 +8,22 @@ look-at, lens, framing) for all four tiers, then writes:
     art/icons/BoxFarm.<Tier>.png       512x512 RGBA
     art/icons/BoxFarm.<Tier>.128.png   128x128 RGBA
     art/icons/icons-manifest.json
+    data/Icons/BoxFarm<Tier>.png       byte copy of the 128 px icon (the game
+                                       sprite; existing .meta.json untouched)
 
 The 512 shot is rendered once per tier; the 128 icon is derived from it in
 memory (alpha-aware premultiplied 4x4 box filter via numpy), so there is no
 second render and no alpha fringing.
+
+ART-05 (2026-10-27) materials: after importing the FBX, each M_HDBF_* material
+is re-bound by `art/preview_materials.py` to the REAL vanilla `_D` albedo PNG of
+the MaterialCollection material that slot maps to, multiplied by its `_Color`
+tint, i.e. exactly the albedo the game samples - the self-made ART-01 atlas is
+no longer used for icons.  The vanilla `_BumpMap` normal maps are NOT bound by
+default: the extracted Unity normal assets are not valid Blender tangent-space
+normal maps (they produce mottled shading artifacts; see preview_materials.py).
+A missing texture falls back to the documented slot colour with a recorded
+warning and fails the run (so a dishonest icon cannot ship).
 
 Camera / framing: perspective 85 mm (36 mm sensor), front three-quarter from
 the +Y facade side, offset in -X and raised in +Z, aimed at the centre of the
@@ -35,6 +47,8 @@ Usage (from the workspace root):
 
 Debug knob: HDBF_ICON_ONLY=Basic[,Top] renders a subset (iterating only; the
 manifest is then incomplete - do not ship that state).
+Debug knob: HDBF_ICON_OUT_DIR=<dir> writes the icons + manifest elsewhere
+(never used for a shipped run; data/Icons is only updated by a full 4-tier run).
 
 Exit codes: 0 = 8 icons rendered, verified and manifest written;
             1 = render/verification failure; 2 = blocked (bpy/model missing).
@@ -54,6 +68,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 ICON_DIR = os.path.join(HERE, "icons")
 MODEL_DIR = os.path.join(HERE, "models")
+#: shipped game sprites: the 128 px icons are copied here (meta.json untouched).
+DATA_ICON_DIR = os.path.join(ROOT, "data", "Icons")
 
 # --------------------------------------------------------------------------- #
 # render contract
@@ -82,15 +98,6 @@ EXPOSURE = 0.25
 CONTRACT_MIN = (-1.5, -1.0, 0.0)
 CONTRACT_MAX = (1.5, 1.0, 1.0)
 
-FALLBACK_COLORS = {
-    # neutral, contract-consistent albedo fallbacks used only when an imported
-    # material has no usable image texture (renders stay geometry-true).
-    "M_HDBF_Wood": (0.31, 0.18, 0.09, 1.0),
-    "M_HDBF_Metal": (0.50, 0.51, 0.52, 1.0),
-    "M_HDBF_Glass": (0.42, 0.55, 0.52, 0.62),
-    "M_HDBF_Fabric": (0.66, 0.55, 0.38, 1.0),
-}
-
 try:
     import numpy as np
     import bpy
@@ -114,6 +121,12 @@ try:
     import atlas_layout as A
 except Exception as exc:  # pragma: no cover
     sys.stderr.write("BLOCKED: cannot import art/atlas_layout.py: %s\n" % exc)
+    sys.exit(2)
+try:
+    import preview_materials as PM
+except Exception as exc:  # pragma: no cover
+    sys.stderr.write("BLOCKED: cannot import art/preview_materials.py: %s\n"
+                     % exc)
     sys.exit(2)
 
 
@@ -370,68 +383,113 @@ def mesh_triangle_count():
     return total, meshes
 
 
-def _principled(mat):
-    if not mat.use_nodes or mat.node_tree is None:
-        return None
-    for node in mat.node_tree.nodes:
-        if node.type == "BSDF_PRINCIPLED":
-            return node
-    return None
+def _display_path(path):
+    """Workspace-relative path when possible (manifest stays portable)."""
+    try:
+        return rel(path)
+    except Exception:                                      # noqa: BLE001
+        return path
 
 
-def material_fallbacks():
-    """Give untextured/broken-texture materials contract-consistent colours."""
-    changed = []
-    for mat in bpy.data.materials:
-        if mat is None:
+def _binding_summary(bind):
+    """Compact, environment-independent material binding record for the JSON."""
+    slots = []
+    for entry in bind.get("slots", []):
+        slots.append({
+            "slot": entry.get("slot"),
+            "vanilla_material": entry.get("vanilla_material"),
+            "status": entry.get("status"),
+            "texture": entry.get("texture"),
+            "texture_source": entry.get("texture_source"),
+            "texture_size": entry.get("texture_size"),
+            "tint": entry.get("tint"),
+            "normal_texture": entry.get("normal_texture"),
+            "patch": entry.get("patch"),
+            "uv_bbox": entry.get("uv_bbox"),
+            "uv_inside_patch": entry.get("uv_inside_patch"),
+        })
+    context = bind.get("context") or {}
+    return {
+        "material_map_key": context.get("material_map_key"),
+        "normal_maps": bind.get("normal_maps"),
+        "counts": bind.get("counts", {"slots": 0, "bound": 0,
+                                      "fallback": 1}),
+        "slots": slots,
+        "warnings": bind.get("warnings", []),
+    }
+
+
+def copy_small_icons_to_data(icon_dir, data_icon_dir, tiers):
+    """Copy each 128 px icon into ``data/Icons/BoxFarm<Tier>.png`` (byte copy).
+
+    The game loads ``Icons/BoxFarm<Tier>`` as a sprite; the matching
+    ``.meta.json`` files are already in the repo and are NEVER touched here.
+    Returns (copied, problems) where copied is a list of dicts for the manifest.
+    """
+    copied = []
+    problems = []
+    os.makedirs(data_icon_dir, exist_ok=True)
+    for tier in tiers:
+        small = os.path.join(icon_dir, "BoxFarm.%s.128.png" % tier)
+        target = os.path.join(data_icon_dir, "BoxFarm%s.png" % tier)
+        if not os.path.isfile(small):
+            problems.append("%s: source 128 icon missing (%s)" % (tier, small))
             continue
-        has_tex = False
-        if mat.use_nodes and mat.node_tree is not None:
-            nt = mat.node_tree
-            broken = []
-            for node in list(nt.nodes):
-                if node.type == "TEX_IMAGE":
-                    img = node.image
-                    if img is None or img.size[0] == 0 or img.size[1] == 0:
-                        broken.append(node)
-            for node in broken:
-                for link in list(node.outputs["Color"].links):
-                    nt.links.remove(link)
-                nt.nodes.remove(node)
-            for node in list(nt.nodes):
-                if node.type == "NORMAL_MAP" and not node.inputs["Color"].links:
-                    for link in list(node.outputs["Normal"].links):
-                        nt.links.remove(link)
-                    nt.nodes.remove(node)
-            for node in nt.nodes:
-                if node.type == "TEX_IMAGE":
-                    img = node.image
-                    if img is not None and img.size[0] > 0 and img.size[1] > 0:
-                        has_tex = True
-                        break
-        if has_tex:
+        try:
+            with open(small, "rb") as f:
+                payload = f.read()
+            with open(target, "wb") as f:
+                f.write(payload)
+        except OSError as exc:
+            problems.append("%s: copy to data/Icons failed: %s"
+                            % (tier, exc))
             continue
-        key = None
-        for name in FALLBACK_COLORS:
-            if name in mat.name:
-                key = name
-                break
-        if key is None:
+        header = png_header(target)
+        target_sha = sha256_of(target)
+        source_sha = sha256_of(small)
+        ok = (header is not None and header["width"] == SMALL
+              and header["height"] == SMALL and header["bit_depth"] == 8
+              and header["color_type"] == 6 and target_sha == source_sha)
+        if not ok:
+            problems.append("%s: data/Icons copy failed verification (%r)"
+                            % (tier, header))
             continue
-        color = FALLBACK_COLORS[key]
-        mat.diffuse_color = color
-        bsdf = _principled(mat)
-        if bsdf is not None:
-            try:
-                params = A.MATERIAL_PARAMS[key]
-                bsdf.inputs["Base Color"].default_value = color
-                bsdf.inputs["Metallic"].default_value = params["metallic"]
-                bsdf.inputs["Roughness"].default_value = params["roughness"]
-                bsdf.inputs["Alpha"].default_value = params["alpha"]
-            except Exception:
-                pass
-        changed.append(mat.name)
-    return changed
+        copied.append({
+            "path": rel(target),
+            "source": rel(small),
+            "tier": tier,
+            "width": header["width"],
+            "height": header["height"],
+            "mode": header["color_type_name"],
+            "bytes": len(payload),
+            "sha256": target_sha,
+        })
+    return copied, problems
+
+
+def bind_model_materials(tier, faction, book):
+    """Bind the real vanilla ``_D`` textures/tints to the imported materials.
+
+    Delegates to ``art/preview_materials.py`` (same chain as the previews:
+    slot -> ``timbermesh_common.MATERIAL_MAP`` -> ``material_texture_map.json``
+    -> real 1024x1024 ``_D`` PNG * ``_Color`` tint; the vanilla ``_BumpMap`` is
+    intentionally not bound because the extracted Unity normal data is not a
+    Blender tangent-space normal map).  Returns the JSON-ready binding report
+    for the icon manifest; a missing texture is recorded as a warning +
+    documented slot-colour fallback, never fabricated.
+    """
+    try:
+        return PM.bind_scene_materials(tier, faction, False, book=book)
+    except Exception as exc:                              # noqa: BLE001
+        return {
+            "context": {"tier": tier, "faction": faction,
+                        "construction": False,
+                        "label": "%s.%s" % (tier, faction)},
+            "normal_maps": False, "slots": [], "warnings": [
+                "material binding raised %s: %s; imported material left as is"
+                % (type(exc).__name__, exc)],
+            "counts": {"slots": 0, "bound": 0, "fallback": 1},
+        }
 
 
 # --------------------------------------------------------------------------- #
@@ -559,6 +617,11 @@ def main():
         tiers = [t for t in tiers if t in wanted]
         sys.stdout.write("DEBUG: HDBF_ICON_ONLY=%s -> %r\n" % (only, tiers))
 
+    global ICON_DIR
+    out_override = os.environ.get("HDBF_ICON_OUT_DIR", "").strip()
+    if out_override:
+        ICON_DIR = os.path.abspath(out_override)
+        sys.stdout.write("DEBUG: HDBF_ICON_OUT_DIR=%s\n" % ICON_DIR)
     os.makedirs(ICON_DIR, exist_ok=True)
     # snapshot the previous manifest before this run overwrites it, so the new
     # manifest can record a run-to-run byte comparison as determinism evidence
@@ -583,6 +646,10 @@ def main():
     out.append("HDBF tier icons -> %s" % ICON_DIR)
     out.append("source: art/models/<Tier>.Folktails/LOD0.fbx (Folktails; the "
                "factions share icons)")
+    book = PM.MaterialTextureBook()
+    out.append(book.describe())
+    for warning in book.warnings:
+        out.append("  MATERIAL WARNING: %s" % warning)
 
     # one camera solved from the fixed 3x2x1 contract box, reused for all tiers
     reset_scene()
@@ -599,11 +666,22 @@ def main():
     tier_records = []
     files = []           # (path, size, tier)
     fails = []
+    bind_reports = []
     for tier, src in jobs:
         reset_scene()
         try:
             import_model(src)
-            replaced = material_fallbacks()
+            bind = bind_model_materials(tier, "Folktails", book)
+            bind_reports.append(bind)
+            for line in PM.format_binding_report(bind):
+                out.append(line)
+            if bind["counts"]["fallback"] > 0 or bind["counts"]["slots"] == 0:
+                fails.append("%s: material binding incomplete (bound %d/%d, %d "
+                             "fallback) - the icon would not show the real "
+                             "vanilla materials"
+                             % (tier, bind["counts"]["bound"],
+                                bind["counts"]["slots"],
+                                bind["counts"]["fallback"]))
             tris, meshes = mesh_triangle_count()
         except Exception as exc:
             fails.append("%s: import failed: %s: %s"
@@ -649,7 +727,7 @@ def main():
             "source_model": rel(src),
             "source_triangles": tris,
             "source_mesh_objects": meshes,
-            "material_fallbacks_applied": replaced,
+            "material_binding": _binding_summary(bind),
             "large": big,
             "small": small,
             "render_seconds": round(dt_big, 1),
@@ -753,6 +831,22 @@ def main():
                 "mean_rgb_covered": st["mean_rgb_covered"],
             })
 
+    # ship the 128 px sprites exactly like the ART-04 pipeline did; the game
+    # sidecars data/Icons/BoxFarm*.png.meta.json are never touched here.
+    data_icon_copies = []
+    if not fails and len(file_entries) == 8 and len(tiers) == len(A.TIERS):
+        data_icon_copies, copy_problems = copy_small_icons_to_data(
+            ICON_DIR, DATA_ICON_DIR, [t for t, _src in jobs])
+        for problem in copy_problems:
+            fails.append("data/Icons: %s" % problem)
+        for entry in data_icon_copies:
+            out.append("  %-28s <- %-32s %dx%d RGBA %d bytes  OK"
+                       % (entry["path"], entry["source"], entry["width"],
+                          entry["height"], entry["bytes"]))
+    elif len(tiers) == len(A.TIERS):
+        out.append("data/Icons copy SKIPPED (icon verification failed)")
+
+
     determinism = {
         "scope": ("Measured on this machine with this Blender build. Cycles "
                   "CPU output is hardware/build dependent, so byte identity is "
@@ -791,6 +885,7 @@ def main():
     manifest = {
         "asset": "HDBF (Timberborn High-Density Box Farm) tier building icons",
         "card": "ART-04",
+        "material_card": "ART-05 (icons render the real vanilla _D materials)",
         "generator": rel(os.path.abspath(__file__)),
         "command": ("blender.exe -b --factory-startup -noaudio "
                     "--python art\\render_icons.py"),
@@ -839,6 +934,30 @@ def main():
             "method": ("alpha-aware premultiplied 4x4 box filter (numpy), "
                        "written with bpy image API"),
         },
+        "materials": {
+            "note": ("Every icon is rendered with the real vanilla `_D` albedo "
+                     "PNG of each mapped MaterialCollection material multiplied "
+                     "by its `_Color` tint, bound by art/preview_materials.py - "
+                     "the same albedo the game resolves. The fake ART-01 atlas "
+                     "is not used. Glass is rendered opaque (the game material "
+                     "has cutout off). The vanilla `_BumpMap` normal maps are "
+                     "NOT bound: the extracted Unity normal assets are not "
+                     "valid Blender tangent-space normal maps and produce "
+                     "mottled shading artifacts (evidence in the ART-05 "
+                     "report) - albedo * tint is the honest look."),
+            "binding": {
+                "map_path": _display_path(book.map_path),
+                "map_used": book.map_used,
+                "map_schema": book.map_schema,
+                "map_materials": len(book.materials),
+                "texture_roots": dict(book.roots),
+                "table_warnings": book.warnings,
+            },
+            "per_tier": {
+                rec["tier"]: rec["material_binding"] for rec in tier_records
+            },
+        },
+        "data_icons": data_icon_copies,
         "files": file_entries,
         "tier_summary": [
             {
@@ -847,6 +966,9 @@ def main():
                 "source_triangles": r["source_triangles"],
                 "source_mesh_objects": r["source_mesh_objects"],
                 "coverage_512": r["coverage_512"],
+                "material_slots_bound": r["material_binding"]["counts"]["bound"],
+                "material_slots_total": r["material_binding"]["counts"]["slots"],
+                "material_fallbacks": r["material_binding"]["counts"]["fallback"],
             }
             for r in tier_records
         ],
@@ -873,10 +995,17 @@ def main():
         out.append("VERDICT: FAIL (%d problem(s))" % len(fails))
         for f in fails:
             out.append("  bad: %s" % f)
+    elif len(file_entries) != 8:
+        out.append("")
+        out.append("VERDICT: INCOMPLETE - debug subset run (%d/8 icons); the "
+                   "manifest was not written and data/Icons was not updated"
+                   % len(file_entries))
     else:
         out.append("")
         out.append("VERDICT: PASS - 8 icons (4 x 512 RGBA + 4 x 128 RGBA), "
-                   "real alpha, four distinguishable silhouettes")
+                   "real vanilla _D materials, real alpha, four "
+                   "distinguishable silhouettes; %d data/Icons sprite(s) "
+                   "copied" % len(data_icon_copies))
     out.append("elapsed: %.1fs" % (time.time() - started))
     sys.stdout.write("\n".join(out) + "\n")
     try:

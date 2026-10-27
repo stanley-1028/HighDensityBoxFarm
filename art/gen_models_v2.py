@@ -16,10 +16,18 @@ generator (``art/gen_models.py``, 3x2x1) this generator:
     four tiers stay distinguishable at the 50% camera (REQ-V2-ART-04);
   * carries EXACTLY the three ``#Port#Power/#Port#Pipe/#Port#Logistics`` empty
     markers and **no ``#Slot#`` node** (REQ-V2-ART-02);
-  * keeps the ART-04 flat-patch UV mapping and vanilla ``MaterialCollection``
-    material asset names (no custom PBR / AssetBundle);
+  * keeps vanilla ``MaterialCollection`` material asset names (no custom PBR /
+    AssetBundle) and maps every face of a material into ONE fixed patch of that
+    material's **real 1024x1024 ``_D`` albedo texture** (ART-05, 2026-10-27).
+    The old ART-04 fake shared 2048 ART-01 atlas UVs caused the user's in-game
+    checkerboard / yellow-black hazard-stripe bug; the patch table is generated
+    by ``art/material_texture_analysis.py`` into
+    ``art/material_texture_map.json`` and carries the source texture, tint,
+    pixel/UV rect and measured mean RGB/std for every material;
   * builds one shared construction-stage greybox, also a strict 3x3x1 with the
-    same flat empty roof platform (REQ-V2-ART-03).
+    same flat empty roof platform (REQ-V2-ART-03).  Its UV set is baked once and
+    is valid for BOTH factions because the construction material pairs were
+    searched jointly to share one UV window (``construction_shared_patches``).
 
 Output (deterministic, overwrite in place):
 
@@ -87,6 +95,11 @@ WOOD = "M_HDBF_Wood"
 METAL = "M_HDBF_Metal"
 GLASS = "M_HDBF_Glass"
 FABRIC = "M_HDBF_Fabric"
+
+#: RTOL/ATOL guard for the per-face UV containment assertion in
+#: :func:`assign_flat_patch_uvs` (float arithmetic only, never a real tolerance:
+#: the contract is "inside the validated patch").
+UV_ASSERT_EPS = 1e-9
 
 #: per-face vertex colour (the game shader may ignore it; the export pipeline
 #: records whether it survived, and the report never claims more than that).
@@ -1495,45 +1508,95 @@ def face_uv_extent(verts_bl):
     return du, dv, norm
 
 
-def patch_roles_for(tier, faction, construction=False):
-    """M_HDBF_* material slot -> flat-patch role for one model context."""
+def material_slots_for(tier, faction, construction=False):
+    """M_HDBF_* material slot -> vanilla material asset name for one model context.
+
+    ART-05: the UVs are now assigned per *vanilla material name* (each material
+    has its own real ``_D`` texture patch in ``art/material_texture_map.json``),
+    so callers need the material mapping, not the retired ART-04 role names.
+    The construction stage is one shared source mesh: its UVs are baked with the
+    Folktails construction map, and the map's ``construction_shared_patches``
+    guarantees the IronTeeth construction materials share the same UV window.
+    """
     key = (tier, faction, construction) if not construction else \
         ("Basic", "Folktails", True)
-    mapping = TC.MATERIAL_MAP[key]
-    return {slot: MP.role_of(name) for slot, name in mapping.items()}
+    return dict(TC.MATERIAL_MAP[key])
 
 
-def _check_patch_coverage(mb, roles, label):
-    """Every used material slot must have a flat-patch role (fail loudly)."""
-    missing = sorted(set(mb.used_materials()) - set(roles))
+def patch_roles_for(tier, faction, construction=False):
+    """Deprecated ART-04 name, kept importable.
+
+    Returns ``slot -> vanilla material name`` (the ART-05 mapping) - NOT the old
+    role strings; the role table was tied to the fake 2048 atlas that caused the
+    2026-10-27 texture bug.  Use :func:`material_slots_for` for new code.
+    """
+    return material_slots_for(tier, faction, construction)
+
+
+def _check_patch_coverage(mb, slot_materials, label):
+    """Every used material slot must have a mapped vanilla material (fail loudly)."""
+    missing = sorted(set(mb.used_materials()) - set(slot_materials))
     if missing:
         raise RuntimeError("%s uses material slot(s) %s that its tier does not "
-                           "declare (roles=%s)" % (label, missing,
-                                                   sorted(roles)))
+                           "declare (mapped=%s)" % (label, missing,
+                                                    sorted(slot_materials)))
 
 
-def assign_flat_patch_uvs(mb, roles):
-    """Map every face of a material onto a deterministic sub-rect of its patch."""
-    atlas = float(A.ATLAS_SIZE)
+def assign_flat_patch_uvs(mb, slot_materials):
+    """Map every face of a material onto a deterministic sub-rect of its REAL patch.
+
+    ``slot_materials`` maps the model's M_HDBF_* material slot to the vanilla
+    material asset name it ships with.  For every face:
+
+    * the material's patch rect (in its real 1024x1024 ``_D`` texture) comes from
+      ``art/material_texture_map.json`` via ``material_patches``;
+    * the face is projected to a 2D extent, scaled to the contract texel density
+      (``PATCH_TEXELS_PER_GRID``) and packed inside the patch with a
+      deterministic hash offset and a 4 px guard band;
+    * every resulting UV is asserted to lie inside the material's patch (defence
+      in depth for the validators and the in-game look).
+
+    All faces of one material therefore sample one small, low-variance region of
+    one real texture - no patchwork across material-atlas content, no hazard
+    stripes.
+    """
     for objname, faces in mb.objects.items():
         for fi, f in enumerate(faces):
-            role = roles[f["material"]]
-            x0, y0, x1, y1 = MP.PATCH_PIXELS[role][1]
-            pw, ph = x1 - x0, y1 - y0
+            material = slot_materials[f["material"]]
+            tex_w, tex_h = MP.texture_size_for(material)
+            u0, v0, u1, v1 = MP.uv_rect_for(material)
+            # patch rect in TOP-LEFT pixel space (the map/PNG convention)
+            px0 = u0 * tex_w
+            px1 = u1 * tex_w
+            py0 = (1.0 - v1) * tex_h
+            py1 = (1.0 - v0) * tex_h
+            pw, ph = px1 - px0, py1 - py0
+            guard = float(MP.PATCH_GUARD_PX)
             du, dv, norm = face_uv_extent(f["verts"])
             w = max(2, int(round(du * MP.PATCH_TEXELS_PER_GRID)))
             h = max(2, int(round(dv * MP.PATCH_TEXELS_PER_GRID)))
-            scale = min(1.0, (pw - 8.0) / max(1, w), (ph - 8.0) / max(1, h))
+            scale = min(1.0, (pw - 2.0 * guard) / max(1, w),
+                        (ph - 2.0 * guard) / max(1, h))
             w = max(2, int(round(w * scale)))
             h = max(2, int(round(h * scale)))
-            key = (objname, fi, role)
-            ox = 4 + int(h01(*key, "ox") * max(0, pw - w - 8))
-            oy = 4 + int(h01(*key, "oy") * max(0, ph - h - 8))
+            key = (objname, fi, material)
+            ox = guard + int(h01(*key, "ox") * max(0, pw - w - 2.0 * guard))
+            oy = guard + int(h01(*key, "oy") * max(0, ph - h - 2.0 * guard))
             uvs = []
             for (u, v) in norm:
-                px = x0 + ox + u * w
-                py = y0 + oy + v * h
-                uvs.append((px / atlas, 1.0 - py / atlas))
+                px = px0 + ox + u * w
+                py = py0 + oy + v * h
+                uu = px / tex_w
+                vv = 1.0 - py / tex_h
+                # per-face containment guard (inside the validated patch)
+                if not (u0 - UV_ASSERT_EPS <= uu <= u1 + UV_ASSERT_EPS
+                        and v0 - UV_ASSERT_EPS <= vv <= v1 + UV_ASSERT_EPS):
+                    raise RuntimeError(
+                        "UV escape for %s face %d material %r: uv=(%.6f,%.6f) "
+                        "patch=%r pixel_rect=%r"
+                        % (objname, fi, material, uu, vv, (u0, v0, u1, v1),
+                           MP.pixel_rect_for(material)))
+                uvs.append((uu, vv))
             f["uv"] = uvs
 
 
@@ -1928,9 +1991,10 @@ def build_tier_model(tier, faction, lod):
     _dbg(mb, "decor")
     fill = auto_fill(mb, tier, style, lod)
     _dbg(mb, "auto_fill")
-    roles = patch_roles_for(tier, faction, construction=False)
-    _check_patch_coverage(mb, roles, "%s.%s.LOD%d" % (tier, faction, lod))
-    assign_flat_patch_uvs(mb, roles)
+    slot_materials = material_slots_for(tier, faction, construction=False)
+    _check_patch_coverage(mb, slot_materials,
+                          "%s.%s.LOD%d" % (tier, faction, lod))
+    assign_flat_patch_uvs(mb, slot_materials)
     lo, hi = _check_envelope(mb, "%s.%s.LOD%d" % (tier, faction, lod))
     facade = facade_metrics(style)
     info = {
@@ -1939,8 +2003,7 @@ def build_tier_model(tier, faction, lod):
         "bounds": [round(hi[i] - lo[i], 5) for i in range(3)],
         "min": [round(v, 4) for v in lo], "max": [round(v, 4) for v in hi],
         "materials": mb.used_materials(),
-        "materials_to_patch": {slot: MP.role_of(name) for slot, name in
-                               TC.MATERIAL_MAP[(tier, faction, False)].items()},
+        "slot_materials": dict(slot_materials),
         "platform": {"size_x": style["plan"][0], "size_z": style["plan"][1],
                      "top": PLATFORM_TOP, "curb_h": CURB_H,
                      "clear_above": CLEAR_ABOVE,
@@ -2029,9 +2092,9 @@ def build_construction_model():
         mb.box(body, (-1.00 + i * 0.62, 0.16, -1.10), (0.42, 0.08, 0.30), wood)
     for i in range(3):
         mb.box(body, (0.88, 0.15, -0.30 + i * 0.34), (0.36, 0.06, 0.26), wood)
-    roles = patch_roles_for(tier, "shared", construction=True)
-    _check_patch_coverage(mb, roles, "ConstructionStage0")
-    assign_flat_patch_uvs(mb, roles)
+    slot_materials = material_slots_for("Basic", "Folktails", construction=True)
+    _check_patch_coverage(mb, slot_materials, "ConstructionStage0")
+    assign_flat_patch_uvs(mb, slot_materials)
     lo, hi = _check_envelope(mb, "ConstructionStage0")
     info = {
         "tier": tier, "faction": "shared", "lod": 0,
@@ -2039,8 +2102,11 @@ def build_construction_model():
         "bounds": [round(hi[i] - lo[i], 5) for i in range(3)],
         "min": [round(v, 4) for v in lo], "max": [round(v, 4) for v in hi],
         "materials": mb.used_materials(),
-        "materials_to_patch": {slot: MP.role_of(name) for slot, name in
-                               TC.MATERIAL_MAP[("Basic", "Folktails", True)].items()},
+        "slot_materials": dict(slot_materials),
+        "construction_slot_materials": {
+            faction: dict(TC.MATERIAL_MAP[("Basic", faction, True)])
+            for faction in A.FACTIONS
+        },
         "platform": {"size_x": sx, "size_z": sz, "top": PLATFORM_TOP,
                      "curb_h": CURB_H, "clear_above": CLEAR_ABOVE,
                      "fascia_protrusion_above_top": 0.0},
@@ -2055,30 +2121,62 @@ def build_construction_model():
 # material_slots.json
 # --------------------------------------------------------------------------- #
 def write_material_slots(infos):
-    regions_by_mat = {}
-    for rname, (mat, px) in A.REGIONS.items():
-        regions_by_mat.setdefault(mat, []).append({
-            "region": rname, "pixel_rect": list(px),
-            "uv_rect": [round(v, 5) for v in A.region_uv(rname)]})
+    """Write art/material_slots.json for the ART-05 real-texture patch contract.
+
+    ART-05 (2026-10-27): the old ``atlas`` block (fake shared 2048 ART-01 atlas)
+    and the role-based ``material_patches`` are gone.  The file now summarises
+    ``art/material_texture_map.json`` (the single source of truth generated from
+    the real vanilla ``_D`` textures) and, per shipped model, which vanilla
+    material each M_HDBF_* slot maps to and which real-texture patch its UVs
+    live in.
+    """
+    tex_map = MP.load_material_texture_map()
     used_by = {m: [] for m in A.MATERIAL_ORDER}
-    patches_used_by = {}
+    material_usage = {}
+    model_slot_materials = {}
     for info in infos:
         key = info["tier"] if info["tier"] == CONSTRUCTION_TIER else \
-            "%s.%s.LOD%d" % (info["tier"], info["faction"], info["lod"])
+            "%s.%s" % (info["tier"], info["faction"])
+        model_slot_materials.setdefault(key, info["slot_materials"])
         for m in info["materials"]:
             used_by[m].append(key)
-        for role in info["materials_to_patch"].values():
-            patches_used_by.setdefault(role, []).append(key)
-    patch_records = []
-    for role in MP.PATCH_PIXELS:
-        rec = MP.patch_record(role)
-        rec["used_by_models"] = sorted(set(patches_used_by.get(role, [])))
-        rec["materials"] = sorted(name for name, r in MP.ROLE_OF_MATERIAL.items()
-                                  if r == role)
-        patch_records.append(rec)
+        for slot, material in info["slot_materials"].items():
+            material_usage.setdefault(material, []).append(
+                "%s.%s" % (key, slot))
+    used_materials = sorted(material_usage)
+
+    def patch_summary(material):
+        entry = MP.material_entry(material)
+        patch = entry["patch"]
+        return {
+            "material": material,
+            "texture": entry["texture"],
+            "texture_source": entry["texture_source"],
+            "texture_size": list(entry["texture_size"]),
+            "patch_class": entry["patch_class"],
+            "shared_uv_group": entry.get("shared_uv_group"),
+            "pixel_rect": list(patch["pixel_rect"]),
+            "uv_rect": list(patch["uv_rect"]),
+            "mean_rgb": list(patch["mean_rgb"]),
+            "mean_rgb_tinted": list(patch.get("mean_rgb_tinted") or []),
+            "std": patch["std"],
+            "std_max": patch["std_max"],
+            "material_color_tint": list(entry["material_color_tint"]),
+            "used_by_slots": sorted(set(material_usage.get(material, []))),
+        }
+
+    # top-level patch summary list (one row per used vanilla material)
+    patch_rows = [patch_summary(material) for material in used_materials]
+
+    map_used = {
+        material: patch_summary(material) for material in used_materials}
+    construction_faction_materials = {
+        faction: dict(TC.MATERIAL_MAP[("Basic", faction, True)])
+        for faction in A.FACTIONS
+    }
     data = {
         "generated_by": "art/gen_models_v2.py (HDBF v2 3x3x1 indoor farm)",
-        "art_revision": "v2",
+        "art_revision": "v2.3-art05",
         "envelope": {
             "description": "strict block-object envelope in asset space (X width, "
                            "Y up, Z depth; front -Z; pivot at footprint bottom centre)",
@@ -2111,25 +2209,35 @@ def write_material_slots(infos):
              "outward": list(spec["outward"])}
             for spec in A.PORT_SPECS],
         "slots_markers": [],
-        "atlas": {
-            "size": A.ATLAS_SIZE,
-            "files": A.ATLAS_FILES,
-            "channels": {
-                "albedo": "sRGB RGB(A)",
-                "normal": "linear RGB, OpenGL (+Y up)",
-                "mask": "linear RGBA: R=metallic, G=roughness, A=smoothness, "
-                        "B=metallic duplicate (glTF metallicRoughness packing)",
-            },
-            "padding_px": A.PADDING,
-            "uv_space": "flat patch: every face of one material is mapped into "
-                        "that material's fixed patch (all uv0 in [0,1])",
+        "uv_space": {
+            "model": "one fixed patch per VANILLA MATERIAL taken from that "
+                     "material's own real 1024x1024 _D albedo texture (ART-05); "
+                     "there is no shared 2048 ART-01 atlas any more",
+            "map_file": "art/material_texture_map.json",
             "patch_texels_per_grid": MP.PATCH_TEXELS_PER_GRID,
+            "patch_guard_px": MP.PATCH_GUARD_PX,
+            "all_uv0_in_unit_square": True,
+            "game_sampling": "AutoAtlaser remaps uv_atlas = uv * (1/sizeMultiplier) "
+                             "+ cell_offset, so the normalized position inside the "
+                             "material's own texture is preserved; material _Color "
+                             "multiplies the sampled albedo",
         },
         "material_order": A.MATERIAL_ORDER,
-        "material_patches": patch_records,
+        "material_texture_map": {
+            "schema": tex_map["schema"],
+            "path": "art/material_texture_map.json",
+            "texture_roots": dict(tex_map["texture_roots"]),
+            "thresholds": dict(tex_map["thresholds"]),
+            "large_shell_policy": dict(tex_map["large_shell_policy"]),
+            "construction_shared_patches": dict(
+                tex_map.get("construction_shared_patches") or {}),
+            "materials": map_used,
+        },
+        "material_texture_patches": patch_rows,
+        "construction_faction_materials": construction_faction_materials,
         "materials": [
             {
-                "slot": i, "name": m, "atlas_regions": regions_by_mat.get(m, []),
+                "slot": i, "name": m,
                 "params": A.MATERIAL_PARAMS[m],
                 "used_by": sorted(set(used_by[m])),
             } for i, m in enumerate(A.MATERIAL_ORDER)
@@ -2143,25 +2251,50 @@ def write_material_slots(infos):
         key = info["tier"] if info["tier"] == CONSTRUCTION_TIER else \
             "%s.%s" % (info["tier"], info["faction"])
         construction = info["tier"] == CONSTRUCTION_TIER
-        vanilla_map = TC.MATERIAL_MAP[("Basic", "Folktails", True)] if construction \
-            else TC.MATERIAL_MAP[(info["tier"], info["faction"], False)]
-        model_patches = {}
-        for slot, role in info["materials_to_patch"].items():
-            rec = MP.patch_record(role)
-            rec["vanilla_material"] = vanilla_map[slot]
-            model_patches[slot] = rec
-        data["models"].setdefault(key, {})["LOD%d" % info["lod"]] = {
+        entry = data["models"].setdefault(key, {})
+        if construction:
+            # one shared source mesh / one baked UV set: the FT mapping is the
+            # baked one, the IT materials share the same UV windows (see
+            # construction_shared_patches), so both faction material sets are
+            # recorded explicitly.
+            entry["shared_source_model"] = (
+                "art/models/ConstructionStage0/ConstructionStage0.fbx")
+            entry["shared_uv_windows"] = "construction_shared_patches"
+            entry["material_texture_patches"] = {
+                slot: material for slot, material
+                in sorted(info["slot_materials"].items())}
+            entry["construction_faction_materials"] = {
+                faction: dict(TC.MATERIAL_MAP[("Basic", faction, True)])
+                for faction in A.FACTIONS}
+            entry["material_patches"] = {
+                slot: patch_summary(material)
+                for slot, material in sorted(info["slot_materials"].items())}
+            entry["material_patches_ironteeth"] = {
+                slot: patch_summary(material)
+                for slot, material
+                in sorted(TC.MATERIAL_MAP[("Basic", "IronTeeth", True)].items())}
+        else:
+            entry["material_texture_patches"] = {
+                slot: material for slot, material
+                in sorted(info["slot_materials"].items())}
+            entry["material_patches"] = {
+                slot: patch_summary(material)
+                for slot, material in sorted(info["slot_materials"].items())}
+        record = {
             "file_stem": ("ConstructionStage0" if construction
                           else "LOD%d" % info["lod"]),
             "materials": info["materials"],
+            "material_texture_patches": {
+                slot: material for slot, material
+                in sorted(info["slot_materials"].items())},
             "triangles": info["tris"],
             "bounds_size": info["bounds"],
             "bounds_min": info["min"],
             "bounds_max": info["max"],
-            "material_patches": model_patches,
             "roof_platform": info["platform"],
             "facade": info["facade"],
         }
+        entry["LOD%d" % info["lod"]] = record
         slot_list = data["slots"].setdefault(key, [])
         for m in info["materials"]:
             if m not in slot_list:

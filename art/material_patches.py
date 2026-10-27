@@ -1,34 +1,60 @@
-"""HDBF ART-04 — flat-patch UV contract (one fixed texture patch per material).
+"""HDBF v2 - flat-patch UV contract (one fixed REAL-texture patch per material).
 
-Background (user instruction 2026-10-25): stop letting every face sample a
-different spot of the vanilla material atlas ("patchwork").  Keep the vanilla
-`MaterialCollection` asset names (the game resolves them by name), but map
-**every face of one material onto ONE fixed UV patch** so wood / metal / glass /
-roof each read as a single consistent colour+texture.
+ART-05 (2026-10-27) rewrite
+---------------------------
+The ART-04 flat-patch idea was right ("all faces of one material must sample one
+fixed patch"), but it was expressed in a **fake shared 2048x2048 ART-01 atlas**.
+In the real game every vanilla ``MaterialCollection`` material resolves to its
+own 1024x1024 ``_D`` albedo PNG plus a material ``_Color`` tint, so those fake
+atlas UVs landed on arbitrary content of the material's real texture: each face
+read a different sub-rect (the checkerboard the user saw) and the top tier's
+shell happened to sample ``PaintedMetal``'s yellow/black hazard stripes.
 
-How the patch is used
----------------------
-* The patch is a `texel` rect of the 2048x2048 ART-01 atlas (top-left pixel
-  origin, exactly like `atlas_layout.REGIONS`).  It sits in the middle of a
-  semantic region painted by `gen_textures.py`, so the offline preview / icon
-  renders sample a representative wood / metal / glass / plaster / thatch area.
-* `gen_models.py` maps each face into a sub-rect of that patch at a fixed texel
-  density (64 px per grid unit) with a deterministic offset, so all faces of a
-  material stay inside the same patch but are not pixel-identical.  Small
-  tiling inside one patch is intended; sampling a *different material's* region
-  is not.
-* The same UV numbers are what the game receives.  The vanilla material maps
-  UV [0,1] onto its own atlas region, so in game the patch becomes a small,
-  fixed area of that material texture (consistent look).  From the material
-  asset names alone we cannot know the exact vanilla texel content: whether the
-  patch reads as the intended colour is **待實機確認** (see the ART-04 report).
+The single source of truth is now ``art/material_texture_map.json`` (generated
+deterministically by ``art/material_texture_analysis.py`` from the real PNGs):
 
-Module is pure Python (no bpy / numpy) so the ART-01 generator, the ART-02
-exporter and both validators can import it.
+    material asset name -> real _D texture + patch pixel/UV rect + recorded
+    mean RGB / std / per-class threshold + selection reason
+
+This module is the small, dependency-free accessor layer shared by:
+
+  * ``art/gen_models_v2.py``     UV assignment (``uv_rect_for(material)``)
+  * ``art/export_timbermesh.py`` (indirectly, via the FBX UVs)
+  * ``art/preview_materials.py`` / ``art/render_previews.py`` / ``render_icons.py``
+    (``texture_path_for`` / ``material_color_tint``)
+  * ``art/validate_models.py`` and ``art/validate_timbermesh.py``
+  * the L1 contract tests (through the JSON file itself)
+
+Sampling contract (verified from the game's IL, see the ART-05 report)
+---------------------------------------------------------------------
+``Timberborn.PrefabOptimization.AutoAtlasingPrefabOptimizer`` remaps a mesh's
+UVs as ``uv_atlas = uv * fragment.UVScale + fragment.UVOffset`` with
+``UVScale = 1 / sizeMultiplier`` and the fragment's texture placed in the
+matching atlas cell, i.e. the normalized position inside the material's own
+``_D`` texture is preserved (materials that are not part of a faction auto atlas
+sample the texture 1:1).  The material ``_Color`` tint multiplies the sampled
+albedo.  A patch rectangle expressed in the material's texture UV space is
+therefore correct in game **without any atlas correction**.
+
+UV assignment
+-------------
+``gen_models_v2.assign_flat_patch_uvs`` maps each face into a sub-rect of the
+material's patch.  ``PATCH_TEXELS_PER_GRID`` is the fixed texel density used for
+those sub-rects.  ART-01/ART-04 used 64 px/grid in a 2048 atlas; the real
+textures are 1024, so the *same on-screen density* is 32 px/grid here
+(64/2048 == 32/1024); this keeps the "sub-rect density unchanged" requirement.
+
+Legacy preview fallback
+-----------------------
+The old role table (``PATCH_PIXELS`` / ``ROLE_OF_MATERIAL`` / ``role_of`` /
+``uv_rect(role)`` / ``patch_record(role)``) is kept importable so the ART-01
+preview fallback path and old callers do not break, but it is **not** used for
+the shipped models any more and is marked deprecated below.
 """
 
 from __future__ import annotations
 
+import json
 import os
 import sys
 
@@ -38,45 +64,271 @@ if HERE not in sys.path:
 
 import atlas_layout as A  # noqa: E402
 
-#: fixed texel density used when a face is projected into its material patch.
-#: 64 px per grid unit == the low end of the ART-01 / LOD2 density; every ART-04
-#: face is small enough to fit its patch at this density (largest face
-#: 3.0 x 0.66 grid = 192 x 43 texels; smallest patch is 88 x 88).
-PATCH_TEXELS_PER_GRID = 64
+#: generated map (single source of truth for the shipped-material patches).
+MAP_PATH = os.path.join(HERE, "material_texture_map.json")
+MAP_SCHEMA = "hdbf.material_texture_map/v1"
 
-#: role -> (semantic atlas region, pixel rect x0,y0,x1,y1 top-left origin).
-#: 4 px inset from the region so a packed sub-rect can never bleed across the
-#: region gutter; roles are spaced so no two overlap.
+#: fixed texel density used when a face is projected into its material patch.
+#: 32 px/grid on the real 1024 textures == the ART-04 64 px/grid on the old 2048
+#: atlas, i.e. the same normalized density (requirement: keep sub-rect density).
+#: The largest face is the 3.0 x 3.0 floor/roof at 96 x 96 px, which fits the
+#: smallest patch (>= 144 px) with the 4 px guard band.
+PATCH_TEXELS_PER_GRID = 32
+
+#: 4 px guard band between a packed face sub-rect and the patch border, so
+#: bilinear filtering/clamp never samples outside the validated patch.
+PATCH_GUARD_PX = 4
+
+_MAP_CACHE = {}
+
+
+# --------------------------------------------------------------------------- #
+# real-texture patch map (primary API)
+# --------------------------------------------------------------------------- #
+def load_material_texture_map(path=None):
+    """Load and cache ``art/material_texture_map.json`` (raises when missing)."""
+    resolved = os.path.abspath(path or MAP_PATH)
+    if resolved in _MAP_CACHE:
+        return _MAP_CACHE[resolved]
+    if not os.path.isfile(resolved):
+        raise RuntimeError(
+            "missing material texture map %r - regenerate it with "
+            "`python art/material_texture_analysis.py`" % (resolved,))
+    with open(resolved, "r", encoding="utf-8") as handle:
+        data = json.load(handle)
+    _MAP_CACHE[resolved] = data
+    return data
+
+
+def material_texture_map():
+    return load_material_texture_map()
+
+
+def map_materials():
+    """material name -> map entry (dict copy is not made; treat as read-only)."""
+    return load_material_texture_map()["materials"]
+
+
+def material_entry(material_name):
+    """Full map entry of one vanilla material asset name (raises KeyError)."""
+    try:
+        return map_materials()[material_name]
+    except KeyError:
+        raise KeyError("no real-texture patch for vanilla material %r in %s"
+                       % (material_name, MAP_PATH))
+
+
+def patch_for(material_name):
+    """Patch record of one vanilla material asset name (raises KeyError)."""
+    return material_entry(material_name)["patch"]
+
+
+def uv_rect_for(material_name):
+    """UV rect (u0, v0, u1, v1) of a material's real-texture patch."""
+    return tuple(patch_for(material_name)["uv_rect"])
+
+
+def pixel_rect_for(material_name):
+    """Top-left-origin pixel rect (x0, y0, x1, y1) of a material's patch."""
+    return tuple(patch_for(material_name)["pixel_rect"])
+
+
+def patch_size_for(material_name):
+    return tuple(patch_for(material_name)["size_px"])
+
+
+def texture_size_for(material_name):
+    return tuple(material_entry(material_name)["texture_size"])
+
+
+def texture_name_for(material_name):
+    return material_entry(material_name)["texture"]
+
+
+def material_color_tint(material_name):
+    return tuple(material_entry(material_name)["material_color_tint"])
+
+
+def patch_class_of(material_name):
+    return material_entry(material_name)["patch_class"]
+
+
+def texture_path_for(material_name, roots=None):
+    """Absolute path of the material's real ``_D`` albedo PNG (read-only).
+
+    Resolution order: the recorded absolute path, then the recorded
+    ``texture_source`` root from the map, then ``roots`` override, then the
+    ``HDBF_VANILLA_TEX_ALL`` / ``HDBF_VANILLA_TEX_EXTRA`` environment variables.
+    Returns ``None`` when the texture is not available on this machine (the
+    validators then report a SKIP for the statistics re-check but still enforce
+    every non-image contract).
+    """
+    entry = material_entry(material_name)
+    candidates = []
+    if entry.get("texture_path"):
+        candidates.append(entry["texture_path"])
+    roots = dict(roots or {})
+    map_roots = dict(load_material_texture_map().get("texture_roots") or {})
+    source = entry.get("texture_source")
+    env_names = {"vanilla-tex-all": "HDBF_VANILLA_TEX_ALL",
+                 "vanilla-tex-extra": "HDBF_VANILLA_TEX_EXTRA"}
+    if source in map_roots:
+        candidates.append(os.path.join(map_roots[source], entry["texture"]))
+    if roots.get(source):
+        candidates.append(os.path.join(roots[source], entry["texture"]))
+    if os.environ.get(env_names.get(source, "")):
+        candidates.append(os.path.join(os.environ[env_names[source]],
+                                       entry["texture"]))
+    for candidate in candidates:
+        if candidate and os.path.isfile(candidate):
+            return candidate
+    return None
+
+
+def forbidden_materials():
+    """Materials the map explicitly bans from large shells (hazard stripes)."""
+    policy = load_material_texture_map().get("large_shell_policy") or {}
+    return tuple(policy.get("forbidden_materials") or ())
+
+
+def unused_material_records():
+    return load_material_texture_map().get("unused_materials") or {}
+
+
+def std_limits():
+    """(default, class->limit, hard cap) thresholds from the map."""
+    thresholds = load_material_texture_map().get("thresholds") or {}
+    return (float(thresholds.get("std_max_default", 18.0)),
+            dict(thresholds.get("std_max_by_class") or {}),
+            float(thresholds.get("hard_std_cap", 30.0)))
+
+
+def materials_used_by_material_map():
+    """Sorted material names that timbermesh_common.MATERIAL_MAP assigns."""
+    import timbermesh_common as TC
+    used = set()
+    for mapping in TC.MATERIAL_MAP.values():
+        used.update(mapping.values())
+    return sorted(used)
+
+
+def validate_contract():
+    """Raise AssertionError if map + shipped material mapping are inconsistent."""
+    data = load_material_texture_map()
+    assert data.get("schema") == MAP_SCHEMA, data.get("schema")
+    default_std, class_std, hard_cap = std_limits()
+    assert hard_cap > 0.0
+    import timbermesh_common as TC
+    entries = map_materials()
+    for material in materials_used_by_material_map():
+        assert material in entries, ("MATERIAL_MAP uses %r but the texture map has "
+                                     "no patch for it" % (material,))
+        record = entries[material]
+        assert record.get("material") == material, (material, record.get("material"))
+        texture = record.get("texture")
+        assert texture and texture.lower().endswith(".png"), (material, texture)
+        width, height = record["texture_size"]
+        assert width >= 128 and height >= 128, (material, record["texture_size"])
+        sha = record.get("texture_sha256") or ""
+        assert len(sha) == 64 and all(c in "0123456789abcdef" for c in sha), (
+            material, "bad texture_sha256")
+        tint = record.get("material_color_tint")
+        assert tint and len(tint) == 3 and all(0.0 <= c <= 1.0 for c in tint), (
+            material, tint)
+        patch = record["patch"]
+        x0, y0, x1, y1 = patch["pixel_rect"]
+        assert 0 <= x0 < x1 <= width and 0 <= y0 < y1 <= height, (
+            material, patch["pixel_rect"], record["texture_size"])
+        size_x, size_y = x1 - x0, y1 - y0
+        assert list(patch["size_px"]) == [size_x, size_y], (material, "size_px")
+        lo, hi = (data.get("thresholds") or {}).get("patch_size_range_px", [128, 512])
+        assert lo <= size_x <= hi and lo <= size_y <= hi, (
+            material, "patch outside contract size range", patch["size_px"])
+        u0, v0, u1, v1 = patch["uv_rect"]
+        assert 0.0 <= u0 < u1 <= 1.0 and 0.0 <= v0 < v1 <= 1.0, (
+            material, patch["uv_rect"])
+        for got, want, what in (
+                (u0, x0 / float(width), "u0"),
+                (u1, x1 / float(width), "u1"),
+                (v0, 1.0 - y1 / float(height), "v0"),
+                (v1, 1.0 - y0 / float(height), "v1")):
+            assert abs(got - want) <= 1e-5, (material, what, got, want)
+        mean = patch["mean_rgb"]
+        assert len(mean) == 3 and all(0.0 <= c <= 255.0 for c in mean), (
+            material, mean)
+        assert "texture" not in (patch.get("reject_tags") or [])
+        std = float(patch["std"])
+        std_max = float(patch["std_max"])
+        assert 0.0 <= std, (material, std)
+        assert std <= std_max + 1e-9, (
+            "%s patch std %.2f exceeds its budget %.2f" % (material, std, std_max))
+        assert std_max <= hard_cap + 1e-9, (
+            "%s std_max %.2f exceeds the hard cap %.2f" % (material, std_max, hard_cap))
+        assert class_std.get(record["patch_class"], default_std) >= std_max - 1e-9, (
+            material, "patch_class budget smaller than the material budget")
+    forbidden = set(forbidden_materials())
+    for mapping in TC.MATERIAL_MAP.values():
+        overlap = forbidden & set(mapping.values())
+        assert not overlap, ("forbidden hazard material used in MATERIAL_MAP: %r"
+                             % (sorted(overlap),))
+    for material, record in unused_material_records().items():
+        stats = record.get("hazard_reference_stats") or {}
+        assert float(stats.get("std", 0.0)) > hard_cap, (
+            "%s hazard reference std must exceed the hard cap (negative control)"
+            % (material,))
+    # ART-05: the construction stage is ONE shared source mesh + ONE baked UV set
+    # exported for both factions, so the per-slot construction materials of the
+    # two factions MUST sample the same UV window (jointly searched, recorded in
+    # `construction_shared_patches`).  A regression here silently breaks the
+    # IronTeeth construction model in game.
+    for slot, ft_material, it_material in construction_slot_pairs():
+        ft_uv = uv_rect_for(ft_material)
+        it_uv = uv_rect_for(it_material)
+        assert ft_uv == it_uv, (
+            "construction slot %s must share one UV window across factions: "
+            "%r -> %r vs %r -> %r" % (slot, ft_material, ft_uv,
+                                      it_material, it_uv))
+    return True
+
+
+def construction_shared_patches():
+    """Cross-faction shared construction UV windows recorded in the map."""
+    return load_material_texture_map().get("construction_shared_patches") or {}
+
+
+def construction_slot_pairs():
+    """[(slot, folktails material, ironteeth material)] for the construction map."""
+    import timbermesh_common as TC
+    folktails = TC.MATERIAL_MAP[("Basic", "Folktails", True)]
+    ironteeth = TC.MATERIAL_MAP[("Basic", "IronTeeth", True)]
+    assert set(folktails) == set(ironteeth), (sorted(folktails), sorted(ironteeth))
+    return [(slot, folktails[slot], ironteeth[slot]) for slot in sorted(folktails)]
+
+
+# --------------------------------------------------------------------------- #
+# legacy ART-04 role table - PREVIEW FALLBACK ONLY (deprecated)
+# --------------------------------------------------------------------------- #
+#: LEGACY / preview fallback: role -> (semantic atlas region, pixel rect).
+#: The shipped models no longer use these; they existed for the fake ART-01
+#: 2048 atlas that caused the 2026-10-27 in-game texture bug.  Kept importable so
+#: old preview tooling and the ART-01 generator contract do not break.
 PATCH_PIXELS = {
-    # ---- wood band -------------------------------------------------------
     "wood_plain":  ("wood",   (96, 352, 480, 736)),
     "wood_light":  ("wood",   (96, 1056, 480, 1440)),
     "planks_light": ("wood",  (96, 1568, 480, 1952)),
     "planks_brown": ("wood",  (528, 352, 784, 608)),
-    # v2.2: dark roof planks (vanilla RoofPlanks.IronTeeth used by Basic IronTeeth)
     "planks_dark":  ("wood",  (528, 700, 784, 956)),
-    # ---- metal band ------------------------------------------------------
     "metal_base":    ("metal", (1056, 384, 1440, 768)),
     "metal_painted": ("metal", (1056, 1088, 1440, 1472)),
     "metal_details": ("metal", (1056, 1568, 1312, 1824)),
-    # ---- glass band ------------------------------------------------------
     "glass":         ("glass", (1744, 704, 1832, 792)),
-    # ---- fabric band -----------------------------------------------------
     "plaster":       ("plaster", (1872, 288, 2000, 416)),
     "roof":          ("thatch", (1872, 1472, 2000, 1600)),
-    # v2.2 (2026-10-26): moss / foliage patch for the Basic Folktails tier
-    # (vanilla `Moss.Folktails`; used by the moss accents and the crop silhouette).
     "moss":          ("moss",   (1900, 940, 2020, 1060)),
 }
 
-#: vanilla `MaterialCollection` asset name -> flat-patch role.  Keys cover every
-#: name the ART-02 MATERIAL_MAP uses (20 of the 21 whitelisted candidates) plus
-#: the unused-but-whitelisted BaseWood_LightBrown so a future tier mapping stays
-#: importable.  FT and IT variants of the same semantic material share a role on
-#: purpose: the shared ConstructionStage0 source mesh has one UV set and must
-#: satisfy both factions.
+#: LEGACY / preview fallback: vanilla material asset name -> ART-04 role.
 ROLE_OF_MATERIAL = {
-    # Folktails
     "BaseWood_Brown.Folktails": "wood_plain",
     "BaseWood_LightBrown.Folktails": "wood_light",
     "BaseWood_White.Folktails": "wood_light",
@@ -88,9 +340,7 @@ ROLE_OF_MATERIAL = {
     "ThatchedRoof.Folktails": "roof",
     "Plaster_White.Folktails": "plaster",
     "Details.Folktails": "metal_details",
-    # v2.2 reference-image upgrade: moss / foliage accents (Basic Folktails)
     "Moss.Folktails": "moss",
-    # IronTeeth
     "BaseWood_DarkBrown.IronTeeth": "wood_plain",
     "BaseWood_Grey.IronTeeth": "wood_light",
     "IrregularPlanks_DarkBrown.IronTeeth": "planks_light",
@@ -105,22 +355,22 @@ ROLE_OF_MATERIAL = {
 
 
 def role_of(material_name):
-    """Flat-patch role of a vanilla material asset name (raises when unknown)."""
+    """LEGACY compatibility: ART-04 flat-patch role of a material (deprecated)."""
     try:
         return ROLE_OF_MATERIAL[material_name]
     except KeyError:
-        raise KeyError("no ART-04 flat-patch role for vanilla material %r"
+        raise KeyError("no legacy ART-04 flat-patch role for vanilla material %r"
                        % (material_name,))
 
 
 def uv_rect(role):
-    """UV rect (u0, v0, u1, v1) of a role patch."""
-    region, pixel_rect = PATCH_PIXELS[role]
+    """LEGACY: UV rect (u0, v0, u1, v1) of an ART-04 role patch (preview only)."""
+    _region, pixel_rect = PATCH_PIXELS[role]
     return A.px_rect_to_uv(pixel_rect, A.ATLAS_SIZE)
 
 
 def patch_record(role):
-    """JSON-ready patch record: id, semantic region, pixel + uv rect, texels."""
+    """LEGACY: JSON-ready ART-04 role patch record (preview fallback only)."""
     region, pixel_rect = PATCH_PIXELS[role]
     u0, v0, u1, v1 = A.px_rect_to_uv(pixel_rect, A.ATLAS_SIZE)
     return {
@@ -130,11 +380,12 @@ def patch_record(role):
         "uv_rect": [round(u0, 6), round(v0, 6), round(u1, 6), round(v1, 6)],
         "texels": [pixel_rect[2] - pixel_rect[0], pixel_rect[3] - pixel_rect[1]],
         "texels_per_grid": PATCH_TEXELS_PER_GRID,
+        "legacy": True,
     }
 
 
-def validate_contract():
-    """Raise AssertionError if the patch table is inconsistent with the atlas."""
+def validate_legacy_contract():
+    """LEGACY self-check of the ART-04 role table (kept for compatibility)."""
     seen = {}
     for role, (region, rect) in PATCH_PIXELS.items():
         assert region in A.REGIONS, role
@@ -143,11 +394,10 @@ def validate_contract():
         assert rx0 + 4 <= x0 < x1 <= rx1 - 4, (role, rect, A.REGIONS[region][1])
         assert ry0 + 4 <= y0 < y1 <= ry1 - 4, (role, rect, A.REGIONS[region][1])
         assert x1 - x0 >= 80 and y1 - y0 >= 80, (role, "patch too small for a face")
-        u0, v0, u1, v1 = uv_rect(role)
-        assert 0.0 <= u0 < u1 <= 1.0 and 0.0 <= v0 < v1 <= 1.0, role
         for other, orect in seen.items():
-            assert x1 <= orect[0] or orect[2] <= x0 or y1 <= orect[1] or orect[3] <= y0, (
-                "patch rects overlap: %s %s" % (role, other))
+            assert (x1 <= orect[0] or orect[2] <= x0 or y1 <= orect[1]
+                    or orect[3] <= y0), ("patch rects overlap: %s %s"
+                                         % (role, other))
         seen[role] = rect
     for name, role in ROLE_OF_MATERIAL.items():
         assert role in PATCH_PIXELS, (name, role)
@@ -156,10 +406,14 @@ def validate_contract():
 
 if __name__ == "__main__":
     validate_contract()
-    print("material_patches contract OK: %d roles, %d material names"
-          % (len(PATCH_PIXELS), len(ROLE_OF_MATERIAL)))
-    for role in PATCH_PIXELS:
-        rec = patch_record(role)
-        print("  %-14s %-6s px=%-22s uv=%s texels=%dx%d"
-              % (role, rec["atlas_region"], tuple(rec["pixel_rect"]),
-                 tuple(rec["uv_rect"]), rec["texels"][0], rec["texels"][1]))
+    validate_legacy_contract()
+    print("material_patches contract OK: %d real-texture materials, %d legacy "
+          "roles (fallback only)" % (len(map_materials()), len(PATCH_PIXELS)))
+    for material in materials_used_by_material_map():
+        entry = material_entry(material)
+        patch = entry["patch"]
+        print("  %-38s %-30s px=%-20s uv=%-44s mean=(%3.0f,%3.0f,%3.0f) "
+              "std=%4.1f/%4.1f"
+              % (material, entry["texture"], tuple(patch["pixel_rect"]),
+                 tuple(patch["uv_rect"]), *patch["mean_rgb"], patch["std"],
+                 patch["std_max"]))
