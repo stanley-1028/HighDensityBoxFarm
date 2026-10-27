@@ -1243,4 +1243,37 @@ Load time: 30029ms (scene index: 2)
 缺少模組降級」，**尚不足以宣告 TC-V2-01..10 全部完成**。剩餘實機項在 §26.3，需下一步可互動
 遊戲會話（放置/疊放/面板/存檔往返）。
 
+## 27. v2.2 美術升級的實機檢查（2026-10-27，round43/44/52）
+
+本輪把參考圖驅動的美術升級（材質分區/開窗比例/室內貨架剪影，見 `art/references/README.md`）
+部署到 `Mods\HDBF` 並跑自動實機回合。離線證據：16 個 `.timbermesh` 全部 3.000×1.000×3.000、
+平屋頂、3 端口、0 個 `#Slot`，`art/validate_models.py` PASS（C1–C10）、
+`art/validate_timbermesh.py` **128/128 PASS**；L1 **530/530**、`build.ps1` **44 gates PASS**。
+
+### 27.1 已證明（實機）
+
+* 升級後的包（45 檔、manifest 0.2.0）載入 1.1.2.8 無 prefab/material/spec 例外；
+  `startup: HDBF 0.2.0 ready` 正常。
+* 注入的 Intermediate 農場以新模型載入並啟動：
+  `indoor.entity: ... tier=Intermediate, faction=Folktails, blueprint=BoxFarm.Intermediate.Folktails`；
+  同一輪 `water.settle coverage=1.000, tank=8.976` → `indoor.day: harvested=16, planted=10,
+  actionsUsed=26, blockedByOutput=24` → `indoor.action-backlog`，即**新模型不影響室內模擬**。
+* 廣角截圖（`round44-art-run-small.jpg`、`round43-art-run-small.jpg`）可見 3×3 盒子農場以平屋頂
+  形式落在地形上，與藍圖 3×3×1 一致；`round44-art-closeup.jpg` 為同一張的放大裁切。
+
+### 27.2 未完成（誠實記錄）
+
+* **自動近距離截圖失敗**：`fixture` 的 `CameraState` 注入在 `ZoomLevel ≥ ~4` 或「不按加速鍵直接
+  截圖」時會得到朝上的天空畫面（round45–51 的失敗嘗試已刪除，只留日誌結論）。可重現的
+  `ZoomLevel=3.0 + SpeedUp` 路徑只得到約 70 px 寬的農場，無法判斷玻璃透明度與貨架剪影。
+  因此「遊戲內玻璃後貨架是否可見」**仍未實機確認**，需玩家用滑鼠走近看。
+* 材質在遊戲內是否全部解析到原版 `MaterialCollection`（而非 fallback 灰材質）只能從遠處外觀
+  推斷；離線驗證只保證使用白名單材質名。若實機近看發現灰面/洋紅面，請回報，我再修材質映射。
+* 四檔同框、屋頂疊放 A/B 仍待可互動會話（§26.3）。
+
+**證據檔案**：`docs/in-game/round43-art-run-small.jpg`、`round44-art-run-small.jpg`、
+`round44-art-closeup.jpg`、`round52-art-Player.log`（Intermediate 室內模擬 + 無例外）、
+`round43/44-art-summary.txt`。
+
+
 

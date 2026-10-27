@@ -1,0 +1,92 @@
+Mono path[0] = 'C:/Program Files (x86)/Steam/steamapps/common/Timberborn/Timberborn_Data/Managed'
+Mono config path = 'C:/Program Files (x86)/Steam/steamapps/common/Timberborn/MonoBleedingEdge/etc'
+CodeReloadManager initialized
+Input System module state changed to: Initialized.
+[Physics::Module] Initialized fallback backend.
+[Physics::Module] Id: 0xdecafbad
+Initialize engine version: 6000.5.11f1 (5c3a1087d8e4)
+[Subsystems] Discovering subsystems at path C:/Program Files (x86)/Steam/steamapps/common/Timberborn/Timberborn_Data/UnitySubsystems
+GfxDevice: creating device client; kGfxThreadingModeClientWorkerJobs
+Direct3D:
+    Version:  Direct3D 11.0 [level 11.1]
+    Renderer: Intel(R) Iris(R) Xe Graphics (ID=0x46a8)
+    Vendor:   Intel
+    VRAM:     8038 MB
+    Driver:   31.0.101.4255
+Begin MonoManager ReloadAssembly
+- Finished resetting the current domain, in  0.056 seconds
+[Physics::Module] Selected backend.
+[Physics::Module] Name: PhysX
+[Physics::Module] Id: 0xf2b8ea05
+[Physics::Module] SDK Version: 4.1.2
+[Physics::Module] Integration Version: 1.0.0
+[Physics::Module] Threading Mode: Multi-Threaded
+<RI> Initializing input.
+Using Windows.Gaming.Input
+UnloadTime: 0.935500 ms
+Starting game version 1.1.2.8-ffc2de0-sw
+System info:
+  System: Windows 11  (10.0.26200)
+  CPU: 12th Gen Intel(R) Core(TM) i7-1255U
+  CPU manufacturer: GenuineIntel
+  CPU model: 12th Gen Intel(R) Core(TM) i7-1255U
+  CPU count: 12
+  CPU frequency: 2611
+  CPU problematic: False
+  CPU microcode: 
+  GPU: Intel(R) Iris(R) Xe Graphics
+  GPU memory: 8038MB
+  RAM: 16077MB
+MachineId: b4d5d034-c98f-4161-a850-e4462e6ffb06
+Successfully connected to the Steam client.
+No manifest file found in C:\Users\user\Documents\Timberborn\Mods\HighDensityBoxFarm
+Successfully connected to the Steam client.
+No manifest file found in C:\Users\user\Documents\Timberborn\Mods\HighDensityBoxFarm
+Modded: true, official
+- Harmony (v2.4.1)
+- High-Density Box Farm (v0.2.0)
+[HDBF/Info] start HDBF version=0.2.0 modPath=C:\Users\user\Documents\Timberborn\Mods\HDBF
+Unloading 5 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 12.614200 ms
+Unloading 7 unused Assets to reduce memory usage. Loaded Objects now: 5917.
+Total: 4.527900 ms (FindLiveObjects: 0.461200 ms CreateObjectMapping: 0.405400 ms MarkObjects: 3.588300 ms  DeleteObjects: 0.072400 ms)
+
+Application focus gained at 2026-10-27 11:39:40Z
+Successfully connected to the Steam client.
+No manifest file found in C:\Users\user\Documents\Timberborn\Mods\HighDensityBoxFarm
+Previous resolution: 2560 x 1440
+New resolution 2560 x 1440
+Display resolution: 2560 x 1440
+Full screen: True
+Resolution scale: 1
+VSync count: 1
+Brightness: 1
+Frame rate limit: 
+Unloading 5 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 9.099100 ms
+HDBF/Compat: compat.missing:HDBF.Adapter.TimberPipes: HDBF.Adapter.TimberPipes not detected (not-installed); capability unavailable
+HDBF/Compat: compat.missing:HDBF.Adapter.PowerLines: HDBF.Adapter.PowerLines not detected (not-installed); capability unavailable
+HDBF/Compat: compat.missing:HDBF.Adapter.ConveyorBeltsV2: HDBF.Adapter.ConveyorBeltsV2 not detected (not-installed); capability unavailable
+HDBF/Compat: compat.missing:HDBF.Adapter.MoreMines: HDBF.Adapter.MoreMines not detected (not-installed); capability unavailable
+HDBF/Compat: compat.missing:HDBF.Adapter.HoomanStairs: HDBF.Adapter.HoomanStairs not detected (not-installed); capability unavailable
+Unloading 1128 unused Assets to reduce memory usage. Loaded Objects now: 6492.
+Total: 20.153600 ms (FindLiveObjects: 0.278400 ms CreateObjectMapping: 0.364600 ms MarkObjects: 18.913800 ms  DeleteObjects: 0.596300 ms)
+
+Unloading 2 Unused Serialized files (Serialized files now loaded: 0)
+Unloading 0 unused Assets to reduce memory usage. Loaded Objects now: 6492.
+Total: 17.006500 ms (FindLiveObjects: 0.213700 ms CreateObjectMapping: 0.587600 ms MarkObjects: 16.185900 ms  DeleteObjects: 0.018800 ms)
+
+Loading saved game HDBFTest - 2026-10-24 18h28m, Day 1-1.autosave at 2026-10-27 11:39:45Z
+Opening file: C:\Users\user\Documents\Timberborn\Saves\HDBFTest\2026-10-24 18h28m, Day 1-1.autosave.timber
+Number of threads: 5
+[HDBF/Info] startup: HDBF 0.2.0 ready; tiers=4; modPath=C:\Users\user\Documents\Timberborn\Mods\HDBF; config=C:\Users\user\Documents\Timberborn\Mods\HDBF\HDBF_Config.json
+[HDBF/Info] save.migrated: schema-v2 record repaired on load (repaired=True trimmed=0 padded=0 clamped=1 notes=1)
+[HDBF/Warn] water.pipe-unavailable: pipe port unavailable (adapter=Disabled); degrading to manual refill, entityId=2031d7e7-893e-4f3f-bf50-1ffaff8c7957
+[HDBF/Compat] indoor.port: indoor port availability refreshed: pipe=False, logistics=False, power=False, adapter=Disabled, entityId=2031d7e7-893e-4f3f-bf50-1ffaff8c7957
+[HDBF/Warn] water.manual-refill: farm has no walk access; manual refill cannot start
+[HDBF/Info] indoor.entity: indoor farm active, entityId=2031d7e7-893e-4f3f-bf50-1ffaff8c7957, tier=Intermediate, faction=Folktails, blueprint=BoxFarm.Intermediate.Folktails
+Load time: 29040ms (scene index: 2)
+Application focus lost at 2026-10-27 11:40:42Z
+Application focus gained at 2026-10-27 11:40:44Z
+Application focus lost at 2026-10-27 11:40:50Z
+Application focus gained at 2026-10-27 11:40:50Z
