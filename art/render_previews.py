@@ -1,19 +1,23 @@
 #!/usr/bin/env python3
 """HDBF v2 orthographic three-view / 50%-camera preview renders (Blender only).
 
-Renders 512x512 PNGs of each tier's Folktails LOD0 model (front / side / top),
-a 50%-camera contact shot (``<Tier>_scale50.png``, the in-game "50% zoom"
-readability view) and one iso view, using Cycles CPU (samples <= 32) with a
+Renders 512x512 PNGs of each tier x faction LOD0 model (front / side / top),
+a 50%-camera contact shot (``<Tier>[_<Faction>]_scale50.png``, the in-game "50%
+zoom" readability view) and one iso view, using Cycles CPU (samples <= 24) with a
 neutral background and simple sun + ambient lighting.  No text, annotations or
 overlays are ever added to the images.
 
 v2 (2026-10-26): the models are 3x3x1 indoor farms with ONE flat empty roof
-platform (walking surface = model apex y = 1.00).  After the per-tier renders
-three 50%-camera A/B comparison sheets are composed (no text, pure render
-panels) so the four tiers can be checked for distinguishability:
-    art/previews/tier_ab_basic_vs_intermediate_50.png   (2 panels)
-    art/previews/tier_ab_advanced_vs_top_50.png         (2 panels)
-    art/previews/tiers_scale50_grid.png                 (2x2 panels)
+platform (walking surface = model apex y = 1.00).  v2.2 (reference-image upgrade)
+renders BOTH factions: Folktails keeps the legacy ``<Tier>_*.png`` names, the
+IronTeeth set is ``<Tier>.IronTeeth_*.png``.  After the per-model renders the
+50%-camera A/B comparison sheets are composed (no text, pure render panels):
+    art/previews/tier_ab_basic_vs_intermediate_50.png   (2 panels, Folktails)
+    art/previews/tier_ab_advanced_vs_top_50.png         (2 panels, Folktails)
+    art/previews/tiers_scale50_grid.png                 (2x2, Folktails)
+    art/previews/faction_ab_basic_50.png                (2 panels, FT vs IT)
+    art/previews/faction_ab_top_50.png                  (2 panels, FT vs IT)
+    art/previews/tiers_factions_scale50_grid.png        (4x2, all 8 models)
 
 Usage (from the workspace root):
     blender.exe -b --factory-startup -noaudio --python art\\render_previews.py
@@ -24,9 +28,10 @@ Outputs:
     art/previews/<Tier>_top.png     (plan view)
     art/previews/<Tier>_scale50.png (front at 50% camera scale, contact shot)
     art/previews/<Tier>_iso.png     (3/4 iso view)
+    art/previews/<Tier>.IronTeeth_*.png   (same five views, IronTeeth faction)
     art/previews/ConstructionStage0_front.png
     art/previews/ConstructionStage0_iso.png
-    art/previews/tier_ab_*.png / tiers_scale50_grid.png (composed 50% A/B sheets)
+    art/previews/*_50.png / *_scale50_grid.png (composed 50% A/B sheets)
 
 Exit codes: 0 all previews rendered and verified; 1 render/verify failure;
 2 blocked (bpy unavailable or required model files missing).
@@ -74,10 +79,10 @@ except Exception as exc:  # pragma: no cover
     sys.exit(2)
 
 RESOLUTION = 512
-SAMPLES = 16
-ORTHO_SCALE = 4.0          # 3x3 footprint + margin
+SAMPLES = 24
+ORTHO_SCALE = 3.9          # 3x3 footprint + margin (facade fills the frame)
 ORTHO_SCALE_50 = 8.0       # 50% camera scale (one 3-grid building fills 3/8 of frame)
-ORTHO_SCALE_ISO = 5.6
+ORTHO_SCALE_ISO = 5.2
 
 
 def _sun_rotation(elevation_deg, azimuth_deg):
@@ -113,24 +118,31 @@ def setup_world_and_light():
     bg = world.node_tree.nodes.get("Background")
     if bg is not None:
         # neutral studio ambient: lifts interiors/undersides so the atlas
-        # albedo/normal detail stays legible at 50% scale
-        bg.inputs[0].default_value = (0.32, 0.32, 0.34, 1.0)
-        bg.inputs[1].default_value = 0.65
+        # albedo/normal detail and the indoor crop silhouette stay legible at 50%
+        bg.inputs[0].default_value = (0.36, 0.37, 0.40, 1.0)
+        bg.inputs[1].default_value = 0.95
     scene.world = world
     sun_data = bpy.data.lights.new("preview_sun", "SUN")
-    sun_data.energy = 3.6
-    sun_data.angle = math.radians(10.0)
+    sun_data.energy = 4.4
+    sun_data.angle = math.radians(12.0)
     sun = bpy.data.objects.new("preview_sun", sun_data)
     scene.collection.objects.link(sun)
     # key light: ~50 deg elevation, ~30 deg azimuth, from the front-right
-    sun.rotation_euler = _sun_rotation(50.0, 30.0)
+    sun.rotation_euler = _sun_rotation(52.0, 32.0)
     fill_data = bpy.data.lights.new("preview_fill", "SUN")
-    fill_data.energy = 1.4
+    fill_data.energy = 2.2
     fill_data.angle = math.radians(35.0)
     fill = bpy.data.objects.new("preview_fill", fill_data)
     scene.collection.objects.link(fill)
     # fill from the opposite (rear-left) side keeps shadow sides readable
-    fill.rotation_euler = _sun_rotation(30.0, -145.0)
+    fill.rotation_euler = _sun_rotation(28.0, -145.0)
+    rim_data = bpy.data.lights.new("preview_rim", "SUN")
+    rim_data.energy = 1.1
+    rim_data.angle = math.radians(20.0)
+    rim = bpy.data.objects.new("preview_rim", rim_data)
+    scene.collection.objects.link(rim)
+    # low front-left rim light: separates the glass facade from the background
+    rim.rotation_euler = _sun_rotation(14.0, -32.0)
 
 
 def setup_cycles():
@@ -158,7 +170,7 @@ def setup_cycles():
     try:
         scene.view_settings.view_transform = "Standard"
         scene.view_settings.look = "None"
-        scene.view_settings.exposure = 0.5
+        scene.view_settings.exposure = 0.75
         scene.view_settings.gamma = 1.0
     except Exception:
         pass
@@ -397,6 +409,15 @@ def compose_sheet(out_path, panel_paths, columns):
     return png_header(out_path)
 
 
+def preview_prefix(tier, faction):
+    """Folktails keeps the legacy ``<Tier>_*.png`` names; IronTeeth is suffixed."""
+    return tier if faction == "Folktails" else "%s.%s" % (tier, faction)
+
+
+def scale50_panel(tier, faction="Folktails"):
+    return os.path.join(PREVIEW_DIR, "%s_scale50.png" % preview_prefix(tier, faction))
+
+
 def build_ab_sheets(out):
     """Compose the 50%-camera A/B sheets from the rendered scale50 panels."""
     if np is None:
@@ -405,16 +426,23 @@ def build_ab_sheets(out):
         return []
     sheets = []
     sheet_jobs = (
-        ("tier_ab_basic_vs_intermediate_50", ["Basic", "Intermediate"], 2),
-        ("tier_ab_advanced_vs_top_50", ["Advanced", "Top"], 2),
+        ("tier_ab_basic_vs_intermediate_50",
+         [scale50_panel("Basic"), scale50_panel("Intermediate")], 2),
+        ("tier_ab_advanced_vs_top_50",
+         [scale50_panel("Advanced"), scale50_panel("Top")], 2),
         ("tiers_scale50_grid",
-         ["Basic", "Intermediate", "Advanced", "Top"], 2),
+         [scale50_panel(t) for t in A.TIERS], 2),
+        # v2.2 reference-image upgrade: faction A/B (same tier, two factions)
+        ("faction_ab_basic_50",
+         [scale50_panel("Basic"), scale50_panel("Basic", "IronTeeth")], 2),
+        ("faction_ab_top_50",
+         [scale50_panel("Top"), scale50_panel("Top", "IronTeeth")], 2),
+        ("tiers_factions_scale50_grid",
+         [scale50_panel(t, f) for f in A.FACTIONS for t in A.TIERS], 4),
     )
-    for name, tiers, columns in sheet_jobs:
-        panels = [os.path.join(PREVIEW_DIR, "%s_scale50.png" % tier)
-                  for tier in tiers]
+    for name, panels, columns in sheet_jobs:
         if not all(os.path.isfile(path) for path in panels):
-            out.append("  %-32s SKIP (missing scale50 panel)" % name)
+            out.append("  %-34s SKIP (missing scale50 panel)" % name)
             continue
         dst = os.path.join(PREVIEW_DIR, name + ".png")
         try:
@@ -451,14 +479,16 @@ def main():
     missing = []
     jobs = []
     for tier in A.TIERS:
-        path = os.path.join(HERE, "models", "%s.Folktails" % tier, "LOD0.fbx")
-        if not os.path.isfile(path):
-            alt = os.path.join(HERE, "models", "%s.Folktails" % tier, "LOD0.glb")
-            path = alt if os.path.isfile(alt) else path
-        if not os.path.isfile(path):
-            missing.append(path)
-            continue
-        jobs.append((tier, path))
+        for faction in A.FACTIONS:
+            stem = "%s.%s" % (tier, faction)
+            path = os.path.join(HERE, "models", stem, "LOD0.fbx")
+            if not os.path.isfile(path):
+                alt = os.path.join(HERE, "models", stem, "LOD0.glb")
+                path = alt if os.path.isfile(alt) else path
+            if not os.path.isfile(path):
+                missing.append(path)
+                continue
+            jobs.append((tier, faction, path))
     construction = os.path.join(HERE, "models", A.CONSTRUCTION_STAGE,
                                 A.CONSTRUCTION_STAGE + ".fbx")
     if not os.path.isfile(construction):
@@ -474,26 +504,28 @@ def main():
         sys.stdout.write("note: construction stage model missing; skipping its "
                          "optional preview\n")
     out = []
-    out.append("HDBF preview render: %d tiers -> %s" % (len(jobs), PREVIEW_DIR))
+    out.append("HDBF preview render: %d model(s) (tier x faction) -> %s"
+               % (len(jobs), PREVIEW_DIR))
     views = [("front", "front", ORTHO_SCALE),
              ("side", "side", ORTHO_SCALE),
              ("top", "top", ORTHO_SCALE),
              ("scale50", "front", ORTHO_SCALE_50),
              ("iso", "iso", ORTHO_SCALE_ISO)]
-    for tier, path in jobs:
+    for tier, faction, path in jobs:
         reset_scene()
         try:
             import_model(path)      # also strips any imported cameras/lights
             material_fallbacks()
         except Exception as exc:
-            out.append("  %-12s FAILED to import %s: %s: %s"
-                       % (tier, path, type(exc).__name__, exc))
+            out.append("  %-14s FAILED to import %s: %s: %s"
+                       % (tier + "." + faction, path, type(exc).__name__, exc))
             continue
         setup_world_and_light()
         setup_cycles()
         cams = make_cameras()
+        prefix = preview_prefix(tier, faction)
         for view, cam_key, scale in views:
-            dst = os.path.join(PREVIEW_DIR, "%s_%s.png" % (tier, view))
+            dst = os.path.join(PREVIEW_DIR, "%s_%s.png" % (prefix, view))
             ok, size, detail, err = renderer.render(cams[cam_key], dst, scale)
             if ok:
                 hdr = png_header(dst)
@@ -502,8 +534,8 @@ def main():
                         or hdr["bit_depth"] != 8 or size < 4096):
                     ok, err = False, ("rendered file failed verification: %r %d bytes"
                                       % (hdr, size))
-            out.append("  %-12s %-7s %s  %s"
-                       % (tier, view, "OK  " if ok else "FAIL",
+            out.append("  %-14s %-7s %s  %s"
+                       % (tier + "." + faction, view, "OK  " if ok else "FAIL",
                           detail if ok else err))
             renderer.results.append((dst, ok, size, detail if ok else err))
     if construction:

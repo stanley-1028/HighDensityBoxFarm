@@ -88,7 +88,13 @@ REGIONS = {
     # ---- Glass band -------------------------------------------------------
     "glass":      ("M_HDBF_Glass",  (1730, 0,    1845, 2048)),
     # ---- Fabric band ------------------------------------------------------
-    "canvas":     ("M_HDBF_Fabric", (1846, 0,    2048, 1250)),
+    # v2.2 (2026-10-26, reference-image upgrade): the old canvas region was split
+    # to give the Basic Folktails tier a dedicated MOSS patch (foliage / moss
+    # accent geometry, vanilla `Moss.Folktails`).  The remaining upper part is the
+    # cream PLASTER patch used by the reference "light flat plaster roof" and the
+    # plaster facade bands.  The fabric band is otherwise unchanged.
+    "plaster":    ("M_HDBF_Fabric", (1846, 0,    2048, 900)),
+    "moss":       ("M_HDBF_Fabric", (1846, 904,  2048, 1250)),
     "thatch":     ("M_HDBF_Fabric", (1846, 1254, 2048, 2048)),
 }
 
@@ -97,7 +103,7 @@ MATERIAL_FALLBACK_REGION = {
     "M_HDBF_Wood": "wood",
     "M_HDBF_Metal": "metal",
     "M_HDBF_Glass": "glass",
-    "M_HDBF_Fabric": "canvas",
+    "M_HDBF_Fabric": "plaster",
 }
 
 #: per material physical response (requirement 13.4 parameter table).

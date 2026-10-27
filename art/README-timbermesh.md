@@ -8,7 +8,30 @@
 > `art/validation-report.txt`、`art/timbermesh-validation.txt`、`art/timbermesh/export-manifest.json`
 > 與 `data/ART_PLACEHOLDER.md` 為準。
 
-狀態：**離線匯出 + 純 Python 驗證完成**（16/16 檔 PASS、128/128 檢查 PASS、exit 0）。
+> **v2.2 更新（2026-10-26，参考图驱动材质/开窗升级）**：外包络 3×3×1、平屋顶、3 端口、0 `#Slot#` 与
+> flat-patch 契约不变；材质分区/开窗比例/四档可辨度升级。**本文件下方 §4–§14 仍是 ART-04（3×2×1）的历史
+> 数值，不要引用**；v2.2 现行数值以本节 + `data/ART_PLACEHOLDER.md` + `art/timbermesh/export-manifest.json`
+> + `art/validation-report.txt` / `art/timbermesh-validation.txt` 为准。
+
+### v2.2 数值速查（现行）
+
+| 项 | v2.2（2026-10-26 实测） |
+|---|---|
+| 16 档合计 | **1,236,471 bytes / 53,856 tris / 126,064 vertices** |
+| 成品 8 档 LOD0 tri | 5,850 / 5,850 / 5,854 / 5,854 / 5,850 / 5,850 / **5,918** / **5,918**（预算 6,000，最高 5,918） |
+| 施工灰盒 8 档 | 864 tris / 2,166 verts each（合计 140,975 B） |
+| 包络 | export space min (0,0,0)、size (3.000, 1.000, 3.000)，`±0.02`；C3 16/16 PASS |
+| 平屋顶 | 走行面 = 模型最高面 **y = 1.00**；25/25 源模型 `TOP=APEX=1.0000, ABOVE_TOP=0`；顶面框架边带顶 1.00，平台下缘梁 0.86–0.95 |
+| 端口 | 3 个：Power(1.00,0.85,1.50)→(2.50,0.85,3.00)、Pipe(−1.50,0.40,0.00)→(0.00,0.40,1.50)、Logistics(−1.00,0.35,1.50)→(0.50,0.35,3.00)（contract→export）；偏差 0.0000；**0 个 `#Slot#`** |
+| flat patch | **12 个 role**（v2.2 新增 `moss` / `plaster`（原 canvas 改名）/ `planks_dark`），材质名仍是原版 |
+| Basic.Folktails 第二材质 | `ThatchedRoof.Folktails` → **`Moss.Folktails`**（原版 MaterialCollection 名称；苔藓/作物剪影） |
+| 玻璃占比（侧墙） | Basic 0% / Intermediate **54.0%** / Advanced **53.3%** / Top **53.5%**（目标 45–55%） |
+| 验证 | 源模型 C1–C10 **PASS**（25/25）；`.timbermesh` **16/16 PASS、128/128 checks**；数据 `data==art` 16/16 SHA-256 相同 |
+| 生成确定性 | 图集 CROSS-RUN PASS；源模型两次生成 **50/50 文件字节一致**（FBX 时间戳+UID 已固定）；两次导出 16/16 SHA-256 相同 |
+| 预览 | `art/previews/` **48 张**：8 模型 × 5 视角 + 施工 2 + 6 张 50% A/B 合图（含两阵营 A/B 与 4×2 全档格） |
+| L1 | `dotnet run --project tests\HDBF.Tests ...` → **PASSED 530 / FAILED 0** |
+
+状态：**離線匯出 + 純 Python 驗證完成**（16/16 檔 PASS、128/128 檢查 PASS、exit 0）。
 **未在遊戲中驗證**：本輪沒有部署、沒有啟動 Timberborn、沒有跑 `build.ps1`、沒有碰 Unity；
 所有「看起來如何」的敘述都是 `待實機確認`。
 
@@ -113,7 +136,7 @@ python art\validate_timbermesh.py
   `timbermesh_common.source_to_export_blender()` 與驗證器/匯出器共用的常數。
 * ART-04 **沒有改座標補償**；ART-02 的 `axis-test/` 證據與負控制仍然有效（可重跑）。
 
-## 4. 16 檔輸出清單（數值取自 `export-manifest.json` / `timbermesh-validation.txt`）
+## 4. 16 檔輸出清單（**ART-04 3×2×1 歷史值；v2.2 現行值見頂部速查表與 `export-manifest.json`**）
 
 | 檔案（`art/timbermesh/` 下） | bytes | 三角面 | 頂點 | 材質數 |
 |---|---:|---:|---:|---:|
@@ -146,19 +169,20 @@ python art\validate_timbermesh.py
 
 ## 5. 屋頂：單一空平台（幾何契約）
 
-* 平台是**一片平的、空的**平台：頂面 **Y = 0.96**、厚 0.05（底面 0.91）；四周薄收邊
-  **高 0.04、寬 0.04**，收邊頂點 **Y = 1.00**（= 3×1×2 信封最高點）。
+* （**v2.2 正確值**）平台走行面 **Y = 1.00**（= 模型最高點）、平台板底 0.95；四周為與走行面同高的
+  **框架邊帶**（frame 材質，凸出頂面 0.000 m）與齊平 0.04 收邊；平台下方另有 0.86–0.95 的屋頂邊梁。
+  下列 ART-04 的 0.96 平台描述**已作廢**，僅保留歷史。
 * **平台上面沒有任何物件**：驗證器 C6 檢查「平台平面內、平台頂面 +0.06 以上沒有任何頂點」，
   16/16 檔 `above=0`；平台頂面本身存在於 0.96 ± 0.01。
 * 平台**平面尺寸**是四檔的辨識來源之一（空屋頂下不再有屋頂剪影差異）：
 
-  | Tier | 平台 X × Z |
+  | Tier | 平台 X × Z（v2.2） |
   |---|---|
-  | Basic | 2.05 × 1.25 |
-  | Intermediate | 2.45 × 1.55 |
-  | Advanced | 2.78 × 1.82 |
-  | Top | 2.96 × 1.96 |
-  | ConstructionStage0（8 檔共用灰盒） | 2.86 × 1.86 |
+  | Basic | 2.84 × 2.84 |
+  | Intermediate | 2.92 × 2.92 |
+  | Advanced | 2.96 × 2.96 |
+  | Top | 2.98 × 2.98 |
+  | ConstructionStage0（8 檔共用灰盒） | 2.90 × 2.90 |
 
 * 沒有槽體、土壤、通風帽、雨棚、山牆、龍門架、輸送帶罩；沒有 `#Slot#Crop_*` 節點。
 * 平台下方仍有支撐柱/樑/托架（屬結構，位於平台底 0.91 以下），不違反空頂契約。
@@ -189,8 +213,10 @@ python art\validate_timbermesh.py
 | `metal_painted` | metal | 1056,1088,1440,1472 | 0.515625,0.28125,0.703125,0.46875 | 384×384 | PaintedMetal.Folktails, PaintedMetal.IronTeeth |
 | `metal_details` | metal | 1056,1568,1312,1824 | 0.515625,0.109375,0.640625,0.234375 | 256×256 | Details.Folktails, Details.IronTeeth, IrregularPlanks_MetalForged.IronTeeth |
 | `glass` | glass | 1744,704,1832,792 | 0.851562,0.613281,0.894531,0.65625 | 88×88 | WindowsAtlas.Folktails, WindowsAtlas.IronTeeth |
-| `plaster` | canvas | 1872,288,2000,416 | 0.914062,0.796875,0.976562,0.859375 | 128×128 | Plaster_White.Folktails, Plaster_Orange.IronTeeth |
-| `roof` | thatch | 1872,1472,2000,1600 | 0.914062,0.21875,0.976562,0.28125 | 128×128 | ThatchedRoof.Folktails, RoofPlanks.IronTeeth |
+| `plaster`（v2.2 由 canvas 改名） | plaster | 1872,288,2000,416 | 0.914062,0.796875,0.976562,0.859375 | 128×128 | Plaster_White.Folktails, Plaster_Orange.IronTeeth |
+| `roof` | thatch | 1872,1472,2000,1600 | 0.914062,0.21875,0.976562,0.28125 | 128×128 | ThatchedRoof.Folktails（保留映射，本版模型不再使用） |
+| `planks_dark`（v2.2 新增） | wood | 528,700,784,956 | 0.257812,0.533203,0.382812,0.658203 | 256×256 | RoofPlanks.IronTeeth |
+| `moss`（v2.2 新增） | moss | 1900,940,2020,1060 | 0.927734,0.482422,0.986328,0.541016 | 120×120 | Moss.Folktails |
 
 > patch 尺寸是 **88–384 texels**（不是「64×64」）：64 是 **texel/grid 密度**，patch 大小依
 > 該材質需要覆蓋的最大面而定（例如玻璃 88×88、金屬板 384×384）。patch 都落在 ART-01
@@ -200,7 +226,7 @@ python art\validate_timbermesh.py
 
 | Tier | Faction | # | 材質（原版 MaterialCollection 資產名） |
 |---|---|---:|---|
-| Basic | Folktails | 2 | BaseWood_Brown.Folktails, ThatchedRoof.Folktails |
+| Basic | Folktails | 2 | BaseWood_Brown.Folktails, **Moss.Folktails**（v2.2；原 ThatchedRoof） |
 | Basic | IronTeeth | 2 | BaseWood_DarkBrown.IronTeeth, RoofPlanks.IronTeeth |
 | Intermediate | Folktails | 3 | IrregularPlanks_LightBrown.Folktails, WindowsAtlas.Folktails, Plaster_White.Folktails |
 | Intermediate | IronTeeth | 3 | IrregularPlanks_DarkBrown.IronTeeth, WindowsAtlas.IronTeeth, Plaster_Orange.IronTeeth |
@@ -227,11 +253,11 @@ AssetBundle（本輪沒做）。貼片放大到整面牆的觀感、法線/rough
 
 ## 8. 空節點：只有 3 個埠（沒有槽）
 
-| 空節點 | contract（中心軸心） | export／遊戲（block corner） | 朝外 | 語意 |
+| 空節點 | contract（中心軸心，v2.2） | export／遊戲（block corner） | 朝外 | 語意 |
 |---|---|---|---|---|
-| `#Port#Power` | (1.00, 0.85, 1.00) | (2.50, 0.85, 2.00) | +Z | 背面右側接線盒 |
-| `#Port#Pipe` | (−1.50, 0.40, 0.00) | (0.00, 0.40, 1.00) | −X | 左短邊中心法蘭 |
-| `#Port#Logistics` | (−1.00, 0.35, 1.00) | (0.50, 0.35, 2.00) | +Z | 背面左端輸送帶開口 |
+| `#Port#Power` | (1.00, 0.85, 1.50) | (2.50, 0.85, 3.00) | +Z | 背面右側接線盒 |
+| `#Port#Pipe` | (−1.50, 0.40, 0.00) | (0.00, 0.40, 1.50) | −X | 左短邊中心法蘭 |
+| `#Port#Logistics` | (−1.00, 0.35, 1.50) | (0.50, 0.35, 3.00) | +Z | 背面左端輸送帶開口 |
 
 * 空節點 vertexCount=0、無 mesh、不影響包圍盒；位置偏差 16/16 檔 = 0.0000（容差 0.02）。
 * **0 個 `#Slot#`**；6 個作物槽標記已移除。每檔 4 節點（1 root + 3 ports）。
@@ -249,11 +275,11 @@ python art\validate_timbermesh.py
 * 模式：pure-python / Blender-free（zlib + vendored `model_pb2`；不需要 bpy/Blender/Unity）。
 * 檢查項（ART-04）：
   * C1 解析（zlib + protobuf）；C2 身分（`Model.name`=stem、`version`=0）。
-  * C3 包圍盒：size (3,1,2) 且 min (0,0,0)，±0.05（block-corner）。
+  * C3 包圍盒：size (3,1,3) 且 min (0,0,0)，±0.02（block-corner；v2.2 現行）。
   * C4 三角面 ≤ 6,000/檔。
-  * C5 材質數 1–4 且全在該陣營白名單。
+  * C5 材質數 1–4 且全在該陣營白名單（v2.2 白名單含 `Moss.Folktails`）。
   * **C6 = 3 個埠空節點（位置 ±0.02、vertexCount=0）+ 0 個 `#Slot#` + 空屋頂平台檢查**
-    （平台平面內、平台頂面+0.06 以上無頂點；平台頂面存在於 0.96±0.01）。**沒有另一個 C9**。
+    （平台平面內頂面存在、走行面 y=1.00、其上 0 頂點）。**沒有另一個 C9**。
   * C7 頂點屬性（名稱/型別/維度/長度/NaN/Inf）；C8 拓樸（索引範圍、parent、單一 root、uv0∈[0,1]）。
 * 本輪實跑：CPython 3.14.7、約 5.9 s、16/16 檔全 PASS。
 * **C9（50% 剪影可辨）**：ART-01 的 C9 指標**沒有被刪除**；本輪用**未修改的** ART-01 指標函式與門檻
@@ -269,14 +295,16 @@ python art\validate_timbermesh.py
 * **只匯出 LOD0**（每模型 1 檔）。`art/models/**` 仍有 LOD0/1/2（來源），但 `.timbermesh` 只給 LOD0；
   遊戲端由 `Timberborn.PrefabOptimization`（`TimbermeshPrefabOptimizer`/`AutoAtlaser`）自動產生 LOD。
   `art/timbermesh/lod/` 刻意不存在。
-* 來源 LOD 三角面（本輪生成器輸出，僅供參考）：
-  LOD0 5,944–5,948 / LOD1 約 2,382 / LOD2 約 832；LOD0 預算 6,000。
+* 來源 LOD 三角面（v2.2 生成器輸出）：LOD0 **5,850–5,918** / LOD1 **2,362–2,378** / LOD2 **790–814**；
+  LOD0 預算 6,000（每檔 ≤6,000，未放鬆）。
 * 實際 LOD 切換品質/距離**未實機確認**。
 
 ## 11. 預覽與圖示（離線渲染，非遊戲截圖）
 
-* `art/previews/`：4 個 tier × {front, side, top, scale50, iso} + ConstructionStage0 {front, iso}
-  （Blender Cycles 離線渲染；重跑 `art\render_previews.py`）。
+* `art/previews/`（v2.2，**48 張**）：8 個模型（4 tier × 2 faction）× {front, side, top, scale50, iso}
+  + ConstructionStage0 {front, iso} + 6 張 50% A/B 合圖（`tier_ab_*`、`tiers_scale50_grid`、
+  `faction_ab_basic_50`、`faction_ab_top_50`、`tiers_factions_scale50_grid`）；Blender Cycles 離線渲染，
+  重跑 `art\render_previews.py`。Folktails 保留舊檔名 `<Tier>_*.png`，IronTeeth 為 `<Tier>.IronTeeth_*.png`。
 * `art/icons/`：4 個 tier × {512×512, 128×128} RGBA PNG + `icons-manifest.json`（相機參數、bytes、
   覆蓋率、SHA-256）；兩陣營共用同一組圖示。`data/Icons/BoxFarm<Basic|Intermediate|Advanced|Top>.png`
   已換成 ART-04 的 128×128 版本（`.png.meta.json` 不變）。

@@ -140,6 +140,9 @@ MATERIAL_WHITELIST = {
         "ThatchedRoof.Folktails",
         "Plaster_White.Folktails",
         "Details.Folktails",
+        # v2.2 reference-image upgrade: vanilla moss material (already part of
+        # MaterialCollection.Folktails) for the Basic moss accents / crop silhouette.
+        "Moss.Folktails",
     ],
     "IronTeeth": [
         "BaseWood_DarkBrown.IronTeeth",
@@ -158,15 +161,18 @@ MATERIAL_WHITELIST = {
 #: ART-01 material slot -> vanilla material asset name, per tier/faction.
 #: The ART-01 slot meanings are fixed (0 Wood, 1 Metal, 2 Glass, 3 Fabric);
 #: each tier maps them onto the card's material strategy:
-#:   Basic        = wood + thatch/canvas          (2 slots)
-#:   Intermediate = planks + white plaster + glass (3 slots)
-#:   Advanced     = metal frame + glass            (4 slots, white/grey timber)
-#:   Top          = metal + glass + riveted plates (4 slots)
+#:   Basic        = dark timber + moss / roof planks (2 slots)
+#:   Intermediate = honey planks + cream plaster + glass (3 slots)
+#:   Advanced     = painted metal + glass + wood patches (4 slots)
+#:   Top          = heavy base metal + glass + riveted plates (4 slots)
 #:   Construction = raw wood + bare metal          (2 slots)
 MATERIAL_MAP = {
     ("Basic", "Folktails", False):
+        # v2.2 reference-image upgrade: dark-brown rough planks + vanilla moss
+        # accents (the thatched roof was replaced by a dark timber plank roof, so
+        # the second slot now carries the moss/foliage material instead of thatch).
         {"M_HDBF_Wood": "BaseWood_Brown.Folktails",
-         "M_HDBF_Fabric": "ThatchedRoof.Folktails"},
+         "M_HDBF_Fabric": "Moss.Folktails"},
     ("Basic", "IronTeeth", False):
         {"M_HDBF_Wood": "BaseWood_DarkBrown.IronTeeth",
          "M_HDBF_Fabric": "RoofPlanks.IronTeeth"},

@@ -53,6 +53,8 @@ PATCH_PIXELS = {
     "wood_light":  ("wood",   (96, 1056, 480, 1440)),
     "planks_light": ("wood",  (96, 1568, 480, 1952)),
     "planks_brown": ("wood",  (528, 352, 784, 608)),
+    # v2.2: dark roof planks (vanilla RoofPlanks.IronTeeth used by Basic IronTeeth)
+    "planks_dark":  ("wood",  (528, 700, 784, 956)),
     # ---- metal band ------------------------------------------------------
     "metal_base":    ("metal", (1056, 384, 1440, 768)),
     "metal_painted": ("metal", (1056, 1088, 1440, 1472)),
@@ -60,8 +62,11 @@ PATCH_PIXELS = {
     # ---- glass band ------------------------------------------------------
     "glass":         ("glass", (1744, 704, 1832, 792)),
     # ---- fabric band -----------------------------------------------------
-    "plaster":       ("canvas", (1872, 288, 2000, 416)),
+    "plaster":       ("plaster", (1872, 288, 2000, 416)),
     "roof":          ("thatch", (1872, 1472, 2000, 1600)),
+    # v2.2 (2026-10-26): moss / foliage patch for the Basic Folktails tier
+    # (vanilla `Moss.Folktails`; used by the moss accents and the crop silhouette).
+    "moss":          ("moss",   (1900, 940, 2020, 1060)),
 }
 
 #: vanilla `MaterialCollection` asset name -> flat-patch role.  Keys cover every
@@ -83,6 +88,8 @@ ROLE_OF_MATERIAL = {
     "ThatchedRoof.Folktails": "roof",
     "Plaster_White.Folktails": "plaster",
     "Details.Folktails": "metal_details",
+    # v2.2 reference-image upgrade: moss / foliage accents (Basic Folktails)
+    "Moss.Folktails": "moss",
     # IronTeeth
     "BaseWood_DarkBrown.IronTeeth": "wood_plain",
     "BaseWood_Grey.IronTeeth": "wood_light",
@@ -91,7 +98,7 @@ ROLE_OF_MATERIAL = {
     "PaintedMetal.IronTeeth": "metal_painted",
     "BaseMetal.IronTeeth": "metal_base",
     "WindowsAtlas.IronTeeth": "glass",
-    "RoofPlanks.IronTeeth": "roof",
+    "RoofPlanks.IronTeeth": "planks_dark",
     "Plaster_Orange.IronTeeth": "plaster",
     "Details.IronTeeth": "metal_details",
 }

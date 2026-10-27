@@ -414,17 +414,29 @@ GLASS = {
     "bright": (0.878, 0.936, 0.938),
     "shadow": (0.415, 0.560, 0.590),
 }
-CANVAS = {
-    "base": (0.700, 0.558, 0.300),
-    "light": (0.812, 0.686, 0.418),
-    "stain": (0.472, 0.372, 0.206),
-    "shadow": (0.372, 0.286, 0.148),
+#: v2.2 reference-image upgrade: warm cream trowelled plaster (Intermediate
+#: light flat roof + plaster facade bands).  Replaces the ART-04 ochre canvas.
+#: Values match the vanilla Plaster_White albedo (~0.68/0.62/0.54) so the patch
+#: reads as cream plaster, not as a blown-white surface under the preview sun.
+PLASTER = {
+    "base": (0.648, 0.604, 0.512),
+    "light": (0.742, 0.700, 0.606),
+    "stain": (0.496, 0.458, 0.382),
+    "shadow": (0.398, 0.362, 0.300),
 }
 THATCH = {
     "base": (0.752, 0.638, 0.322),
     "light": (0.886, 0.796, 0.500),
     "dark": (0.352, 0.278, 0.126),
     "shadow": (0.180, 0.140, 0.062),
+}
+#: v2.2 reference-image upgrade: damp green moss / foliage (Basic Folktails).
+MOSS = {
+    "base": (0.148, 0.204, 0.078),
+    "dark": (0.080, 0.126, 0.042),
+    "mid": (0.244, 0.356, 0.112),
+    "light": (0.452, 0.590, 0.190),
+    "stem": (0.300, 0.420, 0.140),
 }
 
 
@@ -1143,90 +1155,69 @@ def paint_glass(rg):
                   drough=0.16 * film, dh=0.03 * film)
 
 
-def paint_canvas(rg):
-    """Warm ochre woven canvas: plain weave, slubs, stains, fold lines."""
+def paint_plaster(rg):
+    """Cream trowelled plaster (reference: light flat plaster roof + bands).
+
+    v2.2: replaces the ART-04 ochre canvas painter.  The reference images of the
+    intermediate tier show a light cream/soil flat roof and cream plaster bands;
+    this patch is what that material samples.
+    """
     h, w = rg.h, rg.w
     s = rg.seed
     X, Y = rg.X, rg.Y
-    rg.begin(CANVAS["base"], 0.0)
+    rg.begin(PLASTER["base"], 0.0)
 
-    pitch = 7.0
-    # slightly irregular thread pitch: perfectly regular grids look synthetic
-    wob_u = fbm(80.0, 80.0, s ^ 0x46, X, Y, octaves=3)
-    wob_v = fbm(80.0, 80.0, s ^ 0x47, X, Y, octaves=3)
-    u = X / pitch + 0.17 * (wob_u - 0.5)
-    v = Y / pitch + 0.17 * (wob_v - 0.5)
-    iu = np.floor(u)
-    iv = np.floor(v)
-    fu = u - iu
-    fv = v - iv
-    pu = np.sin(np.pi * fu)
-    pv = np.sin(np.pi * fv)
-    par = np.mod(iu + iv, 2.0)
-    topu = par < 0.5
-    warp_h = 0.90 * pu + 0.10 * pv
-    weft_h = 0.90 * pv + 0.10 * pu
-    height = np.where(topu, warp_h, weft_h)
+    trowel = fbm(9.0, 7.0, s ^ 0xA1, X, Y, octaves=4)
+    swirl = fbm(3.2, 2.6, s ^ 0xA2, X, Y, octaves=3)
+    fine = fbm(150.0, 150.0, s ^ 0xA3, X, Y, octaves=3)
+    tone = fbm(22.0, 18.0, s ^ 0xA4, X, Y, octaves=3)
 
-    iu_i = iu.astype(np.int64)
-    iv_i = iv.astype(np.int64)
-    # per-thread tone from the *unwarped* thread index so a thread keeps its
-    # shade along its whole length
-    tu = 0.86 + 0.28 * hash01(np.floor(X / pitch).astype(np.int64).astype(np.int64),
-                              np.zeros((h, w), np.int64), s ^ 0x41)
-    tv = 0.86 + 0.28 * hash01(np.zeros((h, w), np.int64),
-                              np.floor(Y / pitch).astype(np.int64), s ^ 0x42)
-    tone = np.where(topu, tu, tv)
-
-    fib_u = fbm(250.0, 2.8, s ^ 0x43, X, Y, octaves=3)
-    fib_v = fbm(2.8, 250.0, s ^ 0x44, X, Y, octaves=3)
-    fib = np.where(topu, fib_u, fib_v)
-    fade = fbm(130.0, 130.0, s ^ 0x45, X, Y, octaves=3)
-
-    col = np.asarray(CANVAS["base"], np.float64)[None, None, :] * (
-        (0.80 + 0.26 * height + 0.15 * (tone - 1.0) + 0.06 * (fib - 0.5) * 2.0)
-        * (0.92 + 0.16 * fade))[..., None]
+    base = np.asarray(PLASTER["base"], np.float64)[None, None, :]
+    light = np.asarray(PLASTER["light"], np.float64)[None, None, :]
+    stain = np.asarray(PLASTER["stain"], np.float64)[None, None, :]
+    t = np.clip(0.28 + 0.58 * trowel + 0.20 * (tone - 0.5), 0.0, 1.0)[..., None]
+    col = base * (1.0 - t) + light * t
+    col = col * (0.94 + 0.10 * fine[..., None])
+    stain_mask = smoothstep(0.62, 0.88, swirl) * 0.30
+    col = col * (1.0 - stain_mask[..., None]) + stain * stain_mask[..., None]
     rg.rgb[...] = np.clip(col, 0.0, 1.0).astype(np.float32)
-    rg.hgt[...] = (0.75 * height + 0.18 * (fib - 0.5) + 0.12 * (fade - 0.5)).astype(np.float32)
-    rg.rough[...] = (0.885 - 0.05 * height + 0.03 * (fib - 0.5)).astype(np.float32)
+    rg.hgt[...] = (0.32 * trowel + 0.28 * fine + 0.14 * swirl - 0.34).astype(np.float32)
+    rg.rough[...] = (0.82 - 0.06 * trowel + 0.04 * (fine - 0.5)).astype(np.float32)
 
-    # ---- slubs (thicker yarn spots) ---- #
-    for i in range(150):
-        ss = s ^ (0x9000 + 23 * i)
+    # ---- trowel sweeps: soft light/dark arcs ---- #
+    for i in range(70):
+        ss = s ^ (0xA500 + 19 * i)
         cx = w * hashf(1, ss)
         cy = h * hashf(2, ss)
-        rx = 2.2 + 4.5 * hashf(3, ss)
-        ry = 0.9 + 1.6 * hashf(4, ss)
-        ang = (hashf(5, ss) - 0.5) * 0.25 + (0.0 if hashf(6, ss) > 0.5 else math.pi / 2.0)
+        rx = 10.0 + 34.0 * hashf(3, ss)
+        ry = rx * (0.35 + 0.55 * hashf(4, ss))
+        ang = (hashf(5, ss) - 0.5) * 1.1
         rg.ellipse(cx, cy, rx, ry, ang,
-                   color=np.asarray(CANVAS["light"], np.float64) * (0.95 + 0.12 * hashf(7, ss)),
-                   alpha=0.22 + 0.20 * hashf(8, ss), dh=0.22, drough=-0.04)
-
-    # ---- stains / water marks ---- #
-    for i in range(12):
-        ss = s ^ (0x9200 + 31 * i)
+                   color=np.asarray(PLASTER["light"], np.float64)
+                   * (0.96 + 0.08 * hashf(6, ss)),
+                   alpha=0.08 + 0.14 * hashf(7, ss), dh=0.10, drough=-0.02)
+    # ---- damp / soot stains ---- #
+    for i in range(9):
+        ss = s ^ (0xA600 + 31 * i)
         cx = w * hashf(1, ss)
         cy = h * hashf(2, ss)
-        rx = 18.0 + 55.0 * hashf(3, ss)
-        ry = rx * (0.6 + 0.6 * hashf(4, ss))
+        rx = 16.0 + 46.0 * hashf(3, ss)
+        ry = rx * (0.55 + 0.6 * hashf(4, ss))
         got = rg.ellipse_dist(cx, cy, rx, ry, 0.0, 2.5)
         if got is None:
             continue
         win, d = got
-        body = smoothstep(1.0, 0.2, d)
-        rim = smoothstep(1.05, 0.90, d) * smoothstep(0.80, 0.98, d)
-        amt = 0.06 + 0.10 * hashf(5, ss)
-        rg.apply(win, body * amt, color=CANVAS["stain"], alpha=1.0,
-                 drough=0.04 * body, dh=-0.10 * body)
-        rg.apply(win, rim * amt * 1.6, color=CANVAS["shadow"], alpha=1.0)
-
-    # ---- fold lines (soft light/dark bands) ---- #
+        body = smoothstep(1.0, 0.15, d)
+        amt = 0.05 + 0.09 * hashf(5, ss)
+        rg.apply(win, body * amt, color=PLASTER["stain"], alpha=1.0,
+                 drough=0.03 * body, dh=-0.08 * body)
+    # ---- faint joint / plank shadow lines (flat roof panel joints) ---- #
     for k in range(2):
-        fy = h * (0.34 + 0.34 * hashf(k + 3, s ^ 0x93))
-        rg.shade_rows(int(fy) - 3, int(fy), add=rgb(0.024, 0.021, 0.014))
-        rg.shade_rows(int(fy), int(fy) + 4, fac=0.94)
-        rg.hgt_rows(int(fy) - 3, int(fy), 0.35)
-        rg.hgt_rows(int(fy), int(fy) + 4, -0.35)
+        fy = h * (0.30 + 0.40 * hashf(k + 3, s ^ 0xA7))
+        rg.shade_rows(int(fy) - 2, int(fy), add=rgb(0.016, 0.014, 0.010))
+        rg.shade_rows(int(fy), int(fy) + 3, fac=0.97)
+        rg.hgt_rows(int(fy) - 2, int(fy), 0.20)
+        rg.hgt_rows(int(fy), int(fy) + 3, -0.20)
 
 
 def paint_thatch(rg):
@@ -1306,6 +1297,54 @@ def paint_thatch(rg):
                 alpha=0.28 + 0.30 * hashf(7, ss), dh=0.12)
 
 
+def paint_moss(rg):
+    """Damp green moss: soft clump noise, dark gaps, tiny leaf speckles."""
+    h, w = rg.h, rg.w
+    s = rg.seed
+    X, Y = rg.X, rg.Y
+    rg.begin(MOSS["base"], 0.0)
+
+    clump = fbm(26.0, 22.0, s ^ 0x71, X, Y, octaves=4)
+    fine = fbm(120.0, 120.0, s ^ 0x72, X, Y, octaves=3)
+    hue = fbm(9.0, 8.0, s ^ 0x73, X, Y, octaves=3)
+
+    base = np.asarray(MOSS["base"], np.float64)[None, None, :]
+    dark = np.asarray(MOSS["dark"], np.float64)[None, None, :]
+    mid = np.asarray(MOSS["mid"], np.float64)[None, None, :]
+    col = base * (0.78 + 0.55 * clump[..., None]) * (0.90 + 0.20 * fine[..., None])
+    col = np.where((clump < 0.40)[..., None],
+                   dark * (0.82 + 0.45 * fine[..., None]), col)
+    col = np.where((clump > 0.68)[..., None],
+                   mid * (0.88 + 0.42 * hue[..., None]), col)
+    rg.rgb[...] = np.clip(col, 0.0, 1.0).astype(np.float32)
+    rg.hgt[...] = (0.60 * clump + 0.35 * fine - 0.28).astype(np.float32)
+    rg.rough[...] = (0.93 - 0.06 * clump + 0.03 * (fine - 0.5)).astype(np.float32)
+
+    # ---- soft moss cushions ---- #
+    for i in range(90):
+        ss = s ^ (0xB400 + 21 * i)
+        cx = w * hashf(1, ss)
+        cy = h * hashf(2, ss)
+        rx = 3.0 + 9.0 * hashf(3, ss)
+        ry = rx * (0.55 + 0.65 * hashf(4, ss))
+        rg.ellipse(cx, cy, rx, ry, (hashf(5, ss) - 0.5) * 1.2,
+                   color=np.asarray(MOSS["mid"], np.float64) * (0.90 + 0.22 * hashf(6, ss)),
+                   alpha=0.20 + 0.26 * hashf(7, ss), dh=0.20, drough=-0.03)
+
+    # ---- tiny leaf / stalk speckles ---- #
+    for i in range(320):
+        ss = s ^ (0xC100 + 17 * i)
+        cx = w * hashf(1, ss)
+        cy = h * hashf(2, ss)
+        ang = math.radians(20.0 + (hashf(3, ss) - 0.5) * 140.0)
+        ln = 1.4 + 4.2 * hashf(4, ss)
+        c = MOSS["light"] if hashf(5, ss) > 0.55 else MOSS["stem"]
+        rg.line(cx, cy, cx + ln * math.cos(ang), cy - ln * math.sin(ang),
+                0.7 + 0.8 * hashf(6, ss),
+                color=np.asarray(c, np.float64) * (0.90 + 0.25 * hashf(7, ss)),
+                alpha=0.30 + 0.38 * hashf(8, ss), dh=0.14, drough=-0.02)
+
+
 PAINTERS = {
     "wood": paint_wood,
     "soil_full": paint_soil_full,
@@ -1314,7 +1353,8 @@ PAINTERS = {
     "fixture": paint_fixture,
     "trim": paint_trim,
     "glass": paint_glass,
-    "canvas": paint_canvas,
+    "plaster": paint_plaster,
+    "moss": paint_moss,
     "thatch": paint_thatch,
 }
 
@@ -1325,7 +1365,7 @@ MATERIAL_PAINTERS = {
     "M_HDBF_Wood": paint_wood,
     "M_HDBF_Metal": paint_metal,
     "M_HDBF_Glass": paint_glass,
-    "M_HDBF_Fabric": paint_canvas,
+    "M_HDBF_Fabric": paint_plaster,
 }
 
 #: relative tangent-normal bumpiness per region (auto scaled to a sane RMS).
@@ -1337,7 +1377,8 @@ NORMAL_STRENGTH = {
     "fixture": 1.20,
     "trim": 0.95,
     "glass": 0.30,
-    "canvas": 1.00,
+    "plaster": 0.60,
+    "moss": 1.15,
     "thatch": 1.10,
 }
 
