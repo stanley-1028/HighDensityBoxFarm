@@ -77,11 +77,15 @@ namespace HDBF.UI.Panels
         /// <summary>Vanilla progress bar root.</summary>
         public const string ProgressBar = "progress-bar";
 
-        /// <summary>Vanilla green fill progress bar.</summary>
-        public const string ProgressBarGreen = "progress-bar progress-bar--green";
+        /// <summary>
+        /// Vanilla green fill class. ONE class name: the fill rule is
+        /// <c>.progress-bar--green .progress-bar__progress</c> (GameStyle.uss), so it must be added
+        /// as its own class on top of <see cref="ProgressBar"/> (never as part of a space list).
+        /// </summary>
+        public const string ProgressBarGreen = "progress-bar--green";
 
-        /// <summary>Vanilla red fill progress bar (critical water/coverage).</summary>
-        public const string ProgressBarRed = "progress-bar progress-bar--red";
+        /// <summary>Vanilla red fill class (critical water/coverage); one class, see above.</summary>
+        public const string ProgressBarRed = "progress-bar--red";
 
         /// <summary>Vanilla progress bar content label.</summary>
         public const string ProgressText = "game-text-normal";

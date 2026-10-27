@@ -25,7 +25,7 @@ class (read-only reference: `%USERPROFILE%\.hdbf\ref\UI\Views`, an unpack of the
 | buttons | the shipped `Game/EntityPanel/DebugButton.uxml` (a `cui:NineSliceButton` with `button-game`) loaded through `VisualElementLoader`, so the gold nine-slice frame/hover/click sound are the original ones |
 | worker roster | the shipped `Game/EntityPanel/WorkerView.uxml` chips (`.worker-view`, `.worker-view__name`), read-only; a vacant chip shows the vanilla empty-beaver ("vacant") avatar and **never** the warning triangle (a free slot is normal state, not a problem) |
 | mode switch | `RadioToggleFactory` + `Core/RadioButton.uxml` (`.radio-button`, `.selected` radio sprite) — normal / dense / fallow |
-| crop dropdown | `Timberborn.DropdownSystem.Dropdown` (clones `Core/Dropdown.uxml`) + `DropdownItemsSetter` |
+| crop dropdown | `Timberborn.DropdownSystem.Dropdown` (clones `Core/Dropdown.uxml`) + `DropdownItemsSetter`. Both vanilla text surfaces are `.dropdown-item__text` Labels (grey): the closed selection is re-painted after every `SetItems`/`UpdateSelectedValue`, and the open popup list — owned by the singleton `DropdownListDrawer`, outside the Dropdown subtree — is re-painted light when the `Showed` event fires. The fixed 28 px popup rows keep vanilla nowrap/ellipsis; the panel rows (rotation sequence, ports, values) wrap |
 | scroll | `.scroll--green-decorated` on the card scroller, scroller hidden so the cards span the full 325 px width |
 | tooltips | the vanilla `ITooltipRegistrar` (hover texts for rows, actions and the dropdown) |
 
@@ -35,10 +35,13 @@ root is transparent — only the section cards own a dark background.
 ### Colours (requirement D)
 
 * Vanilla ships no `.text--white` class; the closest is `.text--default` (rgb 255). The panel
-  therefore paints every text element through one helper, `HdbfPanelControls.ApplyLightText`, with
-  the single warm-white constant `HdbfIndoorPanelStyle.LightTextRgba` (`#F2EBDD`).
+  therefore paints every text element it creates — and every vanilla label it adopts (the crop
+  dropdown selection after each rebuild, the open dropdown popup when it is shown) — through one
+  helper, `HdbfPanelControls.ApplyLightText`, with the single warm-white constant
+  `HdbfIndoorPanelStyle.LightTextRgba` (`#F2EBDD`).
 * No row/state uses a hard-coded dark colour, and `HdbfPanelControls.CreateLabel` is the only
-  place a `Label` is created.
+  place `this panel` creates a `Label`; the vanilla templates keep their own labels, which the
+  helper repaints where they would otherwise stay grey.
 * Warnings stay recognisable without relying on colour: icon + `▲/!` text marker + a 3 px accent
   strip (the strip's colour is the only raw background colour the panel sets).
 
@@ -87,7 +90,7 @@ re-measured at the 4 Hz gate, so the action card is reachable on every window si
   shows `C 100 %` before the first daily tick instead of the stale `C 0 %`.
 * `UpdateFragment()` re-queries at most **4 times per second** and rebuilds the cards only when a
   value fingerprint changed (the fingerprint includes a language probe, so a language switch
-  re-localizes too). An idle panel does no formatting/allocation work.
+  re-localizes too). An idle panel does no formatting or label write work; the only idle cost is the snapshot query itself (4 Hz, bridge invoke buffer reused; gameplay still builds a fresh DTO per query, see known gaps).
 * Actions: mode + maintenance go through the Core `IBoxFarmCommand`; crop strategy + manual refill
   go through the two panel-only members. Every rejection renders the specific localized reason
   (no worker, blocked entrance, no/unreachable/contaminated water, empty action budget, pending
@@ -139,3 +142,6 @@ the no-empty-brace rule, the complete v2 terminology set and the removal of ever
 6. **The mode radio labels are localized once at panel build time.** A language switch re-renders
    the cards, but the already built radio buttons keep their original language until the panel is
    reopened; the vanilla `RadioToggleFactory` has no re-localize entry point.
+7. **The 4 Hz snapshot query still allocates on the gameplay side.** UI reuses one invoke buffer,
+   but `IBoxFarmQuery.GetIndoorSnapshot` builds a fresh immutable `IndoorFarmSnapshot` per call
+   (4/s, never per frame). A gameplay-side cached DTO would remove that last bounded allocation.

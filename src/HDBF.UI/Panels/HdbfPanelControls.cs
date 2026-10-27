@@ -174,8 +174,10 @@ namespace HDBF.UI.Panels
         public static CoreProgressBar CreateBar(HdbfPanelRow row, bool critical)
         {
             var bar = new CoreProgressBar();
-            bar.AddToClassList(HdbfIndoorPanelStyle.ProgressBar);
-            bar.AddToClassList(critical
+            AddClasses(bar, HdbfIndoorPanelStyle.ProgressBar);
+            // The tone classes are single vanilla classes; AddClasses adds each name on its own so
+            // ".progress-bar--green .progress-bar__progress" (GameStyle.uss) really matches.
+            AddClasses(bar, critical
                 ? HdbfIndoorPanelStyle.ProgressBarRed
                 : HdbfIndoorPanelStyle.ProgressBarGreen);
             bar.style.marginTop = 2f;

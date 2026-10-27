@@ -389,6 +389,197 @@ namespace HDBF.Tests
                 "the scroll measurement must not allocate");
         }
 
+        // ------------------------------------------------------------------ regressions (audit round)
+
+        /// <summary>
+        /// The exact trap that hid the progress-bar tone: a space separated class list passed to
+        /// <c>AddToClassList</c> becomes ONE invalid class. No multi-class style constant may ever
+        /// be passed directly - only through <c>HdbfPanelControls.AddClasses</c>.
+        /// </summary>
+        public static void TestNoMultiClassConstantIsPassedDirectlyToAddToClassList()
+        {
+            var style = ReadUiSources("Panels/HdbfIndoorPanelStyle.cs");
+            var constants = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (System.Text.RegularExpressions.Match match in System.Text.RegularExpressions.Regex.Matches(
+                         style, @"public const string (?<name>[A-Za-z_]\w*) = ""(?<value>[^""]*)"";"))
+            {
+                constants[match.Groups["name"].Value] = match.Groups["value"].Value;
+            }
+
+            TestAssert.True(constants.Count >= 20, "the style constant table must be parsed");
+            var multiClass = constants.Where(pair => pair.Value.Contains(' ')).ToArray();
+            TestAssert.True(multiClass.Length >= 3,
+                "expected the multi-class vocabulary to stay documented: " + multiClass.Length);
+
+            var allUi = ReadUiSources(string.Empty);
+            var calls = FindAddToClassListArguments(allUi);
+            TestAssert.True(calls.Count >= 10, "the AddToClassList scan found too few call sites: " + calls.Count);
+            foreach (var argument in calls)
+            {
+                foreach (var pair in multiClass)
+                {
+                    TestAssert.False(argument.Contains("HdbfIndoorPanelStyle." + pair.Key, StringComparison.Ordinal),
+                        "multi-class constant passed to AddToClassList: " + pair.Key + " = \"" + pair.Value
+                        + "\" (use HdbfPanelControls.AddClasses; argument: " + argument + ")");
+                }
+            }
+
+            // Regression of the reported defect: the ternary form must be caught by this scanner too.
+            var synthetic = FindAddToClassListArguments(
+                "bar.AddToClassList(critical ? HdbfIndoorPanelStyle.ProgressBarRed"
+                + " : HdbfIndoorPanelStyle.ProgressBarGreen);");
+            TestAssert.Equal(1, synthetic.Count, "synthetic ternary call must be found");
+            TestAssert.True(synthetic[0].Contains("HdbfIndoorPanelStyle.ProgressBarRed", StringComparison.Ordinal),
+                "the scanner must see constant references inside a ternary argument");
+
+            // Every DIRECT AddToClassList(style constant) must be a single class name.
+            foreach (System.Text.RegularExpressions.Match match in System.Text.RegularExpressions.Regex.Matches(
+                         allUi, @"AddToClassList\(HdbfIndoorPanelStyle\.(?<name>[A-Za-z_]\w*)\)"))
+            {
+                var name = match.Groups["name"].Value;
+                TestAssert.True(constants.TryGetValue(name, out var value),
+                    "unknown style constant referenced: " + name);
+                TestAssert.False(value!.Contains(' '),
+                    "direct AddToClassList of a multi-class constant: " + name);
+            }
+        }
+
+        /// <summary>
+        /// Extracts the argument text of every <c>AddToClassList(</c> call (balanced parentheses),
+        /// so a multi-class constant hidden inside a ternary/expression is detected as well.
+        /// </summary>
+        private static List<string> FindAddToClassListArguments(string source)
+        {
+            var calls = new List<string>();
+            const string token = "AddToClassList(";
+            var index = 0;
+            while ((index = source.IndexOf(token, index, StringComparison.Ordinal)) >= 0)
+            {
+                var start = index + token.Length;
+                var depth = 1;
+                var end = start;
+                while (end < source.Length && depth > 0)
+                {
+                    var character = source[end];
+                    if (character == '(')
+                    {
+                        depth++;
+                    }
+                    else if (character == ')')
+                    {
+                        depth--;
+                    }
+
+                    end++;
+                }
+
+                if (depth == 0 && end > start)
+                {
+                    calls.Add(source.Substring(start, end - 1 - start));
+                }
+
+                index = start;
+            }
+
+            return calls;
+        }
+
+        /// <summary>The progress bars must carry the real vanilla tone class on the bar root.</summary>
+        public static void TestProgressBarToneClassesAreSingleVanillaClasses()
+        {
+            TestAssert.Equal("progress-bar--green", HdbfIndoorPanelStyle.ProgressBarGreen);
+            TestAssert.Equal("progress-bar--red", HdbfIndoorPanelStyle.ProgressBarRed);
+            TestAssert.False(HdbfIndoorPanelStyle.ProgressBarGreen.Contains(' '),
+                "the green tone must be one class (fill selector: .progress-bar--green .progress-bar__progress)");
+            TestAssert.False(HdbfIndoorPanelStyle.ProgressBarRed.Contains(' '),
+                "the red tone must be one class");
+
+            var createBar = Slice(ReadUiSources("Panels/HdbfPanelControls.cs"),
+                "public static CoreProgressBar CreateBar", "public static VisualElement CreateWarningRow");
+            TestAssert.True(createBar.Contains("AddClasses(bar, HdbfIndoorPanelStyle.ProgressBar)",
+                StringComparison.Ordinal), "the base progress-bar class is added");
+            TestAssert.True(createBar.Contains("AddClasses(bar, critical", StringComparison.Ordinal),
+                "the tone class is applied through AddClasses (one class per add)");
+        }
+
+        /// <summary>
+        /// Requirement D covers both dropdown states: the closed selection item is re-painted after
+        /// every rebuild, and the open popup list (owned by the singleton DropdownListDrawer, i.e.
+        /// outside the Dropdown subtree) is re-painted light when it is shown. The popup rows keep
+        /// the vanilla nowrap/ellipsis because they are fixed 28 px list rows (requirement H applies
+        /// to the panel rows, which wrap).
+        /// </summary>
+        public static void TestCropDropdownTextIsRepaintedLightInSelectionAndPopup()
+        {
+            var crop = ReadUiSources("Panels/HdbfFarmPanelFragment.Crop.cs");
+            TestAssert.True(crop.Contains("PaintDropdownText();", StringComparison.Ordinal),
+                "the selected dropdown item must be re-painted after SetItems/UpdateSelectedValue");
+            var renderCrop = Slice(crop, "private void RenderCrop", "private void PaintDropdownText");
+            var itemsAt = renderCrop.IndexOf("SetItems(_cropDropdown", StringComparison.Ordinal);
+            var updateAt = renderCrop.IndexOf("UpdateSelectedValue()", StringComparison.Ordinal);
+            var paintAt = renderCrop.IndexOf("PaintDropdownText();", StringComparison.Ordinal);
+            TestAssert.True(paintAt > itemsAt && paintAt > updateAt,
+                "the repaint must run after both dropdown update paths");
+
+            var selectionPaint = Slice(crop, "private void PaintDropdownText",
+                "private void PaintDropdownPopupText");
+            TestAssert.True(selectionPaint.Contains("ApplyLightText(", StringComparison.Ordinal),
+                "vanilla .dropdown-item__text grey must be overridden with the light colour");
+
+            // Popup: reachable only through the drawer; paint it when the dropdown is shown.
+            TestAssert.True(crop.Contains("dropdown.Showed += OnCropDropdownShowed", StringComparison.Ordinal),
+                "the popup list must be re-painted when the drawer shows it");
+            TestAssert.True(crop.Contains("private void PaintDropdownPopupText()", StringComparison.Ordinal),
+                "a dedicated popup paint pass must exist");
+            var popupPaint = Slice(crop, "private void PaintDropdownPopupText",
+                "private void OnCropDropdownShowed");
+            TestAssert.True(popupPaint.Contains("panel.visualTree", StringComparison.Ordinal),
+                "the popup lives outside the dropdown subtree; it must be found through the panel tree");
+            var popupCollector = Slice(crop, "private static void CollectDropdownItemLabels",
+                "private void ScheduleCropValueSync");
+            TestAssert.True(popupCollector.Contains("dropdown-item__text", StringComparison.Ordinal),
+                "the popup paint must target the vanilla popup label class");
+            TestAssert.True(popupPaint.Contains("ApplyLightText(", StringComparison.Ordinal),
+                "popup labels must be painted with the one light colour");
+            TestAssert.False(popupPaint.Contains("whiteSpace", StringComparison.Ordinal)
+                             || popupPaint.Contains("textOverflow", StringComparison.Ordinal),
+                "the fixed 28 px popup rows must keep vanilla nowrap/ellipsis (no overflow)");
+            TestAssert.True(popupPaint.Contains("catch (Exception)", StringComparison.Ordinal),
+                "popup painting must never throw into the entity panel");
+        }
+
+        /// <summary>A missing WorkerView template still yields a chip whose name label is filled.</summary>
+        public static void TestWorkerChipFallbackCarriesTheNameHook()
+        {
+            var widgets = ReadUiSources("Panels/HdbfPanelControls.Widgets.cs");
+            var fallback = Slice(widgets, "private static VisualElement CreateFallbackWorkerChip",
+                "}\n    }\n}");
+            TestAssert.True(fallback.Contains("label.name = \"Name\"", StringComparison.Ordinal),
+                "the fallback chip label must be findable via Q<Label>(\"Name\")");
+        }
+
+        /// <summary>
+        /// The shipped CSV contains quoted tooltips with commas; the test reader must not truncate
+        /// them (the previous naive Split(',') hid the truncation because no brace survived).
+        /// </summary>
+        public static void TestQuotedTooltipsAreParsedCompletely()
+        {
+            var en = LoadTexts("enUS");
+            var effective = en[HdbfUiLocKeys.TooltipEffectiveSlots];
+            TestAssert.True(effective.StartsWith("Effective slots", StringComparison.Ordinal),
+                "quoted tooltip truncated or mis-parsed: " + effective);
+            TestAssert.True(effective.Contains("{0}", StringComparison.Ordinal)
+                             && effective.Contains("{1}", StringComparison.Ordinal)
+                             && effective.Contains("{2}", StringComparison.Ordinal),
+                "all three placeholders of the quoted tooltip must survive parsing: " + effective);
+            TestAssert.False(effective.Contains('"'), "leading/trailing quotes must be stripped: " + effective);
+
+            var slots = Section(CreateData(IntermediateFixture(), "enUS"), HdbfPanelSectionKind.Slots);
+            var row = slots.Rows.Single(candidate => candidate.Label == "Effective P_eff");
+            TestAssert.True(row.Tooltip.Contains("min(150, 3 × 38)", StringComparison.Ordinal),
+                "the formatted tooltip must show capacity, crew and slots per farmer: " + row.Tooltip);
+        }
+
         // ------------------------------------------------------------------ fixtures / helpers
 
         private static IndoorFarmSnapshot IntermediateFixture()
@@ -528,6 +719,10 @@ namespace HDBF.Tests
                 Encoding.UTF8);
         }
 
+        /// <summary>
+        /// Minimal RFC-4180 reader (quoted fields may contain commas): the shipped CSV really has
+        /// quoted comma-bearing tooltips, a naive Split(',') silently truncates them.
+        /// </summary>
         private static Dictionary<string, string> LoadTexts(string language)
         {
             var resource = "HDBF.Tests.Localizations." + language + ".csv";
@@ -539,26 +734,83 @@ namespace HDBF.Tests
             }
 
             using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+            var rows = ParseCsv(reader.ReadToEnd());
             var texts = new Dictionary<string, string>(StringComparer.Ordinal);
-            var lines = reader.ReadToEnd().Replace("\r\n", "\n").Split('\n');
-            for (var index = 1; index < lines.Length; index++)
+            for (var index = 1; index < rows.Count; index++)
             {
-                var line = lines[index];
-                if (line.Trim().Length == 0)
+                var row = rows[index];
+                if (row.Length < 2 || row[0].Trim().Length == 0)
                 {
                     continue;
                 }
 
-                var comma = line.IndexOf(',');
-                if (comma <= 0)
-                {
-                    continue;
-                }
-
-                texts[line.Substring(0, comma).Trim()] = line.Substring(comma + 1).Split(',')[0];
+                texts[row[0].Trim()] = row[1];
             }
 
             return texts;
+        }
+
+        private static List<string[]> ParseCsv(string text)
+        {
+            var rows = new List<string[]>();
+            var fields = new List<string>();
+            var field = new StringBuilder();
+            var inQuotes = false;
+            for (var index = 0; index < text.Length; index++)
+            {
+                var character = text[index];
+                if (inQuotes)
+                {
+                    if (character == '"')
+                    {
+                        if (index + 1 < text.Length && text[index + 1] == '"')
+                        {
+                            field.Append('"');
+                            index++;
+                        }
+                        else
+                        {
+                            inQuotes = false;
+                        }
+                    }
+                    else
+                    {
+                        field.Append(character);
+                    }
+                }
+                else if (character == '"')
+                {
+                    inQuotes = true;
+                }
+                else if (character == ',')
+                {
+                    fields.Add(field.ToString());
+                    field.Clear();
+                }
+                else if (character == '\r')
+                {
+                    // Normalized away.
+                }
+                else if (character == '\n')
+                {
+                    fields.Add(field.ToString());
+                    field.Clear();
+                    rows.Add(fields.ToArray());
+                    fields.Clear();
+                }
+                else
+                {
+                    field.Append(character);
+                }
+            }
+
+            if (field.Length > 0 || fields.Count > 0)
+            {
+                fields.Add(field.ToString());
+                rows.Add(fields.ToArray());
+            }
+
+            return rows;
         }
 
         private static string RepoRoot()

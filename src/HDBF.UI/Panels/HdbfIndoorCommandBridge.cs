@@ -37,6 +37,8 @@ namespace HDBF.UI.Panels
         private readonly MethodInfo? _getSnapshot;
         private readonly MethodInfo? _setCropPolicy;
         private readonly MethodInfo? _requestRefill;
+        /// <summary>Reused invoke buffer of the 4 Hz snapshot query (no per-call array allocation).</summary>
+        private readonly object?[] _snapshotArgs = new object?[1];
 
         /// <summary>Resolves the v2 members of both DI singletons once; null arguments are allowed.</summary>
         /// <param name="queryService">The <c>IBoxFarmQuery</c> instance injected by DI.</param>
@@ -84,7 +86,9 @@ namespace HDBF.UI.Panels
 
             try
             {
-                return _getSnapshot.Invoke(_queryService, new object?[] { entityId }) as IndoorFarmSnapshot;
+                // Reused buffer: the 4 Hz read path must not allocate the invoke argument array.
+                _snapshotArgs[0] = entityId;
+                return _getSnapshot.Invoke(_queryService, _snapshotArgs) as IndoorFarmSnapshot;
             }
             catch (Exception)
             {

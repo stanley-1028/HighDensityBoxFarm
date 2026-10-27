@@ -1,6 +1,6 @@
 {
   "Name": "High-Density Box Farm",
-  "Version": "0.2.0",
+  "Version": "2.2.0",
   "Id": "HighDensityBoxFarm",
   "MinimumGameVersion": "1.0.0.0",
   "Description": "Four tiers of a 3x3x1 indoor box farm: 60/150/300/600 simulated indoor slots with a flat, stackable roof, an internal water tank (pipe or manual refill), and the full budget in beavers, water, maintenance and power.",

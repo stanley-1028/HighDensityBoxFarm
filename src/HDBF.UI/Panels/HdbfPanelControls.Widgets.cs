@@ -126,6 +126,8 @@ namespace HDBF.UI.Panels
             vacant.pickingMode = PickingMode.Ignore;
             root.Add(vacant);
             var label = CreateLabel(string.Empty, HdbfIndoorPanelStyle.WorkerName, 0f);
+            // Must carry the vanilla template name: CreateWorkerChip looks the name label up by it.
+            label.name = "Name";
             label.style.flexGrow = 1f;
             root.Add(label);
             return root;

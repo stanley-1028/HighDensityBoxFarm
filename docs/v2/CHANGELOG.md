@@ -1,8 +1,8 @@
 # HDBF v2 变更记录
 
-> **状态**：0.2.0 已实现（离线门禁全绿；实机覆盖范围见 VERIFICATION §26.3）
+> **状态**：2.2.0 已实现（离线门禁全绿；实机覆盖范围见 VERIFICATION §26.3）
 > **日期**：2026-10-26
-> **适用版本**：0.2.0
+> **适用版本**：2.2.0
 > **变更摘要**：v2.1 需求引入室内农场方案；本文件记录 v1→v2 的行为/数据/工程变更与实现状态。
 
 ## [0.2.1] — 2026-10-27（UI v2.4：按实机截图修正面板）
@@ -17,7 +17,8 @@
   间隙与滚动条槽透出。现在所有多类名逐条添加（`HdbfPanelControls.AddClasses`）、卡片满宽且无间距、
   滚动条 `ScrollerVisibility.Hidden`、根容器透明。
 * 【修复】全部面板文字统一暖白 `#F2EBDD`（`HdbfIndoorPanelStyle.LightTextRgba` +
-  `HdbfPanelControls.ApplyLightText`）；警告仍保留 图标 + `▲/!` 文本标记 + 3 px 色条三编码。
+  `HdbfPanelControls.ApplyLightText`；含原版 crop 下拉选中项与打开列表的重绘）；警告仍保留
+  图标 + `▲/!` 文本标记 + 3 px 色条三编码。
 * 【补回】水（水罐条/覆盖率 C 条 + C_min 标记/C_min/补水来源/缺水减产警告）、维护（到期日、逾期周期、
   材料需求行、缺料明细、停滞警告）、原版 RadioToggle 模式组 + 1 日过渡提示、输出占用原版 ProgressBar；
   输出端口与管道/物流/动力接口拆成独立行，全部文本可换行不再截断或重叠。
@@ -25,7 +26,28 @@
 * 【新增】三语键 `HDBF.Panel.MaintenanceMaterialLabel` / `...MaterialValue`（enUS/zhCN/zhTW 同为 187 键）。
 * 【测试】新增 `V2PanelVisualContractTests`（第二个 header/棕底/白色文字/ProgressBar/RadioToggle/
   按钮/端口分行/空缺 chip/三语键契约）；更新 `V2PanelContractTests`、`V2UiLiveWaterContractTests`、
-  `V2LocalizationTests`。L1 `PASSED 563 / FAILED 0`；HDBF.UI/HDBF.Gameplay 0 warning / 0 error。
+  `V2LocalizationTests`。L1 `PASSED 569 / FAILED 0`；HDBF.UI/HDBF.Gameplay 0 warning / 0 error。
+* 【修复·审计】原版进度条色调类 `progress-bar--green/red` 曾被与基类拼成一个字符串传给
+  `AddToClassList`（整串变成无效类名，填充色不生效）；现按单类逐个添加，条形恢复原版绿/红填充。
+* 【修复·审计】原版 crop 下拉的选中项与打开的下拉列表 Label 自带 `.dropdown-item__text` 灰色
+  （弹出列表由单例 `DropdownListDrawer` 持有，不在 Dropdown 子树内）：选中项在每次
+  `SetItems`/`UpdateSelectedValue` 后重新着白，弹出列表在 `Showed` 后经 panel 树重新着白；
+  固定 28px 的列表行保持原版 nowrap/ellipsis（面板行本身仍换行，D/H 才真正达标）。
+* 【修复·审计】`WorkerView` 模板缺失时 fallback chip 的姓名 Label 补上 `name="Name"`。
+* 【修复·审计】`HdbfIndoorCommandBridge` 复用 4 Hz 查询的 invoke 参数数组；README 修正“空闲零分配”
+  表述并登记 gameplay 侧每次查询新建快照的已知边界。
+* 【测试·审计】新增 5 项回归（多类名直传 `AddToClassList`、进度条单类色调、下拉重绘、fallback chip、
+  含引号逗号的 CSV 解析完整性）。
+## [2.2.0] — 2026-10-27（美术/UI 修订；与 0.2.0 行为一致）
+
+* **版本号对齐**：此前 mod 版本为 `0.2.0`，而美术/UI 修订在工程内部用 `v2.2` 命名，造成混淆；
+  自本版起 mod 版本统一为 **2.2.0**，与「需求 v2.1 + 美术/UI 修订 2.2」对齐。存档/配置 schema 不变（2）。
+* 【修改】美术：参考图驱动的材质分区/开窗比例/室内货架剪影（16 个 `.timbermesh` 重导出，128/128 校验）；
+  四档图标从新模型重渲染（`data/Icons/BoxFarm*.png`）。
+* 【修改】面板：改为原版 UXML/USS 控件；删除重复头部与棕/米黄大底；文字统一暖白 `#F2EBDD`；
+  水罐/覆盖率/维护/动力/模式/策略/输出分区与按钮补齐；实时覆盖率（满罐=100%，不再载入显示 0%）。
+* 门禁：L1 564/564、`build.ps1` 44 checks PASS。
+
 ## [0.2.0] — 2026-10-26（v2.1 实现完成；实机覆盖范围见 VERIFICATION §26.3）
 
 ### 变更（相对 v1.0.0 / 0.1.0）
