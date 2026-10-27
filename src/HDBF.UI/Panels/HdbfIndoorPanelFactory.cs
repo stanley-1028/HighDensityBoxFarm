@@ -51,19 +51,20 @@ namespace HDBF.UI.Panels
             var refillReason = RefillBlockedReason(snapshot, entranceBlocked, localize);
             var maintenanceReason = MaintenanceBlockedReason(snapshot, profile, localize);
 
+            var subtitle = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelSubtitle,
+                HdbfIndoorPanelFormat.Text(localize, HdbfIndoorPanelFormat.TierKey(snapshot.Tier)),
+                HdbfIndoorPanelFormat.Text(localize, HdbfIndoorPanelFormat.FactionKey(snapshot.Faction)));
             var data = new HdbfIndoorPanelData
             {
                 HasData = true,
-                Title = HdbfIndoorPanelFormat.Text(localize, BuildingKey(snapshot.Tier)),
-                Subtitle = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelSubtitle,
-                    HdbfIndoorPanelFormat.Text(localize, HdbfIndoorPanelFormat.TierKey(snapshot.Tier)),
-                    HdbfIndoorPanelFormat.Text(localize, HdbfIndoorPanelFormat.FactionKey(snapshot.Faction))),
-                ModeBadge = HdbfIndoorPanelFormat.Text(localize,
-                    HdbfIndoorPanelFormat.ModeKey(snapshot.Mode)),
+                // Requirement A: the vanilla entity panel header already shows the building icon,
+                // name and district. The fragment only adds the compact "tier · faction" subtitle
+                // row, so no second building name is ever rendered; the mode is the radio group.
+                MetaLine = subtitle,
+                MetaTooltip = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.TooltipCurrentMode),
                 ModeTransitionText = snapshot.ModeTransitioning
                     ? HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelModeTransition)
                     : string.Empty,
-                HeaderTooltip = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.TooltipWorkers),
                 Tier = snapshot.Tier,
                 Faction = snapshot.Faction,
                 Mode = snapshot.Mode,

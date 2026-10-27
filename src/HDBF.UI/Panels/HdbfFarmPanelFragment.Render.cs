@@ -1,13 +1,14 @@
 // ============================================================================
 // HDBF v2 | Layer: UI/Panels | Owner: V2-UI-01
 // Purpose: Applies the localized HdbfIndoorPanelData read model onto the vanilla UIElements tree:
-//          header card, the ordered cards (workers/efficiency, slots, water, maintenance, power,
-//          crop strategy, output), the action card and the one-line action result. No value
+//          the compact tier/faction subtitle row, the ordered cards (workers/efficiency,
+//          slots, water, maintenance, power, crop strategy, output) and the action card. No value
 //          formatting happens here: every string was produced by the pure factory from the Core
-//          snapshot, and state is always shown as text, never by colour alone.
+//          snapshot. The scroller height is re-measured at most 4 times per second so the action
+//          card stays reachable on every window size (requirement F), and state is always shown as
+//          text, never by colour alone.
 // Requirements: REQ-V2-UI-01/02/03/04, REQ-V2-READ-04, REQ-V2-WATER-03
 // ============================================================================
-using System.Collections.Generic;
 using HDBF.UI.Localization;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -30,31 +31,19 @@ namespace HDBF.UI.Panels
             }
 
             _lastData = data;
-            RenderHeader(data);
             RenderCards(data);
             RenderActions(data);
             RenderActionMessage(_actionMessage);
+            UpdateScrollHeight();
+            if (_resetScrollOnNextRender && _scroll is not null)
+            {
+                // A newly selected farm always opens at the top of the card stack (the reported
+                // "missing sections" screenshot was the previous selection's scroll position).
+                _resetScrollOnNextRender = false;
+                _scroll.scrollOffset = Vector2.zero;
+            }
+
             _root.style.display = DisplayStyle.Flex;
-        }
-
-        private void RenderHeader(HdbfIndoorPanelData data)
-        {
-            Set(_title, data.Title);
-            Set(_subtitle, data.Subtitle);
-            Set(_modeBadge, data.ModeBadge);
-            SetOptional(_modeTransition, data.ModeTransitionText);
-            _modeToggle?.Update((int)data.Mode);
-
-            if (_headerIcon is not null)
-            {
-                // Null sprite (no badge/icon) keeps the vanilla avatar frame; nothing throws.
-                _headerIcon.sprite = _avatarSprite;
-            }
-
-            if (_headerCard is not null)
-            {
-                HdbfPanelControls.SetTooltip(_headerCard, data.HeaderTooltip);
-            }
         }
 
         private void RenderCards(HdbfIndoorPanelData data)
@@ -69,9 +58,15 @@ namespace HDBF.UI.Panels
             {
                 var section = data.Sections[index];
                 var card = HdbfPanelControls.CreateCard(section.Tone);
-                card.Add(HdbfPanelControls.CreateSectionTitle(section, _icons));
+                if (section.Kind == HdbfPanelSectionKind.Workers)
+                {
+                    // Requirement A: the compact tier/faction/mode line sits directly under the
+                    // vanilla header as the first card row; the building name is never repeated.
+                    card.Add(HdbfPanelControls.CreateMetaRow(data.MetaLine, data.MetaTooltip, _icons));
+                }
 
-                var critical = section.Kind == HdbfPanelSectionKind.Water && HasWarning(section.Rows);
+                card.Add(HdbfPanelControls.CreateTitleRow(section.Title, section.IconKey, _icons));
+                var critical = section.Tone == "red";
                 VisualElement? cropPolicyRow = null;
                 for (var rowIndex = 0; rowIndex < section.Rows.Count; rowIndex++)
                 {
@@ -84,7 +79,7 @@ namespace HDBF.UI.Panels
                         continue;
                     }
 
-                    var rowElement = HdbfPanelControls.CreateRow(row, _icons, out _);
+                    var rowElement = HdbfPanelControls.CreateRow(row, _icons, out var valueLabel);
                     RegisterTooltip(rowElement, row.Tooltip);
                     card.Add(rowElement);
                     if (row.HasBar)
@@ -95,6 +90,12 @@ namespace HDBF.UI.Panels
                     if (section.Kind == HdbfPanelSectionKind.Crops && cropPolicyRow is null)
                     {
                         cropPolicyRow = rowElement;
+                        if (_cropDropdown is not null)
+                        {
+                            // The vanilla dropdown shows the current policy itself; hiding the
+                            // static value avoids the duplicated "auto rotation [auto rotation]".
+                            valueLabel.style.display = DisplayStyle.None;
+                        }
                     }
                 }
 
@@ -121,19 +122,21 @@ namespace HDBF.UI.Panels
             roster.style.marginTop = 4f;
             for (var index = 0; index < data.WorkerChips.Count; index++)
             {
-                var chip = HdbfPanelControls.CreateWorkerChip(_visualElementLoader, data.WorkerChips[index], _icons);
+                var chip = HdbfPanelControls.CreateWorkerChip(_visualElementLoader,
+                    data.WorkerChips[index], _icons);
                 RegisterTooltip(chip, data.WorkerChips[index].Tooltip);
                 roster.Add(chip);
             }
 
             card.Add(roster);
 
-            var note = new Label(data.WorkerRosterNote);
-            note.AddToClassList(HdbfIndoorPanelStyle.SubText);
-            note.style.whiteSpace = WhiteSpace.Normal;
+            var note = HdbfPanelControls.CreateLabel(data.WorkerRosterNote,
+                HdbfIndoorPanelStyle.SubText, 12f);
             note.style.marginTop = 2f;
             card.Add(note);
 
+            // Vanilla RadioToggle mode group (requirement F) + the one-day transition sentence.
+            _modeToggle?.Update((int)data.Mode);
             if (_modeHost is not null)
             {
                 card.Add(_modeHost);
@@ -141,12 +144,18 @@ namespace HDBF.UI.Panels
 
             if (_modeTransition is not null)
             {
+                SetOptional(_modeTransition, data.ModeTransitionText);
                 card.Add(_modeTransition);
             }
         }
 
         private void RenderActions(HdbfIndoorPanelData data)
         {
+            if (_actionTitle is not null)
+            {
+                _actionTitle.text = _loc.T(HdbfUiLocKeys.PanelSectionActions);
+            }
+
             if (_refillButton is not null)
             {
                 _refillButton.text = _loc.T(HdbfUiLocKeys.ActionRefill);
@@ -187,17 +196,61 @@ namespace HDBF.UI.Panels
             RenderActionMessage(_actionMessage);
         }
 
-        private static bool HasWarning(IReadOnlyList<HdbfPanelRow> rows)
+        /// <summary>
+        /// Re-measures the card scroller so the action card always fits the current window: the
+        /// scroll view takes the space between the (vanilla) fragments above it and the action card,
+        /// clamped to a sane range. Cheap and allocation free; called from the 4 Hz update gate and
+        /// only writes the style when the value actually changed.
+        /// </summary>
+        private void UpdateScrollHeight()
         {
-            for (var index = 0; index < rows.Count; index++)
+            if (_scroll is null || _root is null)
             {
-                if (rows[index].IsWarning)
-                {
-                    return true;
-                }
+                return;
             }
 
-            return false;
+            float limit;
+            try
+            {
+                var scale = _root.panel?.scaledPixelsPerPoint ?? 1f;
+                if (scale <= 0f || float.IsNaN(scale) || float.IsInfinity(scale))
+                {
+                    scale = 1f;
+                }
+
+                var screenPoints = Screen.height / scale;
+                var top = _root.worldBound.y;
+                if (float.IsNaN(top) || float.IsInfinity(top) || top <= 0f)
+                {
+                    // Not laid out yet: fall back to the vanilla panel top plus the header area.
+                    top = 380f;
+                }
+
+                var actionHeight = _actionCard is null
+                                   || float.IsNaN(_actionCard.resolvedStyle.height)
+                                   || _actionCard.resolvedStyle.height < 40f
+                    ? 150f
+                    : _actionCard.resolvedStyle.height;
+                limit = screenPoints - top - actionHeight - BottomReserve;
+            }
+            catch (System.Exception)
+            {
+                limit = InitialScrollHeight;
+            }
+
+            if (float.IsNaN(limit) || float.IsInfinity(limit))
+            {
+                limit = InitialScrollHeight;
+            }
+
+            limit = Mathf.Clamp(limit, MinScrollHeight, MaxScrollHeight);
+            if (Mathf.Abs(limit - _lastScrollHeight) < 1f)
+            {
+                return;
+            }
+
+            _lastScrollHeight = limit;
+            _scroll.style.maxHeight = limit;
         }
 
         /// <summary>Registers the vanilla hover tooltip of a freshly created row/chip element.</summary>
@@ -206,14 +259,6 @@ namespace HDBF.UI.Panels
             if (!string.IsNullOrEmpty(tooltip))
             {
                 _tooltips.Register(element, tooltip!);
-            }
-        }
-
-        private static void Set(Label? label, string text)
-        {
-            if (label is not null)
-            {
-                label.text = text ?? string.Empty;
             }
         }
 

@@ -1,4 +1,4 @@
-﻿ID,Text,Comment
+ID,Text,Comment
 HDBF.Building.BoxFarm.Basic.Name,高密度盒子農場（基礎版）,v2 UI
 HDBF.Building.BoxFarm.Intermediate.Name,高密度盒子農場（中級版）,v2 UI
 HDBF.Building.BoxFarm.Advanced.Name,高密度盒子農場（高級版）,v2 UI
@@ -167,6 +167,8 @@ HDBF.Panel.MinCoverageLabel,下限 C_min,v2 UI
 HDBF.Panel.SupplyLabel,補水來源,v2 UI
 HDBF.Panel.MaintenanceDueLabel,到期日,v2 UI
 HDBF.Panel.MaintenanceCyclesLabel,逾期週期,v2 UI
+HDBF.Panel.MaintenanceMaterialLabel,維護材料,v2 UI
+HDBF.Panel.MaintenanceMaterialValue,{0} ×{1} / {2} 日,v2 UI
 HDBF.Panel.PowerLabel,動力,v2 UI
 HDBF.Panel.CropPolicyLabel,當前策略,v2 UI
 HDBF.Panel.FixedCropLabel,固定作物,v2 UI

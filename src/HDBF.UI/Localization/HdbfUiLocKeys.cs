@@ -73,6 +73,10 @@ namespace HDBF.UI.Localization
         public const string PanelSupplyLabel = "HDBF.Panel.SupplyLabel";
         public const string PanelMaintenanceDueLabel = "HDBF.Panel.MaintenanceDueLabel";
         public const string PanelMaintenanceCyclesLabel = "HDBF.Panel.MaintenanceCyclesLabel";
+        /// <summary>Label of the always-visible upkeep-material requirement row (requirement F).</summary>
+        public const string PanelMaintenanceMaterialLabel = "HDBF.Panel.MaintenanceMaterialLabel";
+        /// <summary>"material ×count / cycle days" value of the upkeep-material row.</summary>
+        public const string PanelMaintenanceMaterialValue = "HDBF.Panel.MaintenanceMaterialValue";
         public const string PanelPowerLabel = "HDBF.Panel.PowerLabel";
         public const string PanelCropPolicyLabel = "HDBF.Panel.CropPolicyLabel";
         public const string PanelFixedCropLabel = "HDBF.Panel.FixedCropLabel";

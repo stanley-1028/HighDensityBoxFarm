@@ -1,16 +1,15 @@
 // ============================================================================
 // HDBF v2 | Layer: UI/Panels | Owner: V2-UI-01
 // Purpose: Builders of the individual vanilla UIElements the v2 panel is composed from: cards
-//          (NineSliceVisualElement + sub-box classes), section titles, icon+label+value rows,
-//          progress bars (core ProgressBar with its value label and C_min marker), warning rows
-//          (status-list structure), the badge, game buttons and worker chips. Buttons and worker
-//          chips are instantiated from the SHIPPED vanilla UXML templates (DebugButton.uxml /
-//          WorkerView.uxml) through VisualElementLoader, so the gold frame/hover/green chip styling
-//          is the original one; only addToClassList() and layout styles are added on top.
+//          (NineSliceVisualElement + sub-box classes), section titles, the compact tier/faction
+//          subtitle row, icon+label+value rows, progress bars (core ProgressBar with its value
+//          label and C_min marker) and warning rows (status-list structure + a colour accent
+//          strip). Buttons and worker chips live in HdbfPanelControls.Widgets.cs.
+//          Every text element is painted with ONE light colour (HdbfPanelControls.ApplyLightText),
+//          never with per-row hard-coded colours, and every class list is applied one class at a
+//          time (VisualElement.AddToClassList takes a single class name).
 // Requirements: REQ-V2-UI-01/02/03, REQ-V2-READ-04
 // ============================================================================
-using System;
-using HDBF.UI.Localization;
 using Timberborn.CoreUI;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -22,9 +21,73 @@ namespace HDBF.UI.Panels
     /// Factory of the vanilla controls and row structures of the v2 panel. Every class name comes
     /// from <see cref="HdbfIndoorPanelStyle"/> (copied from the shipped vanilla UXML/USS).
     /// </summary>
-    public static class HdbfPanelControls
+    public static partial class HdbfPanelControls
     {
-        /// <summary>Creates a vanilla sub-panel card with the requested tone.</summary>
+        /// <summary>
+        /// Panel text colour: warm white #F2EBDD. Vanilla ships no ".text--white" class, so the
+        /// fragment sets this one colour explicitly on every text it creates; this keeps the
+        /// requirement-D rule in a single place (no per-row colours, no dark fallback).
+        /// </summary>
+        public static readonly Color LightText = FromRgba(HdbfIndoorPanelStyle.LightTextRgba);
+
+        /// <summary>
+        /// Warning accent strip colour #C4562B: the second encoding that survives "all text is
+        /// light" (the icon and the "▲/!" marker are the first and third, requirement I).
+        /// </summary>
+        public static readonly Color WarningAccent = FromRgba(HdbfIndoorPanelStyle.WarningAccentRgba);
+
+        /// <summary>Adds every class of a space separated vanilla class list, one call per name.</summary>
+        /// <param name="element">Target element.</param>
+        /// <param name="classNames">Vanilla class list, e.g. "entity-panel__text text--bold".</param>
+        public static void AddClasses(VisualElement element, string? classNames)
+        {
+            if (element is null)
+            {
+                return;
+            }
+
+            var names = HdbfIndoorPanelStyle.Split(classNames);
+            for (var index = 0; index < names.Length; index++)
+            {
+                element.AddToClassList(names[index]);
+            }
+        }
+
+        /// <summary>
+        /// Paints one element (and, through USS inheritance, its children) with the light panel
+        /// text colour. Called on every text element this factory creates so a missing/renamed
+        /// vanilla colour class can never leave dark text on a dark card (requirement D).
+        /// </summary>
+        /// <param name="element">Element to paint.</param>
+        public static void ApplyLightText(VisualElement element)
+        {
+            if (element is not null)
+            {
+                element.style.color = new StyleColor(LightText);
+            }
+        }
+
+        /// <summary>Creates a label with the vanilla class list, the light colour and wrapping.</summary>
+        /// <param name="text">Localized text.</param>
+        /// <param name="classNames">Vanilla class list or empty.</param>
+        /// <param name="fontSize">Font size in points; 0 keeps the vanilla class size.</param>
+        /// <returns>Ready-to-add label.</returns>
+        public static Label CreateLabel(string text, string? classNames, float fontSize)
+        {
+            var label = new Label(text);
+            AddClasses(label, classNames);
+            ApplyLightText(label);
+            label.style.whiteSpace = WhiteSpace.Normal;
+            label.style.flexShrink = 1f;
+            if (fontSize > 0f)
+            {
+                label.style.fontSize = fontSize;
+            }
+
+            return label;
+        }
+
+        /// <summary>Creates a vanilla sub-panel card with the requested tone (no gap between cards).</summary>
         /// <param name="tone">"green", "blue", "purple" or "red".</param>
         /// <returns>A NineSliceVisualElement that draws the vanilla card frame.</returns>
         public static NineSliceVisualElement CreateCard(string tone)
@@ -32,47 +95,50 @@ namespace HDBF.UI.Panels
             var card = new NineSliceVisualElement();
             card.AddToClassList(HdbfIndoorPanelStyle.Card);
             card.AddToClassList(HdbfIndoorPanelStyle.CardTone(tone));
-            card.style.marginBottom = 4f;
             return card;
         }
-        /// <summary>Creates the vanilla badge box (green sub-box frame + bold text).</summary>
-        /// <param name="text">Localized badge text (the current mode).</param>
-        /// <returns>Badge element.</returns>
-        public static VisualElement CreateBadge(string text, out Label label)
-        {
-            var badge = new NineSliceVisualElement();
-            badge.AddToClassList("bg-box--green");
-            badge.style.paddingLeft = 6f;
-            badge.style.paddingRight = 6f;
-            badge.style.paddingTop = 1f;
-            badge.style.paddingBottom = 1f;
-            badge.style.marginLeft = 4f;
-            badge.style.alignSelf = Align.Center;
 
-            label = new Label(text);
-            label.AddToClassList(HdbfIndoorPanelStyle.RowValue);
-            badge.Add(label);
-            return badge;
-        }
         /// <summary>Creates the title row of a card (vanilla 24 px icon + heading text).</summary>
-        /// <param name="section">Card model with its title and semantic icon key.</param>
+        /// <param name="title">Localized card title.</param>
+        /// <param name="iconKey">Semantic icon key of the card title.</param>
         /// <param name="icons">Sprite cache of this panel.</param>
         /// <returns>Row element ready to be added to the card.</returns>
-        public static VisualElement CreateSectionTitle(HdbfPanelSection section, HdbfPanelIcons icons)
+        public static VisualElement CreateTitleRow(string title, string iconKey, HdbfPanelIcons icons)
         {
             var row = CreateRowContainer();
-            AddIcon(row, section.IconKey, icons);
-            var title = new Label(section.Title);
-            title.AddToClassList(HdbfIndoorPanelStyle.SectionTitle);
-            title.style.flexGrow = 1f;
-            title.style.flexShrink = 1f;
-            row.Add(title);
+            AddIcon(row, iconKey, icons);
+            var label = CreateLabel(title, HdbfIndoorPanelStyle.SectionTitle, 15f);
+            label.style.flexGrow = 1f;
+            row.Add(label);
             row.style.marginBottom = 4f;
             return row;
         }
+
         /// <summary>
-        /// Creates one "icon + label + value" row. The value label is returned so the caller can
-        /// re-set it without rebuilding the tree (no per-frame allocation).
+        /// Creates the compact subtitle row that replaces the deleted duplicate header: one line
+        /// "tier · faction · mode" under the vanilla entity header (requirement A). The building
+        /// name is NOT repeated here; the vanilla header already shows it.
+        /// </summary>
+        /// <param name="text">Localized "tier · faction · mode" line.</param>
+        /// <param name="tooltip">Localized hover text; empty clears nothing.</param>
+        /// <param name="icons">Sprite cache of this panel.</param>
+        /// <returns>The subtitle row.</returns>
+        public static VisualElement CreateMetaRow(string text, string? tooltip, HdbfPanelIcons icons)
+        {
+            var row = CreateRowContainer();
+            AddIcon(row, "mode", icons);
+            var label = CreateLabel(text, HdbfIndoorPanelStyle.RowValue, 12f);
+            label.style.flexGrow = 1f;
+            row.Add(label);
+            SetTooltip(row, tooltip);
+            row.style.marginBottom = 2f;
+            return row;
+        }
+
+        /// <summary>
+        /// Creates one "icon + label + value" row. Both text elements wrap and shrink, so a long
+        /// localized value (ports, rotation sequence) is always fully visible instead of being cut
+        /// off or overlapped (requirement H).
         /// </summary>
         /// <param name="row">Row model.</param>
         /// <param name="icons">Sprite cache of this panel.</param>
@@ -82,30 +148,28 @@ namespace HDBF.UI.Panels
         {
             var root = CreateRowContainer();
             AddIcon(root, row.IconKey, icons);
-            var label = new Label(row.IsWarning ? row.Marker + " " + row.Label : row.Label);
-            label.AddToClassList(row.IsWarning
-                ? HdbfIndoorPanelStyle.WarningText
-                : HdbfIndoorPanelStyle.RowLabel);
+            var label = CreateLabel(row.IsWarning ? row.Marker + " " + row.Label : row.Label,
+                row.IsWarning ? HdbfIndoorPanelStyle.WarningText : HdbfIndoorPanelStyle.RowLabel, 0f);
             label.style.flexGrow = 1f;
-            label.style.flexShrink = 1f;
             root.Add(label);
 
-            valueLabel = new Label(row.Value);
-            valueLabel.AddToClassList(HdbfIndoorPanelStyle.RowValue);
+            valueLabel = CreateLabel(row.Value, HdbfIndoorPanelStyle.RowValue, 0f);
             valueLabel.style.unityTextAlign = TextAnchor.MiddleRight;
-            valueLabel.style.flexShrink = 0f;
-            valueLabel.style.marginLeft = 4f;
+            valueLabel.style.flexShrink = 1f;
+            valueLabel.style.minWidth = 0f;
+            valueLabel.style.marginLeft = 6f;
             root.Add(valueLabel);
 
             SetTooltip(root, row.Tooltip);
             return root;
         }
+
         /// <summary>
         /// Creates the vanilla progress bar of a row, including its in-bar value/unit label and the
         /// optional C_min marker. The returned bar is ready to add below the row element.
         /// </summary>
         /// <param name="row">Row model with <see cref="HdbfPanelRow.HasBar"/> set.</param>
-        /// <param name="critical">True for the red fill variant (critical water).</param>
+        /// <param name="critical">True for the red fill variant (critical coverage).</param>
         /// <returns>The vanilla ProgressBar control.</returns>
         public static CoreProgressBar CreateBar(HdbfPanelRow row, bool critical)
         {
@@ -116,10 +180,12 @@ namespace HDBF.UI.Panels
                 : HdbfIndoorPanelStyle.ProgressBarGreen);
             bar.style.marginTop = 2f;
             bar.style.marginBottom = 2f;
+            bar.style.minHeight = 24f;
             bar.SetProgress(HdbfIndoorPanelLimits.Fill(row.Bar));
 
-            var text = new Label(row.BarText);
-            text.AddToClassList(HdbfIndoorPanelStyle.ProgressText);
+            var text = CreateLabel(row.BarText, HdbfIndoorPanelStyle.ProgressText, 12f);
+            text.style.unityTextAlign = TextAnchor.MiddleCenter;
+            text.style.whiteSpace = WhiteSpace.Normal;
             bar.contentContainer.Add(text);
 
             if (!float.IsNaN(row.BarMarker))
@@ -133,7 +199,12 @@ namespace HDBF.UI.Panels
 
             return bar;
         }
-        /// <summary>Creates a vanilla status row: warning icon + the localized sentence.</summary>
+
+        /// <summary>
+        /// Creates a vanilla status row: a colour accent strip, the warning icon and the localized
+        /// sentence. Colour is never the only carrier - the row keeps its icon and its "▲/!" text
+        /// marker, and the strip is only the third encoding (requirement I).
+        /// </summary>
         /// <param name="row">Warning row model.</param>
         /// <param name="icons">Sprite cache of this panel.</param>
         /// <returns>Status row element.</returns>
@@ -141,110 +212,35 @@ namespace HDBF.UI.Panels
         {
             var root = new VisualElement();
             root.AddToClassList(HdbfIndoorPanelStyle.WarningRow);
+
+            var strip = new VisualElement();
+            strip.style.width = 3f;
+            strip.style.marginRight = 6f;
+            strip.style.alignSelf = Align.Stretch;
+            strip.style.backgroundColor = new StyleColor(WarningAccent);
+            strip.pickingMode = PickingMode.Ignore;
+            root.Add(strip);
+
             var icon = new Image { sprite = icons.Get(row.IconKey) };
             icon.AddToClassList(HdbfIndoorPanelStyle.WarningIcon);
             icon.pickingMode = PickingMode.Ignore;
             root.Add(icon);
 
-            var text = new Label(row.Marker + " " + row.Label);
-            text.AddToClassList(HdbfIndoorPanelStyle.WarningText);
+            var text = CreateLabel(row.Marker + " " + row.Label, HdbfIndoorPanelStyle.WarningText, 0f);
             text.style.flexGrow = 1f;
-            text.style.flexShrink = 1f;
             root.Add(text);
             SetTooltip(root, row.Tooltip);
             return root;
         }
 
-        /// <summary>
-        /// Creates a vanilla game button: the shipped DebugButton UXML is a plain NineSliceButton
-        /// with the <c>button-game</c> class, so the gold nine-slice frame, hover and click sound are
-        /// the original ones. A missing template degrades to a plain Button with the same classes.
-        /// </summary>
-        /// <param name="loader">Vanilla UXML loader from the game container.</param>
-        /// <param name="text">Localized button label.</param>
-        /// <param name="onClick">Click callback.</param>
-        /// <returns>Focusable vanilla button.</returns>
-        public static Button CreateButton(VisualElementLoader loader, string text, Action onClick)
+        /// <summary>Creates a hidden-by-default note label for inline reasons and the action result.</summary>
+        /// <param name="text">Initial localized text.</param>
+        /// <returns>Light, wrapping label with display:none.</returns>
+        public static Label CreateNoteLabel(string text)
         {
-            Button? button = null;
-            try
-            {
-                button = loader.LoadVisualElement(HdbfIndoorPanelStyle.ButtonTemplate) as Button;
-            }
-            catch (Exception)
-            {
-                // A missing template is not a panel failure; the plain Button below still works.
-            }
-
-            button ??= new Button();
-            button.text = text;
-            button.focusable = true;
-            button.AddToClassList(HdbfIndoorPanelStyle.Button);
-            button.RemoveFromClassList("debug-fragment__button");
-            if (onClick is not null)
-            {
-                button.clicked += onClick;
-            }
-
-            return button;
-        }
-
-        /// <summary>
-        /// Creates one read-only worker chip from the shipped WorkerView UXML (vanilla avatar slot,
-        /// name and vacant warning triangle). The chip is disabled so it never looks editable, and
-        /// a missing template falls back to a plain worker-view row.
-        /// </summary>
-        /// <param name="loader">Vanilla UXML loader from the game container.</param>
-        /// <param name="chip">Chip model.</param>
-        /// <param name="icons">Sprite cache of this panel.</param>
-        /// <returns>Worker chip element.</returns>
-        public static VisualElement CreateWorkerChip(VisualElementLoader loader, HdbfWorkerChip chip,
-            HdbfPanelIcons icons)
-        {
-            VisualElement? root = null;
-            try
-            {
-                root = loader.LoadVisualElement(HdbfIndoorPanelStyle.WorkerChipTemplate);
-            }
-            catch (Exception)
-            {
-                // Fall through to the plain structure below.
-            }
-
-            root ??= CreateFallbackWorkerChip();
-            var name = root.Q<Label>("Name");
-            if (name is not null)
-            {
-                name.text = chip.Name;
-            }
-
-            var vacantIcon = root.Q<VisualElement>("VacantIcon");
-            if (vacantIcon is not null)
-            {
-                vacantIcon.style.display = chip.Vacant ? DisplayStyle.Flex : DisplayStyle.None;
-            }
-
-            var avatar = root.Q<Button>("CharacterButton");
-            if (avatar is not null)
-            {
-                var sprite = chip.Vacant ? null : icons.Get("worker");
-                avatar.style.display = sprite is null ? DisplayStyle.None : DisplayStyle.Flex;
-                if (sprite is not null)
-                {
-                    avatar.style.backgroundImage = new StyleBackground(sprite);
-                }
-            }
-
-            if (root is Button chipButton)
-            {
-                // Vanilla .worker-view:disabled keeps opacity 1, so the chip reads as a normal row
-                // while being honestly read-only (no click action is registered).
-                chipButton.focusable = false;
-                chipButton.SetEnabled(false);
-            }
-
-            SetTooltip(root, chip.Tooltip);
-            return root;
+            var label = CreateLabel(text, HdbfIndoorPanelStyle.SubText, 12f);
+            label.style.display = DisplayStyle.None;
+            return label;
         }
 
         /// <summary>Adds the localized tooltip to an element, ignoring empty text.</summary>
@@ -258,35 +254,24 @@ namespace HDBF.UI.Panels
             }
         }
 
-        private static VisualElement CreateFallbackWorkerChip()
-        {
-            var root = new VisualElement();
-            root.AddToClassList(HdbfIndoorPanelStyle.WorkerView);
-            var vacant = new VisualElement();
-            vacant.AddToClassList(HdbfIndoorPanelStyle.WorkerVacant);
-            vacant.pickingMode = PickingMode.Ignore;
-            root.Add(vacant);
-            var label = new Label();
-            label.AddToClassList(HdbfIndoorPanelStyle.WorkerName);
-            label.style.flexGrow = 1f;
-            label.style.flexShrink = 1f;
-            root.Add(label);
-            return root;
-        }
-
-        private static VisualElement CreateRowContainer()
+        /// <summary>Creates a vanilla row container with the standard row class.</summary>
+        /// <returns>Empty row container.</returns>
+        public static VisualElement CreateRowContainer()
         {
             var row = new VisualElement();
             row.AddToClassList(HdbfIndoorPanelStyle.Row);
             return row;
         }
 
-        private static void AddIcon(VisualElement parent, string iconKey, HdbfPanelIcons icons)
+        /// <summary>Adds the vanilla 24 px icon of a row; a missing sprite simply omits the Image.</summary>
+        /// <param name="parent">Row element.</param>
+        /// <param name="iconKey">Semantic icon key.</param>
+        /// <param name="icons">Sprite cache of this panel.</param>
+        public static void AddIcon(VisualElement parent, string iconKey, HdbfPanelIcons icons)
         {
             var sprite = icons.Get(iconKey);
             if (sprite is null)
             {
-                // Icon missing is not an error: the row still renders, just without the picture.
                 return;
             }
 
@@ -294,6 +279,15 @@ namespace HDBF.UI.Panels
             image.AddToClassList(HdbfIndoorPanelStyle.RowIcon);
             image.pickingMode = PickingMode.Ignore;
             parent.Add(image);
+        }
+
+        private static Color FromRgba(uint rgba)
+        {
+            return new Color32(
+                (byte)(rgba >> 24),
+                (byte)(rgba >> 16),
+                (byte)(rgba >> 8),
+                (byte)rgba);
         }
     }
 }

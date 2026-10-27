@@ -81,8 +81,11 @@ namespace HDBF.Tests
         /// </summary>
         public static void TestPanelDerivesIrrigationFromLiveCoverage()
         {
+            // The water card builder moved to its own partial (300-line soft gate); read the whole
+            // read-model family so the contract stays independent of how the factory is split.
             var source = ReadUiPanelSource("HdbfIndoorPanelFactory.cs")
-                         + ReadUiPanelSource("HdbfIndoorPanelFactory.Cards.cs");
+                         + ReadUiPanelSource("HdbfIndoorPanelFactory.Cards.cs")
+                         + ReadUiPanelSource("HdbfIndoorPanelFactory.Cards.Water.cs");
             TestAssert.True(source.Contains("IndoorWaterMath.IrrigationMultiplier", StringComparison.Ordinal),
                 "the panel must use the Core G_irr formula instead of guessing a percentage");
             TestAssert.True(source.Contains("irrigation < 0.999f", StringComparison.Ordinal),

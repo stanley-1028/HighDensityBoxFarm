@@ -38,6 +38,10 @@ namespace HDBF.UI.Panels
                 dropdown.Initialize(_dropdownListDrawer);
                 dropdown.Localize(_loc);
                 dropdown.style.flexGrow = 1f;
+                dropdown.style.flexShrink = 1f;
+                dropdown.style.fontSize = 13f;
+                // The dropdown's own labels inherit this colour (requirement D: no dark text).
+                HdbfPanelControls.ApplyLightText(dropdown);
                 _cropProvider.Selected += OnCropSelected;
                 _tooltips.Register(dropdown, () => _lastData?.CropTooltip ?? string.Empty);
                 _cropDropdown = dropdown;

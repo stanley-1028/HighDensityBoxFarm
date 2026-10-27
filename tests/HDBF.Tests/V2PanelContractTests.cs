@@ -89,18 +89,29 @@ namespace HDBF.Tests
 
         // ------------------------------------------------------------------ header / workers
 
-        public static void TestHeaderRendersNameSubtitleModeBadgeAndTierIcon()
+        public static void TestCompactSubtitleRowReplacesTheDeletedDuplicateHeader()
         {
             var data = CreateData(IntermediateFixture(), out _);
-            TestAssert.Equal("High-Density Box Farm (Intermediate)", data.Title);
-            TestAssert.Equal("Intermediate · IronTeeth", data.Subtitle);
-            TestAssert.Equal("Dense planting", data.ModeBadge);
-            TestAssert.Equal("Mode changing; output is reduced today.", data.ModeTransitionText);
+            // Requirement A: the vanilla EntityPanel header already shows the building icon, name
+            // and district; the fragment only adds this compact line and never repeats the name.
+            TestAssert.Equal("Intermediate · IronTeeth", data.MetaLine);
+            TestAssert.False(data.MetaLine.Contains("Dense", StringComparison.Ordinal),
+                "the mode is not repeated in the compact subtitle row (it is the radio group)");
+            TestAssert.True(data.MetaTooltip.Length > 0);
             TestAssert.Equal(HdbfTier.Intermediate, data.Tier);
             TestAssert.Equal(IndoorMode.Dense, data.Mode);
 
-            // Header icon: the panel uses the vanilla avatar of the building, i.e. the tier icon of
-            // the blueprint; the mapping is pinned here so a tier mix-up is caught offline.
+            // The duplicated-header fields are gone from the read model entirely.
+            var properties = typeof(HdbfIndoorPanelData).GetProperties()
+                .Select(property => property.Name).ToArray();
+            foreach (var removed in new[] { "Title", "ModeBadge", "HeaderTooltip" })
+            {
+                TestAssert.False(properties.Contains(removed, StringComparer.Ordinal),
+                    "the duplicate-header field " + removed + " must be deleted (requirement A)");
+            }
+
+            // Header icons still are the v2.2 tier renders of the blueprint; the vanilla header
+            // draws them, the fragment does not add a second one (requirement L: icons unchanged).
             TestAssert.Equal("Icons/BoxFarmBasic", HdbfIndoorPanelStyle.TierIconAsset(HdbfTier.Basic));
             TestAssert.Equal("Icons/BoxFarmIntermediate",
                 HdbfIndoorPanelStyle.TierIconAsset(HdbfTier.Intermediate));
@@ -242,12 +253,56 @@ namespace HDBF.Tests
                 HdbfPanelSectionKind.Maintenance);
             TestAssert.Equal("24.5", Row(maintenance, "Next due day").Value);
             TestAssert.Equal("1", Row(maintenance, "Overdue cycles").Value);
+            // Requirement F: the upkeep-material requirement row is always present, not only when
+            // the material is missing (Intermediate: 8 plank per 10-day cycle).
+            TestAssert.Equal("Plank ×8 / 10 days", Row(maintenance, "Upkeep material").Value);
             var warning = maintenance.Rows[0];
             TestAssert.True(warning.IsWarning);
             TestAssert.True(warning.Label.Contains("Maintenance material missing", StringComparison.Ordinal),
                 warning.Label);
             TestAssert.True(warning.Label.Contains("Missing materials: Plank ×8", StringComparison.Ordinal),
                 "the missing material and count are named: " + warning.Label);
+        }
+
+        public static void TestMaterialFreeTierShowsTheNoneValueInTheMaterialRow()
+        {
+            var basic = IntermediateFixture() with
+            {
+                Tier = HdbfTier.Basic,
+                Faction = HdbfFaction.Folktails,
+                Warnings = IndoorWarningFlags.None,
+                MaintenanceMaterialMissing = false,
+                MaintenanceCyclesMissed = 0,
+            };
+            var maintenance = Section(CreateData(basic, out _), HdbfPanelSectionKind.Maintenance);
+            TestAssert.Equal("No material upkeep", Row(maintenance, "Upkeep material").Value,
+                "the material row explains a material-free tier instead of disappearing");
+        }
+
+        public static void TestMaintenanceMaterialRowsForAdvancedAndOffGridTop()
+        {
+            // Requirement F: Advanced = 6 metal per 10-day cycle; Top off-grid = 15 metal / 8 days.
+            var advanced = Section(CreateData(IntermediateFixture() with
+            {
+                Tier = HdbfTier.Advanced,
+                Power = PowerConnection.NotRequired,
+                PowerConnected = false,
+                Warnings = IndoorWarningFlags.None,
+                MaintenanceMaterialMissing = false,
+                MaintenanceCyclesMissed = 0,
+            }, out _), HdbfPanelSectionKind.Maintenance);
+            TestAssert.Equal("Metal block ×6 / 10 days", Row(advanced, "Upkeep material").Value);
+
+            var offGrid = Section(CreateData(IntermediateFixture() with
+            {
+                Tier = HdbfTier.Top,
+                Power = PowerConnection.OffGrid,
+                PowerConnected = false,
+                Warnings = IndoorWarningFlags.None,
+                MaintenanceMaterialMissing = false,
+                MaintenanceCyclesMissed = 0,
+            }, out _), HdbfPanelSectionKind.Maintenance);
+            TestAssert.Equal("Metal block ×15 / 8 days", Row(offGrid, "Upkeep material").Value);
         }
 
         public static void TestMaterialFreeTierDisablesMaintenanceWithReason()
@@ -320,16 +375,23 @@ namespace HDBF.Tests
                 "unknown sequence renders the dash");
         }
 
-        public static void TestOutputCardRendersOccupiedOverCapacityAndPorts()
+        public static void TestOutputCardRendersOccupiedOverCapacityAndSeparatePortRows()
         {
             var output = Section(CreateData(IntermediateFixture(), out _), HdbfPanelSectionKind.Output);
             TestAssert.Equal("12/50", Row(output, "Output stock").Value, "occupancy/capacity stays complete");
             TestAssert.Equal("12/50 stored", Row(output, "Output stock").BarText);
+            TestAssert.True(Row(output, "Output stock").HasBar,
+                "requirement F: the occupancy is a vanilla ProgressBar");
             TestAssert.Equal("Connected", Row(output, "Output port").Value);
-            var ports = Row(output, "Ports").Value;
-            TestAssert.True(ports.Contains("Pipe port Connected", StringComparison.Ordinal), ports);
-            TestAssert.True(ports.Contains("Logistics port Connected", StringComparison.Ordinal), ports);
-            TestAssert.True(ports.Contains("Power port Not applicable", StringComparison.Ordinal), ports);
+
+            // Requirement E: the output port and the three physical ports are independent rows;
+            // no combined "Pipe port Connected · ..." value can overlap the line above any more.
+            TestAssert.Equal("Connected", Row(output, "Pipe port").Value);
+            TestAssert.Equal("Connected", Row(output, "Logistics port").Value);
+            TestAssert.Equal("Not applicable", Row(output, "Power port").Value);
+            TestAssert.False(output.Rows.Any(row => row.Label == "Ports"),
+                "the combined ports row must be gone (requirement E)");
+            TestAssert.Equal(5, output.Rows.Count, "stock + output port + three port rows");
             TestAssert.True(Row(output, "Output stock").Tooltip.Contains("Ok", StringComparison.Ordinal),
                 "the output adapter state stays in the tooltip");
         }
@@ -514,7 +576,7 @@ namespace HDBF.Tests
         {
             var empty = HdbfIndoorPanelFactory.Create(null, KeyEcho);
             TestAssert.False(empty.HasData);
-            TestAssert.Equal(string.Empty, empty.Title);
+            TestAssert.Equal(string.Empty, empty.MetaLine);
             TestAssert.Equal(0, empty.Sections.Count);
         }
 
@@ -575,28 +637,50 @@ namespace HDBF.Tests
                          "bg-sub-box--blue", "bg-sub-box--purple-striped", "button-game",
                          "entity-fragment__button", "worker-view", "progress-bar",
                          "status-list-element", "game-text-heading", "entity-panel__text",
-                         "game-dropdown", "entity-panel__avatar", "entity-panel__header",
-                         "new Dropdown", "CreateLocalizable", "ProgressBar",
+                         "game-dropdown", "new Dropdown", "CreateLocalizable", "ProgressBar",
+                         "RadioToggle", "ScrollerVisibility.Hidden", "ApplyLightText",
+                         "CreateMetaRow", "CreateWarningRow", "CreateBar",
                      })
             {
                 TestAssert.True(sources.Contains(token, StringComparison.Ordinal),
                     "the panel must compose the original control/class vocabulary; missing " + token);
             }
 
-            // No invented full-screen background / no hand-drawn texture and no bare Unity dropdown.
+            // No invented full-screen background / no hand-drawn texture / no bare Unity dropdown.
+            // Requirement C: the six known vanilla sub-box tones are the only card backgrounds.
             foreach (var forbidden in new[]
                      {
-                         "backgroundColor", "new Texture2D", "GUI.DrawTexture", "DropdownField",
-                         "style.backgroundImage = new StyleBackground(new Color",
+                         "new Texture2D", "GUI.DrawTexture", "DropdownField",
+                         "bg-sub-box--pale-purple", "style.backgroundImage = new StyleBackground(new Color",
                      })
             {
                 TestAssert.False(sources.Contains(forbidden, StringComparison.Ordinal),
                     "the panel must not invent its own look: " + forbidden);
             }
 
+            // The only raw background colour the panel ever sets is the 3 px warning accent strip
+            // (requirement I); the fragment/root itself stays transparent (requirement C).
+            TestAssert.Equal(1, CountOccurrences(sources, "backgroundColor"),
+                "only the warning accent strip may set a raw background colour");
+            TestAssert.True(sources.Contains("strip.style.backgroundColor", StringComparison.Ordinal),
+                "the warning accent strip is the one allowed colour-only encoding");
+
             // The view templates used for the gold buttons / worker chips are the shipped ones.
             TestAssert.Equal("Game/EntityPanel/DebugButton", HdbfIndoorPanelStyle.ButtonTemplate);
             TestAssert.Equal("Game/EntityPanel/WorkerView", HdbfIndoorPanelStyle.WorkerChipTemplate);
+        }
+
+        private static int CountOccurrences(string text, string token)
+        {
+            var count = 0;
+            var index = 0;
+            while ((index = text.IndexOf(token, index, StringComparison.Ordinal)) >= 0)
+            {
+                count++;
+                index += token.Length;
+            }
+
+            return count;
         }
 
         public static void TestUiSourcesCarryNoRemovedV1PlotSurface()
@@ -681,8 +765,8 @@ namespace HDBF.Tests
         {
             var values = new List<string>
             {
-                data.Title, data.Subtitle, data.ModeBadge, data.ModeTransitionText,
-                data.HeaderTooltip, data.WorkerRosterNote, data.CropPolicyLabel, data.CropPolicyText,
+                data.MetaLine, data.MetaTooltip, data.ModeTransitionText,
+                data.WorkerRosterNote, data.CropPolicyLabel, data.CropPolicyText,
                 data.CropTooltip, data.RefillTooltip, data.RefillReasonText, data.MaintenanceTooltip,
                 data.MaintenanceReasonText,
             };

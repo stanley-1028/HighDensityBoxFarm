@@ -5,6 +5,27 @@
 > **适用版本**：0.2.0
 > **变更摘要**：v2.1 需求引入室内农场方案；本文件记录 v1→v2 的行为/数据/工程变更与实现状态。
 
+## [0.2.1] — 2026-10-27（UI v2.4：按实机截图修正面板）
+
+### 变更（REQ-V2-UI-01/02/03/04, REQ-V2-READ-04）
+
+* 【删除】fragment 内的第二个头部（建筑图标+名称+档位·阵营+模式徽章）：原版 `EntityPanel` 已显示
+  图标/名称/地区，重复头部连同其 NineSlice 空框与模式徽章一并删除；档位/阵营收进原版 header 下方的
+  一行紧凑 subtitle row（`tier · faction`），不再重复建筑名。
+* 【修复】棕色/米黄大底、深色文字、底部重叠：根因是 `AddToClassList("a b")` 只添加一个带空格的
+  无效类名（面板因此退回默认深色文字/列布局），且透明 fragment 让 EntityPanel 的 tan 背景从卡片
+  间隙与滚动条槽透出。现在所有多类名逐条添加（`HdbfPanelControls.AddClasses`）、卡片满宽且无间距、
+  滚动条 `ScrollerVisibility.Hidden`、根容器透明。
+* 【修复】全部面板文字统一暖白 `#F2EBDD`（`HdbfIndoorPanelStyle.LightTextRgba` +
+  `HdbfPanelControls.ApplyLightText`）；警告仍保留 图标 + `▲/!` 文本标记 + 3 px 色条三编码。
+* 【补回】水（水罐条/覆盖率 C 条 + C_min 标记/C_min/补水来源/缺水减产警告）、维护（到期日、逾期周期、
+  材料需求行、缺料明细、停滞警告）、原版 RadioToggle 模式组 + 1 日过渡提示、输出占用原版 ProgressBar；
+  输出端口与管道/物流/动力接口拆成独立行，全部文本可换行不再截断或重叠。
+* 【修复】空缺工人 chip 使用原版 vacant 空头像（禁用、无警告三角）；⚠ 仅用于真实问题。
+* 【新增】三语键 `HDBF.Panel.MaintenanceMaterialLabel` / `...MaterialValue`（enUS/zhCN/zhTW 同为 187 键）。
+* 【测试】新增 `V2PanelVisualContractTests`（第二个 header/棕底/白色文字/ProgressBar/RadioToggle/
+  按钮/端口分行/空缺 chip/三语键契约）；更新 `V2PanelContractTests`、`V2UiLiveWaterContractTests`、
+  `V2LocalizationTests`。L1 `PASSED 563 / FAILED 0`；HDBF.UI/HDBF.Gameplay 0 warning / 0 error。
 ## [0.2.0] — 2026-10-26（v2.1 实现完成；实机覆盖范围见 VERIFICATION §26.3）
 
 ### 变更（相对 v1.0.0 / 0.1.0）

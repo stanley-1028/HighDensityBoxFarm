@@ -1,4 +1,4 @@
-﻿ID,Text,Comment
+ID,Text,Comment
 HDBF.Building.BoxFarm.Basic.Name,High-Density Box Farm (Basic),v2 UI
 HDBF.Building.BoxFarm.Intermediate.Name,High-Density Box Farm (Intermediate),v2 UI
 HDBF.Building.BoxFarm.Advanced.Name,High-Density Box Farm (Advanced),v2 UI
@@ -167,6 +167,8 @@ HDBF.Panel.MinCoverageLabel,Minimum C_min,v2 UI
 HDBF.Panel.SupplyLabel,Water source,v2 UI
 HDBF.Panel.MaintenanceDueLabel,Next due day,v2 UI
 HDBF.Panel.MaintenanceCyclesLabel,Overdue cycles,v2 UI
+HDBF.Panel.MaintenanceMaterialLabel,Upkeep material,v2 UI
+HDBF.Panel.MaintenanceMaterialValue,{0} ×{1} / {2} days,v2 UI
 HDBF.Panel.PowerLabel,Power,v2 UI
 HDBF.Panel.CropPolicyLabel,Current policy,v2 UI
 HDBF.Panel.FixedCropLabel,Fixed crop,v2 UI

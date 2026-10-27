@@ -1,4 +1,4 @@
-// ============================================================================
+﻿// ============================================================================
 // HDBF v2 | Layer: UI/Panels | Owner: V2-UI-01
 // Purpose: Card builders of the v2 indoor panel read model (second half): power, crop strategy
 //          and output cards plus their port/tooltip helpers. Split from .Cards.cs so both files
@@ -75,7 +75,10 @@ namespace HDBF.UI.Panels
         private static HdbfPanelSection BuildOutputSection(IndoorFarmSnapshot snapshot,
             Func<string, string> localize)
         {
-            var rows = new List<HdbfPanelRow>(3)
+            var tooltip = OutputTooltip(snapshot, localize);
+            // Requirement E/F: the output port and the three physical ports are SEPARATE rows, so a
+            // long state list can never overlap the line above it; every value wraps.
+            var rows = new List<HdbfPanelRow>(5)
             {
                 new()
                 {
@@ -83,7 +86,8 @@ namespace HDBF.UI.Panels
                     Label = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelOutputLabel),
                     Value = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelCountValue,
                         snapshot.OutputOccupied, HdbfIndoorPanelLimits.OutputCapacity),
-                    Tooltip = OutputTooltip(snapshot, localize),
+                    Tooltip = tooltip,
+                    // Requirement F: the occupancy is the vanilla ProgressBar, not a text button.
                     HasBar = true,
                     Bar = HdbfIndoorPanelLimits.OutputFill(snapshot.OutputOccupied),
                     BarText = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelBarOutput,
@@ -96,15 +100,14 @@ namespace HDBF.UI.Panels
                     Value = HdbfIndoorPanelFormat.Text(localize, snapshot.OutputPortConnected
                         ? HdbfUiLocKeys.PortConnected
                         : HdbfUiLocKeys.PortNotConnected),
-                    Tooltip = OutputTooltip(snapshot, localize),
+                    Tooltip = tooltip,
                 },
-                new()
-                {
-                    IconKey = "port",
-                    Label = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelPortsLabel),
-                    Value = FormatPorts(snapshot, localize),
-                    Tooltip = OutputTooltip(snapshot, localize),
-                },
+                PortRow(snapshot.PipePort, snapshot.WaterSupply == WaterSupplyKind.Pipe,
+                    HdbfUiLocKeys.PortPipe, localize, tooltip),
+                PortRow(snapshot.LogisticsPort, snapshot.OutputPortConnected,
+                    HdbfUiLocKeys.PortLogistics, localize, tooltip),
+                PortRow(snapshot.PowerPort, snapshot.PowerConnected,
+                    HdbfUiLocKeys.PortPower, localize, tooltip),
             };
 
             var warnings = HdbfIndoorPanelWarnings.BuildOutputWarnings(snapshot, localize);
@@ -113,8 +116,30 @@ namespace HDBF.UI.Panels
                 Kind = HdbfPanelSectionKind.Output,
                 Title = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelSectionOutput),
                 IconKey = "output",
-                Tone = "green",
+                Tone = warnings.Count > 0 ? "red" : "green",
                 Rows = WithWarnings(warnings, rows),
+            };
+        }
+
+        /// <summary>
+        /// One physical-port row: "pipe/logistics/power interface" + connected/not-connected or
+        /// "not applicable" when the tier has no such port. A separate row keeps the state text on
+        /// its own line (requirement E).
+        /// </summary>
+        private static HdbfPanelRow PortRow(bool hasPort, bool connected, string labelKey,
+            Func<string, string> localize, string tooltip)
+        {
+            var stateKey = !hasPort
+                ? HdbfUiLocKeys.PortNotApplicable
+                : connected
+                    ? HdbfUiLocKeys.PortConnected
+                    : HdbfUiLocKeys.PortNotConnected;
+            return new HdbfPanelRow
+            {
+                IconKey = "port",
+                Label = HdbfIndoorPanelFormat.Text(localize, labelKey),
+                Value = HdbfIndoorPanelFormat.Text(localize, stateKey),
+                Tooltip = tooltip,
             };
         }
 
@@ -127,32 +152,6 @@ namespace HDBF.UI.Panels
             }
 
             return tooltip;
-        }
-
-        private static string FormatPorts(IndoorFarmSnapshot snapshot, Func<string, string> localize)
-        {
-            var pipe = !snapshot.PipePort
-                ? HdbfUiLocKeys.PortNotApplicable
-                : snapshot.WaterSupply == WaterSupplyKind.Pipe
-                    ? HdbfUiLocKeys.PortConnected
-                    : HdbfUiLocKeys.PortNotConnected;
-            var logistics = !snapshot.LogisticsPort
-                ? HdbfUiLocKeys.PortNotApplicable
-                : snapshot.OutputPortConnected
-                    ? HdbfUiLocKeys.PortConnected
-                    : HdbfUiLocKeys.PortNotConnected;
-            var power = !snapshot.PowerPort
-                ? HdbfUiLocKeys.PortNotApplicable
-                : snapshot.PowerConnected
-                    ? HdbfUiLocKeys.PortConnected
-                    : HdbfUiLocKeys.PortNotConnected;
-
-            return HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PortPipe) + " "
-                   + HdbfIndoorPanelFormat.Text(localize, pipe) + HdbfIndoorPanelFormat.ProblemSeparator
-                   + HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PortLogistics) + " "
-                   + HdbfIndoorPanelFormat.Text(localize, logistics) + HdbfIndoorPanelFormat.ProblemSeparator
-                   + HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PortPower) + " "
-                   + HdbfIndoorPanelFormat.Text(localize, power);
         }
     }
 }

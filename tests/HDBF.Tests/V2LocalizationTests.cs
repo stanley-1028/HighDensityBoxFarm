@@ -334,6 +334,7 @@ namespace HDBF.Tests
                 HdbfUiLocKeys.PanelCropPolicyLabel, HdbfUiLocKeys.PanelFixedCropLabel,
                 HdbfUiLocKeys.PanelRotationLabel, HdbfUiLocKeys.PanelOutputLabel,
                 HdbfUiLocKeys.PanelOutputPortLabel, HdbfUiLocKeys.PanelPortsLabel,
+                HdbfUiLocKeys.PanelMaintenanceMaterialLabel,
             };
             foreach (var key in labelKeys)
             {
@@ -379,6 +380,22 @@ namespace HDBF.Tests
             }
         }
 
+        /// <summary>The upkeep-material row renders material, count and cycle days in every language.</summary>
+        public static void TestMaintenanceMaterialValueCarriesThreePlaceholders()
+        {
+            foreach (var language in Languages)
+            {
+                var texts = LoadTexts(language);
+                var placeholders = Placeholders(texts[HdbfUiLocKeys.PanelMaintenanceMaterialValue]);
+                TestAssert.Equal(3, placeholders.Count, language + " material value placeholder count");
+                TestAssert.Equal(0, placeholders[0]);
+                TestAssert.Equal(1, placeholders[1]);
+                TestAssert.Equal(2, placeholders[2]);
+                TestAssert.True(texts[HdbfUiLocKeys.PanelMaintenanceMaterialLabel].Trim().Length > 0,
+                    language + " empty upkeep-material row label");
+            }
+        }
+
         /// <summary>The new read-model cards must ship their labels and tooltips in all languages.</summary>
         public static void TestNewCardVocabularyIsShipped()
         {
@@ -392,6 +409,8 @@ namespace HDBF.Tests
                 HdbfUiLocKeys.PanelWorkerVacant, HdbfUiLocKeys.TooltipWorkerName,
                 HdbfUiLocKeys.TooltipSlots, HdbfUiLocKeys.TooltipWorkers,
                 HdbfUiLocKeys.TooltipEfficiency,
+                HdbfUiLocKeys.PanelMaintenanceMaterialLabel,
+                HdbfUiLocKeys.PanelMaintenanceMaterialValue,
             };
             foreach (var language in Languages)
             {

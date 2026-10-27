@@ -134,21 +134,20 @@ namespace HDBF.UI.Panels
         /// <summary>False when the snapshot was missing; the fragment stays hidden then.</summary>
         public bool HasData { get; init; }
 
-        // ----- header: tier icon, name, subtitle, mode badge --------------------------------
-        /// <summary>Localized building name of the tier (the panel title).</summary>
-        public string Title { get; init; } = string.Empty;
+        // ----- compact subtitle row (the vanilla EntityPanel already shows icon + name + district,
+        //       so the fragment must NOT repeat the building name - requirement A) --------------
+        /// <summary>
+        /// Compact "tier · faction" line rendered as the first row of the worker card, i.e.
+        /// directly below the vanilla header. It never contains the building name (requirement A);
+        /// the operating mode is shown by the vanilla radio group instead.
+        /// </summary>
+        public string MetaLine { get; init; } = string.Empty;
 
-        /// <summary>Localized subtitle "{tier} · {faction}".</summary>
-        public string Subtitle { get; init; } = string.Empty;
-
-        /// <summary>Localized current mode (rendered as the vanilla badge).</summary>
-        public string ModeBadge { get; init; } = string.Empty;
+        /// <summary>Hover hint of the compact subtitle row.</summary>
+        public string MetaTooltip { get; init; } = string.Empty;
 
         /// <summary>One-day mode transition sentence, empty when no transition is running.</summary>
         public string ModeTransitionText { get; init; } = string.Empty;
-
-        /// <summary>Hover hint of the header card.</summary>
-        public string HeaderTooltip { get; init; } = string.Empty;
 
         /// <summary>Raw tier, for the game-facing tier-icon lookup.</summary>
         public HdbfTier Tier { get; init; }
