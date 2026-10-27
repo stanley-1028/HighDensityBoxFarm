@@ -408,3 +408,7 @@ Buildings/Food/BoxFarm/BoxFarm.Basic.Folktails.Model
 2. 重跑后必须：`art/validation-report.txt` PASS、`art/timbermesh-validation.txt` PASS、
    `data/` 16 文件与 `art/timbermesh/` 逐字节一致、本文 §2/§3/§4/§5/§6/§7 数值同步更新。
 3. 蓝图/碰撞/叠放块与图标属于蓝图卡，不要在本卡范围内改。
+
+## 15. 图标刷新（2026-10-27）
+v2.2 模型定稿后重新跑 `art/render_icons.py`（4 x 512 RGBA + 4 x 128 RGBA，判定 PASS），data/Icons/BoxFarm*.png 已替换为 128px 新渲染；L1 530/530、build.ps1 44 gates PASS。
+
