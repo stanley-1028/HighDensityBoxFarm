@@ -98,9 +98,10 @@ namespace HDBF.UI.Panels
         }
 
         /// <summary>
-        /// Manual water refill request: gameplay validates workers, entrance, source and budget,
-        /// then the next daily tick performs the trip (REQ-V2-WATER-04). Every rejection renders
-        /// its specific reason instead of a silent no-op.
+        /// Manual water refill request: gameplay validates workers, entrance, source and budget, then
+        /// draws from that real source and adds it to the tank immediately (2026-10-28; it no longer
+        /// waits for the next daily tick). Every rejection renders its specific reason instead of a
+        /// silent no-op.
         /// </summary>
         private void OnRefillClicked()
         {

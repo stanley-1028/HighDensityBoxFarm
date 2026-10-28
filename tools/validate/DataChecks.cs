@@ -37,8 +37,9 @@ internal sealed class DataChecks
     private const int FootprintZ = 1;
     private const string StackableBlockObject = "BlockObject";
 
-    // REQ-V2-BLD-01 + docs/v2/INTERFACES.md §2: construction time is 2/3/5/8 workdays (v2.1).
-    // The ONLY 1.1.2.8 blueprint field that controls construction duration is
+    // REQ-V2-BLD-01 + docs/v2/INTERFACES.md §2: construction time is 1/1.5/2.5/4 workdays
+    // (halved from the v2.1 2/3/5/8 on 2026-10-27). The ONLY 1.1.2.8 blueprint field that
+    // controls construction duration is
     // ConstructionSiteBuildTimeSpec.ConstructionTimeInHours (IL: ConstructionSiteBuildTimeCalculator
     // .GetConstructionTimeInHours returns it verbatim; without the spec the game derives
     // ceil(constructionInventoryCapacity / 20) hours, or its 1-hour default). The field unit is
@@ -114,13 +115,13 @@ internal sealed class DataChecks
         //                    ScienceCost --.  MaxWorkers --.  PlotCapacity --.                 |
         //                                  v               v                v                v
         new("Basic", new[] { ("Log", 40) }, 200, 2, 60, 38, 11, 11, 0.50, 0.020, 3, 1.00,
-            0, 0.0, 0, false, 0, true, false, false, 95, 2),
+            0, 0.0, 0, false, 0, true, false, false, 95, 1.0),
         new("Intermediate", new[] { ("Plank", 40), ("Log", 20) }, 600, 4, 150, 38, 15, 15, 0.60, 0.024, 3, 1.10,
-            1, 10.0, 8, false, 0, true, true, false, 96, 3),
+            1, 10.0, 8, false, 0, true, true, false, 96, 1.5),
         new("Advanced", new[] { ("Plank", 50), ("MetalBlock", 30) }, 1000, 8, 300, 38, 19, 19, 0.75, 0.028, 4, 1.25,
-            2, 10.0, 6, false, 0, true, true, false, 97, 5),
+            2, 10.0, 6, false, 0, true, true, false, 97, 2.5),
         new("Top", new[] { ("MetalBlock", 100), ("Plank", 50) }, 3000, 16, 600, 38, 27, 27, 0.80, 0.032, 4, 1.50,
-            3, 8.0, 15, true, 150, true, true, true, 98, 8),
+            3, 8.0, 15, true, 150, true, true, true, 98, 4.0),
     };
 
     private readonly Report _report;
@@ -310,14 +311,15 @@ internal sealed class DataChecks
     {
         const string category = "blueprint";
 
-        // REQ-V2-BLD-01 v2.1: construction time 2/3/5/8 workdays. The expectation table is the
-        // single source the per-blueprint hours are compared against, so pin it here as well.
+        // REQ-V2-BLD-01: construction time is 1/1.5/2.5/4 workdays (halved from the v2.1
+        // 2/3/5/8). The expectation table is the single source the per-blueprint hours are
+        // compared against, so pin it here as well.
         var buildWorkdays = Tiers.Select(tier => tier.BuildWorkdays).ToArray();
-        var requiredBuildWorkdays = new[] { 2, 3, 5, 8 };
+        var requiredBuildWorkdays = new[] { 1.0, 1.5, 2.5, 4.0 };
         if (!buildWorkdays.SequenceEqual(requiredBuildWorkdays))
         {
-            _report.Error(category, "v2 construction workdays must be exactly 2/3/5/8 for Basic/Intermediate/"
-                                     + $"Advanced/Top (REQ-V2-BLD-01 v2.1; found {string.Join("/", buildWorkdays)})");
+            _report.Error(category, "construction workdays must be exactly 1/1.5/2.5/4 for Basic/Intermediate/"
+                                     + $"Advanced/Top (halved from REQ-V2-BLD-01 v2.1 2/3/5/8; found {string.Join("/", buildWorkdays)})");
         }
 
         foreach (var expectation in Tiers)
@@ -572,15 +574,16 @@ internal sealed class DataChecks
     }
 
     /// <summary>
-    /// REQ-V2-BLD-01 + docs/v2/INTERFACES.md §2: construction time is 2/3/5/8 workdays (v2.1).
-    /// In 1.1.2.8 the only blueprint field that controls construction duration is
+    /// REQ-V2-BLD-01 + docs/v2/INTERFACES.md §2: construction time is 1/1.5/2.5/4 workdays
+    /// (halved from the v2.1 2/3/5/8 on 2026-10-27). In 1.1.2.8 the only blueprint field that
+    /// controls construction duration is
     /// <c>ConstructionSiteBuildTimeSpec.ConstructionTimeInHours</c> (float, game hours):
     /// <c>ConstructionSiteBuildTimeCalculator.GetConstructionTimeInHours</c> returns it verbatim
     /// when the construction site has the spec, otherwise it derives
     /// <c>ceil(inventoryCapacity / MaterialToHourRatio)</c> (ratio 20) or the 1-hour default.
     /// Vanilla users of the spec: <c>EarthRecultivator</c> / <c>EarthRepopulator</c>. The card
-    /// converts workdays with the documented 24 h/workday factor, so 2/3/5/8 workdays are
-    /// 48/72/120/192 hours; both representations are checked.
+    /// converts workdays with the documented 24 h/workday factor, so 1/1.5/2.5/4 workdays are
+    /// 24/36/60/96 hours.
     /// </summary>
     private void CheckBuildTime(JsonElement root, string relative, TierExpectation expectation, string category)
     {
@@ -603,21 +606,10 @@ internal sealed class DataChecks
         {
             _report.Error(category, $"{relative}: {location}.ConstructionTimeInHours must be "
                                      + $"{expectedHours.ToString("G9", System.Globalization.CultureInfo.InvariantCulture)} "
-                                     + $"({expectation.BuildWorkdays} workdays x {BuildHoursPerWorkday} h/workday, "
-                                     + $"REQ-V2-BLD-01 v2.1 2/3/5/8) for the {expectation.Tier} tier "
+                                     + $"({expectation.BuildWorkdays.ToString("G9", System.Globalization.CultureInfo.InvariantCulture)} "
+                                     + $"workdays x {BuildHoursPerWorkday} h/workday, REQ-V2-BLD-01 halved to "
+                                     + $"1/1.5/2.5/4) for the {expectation.Tier} tier "
                                      + $"(found {hours.ToString("G9", System.Globalization.CultureInfo.InvariantCulture)})");
-            return;
-        }
-
-        var workdays = hours / BuildHoursPerWorkday;
-        var roundedWorkdays = Math.Round(workdays);
-        if (Math.Abs(workdays - roundedWorkdays) > 1e-6 || (int)roundedWorkdays != expectation.BuildWorkdays)
-        {
-            _report.Error(category, $"{relative}: construction time must be exactly {expectation.BuildWorkdays} "
-                                     + $"workdays (REQ-V2-BLD-01 v2.1 2/3/5/8); "
-                                     + $"{hours.ToString("G9", System.Globalization.CultureInfo.InvariantCulture)} hours is "
-                                     + $"{workdays.ToString("G9", System.Globalization.CultureInfo.InvariantCulture)} "
-                                     + $"workdays at {BuildHoursPerWorkday} h/workday");
         }
     }
 
@@ -2274,14 +2266,14 @@ internal sealed class DataChecks
         bool HasLogisticsPort,
         bool HasPowerPort,
         int ToolOrder,
-        int BuildWorkdays)
+        double BuildWorkdays)
     {
         /// <summary>
-        /// REQ-V2-BLD-01 v2.1 build time in game hours. The blueprint field
+        /// REQ-V2-BLD-01 build time in game hours. The blueprint field
         /// <c>ConstructionSiteBuildTimeSpec.ConstructionTimeInHours</c> is expressed in hours, so the
         /// documented workday value is converted with 24 hours/workday (see CheckBuildTime).
         /// </summary>
-        public double BuildTimeInHours => BuildWorkdays * (double)BuildHoursPerWorkday;
+        public double BuildTimeInHours => BuildWorkdays * BuildHoursPerWorkday;
 
         /// <summary>
         /// ART-03: the custom finished model this tier/faction ships, data-relative and without the

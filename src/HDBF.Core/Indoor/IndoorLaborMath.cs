@@ -3,7 +3,8 @@
 // Purpose: Labour capacity, action budget, per-action work cost and the deterministic
 //          harvest-before-plant action scheduler (INTERFACES section 5, section 19.7).
 //          The mode-transition yield scale and the reserved-action budget are the
-//          backward-compatible additions of V2-GAMEPLAY-02 (REQ-V2-WATER-04/LABOR-01).
+//          backward-compatible additions of V2-GAMEPLAY-02 (REQ-V2-WATER-04/LABOR-01);
+//          the water-fed auto-fill planting mode is the 2026-10-28 player request.
 // Requirements: REQ-V2-LABOR-01, REQ-V2-LABOR-02, REQ-V2-CORE-01, REQ-V2-CORE-05,
 //               REQ-V2-WATER-04, REQ-V2-BAL-03
 // ============================================================================
@@ -133,6 +134,39 @@ namespace HDBF.Core.Indoor
             ICropCatalog catalog, int activeWorkers, IInventorySink output, bool farmActionsAllowed,
             int reservedActions, float yieldScale)
         {
+            return RunActionsCore(record, tier, catalog, activeWorkers, output, farmActionsAllowed,
+                reservedActions, yieldScale, plantAllEmptySlots: false, waterAvailable: true);
+        }
+
+        /// <summary>
+        /// Player-requested "auto-fill" work mode (2026-10-28): when the water tank holds water the
+        /// planting pass fills every empty slot in the worker-tended range and does not spend the
+        /// daily action budget; a tank without water plants nothing. Harvests keep the daily budget
+        /// and still run strictly before planting (REQ-V2-LABOR-01). The older overloads keep the
+        /// previous budget-limited planting so existing callers/tests stay valid.
+        /// </summary>
+        /// <param name="record">Farm record mutated in place.</param>
+        /// <param name="tier">Tier profile of the building.</param>
+        /// <param name="catalog">Crop catalog; the built-in fallback covers missing specs.</param>
+        /// <param name="activeWorkers">On-duty workers, source of the action budget.</param>
+        /// <param name="output">Output inventory sink; null means "nowhere to put produce".</param>
+        /// <param name="farmActionsAllowed">False for stalled/fallow/blocked-entrance days.</param>
+        /// <param name="reservedActions">Actions already reserved/consumed today (refill, jobs).</param>
+        /// <param name="yieldScale">Harvest yield scale in [0,1]; 1 means no mode transition.</param>
+        /// <param name="waterAvailable">True when the tank holds water; false plants nothing.</param>
+        /// <returns>What happened today; never null and never throws.</returns>
+        public static IndoorActionStats RunActions(IndoorFarmRecord record, TierProfile tier,
+            ICropCatalog catalog, int activeWorkers, IInventorySink output, bool farmActionsAllowed,
+            int reservedActions, float yieldScale, bool waterAvailable)
+        {
+            return RunActionsCore(record, tier, catalog, activeWorkers, output, farmActionsAllowed,
+                reservedActions, yieldScale, plantAllEmptySlots: waterAvailable, waterAvailable: waterAvailable);
+        }
+
+        private static IndoorActionStats RunActionsCore(IndoorFarmRecord record, TierProfile tier,
+            ICropCatalog catalog, int activeWorkers, IInventorySink output, bool farmActionsAllowed,
+            int reservedActions, float yieldScale, bool plantAllEmptySlots, bool waterAvailable)
+        {
             var stats = new IndoorActionStats();
             if (record is null || tier is null || !farmActionsAllowed) return stats;
             var slots = record.Slots;
@@ -168,16 +202,21 @@ namespace HDBF.Core.Indoor
                 }
             }
 
+            // The auto-fill mode never plants into a dry tank: the crops would only stall.
+            if (!waterAvailable) return stats;
+
             var factionCrops = ResolveFactionCrops(catalog, record.Faction);
-            for (var index = 0; index < limit && stats.ActionsUsed < budget; index++)
+            for (var index = 0; index < limit; index++)
             {
+                if (!plantAllEmptySlots && stats.ActionsUsed >= budget) break;
                 var slot = slots[index];
                 if (slot is null || slot.Stage != SlotStage.Empty) continue;
                 try
                 {
                     if (!TryPlant(record, slot, catalog, factionCrops)) continue;
                     stats.Planted++;
-                    stats.ActionsUsed++;
+                    // Auto-fill planting is free of the daily budget; the old modes keep paying.
+                    if (!plantAllEmptySlots) stats.ActionsUsed++;
                 }
                 catch
                 {

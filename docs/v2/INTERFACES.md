@@ -69,7 +69,7 @@ namespace HDBF.Core.Indoor
 | `TankCapacityDays` | 3 / 3 / 4 / 4 | 不变 |
 | `TankCapacity` | 3.6 / 10.8 / 33.6 / 76.8 | `WaterPerSlotPerDay × SlotCapacity × TankCapacityDays` |
 | `SoilFatigueFactor` | 1.00 / 1.10 / 1.25 / 1.50 | 不改名（存档/配置兼容），文档称“档位疲劳系数” |
-| `BuildWorkdays` | **2 / 3 / 5 / 8** | 【修改】v2.1 由 6/10/16/28 缩短 |
+| `BuildWorkdays` | **1 / 1.5 / 2.5 / 4** | 【修改】v2.1 由 6/10/16/28 缩短至 2/3/5/8；2026-10-27 再缩短一半 |
 | `WorkRange` | 【作废】 | 阶段 3 删除；阶段 1 暂留字段不再读取 |
 
 `TierCatalog.SlotsPerFarmer = 38`、`ActionsPerFarmerDay = 13` 保留常量。
@@ -154,7 +154,10 @@ public static class IndoorWaterMath
     public static float Coverage(float tank, float demandPerDay);         // clamp(tank/demand,0,1)；demand=0 → 1
     public static float IrrigationMultiplier(float coverage, float minCoverage)
         => Math.Clamp((coverage - 0.25f*minCoverage) / (0.75f*minCoverage), 0f, 1f);
-    public static float SettleDay(IndoorFarmRecord record, TierProfile tier, int activeSlots); // 每日仅一次扣水，返回 C
+    public static float DemandForElapsedDays(int activeSlots, float waterPerSlotPerDay,
+        IndoorMode mode, float elapsedGameDays);                          // 连续扣水：日需求 × 经过的游戏日
+    public static void SanitizeTank(IndoorFarmRecord record, TierProfile tier); // 修复损坏水罐值到 [0,容量]
+    public static float Consume(IndoorFarmRecord record, TierProfile tier, float amount); // 返回实际扣掉的水，水罐不为负
     public static float RefillAmount(float tankCapacity);                 // capacity/3
     public static float TryRefill(IndoorFarmRecord record, float amount); // 返回实际补入，clamp 到容量
     public static float DaysRemaining(float tank, float demandPerDay);    // demand=0 → float.PositiveInfinity 由 UI 显示 “—”
@@ -167,6 +170,10 @@ public static class IndoorLaborMath
     public static float WorkDaysPerAction(IndoorMode mode);               // 0.08 / 0.096 / 0.08
     public static IndoorActionStats RunActions(IndoorFarmRecord record, TierProfile tier,
         ICropCatalog catalog, int activeWorkers, IInventorySink output, bool farmActionsAllowed);
+    // 2026-10-28 玩家需求：水罐有水时空槽自动种满（不占每日动作预算），没水则不播种；收获仍受预算限制。
+    public static IndoorActionStats RunActions(IndoorFarmRecord record, TierProfile tier,
+        ICropCatalog catalog, int activeWorkers, IInventorySink output, bool farmActionsAllowed,
+        int reservedActions, float yieldScale, bool waterAvailable);
 }
 
 public struct IndoorActionStats

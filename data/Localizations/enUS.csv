@@ -84,7 +84,7 @@ HDBF.Port.NotApplicable,Not applicable,v2 UI
 HDBF.Action.Maintenance,Perform maintenance,v2 UI
 HDBF.Action.MaintenanceDone,Maintenance performed.,v2 UI
 HDBF.Action.Refill,Refill water,v2 UI
-HDBF.Action.RefillRequested,Refill requested.,v2 UI
+HDBF.Action.RefillRequested,Water refilled.,v2 UI
 HDBF.Action.ModeChanged,Mode changed.,v2 UI
 HDBF.Action.CropPolicyChanged,Crop policy updated.,v2 UI
 HDBF.Warning.NoWater,Water shortage,v2 UI

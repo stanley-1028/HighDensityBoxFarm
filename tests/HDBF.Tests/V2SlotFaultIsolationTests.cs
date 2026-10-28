@@ -75,7 +75,9 @@ namespace HDBF.Tests
                 Water = new InfiniteWater(),
             }, new ThrowingCatalog());
             TestAssert.True(slot.GrowthDays > 0f, "the built-in table keeps growth working");
-            TestAssert.Equal(13, result.Actions.Planted, "planting also falls back for every budget slot");
+            // Player request 2026-10-28: a watered tank auto-fills every empty worker-tended slot
+            // (1 farmer -> 38 tended slots, slot 0 is still growing -> 37 planted, no budget limit).
+            TestAssert.Equal(37, result.Actions.Planted, "auto-fill plants every empty worker-tended slot");
         }
 
         public static void TestCorruptSlotValuesDoNotThrow()

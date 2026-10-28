@@ -3,14 +3,14 @@
 > 按需求蓝图 §19（v2.1）实现的 Timberborn 1.1.2.8 模组：**3×3×1 室内高密度农场**。
 > 本工程不是文档摘要，而是可构建、可测试、可安装的代码与数据。
 >
-> **当前版本 2.2.0（v2 室内版）**：四档 3×3×1 建筑，内部 60/150/300/600 个抽象槽位，
+> **当前版本 2.4.0（v2 室内版）**：四档 3×3×1 建筑，内部 60/150/300/600 个抽象槽位，
 > 平屋顶可叠放，内部水罐 + 管道/人工补水；v1 的世界地块扫描、托管格、原版种植派发、
 > 地块高亮、作物可见性补丁与 Harmony 补丁**已全部删除（0 Harmony）**。
 > v2 设计入口：[docs/v2/README.md](docs/v2/README.md)、需求唯一来源 [§19](docs/REQ_V2_SECTION_19.md)。
 
 | 项目 | 值 |
 |---|---|
-| 模组版本 | **2.2.0（v2）** |
+| 模组版本 | **2.4.0（v2）** |
 | 目标游戏 | Timberborn 1.1.2.8（`1.1.2.8-ffc2de0-sw`，Unity 6000.5.11f1） |
 | 存档 schema | **2**（每建筑一条原生持久化记录，含 v1→v2 迁移；见 ADR-V2-003） |
 | 配置 schema | **2**（v1 配置可读并迁移；未知键忽略） |
@@ -113,7 +113,7 @@ python .\tools\dev\fixtures\craft-farm-fixture.py --out "$env:USERPROFILE\Docume
 | 5 程序集对真实游戏 1.1.2.8 程序集编译 | `build.ps1`：0 warning / 0 error |
 | v2 Core 公式/日 tick/存档/迁移/损坏注入/性能预算 | `tests/HDBF.Tests`：**529 条** L1 断言全绿 |
 | 100×600 日 tick 0.0113 ms/栋、存档 1.05 MB、编码 34.8 ms、30/144 fps 一致 | `V2NfrPerformanceTests` |
-| 3×3×1 蓝图（9 块、Stackable、建造 2/3/5/8 工日） | `V2BlueprintContractTests` + `tools/validate` |
+| 3×3×1 蓝图（9 块、Stackable、建造 1/1.5/2.5/4 工日） | `V2BlueprintContractTests` + `tools/validate` |
 | 16 个 `.timbermesh` 3.000×1.000×3.000、平屋顶、3 端口、无 slot 节点 | 128/128 美术校验 PASS + 契约测试 |
 | 0 Harmony、Core 无游戏引用、依赖方向、文件规模、文档 71/71 追溯 | `V2Nfr*Tests` + 44 条发布门禁 |
 | 三语 147 键一致、无 v1 术语、失败原因具体 | `V2LocalizationTests` / `V2PanelContractTests` |

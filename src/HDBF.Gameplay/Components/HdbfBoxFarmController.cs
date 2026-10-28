@@ -56,6 +56,7 @@ namespace HDBF.Gameplay.Components
         private readonly HdbfWorldIconService _worldIcons;
         private readonly DistrictCenterRegistry _districtCenters;
         private readonly HdbfManualWaterSource _manualWater;
+        private readonly HdbfWaterFlowService _waterFlow;
 
         private HdbfBoxFarmSpec _spec = null!;
         private TierProfile _profile = TierCatalog.Get(HdbfTier.Basic);
@@ -98,7 +99,7 @@ namespace HDBF.Gameplay.Components
             IBlockService blockService, IIndoorAdapterHost adapterHost, ICropCatalog cropCatalog,
             HdbfFarmQueryService farms, IHdbfGameConfigProvider configProvider, IHdbfLog log,
             HdbfWorldIconService worldIcons, DistrictCenterRegistry districtCenters,
-            HdbfManualWaterSource manualWater)
+            HdbfManualWaterSource manualWater, HdbfWaterFlowService waterFlow)
         {
             _timeTriggerFactory = timeTriggerFactory ?? throw new ArgumentNullException(nameof(timeTriggerFactory));
             _dayNightCycle = dayNightCycle ?? throw new ArgumentNullException(nameof(dayNightCycle));
@@ -111,6 +112,7 @@ namespace HDBF.Gameplay.Components
             _worldIcons = worldIcons ?? throw new ArgumentNullException(nameof(worldIcons));
             _districtCenters = districtCenters ?? throw new ArgumentNullException(nameof(districtCenters));
             _manualWater = manualWater ?? throw new ArgumentNullException(nameof(manualWater));
+            _waterFlow = waterFlow ?? throw new ArgumentNullException(nameof(waterFlow));
         }
 
         /// <inheritdoc />
@@ -154,6 +156,7 @@ namespace HDBF.Gameplay.Components
                     _outputSink = new IndoorInventorySink(_outputInventory);
                 }
 
+                ResolveWaterInventory();
                 ResolveTierProfile();
                 _faction = GameCropCatalog.ResolveFaction(BlueprintId());
                 _record = IndoorFarmRecord.Create(_profile.Tier, _faction);
@@ -187,8 +190,11 @@ namespace HDBF.Gameplay.Components
         /// <inheritdoc />
         public void PostLoadEntity()
         {
-            // Loaded finished buildings do not receive OnEnterFinishedState again.
+            // Loaded finished buildings do not receive OnEnterFinishedState again. Activation ran
+            // during entity initialization, when neighbouring inventories/districts may not have
+            // registered yet, so the water-supply probe is refreshed again after the whole save.
             Activate();
+            RefreshSupplyAfterLoad();
         }
 
         /// <inheritdoc />

@@ -172,6 +172,50 @@ namespace HDBF.Tests
             TestAssert.Equal(SlotStage.Empty, record.Slots[59].Stage);
         }
 
+        // ---------------------------------------------------------------- water-fed auto-fill (2026-10-28)
+
+        public static void TestAutoFillPlantsEveryEmptyTendedSlotWithoutBudget()
+        {
+            var record = Record(HdbfTier.Basic);
+            var stats = IndoorLaborMath.RunActions(record, Basic(), FallbackCropCatalog.Default, 1,
+                new AcceptAllSink(), true, 0, 1f, waterAvailable: true);
+            // One farmer tends min(60, 1 x 38) = 38 slots; all of them are planted in one pass.
+            TestAssert.Equal(38, stats.Planted);
+            TestAssert.Equal(0, stats.ActionsUsed, "auto-fill planting does not spend the daily budget");
+            TestAssert.Equal(SlotStage.Growing, record.Slots[37].Stage);
+            TestAssert.Equal(SlotStage.Empty, record.Slots[38].Stage, "slots beyond P_eff stay untouched");
+        }
+
+        public static void TestAutoFillPlantsNothingWithoutWater()
+        {
+            var record = Record(HdbfTier.Basic);
+            var stats = IndoorLaborMath.RunActions(record, Basic(), FallbackCropCatalog.Default, 2,
+                new AcceptAllSink(), true, 0, 1f, waterAvailable: false);
+            TestAssert.Equal(0, stats.Planted, "a dry tank plants nothing");
+            TestAssert.Equal(0, stats.ActionsUsed);
+        }
+
+        public static void TestAutoFillHarvestsFirstThenPlantsAllEmptySlots()
+        {
+            var record = Record(HdbfTier.Basic);
+            for (var index = 0; index < 20; index++)
+            {
+                Mature(record, index, "Carrot");
+            }
+
+            var stats = IndoorLaborMath.RunActions(record, Basic(), FallbackCropCatalog.Default, 1,
+                new AcceptAllSink(), true, 0, 1f, waterAvailable: true);
+            // One worker, 13 harvest actions: slots 0..12 are harvested, slots 13..19 stay mature.
+            TestAssert.Equal(13, stats.Harvested);
+            TestAssert.Equal(13, stats.ActionsUsed, "harvests keep the daily budget");
+            // Filled: the 13 harvested slots plus the 18 empty slots 20..37 = 31, free of budget.
+            TestAssert.Equal(31, stats.Planted);
+            TestAssert.Equal(SlotStage.Growing, record.Slots[0].Stage);
+            TestAssert.Equal(SlotStage.Mature, record.Slots[19].Stage);
+            TestAssert.Equal(SlotStage.Growing, record.Slots[37].Stage);
+            TestAssert.Equal(SlotStage.Empty, record.Slots[38].Stage);
+        }
+
         // ---------------------------------------------------------------- safety
 
         public static void TestNullSlotsArrayIsHandled()

@@ -1,7 +1,7 @@
 # Art contract — HDBF v2 3×3×1 indoor box farm `.timbermesh` models
 
 > **状态**：v2.4 / **ART-07「原生纹素密度世界尺度 UV」升级**交付（2026-10-27），离线验证完成；**未实机验证**。
-> **适用**：模组 2.2.0 / v2 美术卡 + `art/references/` 升级卡（REQ-V2-BLD-01/03/04/06、REQ-V2-ART-01..04）。
+> **适用**：模组 2.4.0 / v2 美术卡 + `art/references/` 升级卡（REQ-V2-BLD-01/03/04/06、REQ-V2-ART-01..04）。
 > **本次升级（ART-07）针对用户 2026-10-27 实机反馈**："不错，但只要贴图是清晰和高质量的，就更好了。"
 > 根因：ART-06 的 flat-patch 把每个面塞进材质贴图上一个小 patch（`PATCH_TEXELS_PER_GRID=32`），
 > 3 m 宽的屋顶/墙面只采样约 96 px 的原版 1024² 贴图 → 木纹/石膏/金属被拉伸、发糊。

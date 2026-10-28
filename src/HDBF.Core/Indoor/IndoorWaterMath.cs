@@ -1,6 +1,6 @@
 // ============================================================================
 // HDBF v2 | Layer: Core/Indoor | Owner: V2-CORE-01
-// Purpose: Tank demand, coverage, G_irr and the once-per-day water settlement
+// Purpose: Tank demand, coverage, G_irr and the continuous per-elapsed-time water drain
 //          (INTERFACES section 5, section 19.6). Pure BCL math; no water entities.
 // Requirements: REQ-V2-WATER-01, REQ-V2-WATER-02, REQ-V2-CORE-04
 // ============================================================================
@@ -11,10 +11,11 @@ namespace HDBF.Core.Indoor
 {
     /// <summary>
     /// Internal-tank water mathematics (INTERFACES section 5). The tank is the only water buffer:
-    /// the daily tick deducts once, and only a real <see cref="IWaterSource"/> may add water
+    /// the game layer drains it continuously per elapsed game time (<see cref="DemandForElapsedDays"/>
+    /// + <see cref="Consume"/>), and only a real <see cref="IWaterSource"/> may add water
     /// (REQ-V2-WATER-02). All functions are pure and safe for zero/negative/NaN inputs.
     /// </summary>
-    public static class IndoorWaterMath
+    public static partial class IndoorWaterMath
     {
         /// <summary>
         /// Daily demand: <c>activeSlots x WaterPerSlotPerDay x modeWaterFactor</c> (section 19.6).
@@ -106,47 +107,6 @@ namespace HDBF.Core.Indoor
             }
 
             return IndoorMath.Clamp01((coverage - zeroPoint) / span);
-        }
-
-        /// <summary>
-        /// Settles one game day of water: deducts the daily demand exactly once, drains the tank
-        /// when it cannot cover the demand, and returns the coverage C (REQ-V2-WATER-02).
-        /// </summary>
-        /// <param name="record">Farm record whose tank is deducted in place.</param>
-        /// <param name="tier">Tier profile that supplies the per-slot rate and tank capacity.</param>
-        /// <param name="activeSlots">Effective slots fed by the tank this day.</param>
-        /// <returns>Coverage C in [0,1]; 1 when no water is needed.</returns>
-        public static float SettleDay(IndoorFarmRecord record, TierProfile tier, int activeSlots)
-        {
-            if (record is null || tier is null)
-            {
-                return 0f;
-            }
-
-            var capacity = tier.TankCapacity;
-            var tank = SanitizeTank(record.Tank, capacity);
-            var demand = DemandPerDay(activeSlots, tier.WaterPerSlotPerDay, record.Mode);
-            if (demand <= 0f)
-            {
-                record.Tank = tank;
-                return 1f;
-            }
-
-            if (tank <= 0f)
-            {
-                record.Tank = 0f;
-                return 0f;
-            }
-
-            if (tank >= demand)
-            {
-                record.Tank = tank - demand;
-                return 1f;
-            }
-
-            var coverage = IndoorMath.Clamp01(tank / demand);
-            record.Tank = 0f;
-            return coverage;
         }
 
         /// <summary>Water added by one manual refill trip: TankCapacity / 3 (section 19.6).</summary>

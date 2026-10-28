@@ -1,11 +1,9 @@
 {
   "Name": "High-Density Box Farm",
-  "Version": "2.2.0",
+  "Version": "2.4.0",
   "Id": "HighDensityBoxFarm",
   "MinimumGameVersion": "1.0.0.0",
-  "Description": "Four tiers of a 3x3x1 indoor box farm: 60/150/300/600 simulated indoor slots with a flat, stackable roof, an internal water tank (pipe or manual refill), and the full budget in beavers, water, maintenance and power.",
-  "RequiredMods": [
-  ],
-  "OptionalMods": [
-  ]
+  "Description": "Four tiers of a 3x3x1 indoor box farm: 60/150/300/600 simulated indoor slots on a flat, stackable roof. Beavers work inside the building, plant and harvest automatically, keep the internal tank fed by hauling (instant conversion) or by the manual water button (instant refill), and the tank drains continuously with game time. Includes the full water, maintenance and power budget.",
+  "RequiredMods": [],
+  "OptionalMods": []
 }

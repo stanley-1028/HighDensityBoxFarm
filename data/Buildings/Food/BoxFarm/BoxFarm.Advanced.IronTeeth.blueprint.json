@@ -166,7 +166,7 @@
     "Icon": "Icons/BoxFarmAdvanced"
   },
   "ConstructionSiteBuildTimeSpec": {
-    "ConstructionTimeInHours": 120.0
+    "ConstructionTimeInHours": 60.0
   },
   "ConstructionSiteProgressVisualizerSpec": {
     "ProgressThresholds": [

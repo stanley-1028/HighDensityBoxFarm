@@ -72,7 +72,12 @@ namespace HDBF.Gameplay.Components
             _entranceBlocked = ReadEntranceBlocked();
             var output = _outputSink;
             var water = ReadPipeWater(out var hasPipeWater);
+            _hasPipeWaterCached = hasPipeWater;
             var materials = _materials;
+
+            // Haulers deliver real water goods into the farm's input inventory during the day; the
+            // whole goods become tank water before today's settlement (section 19.6).
+            ApplyHauledWater();
 
             // A queued trip without a source (loaded/repaired state) is dropped rather than retried.
             if (_manualRefillRequested && _pendingManualSource is null)
@@ -81,6 +86,9 @@ namespace HDBF.Gameplay.Components
             }
 
             var manualRequested = _manualRefillRequested && _pendingManualSource is not null;
+            // Actions already spent today (immediate refills, queued jobs) are reserved so the day
+            // can never overspend the 13-actions-per-farmer budget (REQ-V2-LABOR-01).
+            var reservedActionsToday = ActionsUsedToday();
             var context = new IndoorDayContext
             {
                 ActiveWorkers = activeWorkers,
@@ -92,9 +100,7 @@ namespace HDBF.Gameplay.Components
                 Materials = materials,
                 HasPipeWater = hasPipeWater,
                 ManualRefillRequested = manualRequested,
-                // Actions already spent today are reserved so the refill trip (2 more actions)
-                // can never push the day past its budget (REQ-V2-LABOR-01).
-                ReservedActions = ActionsUsedToday(),
+                ReservedActions = reservedActionsToday,
                 PreviousMode = ModeTransitionPrevious(currentDay),
             };
 
@@ -114,7 +120,7 @@ namespace HDBF.Gameplay.Components
             try
             {
                 ApplyDayResult(in result);
-                TrackDayActions(in result);
+                TrackDayActions(in result, reservedActionsToday);
                 ApplyManualRefillResult(in result);
                 RefreshWaterSupply(hasPipeWater);
                 if (liveStateChanged)

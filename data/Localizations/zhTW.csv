@@ -84,7 +84,7 @@ HDBF.Port.NotApplicable,不適用,v2 UI
 HDBF.Action.Maintenance,執行維護,v2 UI
 HDBF.Action.MaintenanceDone,維護完成。,v2 UI
 HDBF.Action.Refill,補水,v2 UI
-HDBF.Action.RefillRequested,已請求補水。,v2 UI
+HDBF.Action.RefillRequested,補水完成。,v2 UI
 HDBF.Action.ModeChanged,模式已切換。,v2 UI
 HDBF.Action.CropPolicyChanged,作物策略已更新。,v2 UI
 HDBF.Warning.NoWater,缺水,v2 UI

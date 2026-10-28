@@ -80,11 +80,12 @@ namespace HDBF.Tests
 
         public static void TestTierBuildWorkdays()
         {
-            // v2.1 (2026-10-26): construction time shortened from 6/10/16/28 to 2/3/5/8 workdays.
-            TestAssert.Equal(2f, TierCatalog.Get(HdbfTier.Basic).BuildWorkdays);
-            TestAssert.Equal(3f, TierCatalog.Get(HdbfTier.Intermediate).BuildWorkdays);
-            TestAssert.Equal(5f, TierCatalog.Get(HdbfTier.Advanced).BuildWorkdays);
-            TestAssert.Equal(8f, TierCatalog.Get(HdbfTier.Top).BuildWorkdays);
+            // v2.1 (2026-10-26) shortened 6/10/16/28 -> 2/3/5/8 workdays; 2026-10-27 halved to
+            // 1/1.5/2.5/4 workdays.
+            TestAssert.Equal(1f, TierCatalog.Get(HdbfTier.Basic).BuildWorkdays);
+            TestAssert.Equal(1.5f, TierCatalog.Get(HdbfTier.Intermediate).BuildWorkdays);
+            TestAssert.Equal(2.5f, TierCatalog.Get(HdbfTier.Advanced).BuildWorkdays);
+            TestAssert.Equal(4f, TierCatalog.Get(HdbfTier.Top).BuildWorkdays);
         }
 
         public static void TestTierBuildMaterials()
@@ -168,8 +169,8 @@ namespace HDBF.Tests
 
         public static void TestUnitPlotBuildWorkdaysDecreasesMonotonically()
         {
-            // v2.1 build workdays 2/3/5/8 over 60/150/300/600 slots keep the unit-plot effort decreasing.
-            var expected = new[] { 2f / 60f, 3f / 150f, 5f / 300f, 8f / 600f };
+            // Halved build workdays 1/1.5/2.5/4 over 60/150/300/600 slots keep the unit-plot effort decreasing.
+            var expected = new[] { 1f / 60f, 1.5f / 150f, 2.5f / 300f, 4f / 600f };
             var previous = float.MaxValue;
             for (var index = 0; index < expected.Length; index++)
             {

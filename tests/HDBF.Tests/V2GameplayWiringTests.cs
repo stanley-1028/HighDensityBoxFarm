@@ -156,7 +156,37 @@ namespace HDBF.Tests
         public static void TestGameplayWiringSourceContracts()
         {
             AssertTokens("HdbfBoxFarmController.ManualRefill.cs", "TryRequestManualRefill",
-                "IndoorConstants.ManualRefillActions", "catch (Exception");
+                "IndoorConstants.ManualRefillActions", "catch (Exception",
+                "IndoorWaterMath.TryRefill", "source.TryDraw", "applied immediately");
+            // Hauled water (REQ-V2-WATER-02/04): a vanilla public input inventory plus the vanilla
+            // fill-input workplace behavior/provider, so the game's own haulers carry water goods
+            // into the farm and the hauling-priority toggle drives them.
+            var configurator = Read("src/HDBF.Gameplay/HdbfGameConfigurator.cs");
+            foreach (var token in new[] { "HdbfWaterInventoryInitializer", "FillInputWorkplaceBehavior",
+                         "FillInputHaulBehaviorProvider", "AddDecorator<HdbfBoxFarmSpec, HaulCandidate>",
+                         "WaitInsideIdlyWorkplaceBehavior" })
+            {
+                TestAssert.True(configurator.Contains(token, StringComparison.Ordinal),
+                    "configurator must contain " + token);
+            }
+            AssertTokens("HdbfWaterInventoryInitializer.cs", "CreateGiveableAndTakeable", "HasPublicInput",
+                "IndoorConstants.WaterGoodId");
+            // BUG-10 fix (water never reached the farm): the vanilla initializer creates the input
+            // inventory DISABLED and the owner building must enable it on finish/load; a disabled
+            // inventory is absent from Inventories.EnabledInventories, so the fill-input chain
+            // silently found no target. AllInventories is what makes the Awake lookup see it at all.
+            AssertTokens("HdbfBoxFarmController.WaterSupply.cs", "ApplyHauledWater", "TakeExisting",
+                "ResolveWaterInventory", "AllInventories", "EnsureWaterInventoryEnabled",
+                "inventory.Enable()", "DisableWaterInventory", "RefreshSupplyForPanel",
+                "RefreshSupplyAfterLoad");
+            AssertTokens("HdbfBoxFarmController.Activation.cs", "EnsureWaterInventoryEnabled",
+                "DisableWaterInventory");
+            // A freshly loaded farm is activated during entity initialization (neighbouring water
+            // tanks/districts may not be registered yet) and a paused game never ticks, so the
+            // supply must be re-probed after the load and while the panel is open.
+            AssertTokens("HdbfBoxFarmController.IndoorSnapshot.cs", "RefreshSupplyForPanel");
+            AssertTokens("HdbfBoxFarmController.cs", "ResolveWaterInventory", "RefreshSupplyAfterLoad");
+            AssertTokens("HdbfBoxFarmController.Tick.cs", "ApplyHauledWater", "_hasPipeWaterCached");
             AssertTokens("HdbfManualWaterSource.cs", "INavigationService", "ClosestPositionOnNavMesh", "catch (Exception");
             // BUG-09 fix (manual refill never found a walk start): a finished building owns two
             // Accessible decorators, so the ambiguous single lookup must never come back. The walk
@@ -182,17 +212,42 @@ namespace HDBF.Tests
             AssertTokens("HdbfMaintenanceTransaction.cs", "IndoorLogKeys.MaintenanceMissing", "HasUnreservedStock",
                 "catch (Exception");
             AssertTokens("HdbfBoxFarmController.Tick.cs", "IndoorDayTick.Run", "UpdatePower", "UpdatePorts",
-                "ReservedActions", "PreviousMode", "catch (Exception");
+                "ReservedActions", "PreviousMode", "ApplyHauledWater", "catch (Exception");
             var tickSources = Read("src/HDBF.Core/Indoor/IndoorDayTick.cs");
             TestAssert.Equal(2, tickSources.Split(new[] { "TryDrawSource" }, StringSplitOptions.None).Length - 1,
-                "water is drawn exactly twice per day (pipe + one manual trip), never per frame");
+                "source water is drawn exactly twice per day (pipe + one manual trip), never per frame");
+            // Player request 2026-10-28: continuous water drain lives in a per-frame Gameplay service
+            // that feeds elapsed game time to the farms; the day tick stays a single daily entry
+            // point and only reads the live tank.
+            var waterFlow = Read("src/HDBF.Gameplay/Components/HdbfWaterFlowService.cs");
+            foreach (var token in new[] { "IUpdatableSingleton", "IDayNightCycle", "PartialDayNumber",
+                         "MaxElapsedGameDays", "Register(", "Unregister(", "Unload", "catch (Exception" })
+            {
+                TestAssert.True(waterFlow.Contains(token, StringComparison.Ordinal),
+                    "HdbfWaterFlowService.cs must contain " + token);
+            }
+
+            TestAssert.False(waterFlow.Contains("Time.deltaTime", StringComparison.Ordinal),
+                "the drain must use the game clock, never Unity render time");
+            AssertTokens("HdbfBoxFarmController.WaterFlow.cs", "ConsumeElapsedWater", "ApplyHauledWater",
+                "IndoorWaterMath.DemandForElapsedDays", "IndoorWaterMath.Consume", "catch (Exception");
+            AssertTokens("HdbfBoxFarmController.Activation.cs", "_waterFlow.Register", "_waterFlow.Unregister");
+            TestAssert.True(configurator.Contains("HdbfWaterFlowService", StringComparison.Ordinal),
+                "the configurator must register the continuous water flow service");
+            TestAssert.True(tickSources.Contains("waterAvailable: record.Tank > 0f", StringComparison.Ordinal),
+                "the daily tick must gate the auto-fill planting on a watered tank");
+            TestAssert.True(Read("src/HDBF.Core/Indoor/IndoorLaborMath.cs")
+                    .Contains("plantAllEmptySlots", StringComparison.Ordinal),
+                "the labor math must own the free auto-fill planting mode");
         }
 
         public static void TestNewGameplaySourcesStaySmallAndPerFrameFree()
         {
             foreach (var file in new[]
                      {
-                         "HdbfBoxFarmController.ManualRefill.cs", "HdbfManualWaterSource.cs",
+                         "HdbfBoxFarmController.ManualRefill.cs", "HdbfBoxFarmController.WaterSupply.cs",
+                         "HdbfWaterInventoryInitializer.cs",
+                         "HdbfManualWaterSource.cs",
                          "HdbfManualWaterSource.Search.cs", "HdbfManualWaterSource.Sources.cs",
                          "HdbfManualWaterSource.WalkStart.cs",
                          "HdbfMaintenanceTransaction.cs", "HdbfWorldIconService.Evaluate.cs",

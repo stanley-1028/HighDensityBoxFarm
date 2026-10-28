@@ -113,6 +113,14 @@
       <HintPath>$(TimberbornManagedDir)\Timberborn.Hauling.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <!-- Hauled water (REQ-V2-WATER-02/04): the vanilla fill-input workplace behavior and its haul
+         behavior provider make district haulers carry water goods from the water pumps/water tanks
+         into the farm's own input inventory; the inventory initializer itself comes from the shared
+         InventorySystem reference. -->
+    <Reference Include="Timberborn.Workshops">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.Workshops.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <!-- Managed-plot overlay (REQ-UI-05 / chapter 14.3-14.6), all names verified with
          tools/ApiIndex against Timberborn 1.1.2.8:
          * InputSystem: InputService IInputProcessor dispatch (click/Esc ownership);

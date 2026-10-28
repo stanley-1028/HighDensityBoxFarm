@@ -24,9 +24,10 @@ namespace HDBF.Gameplay.Farming
     /// and work slots are untouched by this class) and declines every action, so no vanilla
     /// planting, harvesting, navigation or field task can ever be started for indoor slots.
     ///
-    /// This is an intentional approximation for V2-GAMEPLAY-01: farmers are employed at the
-    /// building but do not yet show a bespoke indoor work animation. The animation/pose work is
-    /// tracked for V2-GAMEPLAY-02; the simulation itself does not depend on it.
+    /// This is an intentional approximation for V2-GAMEPLAY-01: farmers stay employed at the
+    /// building and the vanilla <c>WaitInsideIdlyWorkplaceBehavior</c> keeps them waiting inside the
+    /// building while on duty (2026-10-28 player request); the indoor planting/harvesting itself is
+    /// simulated by the daily tick, so no bespoke indoor work animation is needed.
     /// </summary>
     public class IndoorFarmWorkplaceBehavior : WorkplaceBehavior, IAwakableComponent
     {

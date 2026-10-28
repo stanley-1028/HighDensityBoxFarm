@@ -35,6 +35,15 @@ namespace HDBF.Gameplay.Components
                     _record.EntityId = _saveEntityId.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 }
 
+                // Hauled water (REQ-V2-WATER-02): the vanilla inventory initializer creates the water
+                // input inventory disabled and the owner building must enable it; otherwise the
+                // fill-input hauling chain never sees a target (see EnsureWaterInventoryEnabled).
+                EnsureWaterInventoryEnabled();
+
+                // Continuous water drain (player request 2026-10-28): the flow service drains every
+                // registered finished farm per frame; a farm that is not finished never registers.
+                _waterFlow.Register(this);
+
                 EnsureMaintenanceDeadline();
                 // The persisted power/port flags are refreshed once at activation as well, so a
                 // freshly built or loaded building shows the real live state before its first day
@@ -91,6 +100,8 @@ namespace HDBF.Gameplay.Components
             }
 
             _activated = false;
+            // Continuous drain stops with the finished state; the tank keeps its last value.
+            _waterFlow.Unregister(this);
             try
             {
                 _dayTrigger?.Pause();
@@ -121,11 +132,13 @@ namespace HDBF.Gameplay.Components
                     _entityId.ToString());
             }
 
+            DisableWaterInventory();
             DisableComponent();
         }
 
         private void TryQuiesceAfterFailedActivation()
         {
+            _waterFlow.Unregister(this);
             try
             {
                 _farms.UnregisterSource(_entityId);

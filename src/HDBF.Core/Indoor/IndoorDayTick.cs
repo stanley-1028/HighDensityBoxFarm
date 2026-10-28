@@ -2,7 +2,8 @@
 // HDBF v2 | Layer: Core/Indoor | Owner: V2-CORE-01 (day tick) / V2-GAMEPLAY-02 (wiring)
 // Purpose: The fixed-order daily orchestration of one indoor farm (ARCHITECTURE
 //          section 3). The DTOs live in IndoorDayContracts.cs; this file owns the
-//          order, the per-slot isolation and the day result.
+//          order, the per-slot isolation and the day result. The tank drain itself is
+//          continuous and lives in the game layer (2026-10-28 player request).
 // Requirements: REQ-V2-MAINT-03, REQ-V2-CORE-05, REQ-V2-SAFE-01, REQ-V2-BAL-01,
 //               REQ-V2-PERF-02, REQ-V2-WATER-02, REQ-V2-WATER-04, REQ-V2-LABOR-01
 // ============================================================================
@@ -12,8 +13,10 @@ namespace HDBF.Core.Indoor
 {
     /// <summary>
     /// The fixed-order daily tick of one indoor farm (ARCHITECTURE section 3): entrance gate,
-    /// water settle/refill, growth, farm actions, fatigue/rotation, maintenance/power, warnings and
-    /// dirty flag. The order is observable and pinned by <c>V2TickOrderTests</c> (REQ-V2-MAINT-03).
+    /// water refill, growth, farm actions, fatigue/rotation, maintenance/power, warnings and
+    /// dirty flag. The tank drain is continuous in the game layer, so this tick only reads the live
+    /// tank (2026-10-28 player request). The order is observable and pinned by
+    /// <c>V2TickOrderTests</c> (REQ-V2-MAINT-03).
     /// No exception escapes (REQ-V2-SAFE-01); the normal path allocates nothing and every loop is
     /// bounded by the slot capacity (REQ-V2-PERF-02, REQ-V2-SAFE-03).
     /// </summary>
@@ -67,7 +70,10 @@ namespace HDBF.Core.Indoor
             var tankStart = record.Tank;
             try
             {
-                // Phase 2: water settle + refill (REQ-V2-WATER-02); refills top up before the deduction.
+                // Phase 2: water refill (REQ-V2-WATER-02); the tank drain itself is continuous and
+                // runs in the game layer (HdbfWaterFlowService -> IndoorWaterMath.Consume), so this
+                // daily tick only repairs the tank, reads it for coverage/growth and tops it up here.
+                IndoorWaterMath.SanitizeTank(record, tier);
                 var effectiveSlots = IndoorLaborMath.EffectiveSlots(tier, activeWorkers);
                 var demand = IndoorWaterMath.DemandPerDay(effectiveSlots, tier.WaterPerSlotPerDay, record.Mode);
                 if (hasPipeWater)
@@ -120,7 +126,9 @@ namespace HDBF.Core.Indoor
                     }
                 }
 
-                coverage = IndoorWaterMath.SettleDay(record, tier, effectiveSlots);
+                // Continuous drain (player request 2026-10-28): the tank was already consumed by the
+                // game-layer flow service slice by slice; price the day from the live tank only.
+                coverage = IndoorWaterMath.Coverage(record.Tank, demand);
                 if (demand > 0f)
                 {
                     if (coverage <= 0f) warnings |= IndoorWarningFlags.NoWater;
@@ -178,8 +186,11 @@ namespace HDBF.Core.Indoor
                     context is null ? null : context.PreviousMode);
                 var actionsAllowed = !entranceBlocked && !stalled && record.Mode != IndoorMode.Fallow;
                 var budgetReserved = reservedActions + refillActions;
+                // Player request 2026-10-28: when the tank holds water the planting pass fills every
+                // empty worker-tended slot without spending the daily budget; an empty tank plants
+                // nothing. Harvests keep the daily action budget and run strictly before planting.
                 actions = IndoorLaborMath.RunActions(record, tier, catalog, activeWorkers, output!,
-                    actionsAllowed, budgetReserved, transitionScale);
+                    actionsAllowed, budgetReserved, transitionScale, waterAvailable: record.Tank > 0f);
                 if (actions.Harvested > 0 || actions.Planted > 0) changed = true;
                 if (actions.Backlog) warnings |= IndoorWarningFlags.OutputFull;
 

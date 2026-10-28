@@ -15,16 +15,17 @@ namespace HDBF.Tests
 {
     public static class V2TickOrderTests
     {
-        public static void TestPipeRefillHappensBeforeWaterDeduction()
+        public static void TestPipeRefillRunsBeforeTheDailyCoverageRead()
         {
-            // If the deduction ran first, coverage would be 0 and growth would stop for the day.
+            // The continuous layer owns the drain; the daily tick still refills from the pipe first,
+            // so the coverage read below sees the topped-up tank (coverage 1, full growth).
             var record = Record();
             record.Tank = 0f;
             var slot = record.Slots[0];
             slot.CropId = "Carrot";
             slot.Stage = SlotStage.Growing;
             var result = Tick(record, Healthy(1));
-            // demand 0.76: the pipe adds 0.76, then 0.76 is deducted -> coverage 1, full growth.
+            // demand 0.76: the pipe adds 0.76; nothing is deducted by the tick itself.
             TestAssert.Equal(1f, result.Coverage, 1e-4f);
             TestAssert.Equal(1f, result.GrowthMultiplier, 1e-4f);
             TestAssert.Equal(1f, slot.GrowthDays, 1e-4f);
@@ -182,7 +183,9 @@ namespace HDBF.Tests
             var result = IndoorDayTick.Run(record, Basic(), FallbackCropCatalog.Default,
                 new IndoorDayContext { ActiveWorkers = 2, CurrentDay = 1f });
             TestAssert.Equal(0, result.Actions.ActionsUsed);
-            TestAssert.True(result.Changed, "the water settlement still runs without a slot array");
+            // With the continuous drain in the game layer the tick itself moves no water here.
+            TestAssert.False(result.Changed, "a tick without slots, actions or refill changes nothing");
+            TestAssert.Equal(3.6f, record.Tank, 1e-5f);
         }
 
         public static void TestNullContextIsTreatedAsNobodyOnDuty()

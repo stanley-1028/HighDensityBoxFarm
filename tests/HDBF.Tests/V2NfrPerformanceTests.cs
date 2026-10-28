@@ -167,7 +167,11 @@ namespace HDBF.Tests
             TestAssert.Equal(0L, allocated, "the daily tick must not allocate");
         }
 
-        /// <summary>Section 19.13: UI refresh &lt;=4 Hz, coverage recomputation &lt;=2 Hz (daily only).</summary>
+        /// <summary>
+        /// Section 19.13: UI refresh &lt;=4 Hz. Water is drained continuously by the Gameplay flow
+        /// service (game-clock delta, 2026-10-28 player request), while the Core water math stays a
+        /// pure per-call helper set with no per-frame method of its own.
+        /// </summary>
         public static void TestUiRefreshAndCoverageRecomputeBudgets()
         {
             var configPath = Path.Combine(RepoRoot(), "data", "HDBF_Config.json");
@@ -184,14 +188,14 @@ namespace HDBF.Tests
                 var name = methods[index].Name;
                 TestAssert.False(name.IndexOf("Frame", StringComparison.Ordinal) >= 0
                         || name.IndexOf("Update", StringComparison.Ordinal) >= 0,
-                    "coverage must be recomputed by the daily settle, never per frame; found " + name);
+                    "the Core water math must stay a pure per-call helper; found " + name);
             }
 
             TestAssert.True(text.Contains("\"steadyFrameBudgetMs\": 0.5", StringComparison.Ordinal),
                 "section 19.13 steady frame budget missing from the shipped config");
             Console.WriteLine(
-                "[nfr-perf] UI refresh 4 Hz (<=4 Hz); coverage recompute = one daily settle "
-                + "(<=2 Hz budget, no per-frame call sites)");
+                "[nfr-perf] UI refresh 4 Hz (<=4 Hz); Core water math = pure per-call helpers, "
+                + "continuous drain owned by the Gameplay flow service");
         }
 
         // ------------------------------------------------------------------ helpers

@@ -1,6 +1,6 @@
 // ============================================================================
 // HDBF v2 | Layer: L1 test | Owner: V2-CORE-01
-// Purpose: Tank demand, coverage, G_irr, once-per-day settlement, pipe/manual refill
+// Purpose: Tank demand, coverage, G_irr, continuous per-elapsed-time drain, pipe/manual refill
 //          and the divide-by-zero/negative guards (section 19.6 / section 19.14).
 // Requirements: REQ-V2-WATER-01, REQ-V2-WATER-02, REQ-V2-WATER-04, REQ-V2-TEST-01
 // ============================================================================
@@ -88,52 +88,65 @@ namespace HDBF.Tests
             TestAssert.Equal(0f, IndoorWaterMath.IrrigationMultiplier(float.NaN, 0.5f));
         }
 
-        // ---------------------------------------------------------------- settlement
+        // ---------------------------------------------------------------- continuous drain
 
-        public static void TestSettleDayDeductsExactlyDemand()
+        public static void TestDemandForElapsedDaysSlicesTheDailyDemand()
         {
-            var record = Record(HdbfTier.Basic);
-            var coverage = IndoorWaterMath.SettleDay(record, TierCatalog.Get(HdbfTier.Basic), 60);
-            TestAssert.Equal(1f, coverage);
-            TestAssert.Equal(2.4f, record.Tank, 1e-5f, "3.6 - 60 x 0.020");
+            // Basic with two farmers: 60 slots x 0.020 = 1.2 units per game day. A whole day is
+            // exactly the daily demand; one 600th of a day (one second of a 600 s day) is a slice.
+            TestAssert.Equal(1.2f, IndoorWaterMath.DemandForElapsedDays(60, 0.02f, IndoorMode.Normal, 1f), 1e-5f);
+            TestAssert.Equal(0.002f,
+                IndoorWaterMath.DemandForElapsedDays(60, 0.02f, IndoorMode.Normal, 1f / 600f), 1e-6f);
+            TestAssert.Equal(0f, IndoorWaterMath.DemandForElapsedDays(60, 0.02f, IndoorMode.Normal, 0f));
+            TestAssert.Equal(0f, IndoorWaterMath.DemandForElapsedDays(60, 0.02f, IndoorMode.Normal, -1f));
+            TestAssert.Equal(0f, IndoorWaterMath.DemandForElapsedDays(60, 0.02f, IndoorMode.Normal, float.NaN));
+            TestAssert.Equal(0f, IndoorWaterMath.DemandForElapsedDays(0, 0.02f, IndoorMode.Normal, 1f));
         }
 
-        public static void TestSettleDayPartialDrain()
+        public static void TestConsumeDrainsSmoothlyInsteadOfOneDailyChunk()
         {
             var record = Record(HdbfTier.Basic);
-            record.Tank = 0.6f;
-            var coverage = IndoorWaterMath.SettleDay(record, TierCatalog.Get(HdbfTier.Basic), 60);
-            TestAssert.Equal(0.5f, coverage, 1e-5f);
+            var tier = TierCatalog.Get(HdbfTier.Basic);
+            // 100 small slices of the 1.2/day demand empty exactly 1.2 from the 3.6 tank.
+            var slice = IndoorWaterMath.DemandForElapsedDays(60, 0.02f, IndoorMode.Normal, 1f) / 100f;
+            var drained = 0f;
+            for (var index = 0; index < 100; index++)
+            {
+                drained += IndoorWaterMath.Consume(record, tier, slice);
+            }
+
+            TestAssert.Equal(1.2f, drained, 1e-4f);
+            TestAssert.Equal(2.4f, record.Tank, 1e-4f, "3.6 minus one continuous game day");
+        }
+
+        public static void TestConsumeClampsAtZeroAndSanitizes()
+        {
+            var record = Record(HdbfTier.Basic);
+            var tier = TierCatalog.Get(HdbfTier.Basic);
+            TestAssert.Equal(0.6f, IndoorWaterMath.Consume(record, tier, 0.6f), 1e-5f);
+            TestAssert.Equal(3f, record.Tank, 1e-5f);
+            TestAssert.Equal(3f, IndoorWaterMath.Consume(record, tier, 100f), 1e-5f, "the tank never goes negative");
             TestAssert.Equal(0f, record.Tank);
-        }
-
-        public static void TestSettleDayEmptyTank()
-        {
-            var record = Record(HdbfTier.Basic);
-            record.Tank = 0f;
-            TestAssert.Equal(0f, IndoorWaterMath.SettleDay(record, TierCatalog.Get(HdbfTier.Basic), 60));
-            TestAssert.Equal(0f, record.Tank);
-        }
-
-        public static void TestSettleDayNoDemandKeepsTank()
-        {
-            var record = Record(HdbfTier.Basic);
-            TestAssert.Equal(1f, IndoorWaterMath.SettleDay(record, TierCatalog.Get(HdbfTier.Basic), 0));
-            TestAssert.Equal(3.6f, record.Tank, 1e-5f);
-        }
-
-        public static void TestSettleDaySanitizesTank()
-        {
-            var record = Record(HdbfTier.Basic);
+            TestAssert.Equal(0f, IndoorWaterMath.Consume(record, tier, 0.5f));
             record.Tank = float.NaN;
-            IndoorWaterMath.SettleDay(record, TierCatalog.Get(HdbfTier.Basic), 60);
+            IndoorWaterMath.Consume(record, tier, 0f);
             TestAssert.Equal(0f, record.Tank);
             record.Tank = -5f;
-            IndoorWaterMath.SettleDay(record, TierCatalog.Get(HdbfTier.Basic), 60);
+            IndoorWaterMath.Consume(record, tier, 0f);
             TestAssert.Equal(0f, record.Tank);
             record.Tank = 100f;
-            IndoorWaterMath.SettleDay(record, TierCatalog.Get(HdbfTier.Basic), 0);
+            IndoorWaterMath.Consume(record, tier, 0f);
             TestAssert.Equal(3.6f, record.Tank, 1e-5f, "tank must be clamped to the tier capacity");
+        }
+
+        public static void TestConsumeIgnoresInvalidAmount()
+        {
+            var record = Record(HdbfTier.Basic);
+            var tier = TierCatalog.Get(HdbfTier.Basic);
+            TestAssert.Equal(0f, IndoorWaterMath.Consume(record, tier, 0f));
+            TestAssert.Equal(0f, IndoorWaterMath.Consume(record, tier, -2f));
+            TestAssert.Equal(0f, IndoorWaterMath.Consume(record, tier, float.NaN));
+            TestAssert.Equal(3.6f, record.Tank);
         }
 
         public static void TestRefillAmountIsThirdOfCapacity()
@@ -173,14 +186,18 @@ namespace HDBF.Tests
 
         // ---------------------------------------------------------------- daily tick refill
 
-        public static void TestTickDeductsTankOncePerDay()
+        public static void TestTickNoLongerDeductsWaterItself()
         {
+            // Player request 2026-10-28: the game layer drains the tank continuously, so the daily
+            // tick must only price the day from the live tank and never subtract the demand again.
             var record = Record(HdbfTier.Basic);
             var context = new IndoorDayContext { ActiveWorkers = 2, CurrentDay = 1f };
-            Tick(record, context);
-            TestAssert.Equal(2.4f, record.Tank, 1e-5f);
-            Tick(record, context);
-            TestAssert.Equal(1.2f, record.Tank, 1e-5f, "one deduction per tick, never per frame");
+            var first = Tick(record, context);
+            TestAssert.Equal(3.6f, record.Tank, 1e-5f, "the daily tick never deducts water");
+            TestAssert.Equal(1f, first.Coverage, 1e-5f);
+            var second = Tick(record, context);
+            TestAssert.Equal(3.6f, record.Tank, 1e-5f);
+            TestAssert.Equal(1f, second.Coverage, 1e-5f);
         }
 
         public static void TestTickPipeRefillKeepsCoverage()
@@ -195,8 +212,8 @@ namespace HDBF.Tests
                 HasPipeWater = true,
                 Water = source,
             });
-            // demand 38 x 0.02 = 0.76; headroom 1.6 so the pipe adds 0.76, then 0.76 is deducted.
-            TestAssert.Equal(2f, record.Tank, 1e-4f);
+            // demand 38 x 0.02 = 0.76; headroom 1.6 so the pipe adds 0.76 and nothing is deducted.
+            TestAssert.Equal(2.76f, record.Tank, 1e-4f);
             TestAssert.Equal(1f, result.Coverage, 1e-4f);
         }
 
@@ -220,8 +237,8 @@ namespace HDBF.Tests
                 ManualRefillRequested = true,
                 Water = source,
             });
-            // refill 3.6/3 = 1.2, then 38 x 0.02 = 0.76 is deducted -> 0.44
-            TestAssert.Equal(0.44f, record.Tank, 1e-4f);
+            // refill 3.6/3 = 1.2; the continuous layer owns the drain, so the tick adds 1.2 only.
+            TestAssert.Equal(1.2f, record.Tank, 1e-4f);
         }
 
         public static void TestTickManualRefillWithoutSourceFails()

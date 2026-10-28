@@ -3,7 +3,7 @@
 // Purpose: Pins the eight shipped BoxFarm blueprint JSON documents to the v2
 //          3x3x1 stackable-building contract: footprint, nine blocks, stackable
 //          roof (BlockObject + GenerateFloorsOnStackable + Top/Floor occupancy),
-//          construction time 2/3/5/8 workdays (hours in the real game field),
+//          construction time 1/1.5/2.5/4 workdays (halved; hours in the real game field),
 //          tier numbers, worker caps, maintenance, ports, output inventory,
 //          construction base and colliders. It does not load any game assembly;
 //          field/enum reality is proven by tools/validate against game metadata.
@@ -44,8 +44,8 @@ namespace HDBF.Tests
         private static readonly string[] Tiers = { "Basic", "Intermediate", "Advanced", "Top" };
         private static readonly string[] Factions = { "Folktails", "IronTeeth" };
 
-        /// <summary>REQ-V2-BLD-01 + docs/v2/INTERFACES.md §2, v2.1 construction time.</summary>
-        private static readonly int[] BuildWorkdays = { 2, 3, 5, 8 };
+        /// <summary>REQ-V2-BLD-01 + docs/v2/INTERFACES.md §2; halved from the v2.1 2/3/5/8.</summary>
+        private static readonly double[] BuildWorkdays = { 1.0, 1.5, 2.5, 4.0 };
 
         /// <summary>
         /// The game field <c>ConstructionSiteBuildTimeSpec.ConstructionTimeInHours</c> is in game
@@ -307,13 +307,14 @@ namespace HDBF.Tests
         // ---------------------------------------------------------------- construction time
 
         /// <summary>
-        /// REQ-V2-BLD-01 v2.1: construction time is 2/3/5/8 workdays. The real 1.1.2.8 field is
+        /// REQ-V2-BLD-01 (2026-10-27 halving): construction time is 1/1.5/2.5/4 workdays, half the
+        /// v2.1 2/3/5/8. The real 1.1.2.8 field is
         /// <c>ConstructionSiteBuildTimeSpec.ConstructionTimeInHours</c> (float, game hours), so the
-        /// expected values are 48/72/120/192 hours at the documented 24 h/workday factor. The
+        /// expected values are 24/36/60/96 hours at the documented 24 h/workday factor. The
         /// building must also stay a construction site (<c>PlaceFinished = false</c>), otherwise the
         /// time would be irrelevant.
         /// </summary>
-        public static void TestConstructionTimeMatchesTwoThreeFiveEightWorkdays()
+        public static void TestConstructionTimeIsHalvedFromV21()
         {
             for (var tierIndex = 0; tierIndex < Tiers.Length; tierIndex++)
             {
@@ -331,13 +332,13 @@ namespace HDBF.Tests
                     var buildTime = ObjectMember(blueprint, "ConstructionSiteBuildTimeSpec", context);
                     var hours = NumberMember(buildTime, "ConstructionTimeInHours",
                         context + " ConstructionSiteBuildTimeSpec");
-                    var expectedHours = workdays * (double)BuildHoursPerWorkday;
+                    var expectedHours = workdays * BuildHoursPerWorkday;
                     TestAssert.Equal(expectedHours, hours, 1e-6,
                         context + ": ConstructionTimeInHours must be " + workdays
                         + " workdays x " + BuildHoursPerWorkday + " h/workday");
-                    TestAssert.Equal(workdays, (int)Math.Round(hours / BuildHoursPerWorkday),
-                        context + ": ConstructionTimeInHours must decode to the v2 workday value "
-                        + workdays + " (REQ-V2-BLD-01 v2.1 2/3/5/8)");
+                    TestAssert.Equal(workdays, hours / BuildHoursPerWorkday, 1e-6,
+                        context + ": ConstructionTimeInHours must decode to " + workdays
+                        + " workdays (REQ-V2-BLD-01, halved from v2.1 2/3/5/8)");
                 }
             }
         }

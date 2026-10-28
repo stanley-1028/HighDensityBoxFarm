@@ -45,13 +45,19 @@
 
 ```
 1. 入口/在岗门禁       → 入口堵塞则本日只停农事动作（生长不变）
-2. 水耗结算            → WaterMath.SettleDay：每日一次扣水、算覆盖率 C、G_irr
+2. 水位读取            → 水罐由游戏层按经过的游戏时间连续扣（IndoorWaterMath.DemandForElapsedDays
+                        + Consume）；本 tick 只修复/读取实时水罐，算覆盖率 C 与 G_irr
 3. 生长推进            → 每个非空未成熟槽位 progress += Δday × G_growth
-4. 农事动作            → LaborMath：成熟优先收获 → 空槽播种；预算 = 在岗工人 × 13
+4. 农事动作            → LaborMath：成熟优先收获（预算 = 在岗工人 × 13）→ 水罐有水时
+                        空槽自动种满（不占预算，2026-10-28 玩家需求）
 5. 疲劳/轮作           → 同作物累加、轮作衰减、休耕恢复
 6. 维护/动力           → 到期判定、缺料标记、G_maint/G_power
 7. 警示与脏标记        → IndoorWarningFlags 汇总；Changed=true 时置存档脏位
 ```
+
+>`水耗连续化` 由 Gameplay 的 `HdbfWaterFlowService`（`IUpdatableSingleton`）每帧把
+>`IDayNightCycle.PartialDayNumber` 的增量交给每个已完工农场：暂停不扣、倍速按比例、一整天恰好扣
+>`DemandPerDay`（帧率无关）。每日 tick 不再一次性扣水，避免「一天扣一大格」的突兀表现。
 
 `G_growth = G_irr × G_maint × G_power` 只由 `IndoorMultipliers` 汇总函数计算（REQ-V2-BAL-01）。
 

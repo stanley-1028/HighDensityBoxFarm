@@ -24,6 +24,10 @@ namespace HDBF.Gameplay.Components
                 return EmptyIndoorSnapshot();
             }
 
+            // Keep the supply state live even while paused (moved/built water tank, hauled water) -
+            // throttled by snapshot reads so the 4 Hz panel never runs the source probe per frame.
+            RefreshSupplyForPanel();
+
             var workers = WorkerCount();
             CountSlots(out var empty, out var growing, out var mature);
             var effective = IndoorLaborMath.EffectiveSlots(_profile, workers);

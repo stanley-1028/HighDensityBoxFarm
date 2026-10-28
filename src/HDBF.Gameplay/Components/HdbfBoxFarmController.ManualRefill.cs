@@ -85,11 +85,42 @@ namespace HDBF.Gameplay.Components
                     return false;
                 }
 
-                _pendingManualSource = source;
-                _manualRefillRequested = true;
+                // Player request 2026-10-28: the refill is applied the moment the player asks for it
+                // (the real source was already validated above); it no longer waits for the next
+                // daily tick. The trip still costs the 2 farm actions of today's budget, and the
+                // action total is reserved so the day can never overspend (REQ-V2-LABOR-01/04).
+                var capacity = _profile.TankCapacity;
+                var tank = float.IsNaN(_record.Tank) || _record.Tank < 0f ? 0f : _record.Tank;
+                if (tank >= capacity)
+                {
+                    _manualSourceAvailable = true;
+                    _waterSupply = WaterSupplyKind.Manual;
+                    _log.Write(HdbfLogCategory.Info, IndoorLogKeys.ManualRefill,
+                        "manual refill skipped: the tank is already full, entityId=" + _entityId);
+                    return true;
+                }
+
+                if (!source.TryDraw(requiredUnits, out var drawn) || !(drawn > 0f))
+                {
+                    failureKey = HdbfIndoorCommandFailures.RefillUnavailable;
+                    _lastCommandFailureKey = failureKey;
+                    _log.Write(HdbfLogCategory.Warn, IndoorLogKeys.ManualRefill,
+                        "manual refill failed: the source gave no water, entityId=" + _entityId);
+                    return false;
+                }
+
+                var added = IndoorWaterMath.TryRefill(_record, drawn);
+                _actionsUsedToday = ActionsUsedToday() + IndoorConstants.ManualRefillActions;
+                _actionsDayIndex = DayIndexOf(ReadCurrentDay());
+                _saveDirty = true;
+                _manualRefillRequested = false;
+                _pendingManualSource = null;
                 _manualSourceAvailable = true;
+                _waterSupply = WaterSupplyKind.Manual;
                 _log.Write(HdbfLogCategory.Info, IndoorLogKeys.ManualRefill,
-                    "manual refill queued (2 farm actions, source=" + source.Kind + "), entityId=" + _entityId);
+                    "manual refill applied immediately: +" + Format(added) + " water units for "
+                    + IndoorConstants.ManualRefillActions + " farm actions, tank=" + Format(_record.Tank)
+                    + ", entityId=" + _entityId);
                 return true;
             }
             catch (Exception exception)
@@ -166,10 +197,14 @@ namespace HDBF.Gameplay.Components
                 "manual refill trip failed: " + result.ManualRefill + ", entityId=" + _entityId);
         }
 
-        /// <summary>Counts the actions of the day (farm actions + refill) for the next command check.</summary>
-        private void TrackDayActions(in IndoorDayResult result)
+        /// <summary>
+        /// Counts the actions of the day (reserved refills/jobs + farm actions + refill) for the next
+        /// command check. Reserved actions were paid before the tick, so they must be added back or a
+        /// second refill in the same day could overspend the budget (REQ-V2-LABOR-01).
+        /// </summary>
+        private void TrackDayActions(in IndoorDayResult result, int reservedActions)
         {
-            _actionsUsedToday = result.Actions.ActionsUsed + result.RefillActionsUsed;
+            _actionsUsedToday = reservedActions + result.Actions.ActionsUsed + result.RefillActionsUsed;
             if (_actionsUsedToday < 0f)
             {
                 _actionsUsedToday = 0f;

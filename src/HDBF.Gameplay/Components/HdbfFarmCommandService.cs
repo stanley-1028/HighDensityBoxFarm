@@ -117,14 +117,15 @@ namespace HDBF.Gameplay.Components
         }
 
         /// <summary>
-        /// Queues one manual water refill trip: validates workers, entrance, remaining daily action
-        /// budget and a real 12-cell water source, then lets the next daily tick perform the draw and
-        /// spend the 2 farm actions (REQ-V2-WATER-04). A panel-only command: it is resolved by the
-        /// UI command bridge by name, not part of the Core <see cref="IBoxFarmCommand"/> surface.
+        /// Performs one manual water refill: validates workers, entrance, remaining daily action
+        /// budget and a real 12-cell water source, then draws from that source and adds it to the
+        /// tank immediately (2026-10-28; it no longer waits for the next daily tick) while spending
+        /// the 2 farm actions (REQ-V2-WATER-04). A panel-only command: it is resolved by the UI
+        /// command bridge by name, not part of the Core <see cref="IBoxFarmCommand"/> surface.
         /// </summary>
         /// <param name="entityId">Runtime entity id of the farm.</param>
         /// <param name="failureKey">Specific failure key when false.</param>
-        /// <returns>True when the refill request is queued.</returns>
+        /// <returns>True when the water was drawn and added to the tank.</returns>
         public bool TryRequestManualRefill(Guid entityId, out string? failureKey)
         {
             failureKey = null;
