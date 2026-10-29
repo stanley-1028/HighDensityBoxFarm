@@ -1321,6 +1321,19 @@ Load time: 30029ms (scene index: 2)
 * 面板高度 325 px，截圖時需以滑鼠滾輪捲動才能同時看到卡片標題與進度條；未改動版面。
 * 多作物同時生長（輪作換茬後的第二種作物）未在本輪取證；L1 已有雙作物排序/聚合契約測試。
 
+### 28.3 發佈記錄（2026-10-29）
+
+* Steam Workshop item **3828809784** 已於 **2026-10-29 13:22（UTC+8）** 更新，Steam 記錄
+  `Uploaded new content ( ManifestID 4240130308274758601 )`、`Upload finished : OK`。
+* 發佈內容與本機 2.4.1 建置包**逐檔相同**（`HDBF.Core/Gameplay/UI.dll` 與 `manifest.json` 的
+  SHA-256 前 20 位一致；48 檔、2,027,124 bytes；`manifest.json` Version = 2.4.1）。
+* 訂閱端實機複驗：透過 Steam 啟動後日誌為
+  `start HDBF version=2.4.1 modPath=...\workshop\content\1062090\3828809784`，只有一份 HDBF
+  實例、無重複 id 例外（先前本機 2.4.1 + 工坊舊版並存會讓 TimberUI 拋
+  `ArgumentException: same key HighDensityBoxFarm`，已移除本機重複副本）。
+* 工坊頁面 metadata（標題／說明／封面）由工坊頁面工作流一併更新；頁面 `更新日期` = 2026-10-29 13:22。
+  本輪未新增 changelog 文字（Change Notes 仍為 28 Oct 的 2 筆）——版本號已寫在 mod 內 `manifest.json`。
+
 **證據檔案**：`docs/in-game/round57-growing-partial-small.jpg`、`round57-growing-partial-panel.jpg`、
 `round57-growing-live-small.jpg`、`round57-growing-live-panel.jpg`、`round57-Player.log`、
 `round57-summary.txt`。
