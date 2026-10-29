@@ -1291,7 +1291,7 @@ Load time: 30029ms (scene index: 2)
 `round44-art-closeup.jpg`、`round52-art-Player.log`（Intermediate 室內模擬 + 無例外）、
 `round43/44-art-summary.txt`。
 
-## 28. v2.5.0「正在生長」即時作物卡實機驗證（2026-10-29，round57）
+## 28. v2.4.1「正在生長」即時作物卡實機驗證（2026-10-29，round57）
 
 本輪交付 **REQ-V2-UI-05**：面板新增「正在生長」卡，逐作物顯示「生長中／待收」槽數與平均生長進度條，
 **從第一格種下即出現**並隨既有 4 Hz 刷新更新，不再等種植槽種滿才顯示；無作物時保留空狀態列。
@@ -1299,7 +1299,7 @@ Load time: 30029ms (scene index: 2)
 `tools/validate` **RESULT: OK**、`build.ps1` **RELEASE GATES: PASSED (44 checks)**、
 三語本地化 **191 鍵**（enUS/zhCN/zhTW 集合一致）。
 
-### 28.1 已證明（實機，1.1.2.8 / 2560×1440 / `Mods\HDBF` 2.5.0）
+### 28.1 已證明（實機，1.1.2.8 / 2560×1440 / `Mods\HDBF` 2.5.0；發佈時同一份程式碼改標 2.4.1）
 
 * 載入：`[HDBF/Info] start HDBF version=2.5.0 modPath=...\Mods\HDBF`、`startup: HDBF 2.5.0 ready`、
   `indoor.entity: ... tier=Basic, faction=Folktails, blueprint=BoxFarm.Basic.Folktails`；本輪無 `[HDBF/Error]`。
