@@ -186,3 +186,7 @@ HDBF.Tooltip.WorkerName,This roster is read-only: the game assigns the workers.,
 HDBF.Tooltip.Slots,Tier slot capacity; P_eff is how many slots the current crew can tend.,v2 UI
 HDBF.Tooltip.Workers,On-duty crew of the building (read-only).,v2 UI
 HDBF.Tooltip.Efficiency,Irrigation growth multiplier G_irr from tank coverage C: 100% at or above C_min.,v2 UI
+HDBF.Panel.SectionGrowing,Growing now,v2 UI
+HDBF.Panel.GrowingValue,{0} growing · {1} ready,v2 UI
+HDBF.Panel.GrowingEmpty,Nothing planted yet,v2 UI
+HDBF.Tooltip.Growing,{0} slots in use · average growth {1}% · matures in {2} days,v2 UI

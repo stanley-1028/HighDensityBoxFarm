@@ -186,3 +186,7 @@ HDBF.Tooltip.WorkerName,只读名册：工人由游戏分配。,v2 UI
 HDBF.Tooltip.Slots,档位槽位上限；P_eff 表示当前工人能照料的槽位数。,v2 UI
 HDBF.Tooltip.Workers,当班工人（只读）。,v2 UI
 HDBF.Tooltip.Efficiency,灌溉生长系数 G_irr：覆盖率 C 达到 C_min 及以上为 100%。,v2 UI
+HDBF.Panel.SectionGrowing,正在生长,v2 UI
+HDBF.Panel.GrowingValue,生长 {0} · 待收 {1},v2 UI
+HDBF.Panel.GrowingEmpty,尚未种植,v2 UI
+HDBF.Tooltip.Growing,占用 {0} 格 · 平均生长 {1}% · {2} 天成熟,v2 UI

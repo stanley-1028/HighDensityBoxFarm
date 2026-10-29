@@ -362,8 +362,23 @@ public sealed record IndoorFarmSnapshot(
     CropPolicy CropPolicy, string FixedCropId, string RotationSequence,
     int OutputOccupied, bool OutputPortConnected,
     bool PipePort, bool LogisticsPort, bool PowerPort,
-    IndoorWarningFlags Warnings, string OutputInventoryPortState);
+    IndoorWarningFlags Warnings, string OutputInventoryPortState)
+{
+    // REQ-V2-UI-05: live per-crop rows of the "正在生长" card, ordered by the faction crop
+    // table; empty when nothing is planted. Init property so old constructors stay valid.
+    IReadOnlyList<IndoorCropStatus> Crops { get; init; } = Array.Empty<IndoorCropStatus>();
+}
+
+public sealed record IndoorCropStatus(
+    string CropId, string YieldItemId, int GrowingSlots, int MatureSlots,
+    float AverageProgress, float GrowthTimeInDays)
+{
+    int TotalSlots => GrowingSlots + MatureSlots;
+}
 ```
+
+`Crops` 由 `IndoorCropReport.Build(record, cropCatalog)` 生成：单趟扫描槽位、按阵营作物表顺序输出、
+未知作物 id 追加在后并按 ordinal 排序；成熟槽按 100% 计入平均值，非有限数值按 0 处理。
 
 空数据用 `null` 或 `float.NaN` 表示，由 UI 渲染为“—”（REQ-V2-READ-04）。
 

@@ -93,6 +93,7 @@ namespace HDBF.UI.Panels
                 {
                     BuildWorkersSection(snapshot, irrigation, entranceBlocked, localize),
                     BuildSlotsSection(snapshot, localize),
+                    BuildGrowingSection(snapshot, localize),
                     BuildWaterSection(snapshot, coverage, minCoverage, irrigation, localize),
                     BuildMaintenanceSection(snapshot, profile, localize),
                     BuildPowerSection(snapshot, localize),

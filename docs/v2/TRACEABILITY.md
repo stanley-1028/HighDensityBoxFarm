@@ -86,6 +86,7 @@
 | REQ-V2-UI-02 失败原因具体 | `U:Panels/HdbfIndoorCommandBridge.cs`, `G:Components/HdbfIndoorCommandFailures.cs` | `T:V2PanelContractTests`, `T:V2GameplayWiringTests` | L1 |
 | REQ-V2-UI-03 三语本地化键齐全 | `D:Localizations/*.csv`, `U:Localization/HdbfUiLocKeys.cs` | `T:V2LocalizationTests` | L1 |
 | REQ-V2-UI-04 清除 v1 术语 | `D:Localizations/*.csv`, `U:` | `T:V2LocalizationTests`, `T:V2NfrReleaseGateMatrixTests` | L1 |
+| REQ-V2-UI-05 正在生长卡片（逐作物/进度/首格即显示） | `C:Indoor/IndoorCropReport.cs`, `C:Indoor/IndoorCropStatus.cs`, `G:Components/HdbfBoxFarmController.IndoorSnapshot.cs`, `U:Panels/HdbfIndoorPanelFactory.Cards.Growing.cs` | `T:V2CropReportTests`, `T:V2PanelContractTests`, `T:V2LocalizationTests` | L1 + GAME |
 
 ## 9. 美术（ART）
 

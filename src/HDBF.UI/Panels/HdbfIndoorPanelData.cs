@@ -39,6 +39,12 @@ namespace HDBF.UI.Panels
 
         /// <summary>Output inventory occupancy and logistics/pipe/power port states.</summary>
         Output,
+
+        /// <summary>
+        /// Live per-crop status card (REQ-V2-UI-05): one row per crop that currently holds slots,
+        /// with the growing/mature split and the average growth progress.
+        /// </summary>
+        Growing,
     }
 
     /// <summary>
@@ -182,7 +188,7 @@ namespace HDBF.UI.Panels
         public string CropTooltip { get; init; } = string.Empty;
 
         // ----- cards -------------------------------------------------------------------------
-        /// <summary>Ordered cards (worker, slots, water, maintenance, power, crops, output).</summary>
+        /// <summary>Ordered cards (worker, slots, growing, water, maintenance, power, crops, output).</summary>
         public IReadOnlyList<HdbfPanelSection> Sections { get; init; } = Array.Empty<HdbfPanelSection>();
 
         // ----- actions -----------------------------------------------------------------------

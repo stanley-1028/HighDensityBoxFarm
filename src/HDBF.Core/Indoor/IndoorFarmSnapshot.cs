@@ -2,8 +2,11 @@
 // HDBF v2 | Layer: Core/Indoor | Owner: V2-CORE-01
 // Purpose: Immutable panel snapshot DTO (INTERFACES section 9) that UI reads instead
 //          of game objects. Pure data record; no builder and no game references here.
-// Requirements: REQ-V2-READ-04, REQ-V2-WATER-03, REQ-V2-UI-01
+// Requirements: REQ-V2-READ-04, REQ-V2-WATER-03, REQ-V2-UI-01, REQ-V2-UI-05
 // ============================================================================
+using System;
+using System.Collections.Generic;
+
 namespace HDBF.Core.Indoor
 {
     /// <summary>
@@ -78,5 +81,15 @@ namespace HDBF.Core.Indoor
         bool LogisticsPort,
         bool PowerPort,
         IndoorWarningFlags Warnings,
-        string OutputInventoryPortState);
+        string OutputInventoryPortState)
+    {
+        /// <summary>
+        /// Live per-crop status of the slots (REQ-V2-UI-05): one row per crop that currently holds
+        /// at least one slot, ordered by the faction crop table. Empty when nothing is planted, so
+        /// the panel card can show its "nothing planted" state instead of disappearing. Kept as an
+        /// init property rather than a positional parameter so existing constructors/tests keep
+        /// compiling; gameplay fills it through <see cref="IndoorCropReport.Build"/>.
+        /// </summary>
+        public IReadOnlyList<IndoorCropStatus> Crops { get; init; } = Array.Empty<IndoorCropStatus>();
+    }
 }

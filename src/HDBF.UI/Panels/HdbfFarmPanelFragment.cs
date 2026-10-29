@@ -4,7 +4,10 @@
 //          the value fingerprint (dirty check) and the read-model refresh. Rendering lives in
 //          .Render.cs, element construction in .Build.cs, the vanilla crop dropdown in .Crop.cs
 //          and command callbacks in .Commands.cs.
-// Requirements: REQ-V2-UI-01/02/03/04, REQ-V2-READ-04, REQ-V2-SAFE-01
+// Requirements: REQ-V2-UI-01/02/03/04, REQ-V2-UI-05, REQ-V2-READ-04, REQ-V2-SAFE-01
+// Size: above the 300-line soft gate with a written reason (REQ-V2-MAINT-02): the lifecycle, the
+//       fixed 4 Hz gate and the value fingerprint stay in one file so the refresh path is reviewed
+//       as one unit; rendering, build, crop dropdown and commands already live in partials.
 // ============================================================================
 using System;
 using HDBF.Core;
@@ -273,6 +276,19 @@ namespace HDBF.UI.Panels
                 hash = hash * 31 + (snapshot.OutputInventoryPortState is null
                     ? 0
                     : snapshot.OutputInventoryPortState.GetHashCode());
+                // REQ-V2-UI-05: the live "Growing now" rows change without any scalar above changing,
+                // so the dirty check mixes each crop's identity, slot split and growth progress.
+                var crops = snapshot.Crops;
+                hash = hash * 31 + (crops is null ? 0 : crops.Count);
+                for (var index = 0; crops is not null && index < crops.Count; index++)
+                {
+                    var crop = crops[index];
+                    hash = hash * 31 + crop.CropId.GetHashCode();
+                    hash = hash * 31 + crop.GrowingSlots;
+                    hash = hash * 31 + crop.MatureSlots;
+                    hash = hash * 31 + (long)(crop.AverageProgress * 100f);
+                }
+
                 return hash;
             }
         }

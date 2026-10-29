@@ -8,6 +8,7 @@
 // Requirements: REQ-V2-WATER-03, REQ-V2-UI-01/02, REQ-V2-CORE-01, REQ-V2-SAFE-07
 // ============================================================================
 using System;
+using System.Collections.Generic;
 using HDBF.Core;
 using HDBF.Core.Indoor;
 
@@ -73,7 +74,30 @@ namespace HDBF.Gameplay.Components
                 record.LogisticsPort,
                 record.PowerPort,
                 _lastWarnings,
-                record.TimberPipesAdapter);
+                record.TimberPipesAdapter)
+            {
+                // REQ-V2-UI-05: the live "growing now" card reads this list; it is computed from the
+                // same slots the counters above use, so the card and the counters always agree.
+                Crops = CropStatuses(record),
+            };
+        }
+
+        /// <summary>
+        /// Per-crop status of the current slots (REQ-V2-UI-05). A broken crop catalog degrades to an
+        /// empty card instead of hiding the whole panel (REQ-V2-SAFE-01).
+        /// </summary>
+        /// <param name="record">Farm record of this building.</param>
+        /// <returns>Ordered crop rows; empty when nothing is planted or the catalog is broken.</returns>
+        private IReadOnlyList<IndoorCropStatus> CropStatuses(IndoorFarmRecord record)
+        {
+            try
+            {
+                return IndoorCropReport.Build(record, _cropCatalog);
+            }
+            catch (Exception)
+            {
+                return Array.Empty<IndoorCropStatus>();
+            }
         }
 
         private IndoorFarmSnapshot EmptyIndoorSnapshot()

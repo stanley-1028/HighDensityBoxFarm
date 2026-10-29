@@ -65,6 +65,7 @@ The vanilla `EntityPanel` header (icon + name + district) comes first. The fragm
 |---|---|
 | Workers & efficiency | compact “tier · faction” subtitle row, crew `W/W_max`, growth efficiency `G_irr` (bar + %), read-only worker roster (vacant = vanilla empty avatar, no ⚠), vanilla mode RadioToggle group, 1-day transition sentence |
 | Slots | capacity, configured (bar), `P_eff` (formula tooltip), empty, growing, ready, action backlog |
+| Growing now | live per-crop rows once the first slot is planted: localized crop name, “`{0}` growing · `{1}` ready”, average-growth ProgressBar + percent, tooltip with slots in use / average growth / days to mature; one “nothing planted yet” row while nothing is planted |
 | Water | live tank units (bar + days), live coverage `C` (bar + C_min marker), `C_min`, supply source, water/low-water warnings, specific derate sentence |
 | Maintenance | next due day, overdue cycles, upkeep-material requirement (8 plank/10 days, 6 metal/10 days, off-grid top 15 metal/8 days), missing-material detail warning, stalled warning |
 | Power | grid / off-grid / power cut / not required (+ warning row) |
@@ -74,7 +75,10 @@ The vanilla `EntityPanel` header (icon + name + district) comes first. The fragm
 
 Every value row is “icon + localized label + localized value”; labels and values wrap and shrink, so
 no number, port state or rotation sequence is truncated or overlapped. The card scroller height is
-re-measured at the 4 Hz gate, so the action card is reachable on every window size.
+re-measured at the 4 Hz gate, so the action card is reachable on every window size. The **Growing
+now** card is live: its first row appears from the very first planted slot, and the rows are refreshed
+by the same 4 Hz value-fingerprint gate (never per frame), so a half-planted farm is visible instead
+of only a fully planted one.
 
 ## Data path
 
@@ -104,7 +108,7 @@ re-measured at the 4 Hz gate, so the action card is reachable on every window si
 | File | Responsibility |
 |---|---|
 | `Panels/HdbfIndoorPanelData.cs` | read model: compact subtitle/meta line + ordered cards + rows + worker chips + crop choices + action availability |
-| `Panels/HdbfIndoorPanelFactory*.cs` | snapshot -> cards/rows (`Cards.cs` workers/slots, `Cards.Water.cs` water, `Cards.Maintenance.cs` maintenance/material, `Cards.Output.cs` power/crops/output) |
+| `Panels/HdbfIndoorPanelFactory*.cs` | snapshot -> cards/rows (`Cards.cs` workers/slots, `Cards.Growing.cs` live crop card, `Cards.Water.cs` water, `Cards.Maintenance.cs` maintenance/material, `Cards.Output.cs` power/crops/output) |
 | `Panels/HdbfIndoorPanelWarnings.cs` | warning rows per card (live water rule), crop dropdown choices, severity markers |
 | `Panels/HdbfIndoorPanelFormat.cs` | template formatting, enum -> key map, material lookup, failure whitelist |
 | `Panels/HdbfIndoorPanelStyle.cs` | the vanilla USS class names / icon sprite keys / tier icon assets / the single light-text + warning-accent colours |

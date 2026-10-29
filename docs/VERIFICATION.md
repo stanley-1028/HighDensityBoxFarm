@@ -1291,5 +1291,36 @@ Load time: 30029ms (scene index: 2)
 `round44-art-closeup.jpg`、`round52-art-Player.log`（Intermediate 室內模擬 + 無例外）、
 `round43/44-art-summary.txt`。
 
+## 28. v2.5.0「正在生長」即時作物卡實機驗證（2026-10-29，round57）
 
+本輪交付 **REQ-V2-UI-05**：面板新增「正在生長」卡，逐作物顯示「生長中／待收」槽數與平均生長進度條，
+**從第一格種下即出現**並隨既有 4 Hz 刷新更新，不再等種植槽種滿才顯示；無作物時保留空狀態列。
+離線證據：L1 **601/601**（新增 `V2CropReportTests` 13 條與面板契約測試 1 條）、
+`tools/validate` **RESULT: OK**、`build.ps1` **RELEASE GATES: PASSED (44 checks)**、
+三語本地化 **191 鍵**（enUS/zhCN/zhTW 集合一致）。
 
+### 28.1 已證明（實機，1.1.2.8 / 2560×1440 / `Mods\HDBF` 2.5.0）
+
+* 載入：`[HDBF/Info] start HDBF version=2.5.0 modPath=...\Mods\HDBF`、`startup: HDBF 2.5.0 ready`、
+  `indoor.entity: ... tier=Basic, faction=Folktails, blueprint=BoxFarm.Basic.Folktails`；本輪無 `[HDBF/Error]`。
+* **部分種植即顯示**：把一份存檔副本的 60 槽中的 20 槽設為 Carrot（生長 1.0/4.0 天 = 25 %），
+  載入後面板「槽位」顯示 空槽 40／生長中 20，「正在生長」卡立刻列出
+  `胡蘿蔔  生長 20 · 待收 0` 與 **25 %** 進度條（`round57-growing-partial-panel.jpg`）。
+  即：不是種滿才顯示。
+* **動態更新**（同一棟、不重開面板）：時間推進到下一遊戲日後，
+  `indoor.day: harvested=0, planted=40, actionsUsed=0, blockedByOutput=0, growthMultiplier=1.000`，
+  卡片自行變成 `胡蘿蔔  生長 60 · 待收 0` / **41 %**，同屏水罐 3.6 → 2.9 也同步更新
+  （`round57-growing-live-panel.jpg`）。
+* 空狀態：未種植時卡片顯示「正在生長 / 尚未種植 —」，卡片不隱藏。
+
+### 28.2 未完成（誠實記錄）
+
+* 本輪 fixture 的注入農場（新建 3×3 實體）載入後室內日 tick 未觸發（無 `indoor.day` 行），
+  因此改用既有存檔副本改寫 payload 取得可運作的農場；注入實體的完成狀態未追查完，
+  與本功能無關（面板卡只讀快照）。
+* 面板高度 325 px，截圖時需以滑鼠滾輪捲動才能同時看到卡片標題與進度條；未改動版面。
+* 多作物同時生長（輪作換茬後的第二種作物）未在本輪取證；L1 已有雙作物排序/聚合契約測試。
+
+**證據檔案**：`docs/in-game/round57-growing-partial-small.jpg`、`round57-growing-partial-panel.jpg`、
+`round57-growing-live-small.jpg`、`round57-growing-live-panel.jpg`、`round57-Player.log`、
+`round57-summary.txt`。

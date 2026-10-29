@@ -43,6 +43,7 @@ namespace HDBF.Tests
             "MaintenanceCyclesMissed", "MaintenanceMaterialMissing", "Power", "PowerConnected",
             "CropPolicy", "FixedCropId", "RotationSequence", "OutputOccupied", "OutputPortConnected",
             "PipePort", "LogisticsPort", "PowerPort", "Warnings", "OutputInventoryPortState",
+            "Crops",
         };
 
         // ------------------------------------------------------------------ contract / order
@@ -77,14 +78,18 @@ namespace HDBF.Tests
             var kinds = data.Sections.Select(section => section.Kind).ToArray();
             TestAssert.Equal(HdbfPanelSectionKind.Workers, kinds[0]);
             TestAssert.Equal(HdbfPanelSectionKind.Slots, kinds[1]);
-            TestAssert.Equal(HdbfPanelSectionKind.Water, kinds[2]);
-            TestAssert.Equal(HdbfPanelSectionKind.Maintenance, kinds[3]);
-            TestAssert.Equal(HdbfPanelSectionKind.Power, kinds[4]);
-            TestAssert.Equal(HdbfPanelSectionKind.Crops, kinds[5]);
-            TestAssert.Equal(HdbfPanelSectionKind.Output, kinds[6]);
-            TestAssert.Equal(7, kinds.Length, "worker/efficiency + seven chapter-19.11 cards");
+            TestAssert.Equal(HdbfPanelSectionKind.Growing, kinds[2]);
+            TestAssert.Equal(HdbfPanelSectionKind.Water, kinds[3]);
+            TestAssert.Equal(HdbfPanelSectionKind.Maintenance, kinds[4]);
+            TestAssert.Equal(HdbfPanelSectionKind.Power, kinds[5]);
+            TestAssert.Equal(HdbfPanelSectionKind.Crops, kinds[6]);
+            TestAssert.Equal(HdbfPanelSectionKind.Output, kinds[7]);
+            TestAssert.Equal(8, kinds.Length,
+                "worker/efficiency + the live growing card + the seven chapter-19.11 cards");
             TestAssert.Equal("Workers & efficiency", Section(data, HdbfPanelSectionKind.Workers).Title);
             TestAssert.Equal("Crop strategy", Section(data, HdbfPanelSectionKind.Crops).Title);
+            // REQ-V2-UI-05: the live per-crop card sits between the slot counters and the water card.
+            TestAssert.Equal("Growing now", Section(data, HdbfPanelSectionKind.Growing).Title);
         }
 
         // ------------------------------------------------------------------ header / workers
@@ -177,6 +182,52 @@ namespace HDBF.Tests
             TestAssert.Equal("2", Row(slots, "Backlog").Value);
             TestAssert.True(Row(slots, "Effective P_eff").Tooltip.Contains("P_eff", StringComparison.Ordinal),
                 "the P_eff formula stays in the row tooltip");
+        }
+
+        // ------------------------------------------------------------------ growing now (UI-05)
+
+        /// <summary>
+        /// REQ-V2-UI-05: the live per-crop card renders one row per crop in snapshot order (name,
+        /// "growing · ready" split, growth bar/percent and the slots/average/days tooltip), and an
+        /// empty farm keeps the card with the single "nothing planted yet" row.
+        /// </summary>
+        public static void TestGrowingCardListsLiveCropsAndFallsBackToTheEmptyState()
+        {
+            var populated = IntermediateFixture() with
+            {
+                Crops = new[]
+                {
+                    new IndoorCropStatus("Carrot", "Carrot", GrowingSlots: 4, MatureSlots: 2,
+                        AverageProgress: 0.5f, GrowthTimeInDays: 3.0f),
+                    new IndoorCropStatus("Wheat", "Wheat", GrowingSlots: 0, MatureSlots: 1,
+                        AverageProgress: 1f, GrowthTimeInDays: 4.5f),
+                },
+            };
+            var data = CreateData(populated, out var missing);
+            TestAssert.Equal(0, missing.Count, "unmapped keys: " + string.Join(", ", missing));
+            var growing = Section(data, HdbfPanelSectionKind.Growing);
+            TestAssert.Equal("Growing now", growing.Title);
+            TestAssert.Equal("growing", growing.IconKey);
+            TestAssert.Equal("green", growing.Tone);
+            TestAssert.Equal(2, growing.Rows.Count, "one row per crop the snapshot reports");
+            TestAssert.Equal("Carrot", growing.Rows[0].Label);
+            TestAssert.Equal("4 growing · 2 ready", growing.Rows[0].Value);
+            TestAssert.True(growing.Rows[0].HasBar, "each crop row owns a growth ProgressBar");
+            TestAssert.Equal(0.5f, growing.Rows[0].Bar, 1e-4f);
+            TestAssert.Equal("50%", growing.Rows[0].BarText);
+            TestAssert.Equal("6 slots in use · average growth 50% · matures in 3.0 days",
+                growing.Rows[0].Tooltip);
+            TestAssert.Equal("Wheat", growing.Rows[1].Label, "the card keeps the snapshot order");
+            TestAssert.Equal("0 growing · 1 ready", growing.Rows[1].Value);
+            TestAssert.Equal(1f, growing.Rows[1].Bar, 1e-4f);
+            TestAssert.Equal("100%", growing.Rows[1].BarText);
+
+            var empty = Section(CreateData(IntermediateFixture(), out _), HdbfPanelSectionKind.Growing);
+            TestAssert.Equal(1, empty.Rows.Count, "an empty farm keeps one explanatory row");
+            TestAssert.Equal("empty", empty.Rows[0].IconKey);
+            TestAssert.Equal("Nothing planted yet", empty.Rows[0].Label);
+            TestAssert.Equal("—", empty.Rows[0].Value);
+            TestAssert.False(empty.Rows[0].HasBar);
         }
 
         public static void TestWaterCardRendersTankCoverageMinimumAndSupply()

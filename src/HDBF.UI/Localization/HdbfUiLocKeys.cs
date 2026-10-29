@@ -52,6 +52,18 @@ namespace HDBF.UI.Localization
         public const string PanelSectionWorkers = "HDBF.Panel.SectionWorkers";
         public const string PanelSectionActions = "HDBF.Panel.SectionActions";
 
+        /// <summary>Title of the live "Growing now" card (REQ-V2-UI-05).</summary>
+        public const string PanelSectionGrowing = "HDBF.Panel.SectionGrowing";
+
+        /// <summary>Per-crop value of the live growing card: "{0} growing · {1} ready".</summary>
+        public const string PanelGrowingValue = "HDBF.Panel.GrowingValue";
+
+        /// <summary>Empty-state row of the live growing card ("Nothing planted yet").</summary>
+        public const string PanelGrowingEmpty = "HDBF.Panel.GrowingEmpty";
+
+        /// <summary>Per-crop hover text: slots in use, average growth and days to maturity.</summary>
+        public const string TooltipGrowing = "HDBF.Tooltip.Growing";
+
         // Header card and vanilla row labels (one localized label per panel row; values are numbers
         // or enum labels so a row never concatenates two sentences).
         public const string PanelSubtitle = "HDBF.Panel.Subtitle";
