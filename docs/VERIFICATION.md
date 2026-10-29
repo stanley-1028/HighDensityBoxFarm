@@ -1639,3 +1639,25 @@ paused it..」。本輪依此修復：暫停建築（原版面板的暫停鈕）
   因此「恢復後日 tick 繼續」未用實機天數取證；由 `TimeTrigger.Pause/Resume` 的 IL
   （`Resume` 以 `_delayLeftInDays` 重新 `Add` 回服務）與 `V2PauseContractTests` 釘住。
 * 工坊 2.5.3 上傳後、Steam 快取實際下載 2.5.3 manifest 的訂閱端二次載入仍待日後驗證。
+
+## 35. 2.5.3 發佈記錄：Steam Workshop 更新 + GitHub push（2026-10-29）
+
+* **Steam Workshop item 3828809784**：2026-10-29 **23:24:32**（Asia/Macau）開始上傳，**23:24:36**
+  `Uploaded new content ( ManifestID 1710856574140546396 )`、**23:24:37**
+  `Upload finished for workshop item 3828809784 : OK`（Steam `logs/workshop_log.txt`）；
+  `SteamUpload.exe` 回報 `submitDone ioFailure=False eResult=k_EResultOK needsLegalAgreement=False
+  publishedFileId=3828809784`（exit 0）。內容 = §34 的 staged 2.5.3 包；只更新內容 + Change Note
+  （雙語：暫停農場修復），刻意未呼叫 SetItemTitle/Description/Preview/Tags/Visibility。
+* **GitHub `stanley-1028/HighDensityBoxFarm`**：修復 commit **`6c6d64a`**（v2.5.3：修復暫停農場崩潰 +
+  §34 文件/實機證據/版本 bump）已 push；push 前遠端 `ee96863`，push 後 `git fetch` 核對
+  `origin/master` = `6c6d64a`。發佈記錄 commit（本篇 §35 + CHANGELOG 狀態列 + 工坊 README）為其後一個
+  commit，同樣 push 到 `master`。
+* **建置**：`build.ps1 -WorkRoot %TEMP%\hdbf-release-253` 全綠：5 組件 0 warning/0 error、
+  L1 **613/613**、`tools/validate`「WARNINGS: none / RESULT: OK」、**RELEASE GATES: PASSED (44 checks)**；
+  staged 48 files / 2,132,440 bytes / manifest 2.5.3（SHA-256 見 §34）。
+* **環境善後**：驗證用的 2.5.3 staged 包暫時替換工坊資料夾（先備份至
+  `%TEMP%\hdbf-ws-252-backup`，48 files / 2.5.2），實機驗證完成後**保留 2.5.3 內容**（與本次上傳的
+  staged 包位元相同）；`Documents\Timberborn\Mods\HDBF` 仍不存在（不與訂閱版同 Id 兩份載入）；
+  `Saves\HDBFTest\repro.timber` 為驗證副本（原始存檔未動）。Steam 客戶端快取何時下載新 manifest
+  由 Steam 決定；訂閱端二次載入待日後確認。
+* **未做**：工坊頁面標題/描述/封面/標籤未改（沿用 2026-10-28 改版包）；玩家側 crash report 仍未取得。

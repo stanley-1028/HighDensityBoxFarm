@@ -99,3 +99,14 @@ cp docs/workshop/publish/* "$USERPROFILE/Documents/Timberborn/Mods/HDBF/"
   Change Notes 3 → **4** 筆（最新一條為 2.5.2 雙語變更說明）。
 - 建置：L1 **607/607**、`tools/validate` OK、`build.ps1` **44 gates PASSED**；
   staged package **48 files / 2,128,344 bytes / manifest 2.5.2**；GitHub `master` = `ee0a279`。
+
+## 發佈記錄（2026-10-29，2.5.3）
+
+- 2.5.3 於 **2026-10-29 23:24（Asia/Macau）** 上傳成功：`ManifestID 1710856574140546396`、
+  `Upload finished for workshop item 3828809784 : OK`（Steam `logs/workshop_log.txt`）。
+- 上傳只更新**內容與 Change Note**；標題/描述/封面/標籤/可見性刻意未動。
+- Change Note（雙語）：暫停農場現在安全（暫停時日 tick/連續水耗/世界圖示停止，並把室內工人移出；
+  恢復後自動繼續），修復玩家回報的「暫停即崩潰」。
+- 建置：L1 **613/613**、`tools/validate` WARNINGS: none / OK、`build.ps1` **44 gates PASSED**；
+  staged package **48 files / 2,132,440 bytes / manifest 2.5.3**；GitHub `master` = `6c6d64a`（修復）
+  + 本篇發佈記錄 commit。
