@@ -1,0 +1,69 @@
+[h1]600 crops. One 3×3 box.[/h1]
+[b]Four tiers of stackable indoor farms for Timberborn 1.1. No Harmony dependency, no Mod Settings requirement, no required companion mods — it keeps working when the game updates.[/b]
+
+Land is the one resource Timberborn never gives back. Every carrot field you plant is a hole in your city plan. High-Density Box Farm is vertical farming the beaver way: four tiers of 3x3x1 farm buildings that simulate up to [b]600 crop slots[/b] on a single foundation — and their flat roofs are real floors, so the next farm can go on top.
+
+
+[h2]What you get[/h2]
+[list]
+[*][b]Four tiers on the same 3x3x1 footprint[/b] — Basic 60 slots · Intermediate 150 · Advanced 300 · Top 600.
+[*][b]Farming that happens inside[/b] — farmers enter the building and work at indoor slots. Every slot grows a vanilla crop with its real growth time, yield and products; you are not feeding a fake counter.
+[*][b]Water is a system, not a decoration[/b] — the internal tank drains with game time. Refill it automatically through a pipe (Timber Pipes), by hauler trips, or with one click on the manual refill button.
+[*][b]A roof you can build on[/b] — the top surface is a real floor: stack another box farm, a tank, or a vanilla building on it.
+[*][b]Vanilla-style panel[/b] — slots, tank, coverage, maintenance, power, crop policy and warnings, plus world warning icons so a stalled farm is visible from the map.
+[*][b]English · 简体中文 · 繁體中文[/b] — all UI text and building descriptions are localized.
+[/list]
+
+[h2]How it works — no free food[/h2]
+The building is designed to be strong, not to be a cheat.
+[list]
+[*][b]Water[/b] — every slot drinks a little each day, and the tank holds about 3–4 days. Tank coverage sets the growth multiplier; growth slows below the minimum coverage and stops at a quarter of it.
+[*][b]Labour[/b] — one farmer tends 38 slots, and every tier's crew is sized to cover its box exactly. 600 slots with 2 farmers is a very expensive empty box.
+[*][b]Maintenance[/b] — Intermediate and above consume upkeep materials on a cycle (planks first, then metal blocks). Miss it and the farm stalls until a beaver performs maintenance.
+[*][b]Power[/b] — the Top tier needs 150 power for full growth.
+[*][b]Soil[/b] — [b]Normal[/b] is neutral, [b]Dense planting[/b] trades more water, more work and faster fatigue for +35% yield, and [b]Fallow[/b] stops production while the soil recovers. Rotate crops automatically or lock one crop per building.
+[/list]
+
+
+[h2]The four tiers[/h2]
+[list]
+[*][b]Basic[/b] — 60 slots · 2 farmers · 40 logs · 200 science. Hand-fed water, no material upkeep. Your first box.
+[*][b]Intermediate[/b] — 150 slots · 4 farmers · 40 planks + 20 logs · 600 science. Plank-frame greenhouse with plank upkeep.
+[*][b]Advanced[/b] — 300 slots · 8 farmers · 50 planks + 30 metal blocks · 1000 science. Metal-and-glass house with metal upkeep.
+[*][b]Top[/b] — 600 slots · 16 farmers · 100 metal blocks + 50 planks · 3000 science · 150 power · 96 in-game hours to build. The industrial farm complex.
+[/list]
+
+[h2]Compatibility[/h2]
+[list]
+[*]Built and tested against [b]Timberborn 1.1.2.8[/b] (Update 1.1).
+[*][b]Zero Harmony patches[/b] — this is content, not a code patch. It does not fight other mods and it has no external dependencies.
+[*]Safe to add to an existing save; it only adds new buildings. Back up the save before removing any mod mid-game.
+[*][b]Optional integrations[/b], detected automatically and never required: [b]Timber Pipes[/b] for automatic tank refill, [b]Power Lines[/b] for easier power hook-up, [b]Conveyor Belts V2[/b] for output logistics (experimental, off by default in [i]HDBF_Config.json[/i]).
+[*]Works with both [b]Folktails[/b] and [b]IronTeeth[/b].
+[/list]
+
+[h2]Install[/h2]
+[list]
+[*]Subscribe, open [b]Mods[/b] in the main menu, enable [b]High-Density Box Farm[/b], restart the game.
+[*]The four buildings appear at the end of the [b]Food[/b] category.
+[*]That's it — no dependencies, no extra downloads.
+[/list]
+
+
+[h2]Honest limits[/h2]
+[list]
+[*]The interior is dressed as crop racks and the slots are simulated — you will not see a separate plant model for every slot. That is the trade that keeps a 600-slot farm as cheap as a normal building for your CPU.
+[*]No Harmony means no patching of vanilla farm behaviour; existing fields work exactly as before.
+[*]The Top tier is a late-game building. It is supposed to be expensive.
+[/list]
+
+[h2]Feedback[/h2]
+Bug reports, balance feedback and screenshots are welcome in the comments and in the [b]Discussions[/b] tab — I read both and ship fixes. Changelog is on [b]Change Notes[/b].
+Bugs are easiest to fix with: game version, mod version, and the relevant part of your save.
+
+[h2]Credits[/h2]
+Design, code and art direction: [b]stanley1028[/b], in collaboration with [b]DeepSeek V4.1 Flash 1017[/b].
+Cover illustration generated with Seedream 5.0 Lite and finished by hand.
+
+[h2]中文简介[/h2]
+3×3×1 的室内高密度农场，共四档：基础 60 / 中级 150 / 高级 300 / 顶级 600 个作物槽位。屋顶是真正的平屋顶，下一座农场或原版建筑可以直接盖上去。农民在建筑内部作业；内部水罐随游戏时间消耗，可用管道（Timber Pipes）、工人搬运或面板上的手动补水按钮补充。维护材料、电力（顶级 150 动力）与土壤轮作都会影响产量——它不是作弊建筑，而是把土地成本换成水、人力和维护成本。支持原版两个阵营，无 Harmony 补丁、无前置依赖，英文 / 简体中文 / 繁体中文三语。本模组由 stanley1028 与 DeepSeek V4.1 Flash 1017 共同完成。
