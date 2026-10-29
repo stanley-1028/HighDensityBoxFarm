@@ -179,7 +179,9 @@ namespace HDBF.Tests
             TestAssert.Equal("120/150 configured", Row(slots, "Configured").BarText);
             TestAssert.Equal("114", Row(slots, "Effective P_eff").Value);
             TestAssert.Equal("40", Row(slots, "Empty").Value);
-            TestAssert.Equal("70", Row(slots, "Growing").Value);
+            // 2026-10-29 product request: "growing" is every crop in the planting slots
+            // (still growing 70 + ready 10), so the row matches what the player sees in the box.
+            TestAssert.Equal("80", Row(slots, "Growing").Value);
             TestAssert.Equal("10", Row(slots, "Ready").Value);
             TestAssert.Equal("2", Row(slots, "Backlog").Value);
             TestAssert.True(Row(slots, "Effective P_eff").Tooltip.Contains("P_eff", StringComparison.Ordinal),
@@ -189,9 +191,54 @@ namespace HDBF.Tests
         // ------------------------------------------------------------------ growing now (UI-05)
 
         /// <summary>
+        /// Product request 2026-10-29: "however many crops are in the planting slots, that many
+        /// growing crops are displayed". A partly ripe box (35 still growing + 25 ready = 60 planted
+        /// of 60 slots) must therefore report 60 growing on the slots card and 60 growing on the crop
+        /// row, while the 25 ripe ones stay visible as the separate "Ready"/"待收" subset.
+        /// </summary>
+        public static void TestGrowingCountIsEveryCropInThePlantingSlots()
+        {
+            var snapshot = new IndoorFarmSnapshot(
+                HdbfTier.Basic, HdbfFaction.IronTeeth,
+                Workers: 2, MaxWorkers: 2, Mode: IndoorMode.Normal, ModeTransitioning: false,
+                Capacity: 60, ConfiguredSlots: 60, EffectiveSlots: 60,
+                EmptySlots: 0, GrowingSlots: 35, MatureSlots: 25, BacklogActions: 0,
+                Tank: 3.6f, TankCapacity: 3.6f, TankDaysRemaining: 3.0f,
+                Coverage: 1f, MinCoverage: 0.5f, WaterSupply: WaterSupplyKind.Manual,
+                MaintenanceDueDay: 0f, MaintenanceCyclesMissed: 0, MaintenanceMaterialMissing: false,
+                Power: PowerConnection.NotRequired, PowerConnected: false,
+                CropPolicy: CropPolicy.Rotation, FixedCropId: string.Empty,
+                RotationSequence: "Carrot → Potato", OutputOccupied: 0, OutputPortConnected: false,
+                PipePort: true, LogisticsPort: false, PowerPort: false,
+                Warnings: IndoorWarningFlags.None, OutputInventoryPortState: "None")
+            {
+                Crops = new[]
+                {
+                    new IndoorCropStatus("Carrot", "Carrot", GrowingSlots: 35, MatureSlots: 25,
+                        AverageProgress: 0.75f, GrowthTimeInDays: 4f),
+                },
+            };
+
+            var data = CreateData(snapshot, out var missing);
+            TestAssert.Equal(0, missing.Count, "unmapped keys: " + string.Join(", ", missing));
+
+            var slots = Section(data, HdbfPanelSectionKind.Slots);
+            TestAssert.Equal("0", Row(slots, "Empty").Value);
+            TestAssert.Equal("60", Row(slots, "Growing").Value,
+                "all 60 crops in the planting slots count as growing");
+            TestAssert.Equal("25", Row(slots, "Ready").Value,
+                "the ripe crops stay visible as the ready subset");
+
+            var growing = Section(data, HdbfPanelSectionKind.Growing);
+            TestAssert.Equal("60 / 60 slots", growing.Rows[0].Value);
+            TestAssert.Equal("Carrot", growing.Rows[1].Label);
+            TestAssert.Equal("60 growing · 25 ready", growing.Rows[1].Value);
+        }
+
+        /// <summary>
         /// REQ-V2-UI-05: the live per-crop card renders one row per crop in snapshot order (name,
-        /// "growing · ready" split, growth bar/percent and the slots/average/days tooltip), and an
-        /// empty farm keeps the card with the single "nothing planted yet" row.
+        /// "crops in slots · ready" split, growth bar/percent and the slots/average/days tooltip),
+        /// and an empty farm keeps the card with the single "nothing planted yet" row.
         /// </summary>
         public static void TestGrowingCardListsLiveCropsAndFallsBackToTheEmptyState()
         {
@@ -221,14 +268,16 @@ namespace HDBF.Tests
             TestAssert.Equal("7 slots in use · average growth 57% · matures in 3.2 days",
                 growing.Rows[0].Tooltip);
             TestAssert.Equal("Carrot", growing.Rows[1].Label);
-            TestAssert.Equal("4 growing · 2 ready", growing.Rows[1].Value);
+            // 2026-10-29 product request: the growing number counts every crop in the planting
+            // slots (4 growing + 2 ready), "ready" stays as the subset of those already ripe.
+            TestAssert.Equal("6 growing · 2 ready", growing.Rows[1].Value);
             TestAssert.True(growing.Rows[1].HasBar, "each crop row owns a growth ProgressBar");
             TestAssert.Equal(0.5f, growing.Rows[1].Bar, 1e-4f);
             TestAssert.Equal("50%", growing.Rows[1].BarText);
             TestAssert.Equal("6 slots in use · average growth 50% · matures in 3.0 days",
                 growing.Rows[1].Tooltip);
             TestAssert.Equal("Wheat", growing.Rows[2].Label, "the card keeps the snapshot order");
-            TestAssert.Equal("0 growing · 1 ready", growing.Rows[2].Value);
+            TestAssert.Equal("1 growing · 1 ready", growing.Rows[2].Value);
             TestAssert.Equal(1f, growing.Rows[2].Bar, 1e-4f);
             TestAssert.Equal("100%", growing.Rows[2].BarText);
 

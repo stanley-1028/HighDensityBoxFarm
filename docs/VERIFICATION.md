@@ -1466,3 +1466,47 @@ Load time: 30029ms (scene index: 2)
   `data/manifest.json` 的 `[img]` 行，否則下次更新會用無圖版覆蓋。
 - **未做（誠實記錄）**：實機「訂閱端下載新 manifest 後載入」的二次驗證、屋頂疊放原版建築 A/B、
   600 槽玉米全量收成的實機錄影（§29 為 Core 模擬、§30 為入口修正實機；兩者分開驗證）。
+
+## 32. 2.5.2 面板語意：「生長中」＝種植槽內作物總數（2026-10-29，離線 + 實機驗證）
+
+**需求**（玩家／作者）：**「有多少個農作物在種植槽中，就顯示多少個正在生長的農作物」**——成熟待收的
+作物同樣在種植槽裡，也必須計入「生長中」；「可收穫」保留為其中已成熟的細分。
+
+**改法（純面板顯示，不動模擬/存檔）**
+
+* `HdbfIndoorPanelFactory.PlantedSlots`：`GrowingSlots + MatureSlots`，「槽位」卡的「生長中」改用它
+  （`HdbfIndoorPanelFactory.Cards.cs`）。因此「空槽＋生長中＝槽位上限」重新成立，「可收穫」是其子集。
+* 「正在生長」卡每作物行的數字改為 `IndoorCropStatus.TotalSlots`（該作物在槽內總株數）＋
+  `MatureSlots`（其中待收），例如「胡蘿蔔 生長 60 · 待收 9」；總覽列「已種植槽位 n/capacity」不變
+  （`HdbfIndoorPanelFactory.Cards.Growing.cs`）。
+* `Stage`、生長/收穫/每日預算、存檔 schema、`IndoorFarmSnapshot` 欄位語意全部不變（舊存檔直接相容）。
+
+**離線證據**
+
+1. 新增 `V2PanelContractTests.TestGrowingCountIsEveryCropInThePlantingSlots`：35 生長＋25 待收 →
+   「槽位」卡 空槽 0／**生長中 60**／可收穫 25，作物行「**60 growing · 25 ready**」；並更新
+   `TestSlotCardRendersEveryCount`（70 生長＋10 待收 → 生長中 **80**）與作物卡兩行期望。
+2. `build.ps1` 全綠：5 組件 0 warning / 0 error、L1 **607/607**、`tools/validate`
+   「WARNINGS: none / RESULT: OK」、**RELEASE GATES: PASSED (44 checks)**；manifest/validator 版本同步
+   2.5.2。
+
+**實機證據（2026-10-29 22:03–22:05，`repro52` 回合）**
+
+* 做法：把作者存檔 `Saves\Repro3\repro.timber` 的兩座基礎農場 payload 改寫成
+  **35 格生長中（25 %）＋25 格成熟待收**（`\.tmp-bugfix\craft-mixed.py`），複製到
+  `Saves\HDBFRepro\repro.timber`（原始存檔未動；該副本跑完後已刪除）。因為工坊 2.5.1 已下載，
+  本機 `Mods\HDBF` 疊放會讓遊戲同時載入兩份 HDBF 而拋
+  `ArgumentException: An item with the same key has already been added. Key: HighDensityBoxFarm`
+  （環境問題，非本次程式）：驗證時把 2.5.2 staged DLL 暫時換進工坊資料夾（備份、跑完還原並以
+  SHA-256 核對）、把本機副本移出 `Mods\`，確保只載入一份。
+* 載入（Load time 117 s）後面板（截圖 `docs/in-game/repro52-panel.png`，全螢幕
+  `docs/in-game/repro52-run-small.jpg`）：**已種植槽位 60 / 60 格**、**胡蘿蔔「生長 60 · 待收 9」**（35 % 進度條）。
+  同一時刻有 9 格已成熟待收，若用舊語意會顯示「生長 51 · 待收 9」——實機證明「生長」已等於種植槽內
+  作物總數。日誌 `docs/in-game/repro52e-Player.log` 同步看到當日 `harvested=26, planted=26` 等
+  收穫/補種行，無 `[HDBF/Error]`。
+* **未拍到「槽位」卡的「生長中 60」那一行**：1080p 面板下「槽位」卡被下方操作卡遮住，需要滾輪才能
+  看到；該行的同一數值由 L1 `TestGrowingCountIsEveryCropInThePlantingSlots` 與
+  `TestSlotCardRendersEveryCount` 釘住。
+* **環境善後**：工坊 2.5.1 檔案已還原（SHA-256 一致）；本機 `Mods\HDBF` 已移到
+  `Documents\Timberborn\HDBF.dev-2.5.2`（避免同一 Id 兩份載入崩潰）；`Saves\HDBFRepro` 驗證副本已刪除。
+  之後要本機實測 2.5.2，需先停用／取消訂閱工坊版本，只保留一份 HDBF。

@@ -19,7 +19,7 @@ internal sealed class DataChecks
     private static readonly Regex ModIdPattern = new(@"^[A-Za-z][A-Za-z0-9._-]*$", RegexOptions.Compiled);
 
     // Release under test: bump together with data/manifest.json on every release (warning only).
-    private const string ExpectedReleaseVersion = "2.5.1";
+    private const string ExpectedReleaseVersion = "2.5.2";
 
     private static readonly string[] BlueprintSuffixes = { "Basic", "Intermediate", "Advanced", "Top" };
 

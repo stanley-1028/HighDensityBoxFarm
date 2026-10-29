@@ -88,7 +88,7 @@ namespace HDBF.UI.Panels
                         snapshot.Capacity, snapshot.Workers, TierCatalog.SlotsPerFarmer),
                 },
                 SimpleRow("empty", HdbfUiLocKeys.PanelEmptyLabel, snapshot.EmptySlots, localize),
-                SimpleRow("growing", HdbfUiLocKeys.PanelGrowingLabel, snapshot.GrowingSlots, localize),
+                SimpleRow("growing", HdbfUiLocKeys.PanelGrowingLabel, PlantedSlots(snapshot), localize),
                 SimpleRow("harvest", HdbfUiLocKeys.PanelHarvestLabel, snapshot.MatureSlots, localize),
                 SimpleRow("backlog", HdbfUiLocKeys.PanelBacklogLabel, snapshot.BacklogActions, localize),
             };
@@ -104,6 +104,20 @@ namespace HDBF.UI.Panels
         }
 
         // ------------------------------------------------------------------ row helpers
+
+        /// <summary>
+        /// Player-facing "growing" number (product request 2026-10-29: "how many crops are in the
+        /// planting slots, that many growing crops are displayed"): every crop that occupies a slot
+        /// counts as growing, so the value is "crops in the planting slots" = still growing plus
+        /// waiting for harvest. <see cref="IndoorFarmSnapshot.MatureSlots"/> ("Ready") stays visible
+        /// as the subset that is already ripe, so empty + growing == capacity still holds.
+        /// </summary>
+        /// <param name="snapshot">Read-only farm snapshot.</param>
+        /// <returns>Number of planting slots that currently hold a crop.</returns>
+        internal static int PlantedSlots(IndoorFarmSnapshot snapshot)
+        {
+            return snapshot.GrowingSlots + snapshot.MatureSlots;
+        }
 
         private static HdbfPanelRow SimpleRow(string iconKey, string labelKey, int value,
             Func<string, string> localize)

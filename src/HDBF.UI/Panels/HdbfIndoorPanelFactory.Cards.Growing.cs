@@ -2,11 +2,11 @@
 // HDBF v2 | Layer: UI/Panels | Owner: V2-UI-05
 // Purpose: "Growing now" card of the v2 indoor panel read model (REQ-V2-UI-05): a live summary row
 //          (planted/capacity slots + average growth bar) followed by one row per crop that currently
-//          holds slots (localized name, growing/ready split, average growth bar and tooltip), or the
-//          single "nothing planted yet" row when the farm is empty. The card sits directly under the
-//          worker card so a partly planted farm is visible without scrolling. Split out of
-//          HdbfIndoorPanelFactory.Cards.cs so every file stays inside the 300-line gate; the
-//          aggregation itself lives in HDBF.Core.IndoorCropReport.
+//          holds slots (localized name, crop count in the planting slots + how many of those are
+//          ready, average growth bar and tooltip), or the single "nothing planted yet" row when the
+//          farm is empty. The card sits directly under the worker card so a partly planted farm is
+//          visible without scrolling. Split out of HdbfIndoorPanelFactory.Cards.cs so every file
+//          stays inside the 300-line gate; the aggregation itself lives in HDBF.Core.IndoorCropReport.
 // Requirements: REQ-V2-UI-05, REQ-V2-UI-01, REQ-V2-READ-04, REQ-V2-PERF-02
 // ============================================================================
 using System;
@@ -80,8 +80,11 @@ namespace HDBF.UI.Panels
                     {
                         IconKey = "crop",
                         Label = HdbfIndoorPanelFormat.CropName(localize, crop.CropId),
+                        // Product request 2026-10-29: the growing number is "crops in the planting
+                        // slots" (still growing + ready to harvest), so it always matches how many
+                        // crops the player sees in the box; the ready ones stay as the second number.
                         Value = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelGrowingValue,
-                            crop.GrowingSlots, crop.MatureSlots),
+                            crop.TotalSlots, crop.MatureSlots),
                         Tooltip = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.TooltipGrowing,
                             crop.TotalSlots, percent,
                             PanelNumbers.Days(crop.GrowthTimeInDays, roundUp: false)),

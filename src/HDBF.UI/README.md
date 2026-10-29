@@ -64,8 +64,8 @@ The vanilla `EntityPanel` header (icon + name + district) comes first. The fragm
 | Card | Rows / controls |
 |---|---|
 | Workers & efficiency | compact “tier · faction” subtitle row, crew `W/W_max`, growth efficiency `G_irr` (bar + %), read-only worker roster (vacant = vanilla empty avatar, no ⚠), vanilla mode RadioToggle group, 1-day transition sentence |
-| Slots | capacity, configured (bar), `P_eff` (formula tooltip), empty, growing, ready, action backlog |
-| Growing now (2nd card, directly under Workers) | planted/capacity summary row + averaged growth ProgressBar and percent, then one live row per crop once the first slot is planted: localized crop name, “`{0}` growing · `{1}` ready”, average-growth ProgressBar + percent, tooltip with slots in use / average growth / days to mature; one “nothing planted yet” row while nothing is planted |
+| Slots | capacity, configured (bar), `P_eff` (formula tooltip), empty, **growing = every crop in the planting slots (still growing + ready)**, ready (the ripe subset), action backlog |
+| Growing now (2nd card, directly under Workers) | planted/capacity summary row + averaged growth ProgressBar and percent, then one live row per crop once the first slot is planted: localized crop name, “`{0}` growing · `{1}` ready” where `{0}` is the crop count in the planting slots (growing + ready) and `{1}` the ripe subset, average-growth ProgressBar + percent, tooltip with slots in use / average growth / days to mature; one “nothing planted yet” row while nothing is planted |
 | Water | live tank units (bar + days), live coverage `C` (bar + C_min marker), `C_min`, supply source, water/low-water warnings, specific derate sentence |
 | Maintenance | next due day, overdue cycles, upkeep-material requirement (8 plank/10 days, 6 metal/10 days, off-grid top 15 metal/8 days), missing-material detail warning, stalled warning |
 | Power | grid / off-grid / power cut / not required (+ warning row) |
