@@ -89,3 +89,13 @@ cp docs/workshop/publish/* "$USERPROFILE/Documents/Timberborn/Mods/HDBF/"
   Updated **29 Oct @ 6:40am**（Steam 顯示時區）、Change Notes 2 → **3** 筆。
 - 建置：L1 **606/606**、`tools/validate` OK、`build.ps1` **44 gates PASSED**；GitHub `master` = `40b112e`。
 - 註：上面「構建狀態（2026-10-29）」的 597/3 是 2.5.0 當時的狀態；2.5.1 已全綠並完成上傳。
+
+## 發佈記錄（2026-10-29，2.5.2）
+
+- 2.5.2 於 **2026-10-29 22:17（Asia/Macau）** 上傳成功：`ManifestID 5678398362231513031`、
+  `Upload finished for workshop item 3828809784 : OK`（Steam `logs/workshop_log.txt`）。
+- 上傳只更新**內容與 Change Note**；標題/描述/封面/標籤/可見性刻意未動。
+- 工坊頁面核對（22:20 抓取）：File Size **2.128 MB**、Updated **29 Oct @ 7:17am**（Steam 顯示時區）、
+  Change Notes 3 → **4** 筆（最新一條為 2.5.2 雙語變更說明）。
+- 建置：L1 **607/607**、`tools/validate` OK、`build.ps1` **44 gates PASSED**；
+  staged package **48 files / 2,128,344 bytes / manifest 2.5.2**；GitHub `master` = `ee0a279`。

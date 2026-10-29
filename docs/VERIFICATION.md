@@ -1510,3 +1510,49 @@ Load time: 30029ms (scene index: 2)
 * **環境善後**：工坊 2.5.1 檔案已還原（SHA-256 一致）；本機 `Mods\HDBF` 已移到
   `Documents\Timberborn\HDBF.dev-2.5.2`（避免同一 Id 兩份載入崩潰）；`Saves\HDBFRepro` 驗證副本已刪除。
   之後要本機實測 2.5.2，需先停用／取消訂閱工坊版本，只保留一份 HDBF。
+
+## 33. 2.5.2 發佈記錄：Steam Workshop 更新 + GitHub push（2026-10-29）
+
+**建置**：`build.ps1` 全綠（5 組件 0 warning / 0 error、L1 **607/607**、`tools/validate`
+「WARNINGS: none / RESULT: OK」、**RELEASE GATES: PASSED (44 checks)**）；staged package
+**48 files / 2,128,344 bytes / `manifest.json` Version 2.5.2**。
+
+| 檔案 | SHA-256 |
+|---|---|
+| `manifest.json` | `f8db3f81e36f47baa8252f72d650981f2d85f5432d82a360647ba6ddb7b1eb9d` |
+| `HDBF.Core.dll` | `45d010b8e8f16add57571630cda0d9cf2a43e122e2b716fcef5028676c8d4767` |
+| `HDBF.Gameplay.dll` | `b0084ec5f5042e1903af875bf2291eb1c87e5873ec723c15d1ea482925884040` |
+| `HDBF.UI.dll` | `93a12992ecdfe441bddcf8d71bb3616f23585e191f1ab3a14e07a882411ee5e6` |
+
+**GitHub `stanley-1028/HighDensityBoxFarm`**：commit **`ee0a279`**（v2.5.2：面板「生長中」＝種植槽內
+作物總數；README/CHANGELOG/REQ/publish 備份同步）已 push 到 `master`；push 前遠端 = `2a0b053`，
+push 後 `git fetch` 核對 `origin/master` = `ee0a279`。
+
+**Steam Workshop item 3828809784**：2026-10-29 **22:16:49**（Asia/Macau）上傳開始，**22:17:03**
+`Uploaded new content ( ManifestID 5678398362231513031 )`、`Upload finished for workshop item
+3828809784 : OK`（Steam `logs/workshop_log.txt`）；`SubmitItemUpdateResult_t` EResult =
+`k_EResultOK`、`legalAgreementNeeded = false`、publishedFileId = 3828809784。
+
+* 上傳方式：Steamworks UGC API（一次性工具 `C:\Users\user\hdbf-tools\steamupload`，未入庫）：
+  `SteamAPI.Init` → `SteamUGC.StartItemUpdate(AppId 1062090, PubId 3828809784)` →
+  `SetItemContent(<staged 2.5.2 package>)` → `SubmitItemUpdate(changeNote)`。刻意**沒有**呼叫
+  SetItemTitle/Description/Preview/Tags/Visibility，避免覆蓋工坊頁面既有文案、封面與標籤。
+* Change Note（雙語）：`2.5.2 - Panel: the "Growing" count now shows every crop in the planting
+  slots (still growing + ready to harvest) …` / `2.5.2 - 面板：「生长中」改为显示种植槽内作物总数
+  （生长中＋待收）…只改显示，模拟与存档不变。`
+* 工坊頁面核對（22:20 抓取）：File Size **2.128 MB**、Updated **29 Oct @ 7:17am**（Steam 顯示時區）、
+  Change Notes 3 → **4** 筆，最新一條即上方 2.5.2 說明。
+
+**環境善後**
+
+* `Documents\Timberborn\Mods\HDBF` **不存在**（本機不與工坊同 Id 兩份載入，避免
+  `ArgumentException: same key HighDensityBoxFarm` 啟動崩潰）；本機 2.5.2 建置仍保留在
+  `Documents\Timberborn\HDBF.dev-2.5.2`（離開 `Mods\`）。
+* `Saves\HDBFRepro` 驗證副本已刪除；原存檔（Repro3 等）未動。
+* Steam 本機工坊快取**尚未**換成 2.5.2（`appworkshop_1062090.acf` 仍指向 2.5.1 manifest
+  `895539692198601087`，48 files / 2,128,345 bytes）：Steam 重新整理後會下載新 manifest；在此之前
+  作者本機遊戲仍是 2.5.1 內容。
+
+**未做（誠實記錄）**：訂閱端下載 2.5.2 manifest 後的載入二次驗證（待 Steam 快取更新）；工坊頁面
+標題/描述/封面/標籤本次未改。另：2026-10-29 22:09 左右工坊出現新玩家留言「it crash when you
+paused it」，尚未調查（與本次 2.5.2 顯示改動無關，另案處理）。
