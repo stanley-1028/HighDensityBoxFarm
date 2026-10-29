@@ -130,9 +130,10 @@ the no-empty-brace rule, the complete v2 terminology set and the removal of ever
 ## Known gaps / deviations (honest list)
 
 1. **Output capacity is not in the snapshot DTO.** `HDBF.Panel.OutputStock` shows occupied/capacity,
-   where capacity is `HdbfIndoorPanelLimits.OutputCapacity` (50) mirrored from the eight shipped
-   `SimpleOutputInventorySpec`s; `TestOutputCapacityMatchesEveryShippedBlueprint` fails if the data
-   drifts. Exposing it in the DTO would remove the constant.
+   where capacity is derived from the snapshot's tier slot capacity through
+   `HdbfIndoorPanelLimits.OutputCapacity` (slots x 4 = 240/600/1200/2400) and mirrors the eight
+   shipped `SimpleOutputInventorySpec`s; `TestOutputCapacityMatchesEveryShippedBlueprint` fails if the
+   data drifts. Exposing it in the DTO would remove the derivation.
 2. **Worker names are not in the snapshot.** The roster chips show `—` for staffed positions plus a
    localized note; the roster is read-only (the game assigns workers).
 3. **The vanilla workplace fragment already shows the crew roster.** The card keeps its own

@@ -625,7 +625,9 @@ foreach ($file in $required) {
     }
 }
 
-$manifest = Get-Content (Join-Path $stageDir 'manifest.json') -Raw | ConvertFrom-Json
+# -Encoding UTF8: PowerShell 5.1 otherwise decodes the BOM-less UTF-8 manifest as ANSI and
+# ConvertFrom-Json fails on the non-ASCII title/description characters (2026-10-29 release).
+$manifest = Get-Content (Join-Path $stageDir 'manifest.json') -Raw -Encoding UTF8 | ConvertFrom-Json
 foreach ($field in @('Name', 'Version', 'Id', 'MinimumGameVersion')) {
     if (-not $manifest.$field) {
         throw "manifest.json is missing required field $field"

@@ -439,8 +439,9 @@ namespace HDBF.Tests
         public static void TestOutputCardRendersOccupiedOverCapacityAndSeparatePortRows()
         {
             var output = Section(CreateData(IntermediateFixture(), out _), HdbfPanelSectionKind.Output);
-            TestAssert.Equal("12/50", Row(output, "Output stock").Value, "occupancy/capacity stays complete");
-            TestAssert.Equal("12/50 stored", Row(output, "Output stock").BarText);
+            // 2026-10-29 bug fix: the panel capacity is tier-scaled (150 slots -> 600), not the old 50.
+            TestAssert.Equal("12/600", Row(output, "Output stock").Value, "occupancy/capacity stays complete");
+            TestAssert.Equal("12/600 stored", Row(output, "Output stock").BarText);
             TestAssert.True(Row(output, "Output stock").HasBar,
                 "requirement F: the occupancy is a vanilla ProgressBar");
             TestAssert.Equal("Connected", Row(output, "Output port").Value);
@@ -462,21 +463,27 @@ namespace HDBF.Tests
             var blueprints = Directory.GetFiles(RepoPath("data/Buildings"), "*.blueprint.json",
                 SearchOption.AllDirectories);
             TestAssert.True(blueprints.Length >= 8, "expected the eight shipped tier blueprints");
-            var pattern = new Regex(
+            var inventoryPattern = new Regex(
                 "\"SimpleOutputInventorySpec\"\\s*:\\s*\\{[^}]*\"Capacity\"\\s*:\\s*(?<capacity>\\d+)",
+                RegexOptions.Singleline);
+            var slotPattern = new Regex(
+                "\"HdbfBoxFarmSpec\"\\s*:\\s*\\{[^}]*\"PlotCapacity\"\\s*:\\s*(?<slots>\\d+)",
                 RegexOptions.Singleline);
             var checkedCount = 0;
             foreach (var blueprint in blueprints)
             {
                 var text = File.ReadAllText(blueprint);
-                var match = pattern.Match(text);
-                if (!match.Success)
+                var match = inventoryPattern.Match(text);
+                var slots = slotPattern.Match(text);
+                if (!match.Success || !slots.Success)
                 {
                     continue;
                 }
 
                 checkedCount++;
-                TestAssert.Equal(HdbfIndoorPanelLimits.OutputCapacity,
+                var slotCapacity = int.Parse(slots.Groups["slots"].Value,
+                    System.Globalization.CultureInfo.InvariantCulture);
+                TestAssert.Equal(HdbfIndoorPanelLimits.OutputCapacity(slotCapacity),
                     int.Parse(match.Groups["capacity"].Value, System.Globalization.CultureInfo.InvariantCulture),
                     "panel output capacity must mirror " + Path.GetFileName(blueprint));
             }

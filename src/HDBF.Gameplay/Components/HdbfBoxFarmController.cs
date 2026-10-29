@@ -18,6 +18,7 @@ using Timberborn.BlockSystem;
 using Timberborn.EntitySystem;
 using Timberborn.GameDistricts;
 using Timberborn.MechanicalSystem;
+using Timberborn.Navigation;
 using Timberborn.SimpleOutputBuildings;
 using Timberborn.TimeSystem;
 using Timberborn.WorkSystem;
@@ -47,7 +48,7 @@ namespace HDBF.Gameplay.Components
 
         private readonly ITimeTriggerFactory _timeTriggerFactory;
         private readonly IDayNightCycle _dayNightCycle;
-        private readonly IBlockService _blockService;
+        private readonly INavMeshService _navMesh;
         private readonly IIndoorAdapterHost _adapterHost;
         private readonly ICropCatalog _cropCatalog;
         private readonly HdbfFarmQueryService _farms;
@@ -96,14 +97,14 @@ namespace HDBF.Gameplay.Components
 
         /// <summary>Creates one controller per building entity; every dependency is a DI singleton.</summary>
         public HdbfBoxFarmController(ITimeTriggerFactory timeTriggerFactory, IDayNightCycle dayNightCycle,
-            IBlockService blockService, IIndoorAdapterHost adapterHost, ICropCatalog cropCatalog,
+            INavMeshService navMesh, IIndoorAdapterHost adapterHost, ICropCatalog cropCatalog,
             HdbfFarmQueryService farms, IHdbfGameConfigProvider configProvider, IHdbfLog log,
             HdbfWorldIconService worldIcons, DistrictCenterRegistry districtCenters,
             HdbfManualWaterSource manualWater, HdbfWaterFlowService waterFlow)
         {
             _timeTriggerFactory = timeTriggerFactory ?? throw new ArgumentNullException(nameof(timeTriggerFactory));
             _dayNightCycle = dayNightCycle ?? throw new ArgumentNullException(nameof(dayNightCycle));
-            _blockService = blockService ?? throw new ArgumentNullException(nameof(blockService));
+            _navMesh = navMesh ?? throw new ArgumentNullException(nameof(navMesh));
             _adapterHost = adapterHost ?? throw new ArgumentNullException(nameof(adapterHost));
             _cropCatalog = cropCatalog ?? throw new ArgumentNullException(nameof(cropCatalog));
             _farms = farms ?? throw new ArgumentNullException(nameof(farms));

@@ -76,6 +76,10 @@ namespace HDBF.UI.Panels
             Func<string, string> localize)
         {
             var tooltip = OutputTooltip(snapshot, localize);
+            // 2026-10-29 bug fix: the in-farm output buffer scales with the tier's slot capacity
+            // (one whole-box harvest, see IndoorConstants.OutputCapacityFor); the panel mirrors the
+            // shipped blueprint value instead of the old fixed 50.
+            var outputCapacity = HdbfIndoorPanelLimits.OutputCapacity(snapshot.Capacity);
             // Requirement E/F: the output port and the three physical ports are SEPARATE rows, so a
             // long state list can never overlap the line above it; every value wraps.
             var rows = new List<HdbfPanelRow>(5)
@@ -85,13 +89,13 @@ namespace HDBF.UI.Panels
                     IconKey = "output",
                     Label = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelOutputLabel),
                     Value = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelCountValue,
-                        snapshot.OutputOccupied, HdbfIndoorPanelLimits.OutputCapacity),
+                        snapshot.OutputOccupied, outputCapacity),
                     Tooltip = tooltip,
                     // Requirement F: the occupancy is the vanilla ProgressBar, not a text button.
                     HasBar = true,
-                    Bar = HdbfIndoorPanelLimits.OutputFill(snapshot.OutputOccupied),
+                    Bar = HdbfIndoorPanelLimits.OutputFill(snapshot.OutputOccupied, snapshot.Capacity),
                     BarText = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelBarOutput,
-                        snapshot.OutputOccupied, HdbfIndoorPanelLimits.OutputCapacity),
+                        snapshot.OutputOccupied, outputCapacity),
                 },
                 new()
                 {

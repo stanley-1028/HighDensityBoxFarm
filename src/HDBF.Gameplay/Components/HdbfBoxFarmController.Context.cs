@@ -59,8 +59,12 @@ namespace HDBF.Gameplay.Components
                     return false;
                 }
 
-                // A path at the doorstep makes the entrance usable; a wall/platform blocks it.
-                return _blockService.GetPathObjectAt(entrance.DoorstepCoordinates) is null;
+                // The game's own definition (Timberborn.Buildings.BuildingBlockedAccessible.IsBlocked):
+                // the doorway cell and its doorstep cell must be connected in the nav mesh. The old
+                // "a Path block object must sit on the doorstep" test flagged every farm on a raised
+                // floor - e.g. a box farm stacked on another farm's flat roof, whose doorstep is a
+                // roof cell - as blocked forever, so planting never ran (2026-10-29 player report).
+                return !_navMesh.AreConnected(entrance.Coordinates, entrance.DoorstepCoordinates);
             }
             catch (Exception exception)
             {

@@ -193,7 +193,7 @@
     "HasPowerPort": true
   },
   "SimpleOutputInventorySpec": {
-    "Capacity": 50,
+    "Capacity": 2400,
     "IgnorableCapacity": false
   },
   "MechanicalBuildingSpec": {},

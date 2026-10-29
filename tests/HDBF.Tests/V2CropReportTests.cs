@@ -8,6 +8,7 @@
 using System;
 using System.Collections.Generic;
 using HDBF.Core;
+using HDBF.Core.Balance;
 using HDBF.Core.Indoor;
 
 namespace HDBF.Tests
@@ -74,6 +75,40 @@ namespace HDBF.Tests
                     Slot("Carrot", 99f, SlotStage.Growing)),
                 FallbackCropCatalog.Default);
             TestAssert.Equal(1f, rows[0].AverageProgress, 1e-6f);
+        }
+
+        /// <summary>
+        /// Regression for the 2026-10-29 report ("the growing-crop count only shows when the planting
+        /// slots are full"): on EVERY shipped tier a single planted slot among the whole capacity must
+        /// already produce the crop row, so no high-density farm ever waits for a full box to show
+        /// what is growing (REQ-V2-UI-05).
+        /// </summary>
+        public static void TestEveryTierReportsCropsFromTheFirstPlantedSlot()
+        {
+            foreach (var tier in new[]
+                     {
+                         HdbfTier.Basic, HdbfTier.Intermediate, HdbfTier.Advanced, HdbfTier.Top,
+                     })
+            {
+                var capacity = TierCatalog.Get(tier).SlotCapacity;
+                var slots = new IndoorSlot[capacity];
+                for (var index = 0; index < capacity; index++)
+                {
+                    slots[index] = new IndoorSlot();
+                }
+
+                slots[0].CropId = "Carrot";
+                slots[0].Stage = SlotStage.Growing;
+                var record = new IndoorFarmRecord
+                {
+                    Tier = tier, Faction = HdbfFaction.Folktails, Slots = slots,
+                };
+
+                var rows = IndoorCropReport.Build(record, FallbackCropCatalog.Default);
+                TestAssert.Equal(1, rows.Count, tier + ": one planted slot must already produce the row");
+                TestAssert.Equal(1, rows[0].GrowingSlots, tier + ": the one growing slot is counted");
+                TestAssert.Equal(1, rows[0].TotalSlots, tier + ": empty slots stay out of the row");
+            }
         }
 
         public static void TestEmptyStageWithCropIdIsIgnored()

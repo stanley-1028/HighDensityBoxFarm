@@ -556,3 +556,12 @@ Top 的動力 transput 已改為 `(0,1,0)`/`(1,1,0)`/`(2,1,0)` 配 `Left, Up`/`U
 `BlockObjectSpec.Size` 改為 `{X:3,Y:2,Z:1}`。本文舊數值不再適用，推導與實機 A/B 見
 `docs/workstreams/bug-08-block-axis-size.md`。
 
+## 補記（輸出庫存容量修正，2026-10-29）
+
+本文 task-5 的「四檔 Capacity 同為 50、範圍 [20,100]」已作廢：每日批量收穫下 50 只夠收約 25 槽，
+600 槽農場會卡死（玩家回報「600 個玉米只送出 50 個」）。現行規則為每檔
+`SimpleOutputInventorySpec.Capacity = PlotCapacity × 4`（240/600/1200/2400，4 = 最高原版作物基礎
+產量 3 × 密植 1.35 四捨五入），由 `IndoorConstants.OutputCapacityFor`、面板
+`HdbfIndoorPanelLimits.OutputCapacity`、8 份藍圖與 `tools/validate` 共用；根因、修正與離線證據見
+`docs/VERIFICATION.md` §29。本文 §10 的舊數值僅保留為歷史記錄。
+

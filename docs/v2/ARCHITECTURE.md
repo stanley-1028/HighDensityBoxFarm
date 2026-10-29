@@ -69,7 +69,8 @@
 * **面板**：控制器 → `IndoorSnapshotBuilder`（Core）→ `IndoorFarmSnapshot` → UI 呈现（≤4 Hz、脏标记）。
 * **水**：`IWaterSource`（管道适配器 / 人工补水）→ `TryDraw` → 水罐；**不得无源补水**。
 * **产物**：成熟槽位收获 → `IInventorySink.TryAdd(goodId, amount)` → 原版 `SimpleOutputInventory`
-  → 原版搬运/传送带。库存满：不收获、槽位保持成熟、面板显示积压。
+  → 原版搬运/传送带。库存容量按档位取整盒收成上限 `槽位上限 × 4`（2026-10-29 修正，见 §19.3），
+  因此只有搬运长期跟不上时才会满：满了不收获、槽位保持成熟、面板显示积压。
 
 ## 5. 已删除的 v1 机制（§19.2）
 

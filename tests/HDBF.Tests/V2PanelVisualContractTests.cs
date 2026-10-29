@@ -220,7 +220,7 @@ namespace HDBF.Tests
             var output = Section(data, HdbfPanelSectionKind.Output);
             TestAssert.True(Row(output, "Output stock").HasBar,
                 "requirement F: output occupancy is the vanilla ProgressBar");
-            TestAssert.Equal("12/50 stored", Row(output, "Output stock").BarText);
+            TestAssert.Equal("12/600 stored", Row(output, "Output stock").BarText);
 
             TestAssert.Equal(IndoorMode.Dense, data.Mode);
             TestAssert.True(data.ModeTransitionText.Length > 0, "1-day mode transition hint");

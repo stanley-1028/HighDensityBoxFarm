@@ -18,6 +18,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
+using HDBF.Core.Indoor;
 
 namespace HDBF.Tests
 {
@@ -463,15 +464,23 @@ namespace HDBF.Tests
 
         // ---------------------------------------------------------------- output inventory
 
-        /// <summary>§19.3 output inventory row: every tier ships Capacity 50 instead of the mod-level 50 balance.</summary>
-        public static void TestOutputInventoryIsFiftyForEveryTier()
+        /// <summary>
+        /// §19.3 output inventory row (2026-10-29 bug fix): every tier ships the whole-box harvest
+        /// bound <c>SlotCapacity x 4</c> (240/600/1200/2400) instead of the vanilla farmhouse
+        /// capacity 50, so a full harvest of a 600-slot farm can be buffered and hauled out instead
+        /// of stopping after ~50 items.
+        /// </summary>
+        public static void TestOutputInventoryMatchesHarvestCapacityPerTier()
         {
             foreach (var (tier, faction, blueprint) in AllBlueprints())
             {
                 var context = BlueprintLabel(tier, faction);
+                var tierIndex = Array.IndexOf(Tiers, tier);
+                TestAssert.True(tierIndex >= 0, context + ": unknown tier");
                 var inventory = ObjectMember(blueprint, "SimpleOutputInventorySpec", context);
-                TestAssert.Equal(50, IntMember(inventory, "Capacity", context + " SimpleOutputInventorySpec"),
-                    context + ": output inventory Capacity (§19.3 output row = 50)");
+                TestAssert.Equal(SlotCapacities[tierIndex] * IndoorConstants.MaxHarvestItemsPerSlot,
+                    IntMember(inventory, "Capacity", context + " SimpleOutputInventorySpec"),
+                    context + ": output inventory Capacity (whole-box harvest bound = slots x 4)");
                 TestAssert.Equal(false, BoolMember(inventory, "IgnorableCapacity", context + " SimpleOutputInventorySpec"),
                     context + ": IgnorableCapacity (vanilla farmhouse value)");
             }

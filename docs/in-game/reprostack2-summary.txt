@@ -1,0 +1,28 @@
+﻿round        : reprostack2
+finished     : 2026-10-29T21:09:32
+save         : 2026-10-24 18h28m, Day 1-1.autosave
+settlement   : HDBFTest
+log          : C:\Users\user\Documents\Timberborn\Mods\HighDensityBoxFarm\docs\in-game\reprostack2-Player.log
+
+[HDBF/Info] start HDBF version=2.4.2 modPath=C:\Users\user\Documents\Timberborn\Mods\HDBF
+HDBF/Compat: compat.enabled:HDBF.Adapter.TimberPipes: HDBF.Adapter.TimberPipes active; api-anchors=4
+HDBF/Compat: compat.enabled:HDBF.Adapter.PowerLines: HDBF.Adapter.PowerLines active; api-anchors=4
+HDBF/Compat: compat.enabled:HDBF.Adapter.ConveyorBeltsV2: HDBF.Adapter.ConveyorBeltsV2 active; api-anchors=4
+HDBF/Compat: compat.enabled:HDBF.Adapter.MoreMines: HDBF.Adapter.MoreMines active; api-anchors=4
+HDBF/Compat: compat.enabled:HDBF.Adapter.HoomanStairs: HDBF.Adapter.HoomanStairs active; api-anchors=3
+Opening file: C:\Users\user\Documents\Timberborn\Saves\HDBFRepro\repro.timber
+[HDBF/Info] startup: HDBF 2.4.2 ready; tiers=4; modPath=C:\Users\user\Documents\Timberborn\Mods\HDBF; config=C:\Users\user\Documents\Timberborn\Mods\HDBF\HDBF_Config.json
+[HDBF/Info] water.settle: water input inventory enabled: capacity=4, entityId=c6c2da15-a7a0-4df3-bdbe-a99e47d6406a
+[HDBF/Compat] water.pipe-unavailable: pipe port has no usable water connection; manual refill stays possible, entityId=c6c2da15-a7a0-4df3-bdbe-a99e47d6406a
+[HDBF/Warn] water.manual-refill: no usable manual water source: HDBF.Error.NoWaterSource
+[HDBF/Info] indoor.entity: indoor farm active, entityId=c6c2da15-a7a0-4df3-bdbe-a99e47d6406a, tier=Basic, faction=Folktails, blueprint=BoxFarm.Basic.Folktails
+Load time: 120552ms (scene index: 2)
+[HDBF/Warn] water.manual-refill: no usable manual water source: HDBF.Error.NoWaterSource suppressed=8
+[HDBF/Warn] water.manual-refill: no usable manual water source: HDBF.Error.NoWaterSource suppressed=9
+[HDBF/Info] water.settle: hauled water accepted: +1 units, tank=3.599, entityId=c6c2da15-a7a0-4df3-bdbe-a99e47d6406a suppressed=1
+[HDBF/Warn] water.manual-refill: no usable manual water source: HDBF.Error.NoWaterSource suppressed=10
+[HDBF/Compat] water.pipe-unavailable: pipe port has no usable water connection; manual refill stays possible, entityId=c6c2da15-a7a0-4df3-bdbe-a99e47d6406a suppressed=3
+[HDBF/Info] water.settle: indoor water settled: coverage=1.000, tank=2.754, entityId=c6c2da15-a7a0-4df3-bdbe-a99e47d6406a
+[HDBF/Info] indoor.day: indoor actions: harvested=0, planted=60, actionsUsed=0, blockedByOutput=0, growthMultiplier=1.000, entityId=05abcd57-e29b-4484-bdcc-7bb0eaabc445
+[HDBF/Warn] water.manual-refill: no usable manual water source: HDBF.Error.NoWaterSource suppressed=12
+[HDBF/Warn] water.manual-refill: no usable manual water source: HDBF.Error.NoWaterSource suppressed=10

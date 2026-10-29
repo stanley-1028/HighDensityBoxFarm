@@ -118,6 +118,37 @@ namespace HDBF.Core.Indoor
         /// <summary>Half-up offset used to convert a float yield into whole inventory items.</summary>
         public const float RoundHalfUp = 0.5f;
 
+        /// <summary>
+        /// Upper bound of the whole-item harvest of one slot: the highest vanilla crop base yield
+        /// (3) x the dense yield multiplier (1.35), rounded half up = 4. Fatigue and a mode-transition
+        /// scale can only reduce the yield, so no slot can ever produce more than this.
+        /// </summary>
+        public const int MaxHarvestItemsPerSlot = 4;
+
+        /// <summary>
+        /// Output-inventory capacity of one tier: the whole-box harvest bound
+        /// <c>SlotCapacity x MaxHarvestItemsPerSlot</c> (60 -> 240, 150 -> 600, 300 -> 1200, 600 ->
+        /// 2400). The vanilla output inventory is the only place harvested goods can go before
+        /// haulers move them out, and the farm harvests in daily batches. A fixed vanilla-farmhouse
+        /// capacity (50) therefore filled up after a few slots, blocked every further harvest and
+        /// left a 600-slot farm transferring only ~50 items — the 2026-10-29 player bug report. The
+        /// buffer is sized so one whole-box harvest always fits, which makes hauling (not the
+        /// building buffer) the only rate limit; the blueprint data and tools/validate pin the same
+        /// number per tier (TestOutputInventoryMatchesHarvestCapacityPerTier).
+        /// </summary>
+        /// <param name="slotCapacity">Slot capacity of the tier (PlotCapacity).</param>
+        /// <returns>Per-good output inventory capacity; 0 for a non-positive slot capacity.</returns>
+        public static int OutputCapacityFor(int slotCapacity)
+        {
+            if (slotCapacity <= 0)
+            {
+                return 0;
+            }
+
+            var capacity = (long)slotCapacity * MaxHarvestItemsPerSlot;
+            return capacity > int.MaxValue ? int.MaxValue : (int)capacity;
+        }
+
         /// <summary>Consecutive failures after which a subsystem is disabled (REQ-V2-SAFE-02, reserved).</summary>
         public const int SlotFaultDisableThreshold = 3;
 

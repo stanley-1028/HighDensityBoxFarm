@@ -18,6 +18,9 @@ internal sealed class DataChecks
     private static readonly Regex GameVersionPattern = new(@"^\d+\.\d+\.\d+\.\d+$", RegexOptions.Compiled);
     private static readonly Regex ModIdPattern = new(@"^[A-Za-z][A-Za-z0-9._-]*$", RegexOptions.Compiled);
 
+    // Release under test: bump together with data/manifest.json on every release (warning only).
+    private const string ExpectedReleaseVersion = "2.5.1";
+
     private static readonly string[] BlueprintSuffixes = { "Basic", "Intermediate", "Advanced", "Top" };
 
     // Faction-specific blueprints: vanilla materials are faction-scoped (MaterialRepository
@@ -78,6 +81,12 @@ internal sealed class DataChecks
     // SimpleOutputInventory + Inventory + InventoryNeedBehavior (verified decorators in
     // SimpleOutputBuildingsTemplateModuleProvider), so hauling works without extra specs.
     //
+    // 2026-10-29 player bug fix: the capacity is NOT the vanilla 50 any more. One slot can yield at
+    // most 4 items (max vanilla crop base yield 3 x dense 1.35, rounded half up), so each tier ships
+    // the whole-box harvest bound PlotCapacity x 4 (240/600/1200/2400). With 50, a 600-slot farm
+    // filled the buffer after ~25 slots and transferred only 50 items instead of the whole harvest.
+    private const int OutputCapacityPerSlot = 4;
+
     // The vanilla field-farm marker specs must NOT be added: farm-loop drives the vanilla
     // worker-side planting/harvesting behaviors itself and does not want the building to become a
     // field farm (FarmHouseSpec), own a plantable group (PlanterBuildingSpec) or remove yields by
@@ -241,9 +250,14 @@ internal sealed class DataChecks
         }
 
         var name = ExpectString(root, category, "manifest.json", "Name");
-        if (name is not null && name != "High-Density Box Farm")
+        // The Steam title is part of the release metadata ("High-Density Box Farm — 3x3x1
+        // Indoor Stackable Farm" since the 2026-10-28 Workshop page rebuild), so the check pins
+        // the brand prefix instead of one stale exact string; the mod identity is the Id field.
+        if (name is not null
+            && (!name.StartsWith("High-Density Box Farm", StringComparison.Ordinal) || name.Length > 120))
         {
-            _report.Error(category, $"Name must be 'High-Density Box Farm' (found '{name}')");
+            _report.Error(category, $"Name must start with 'High-Density Box Farm' and stay under 120 "
+                                     + $"characters (found '{name}')");
         }
 
         var version = ExpectString(root, category, "manifest.json", "Version");
@@ -251,9 +265,9 @@ internal sealed class DataChecks
         {
             _report.Error(category, $"Version '{version}' must look like 0.1.0");
         }
-        else if (version is not null && version != "0.1.0")
+        else if (version is not null && version != ExpectedReleaseVersion)
         {
-            _report.Warn(category, $"Version is '{version}', v0.1.0 is the release under test");
+            _report.Warn(category, $"Version is '{version}', the pinned release under test is '{ExpectedReleaseVersion}'");
         }
 
         var id = ExpectString(root, category, "manifest.json", "Id");
@@ -2032,16 +2046,17 @@ internal sealed class DataChecks
     /// <summary>
     /// Every tier needs a vanilla output inventory, otherwise the harvested goods have nowhere to go
     /// (farm-loop writes real grown yields into SimpleOutputInventory and vanilla hauling moves them
-    /// out). Values follow the vanilla farmhouses (Capacity 50, IgnorableCapacity false); the range
-    /// [20,100] is the requirement's accepted envelope and all four tiers share one capacity so the
-    /// building's balance is not tier-dependent. The vanilla field-farm marker specs are forbidden:
-    /// the HDBF route uses the worker-side behaviors directly, not the field-farm building model.
+    /// out). The capacity is per tier the whole-box harvest bound
+    /// <c>PlotCapacity x OutputCapacityPerSlot</c> (240/600/1200/2400): the farm harvests in daily
+    /// batches, so the old fixed vanilla-farmhouse capacity 50 filled up after a few slots and then
+    /// blocked every further harvest (2026-10-29 player report: a 600-slot farm transferred only 50
+    /// corn). Sizing the buffer to one whole-box harvest keeps hauling as the only rate limit.
+    /// IgnorableCapacity stays false and the vanilla field-farm marker specs are forbidden: the HDBF
+    /// route uses the worker-side behaviors directly, not the field-farm building model.
     /// </summary>
     private void CheckOutputInventory()
     {
         const string category = "inventory";
-        int? sharedCapacity = null;
-        var sharedSource = string.Empty;
 
         foreach (var expectation in Tiers)
         {
@@ -2081,7 +2096,7 @@ internal sealed class DataChecks
                 {
                     _report.Error(category, $"{relative}: missing SimpleOutputInventorySpec at the blueprint root; "
                                              + "harvest output would have no SimpleOutputInventory to write into "
-                                             + "(vanilla farmhouses use Capacity 50 / IgnorableCapacity false)");
+                                             + "(all tiers ship the tier-scaled harvest buffer)");
                     continue;
                 }
 
@@ -2093,22 +2108,12 @@ internal sealed class DataChecks
                     continue;
                 }
 
-                if (capacity < 20 || capacity > 100)
+                var expectedCapacity = expectation.PlotCapacity * OutputCapacityPerSlot;
+                if (capacity != expectedCapacity)
                 {
-                    _report.Error(category, $"{relative}: SimpleOutputInventorySpec.Capacity must be within "
-                                             + $"[20,100] (found {capacity})");
-                }
-
-                if (sharedCapacity is null)
-                {
-                    sharedCapacity = capacity;
-                    sharedSource = relative;
-                }
-                else if (sharedCapacity != capacity)
-                {
-                    _report.Error(category, $"{relative}: SimpleOutputInventorySpec.Capacity ({capacity}) must match "
-                                             + $"{sharedSource} ({sharedCapacity}); all four tiers share the same "
-                                             + "output inventory so the harvest loop balance stays tier-independent");
+                    _report.Error(category, $"{relative}: SimpleOutputInventorySpec.Capacity must be "
+                                             + $"{expectedCapacity} (PlotCapacity {expectation.PlotCapacity} x "
+                                             + $"{OutputCapacityPerSlot} max harvest items per slot; found {capacity})");
                 }
             }
         }

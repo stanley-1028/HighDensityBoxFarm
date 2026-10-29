@@ -1,9 +1,50 @@
 # HDBF v2 变更记录
 
-> **状态**：2.4.2 已实现（离线门禁全绿；实机覆盖范围见 VERIFICATION §26.3）
+> **状态**：2.5.1 已实现（离线门禁全绿；实机证据见 VERIFICATION §29、§30）
 > **日期**：2026-10-29
-> **适用版本**：2.4.2
+> **适用版本**：2.5.1
 > **变更摘要**：v2.1 需求引入室内农场方案；本文件记录 v1→v2 的行为/数据/工程变更与实现状态。
+
+## [2.5.1] — 2026-10-29（两个玩家 bug 修复：叠层农场不播种、600 槽农场只送出 50 个作物）
+
+### 修复 1：叠放/升高层的农场永远不播种，「正在生长」一直为 0
+
+#### 变更（玩家 bug 回報：「生長中」只在种植槽种满时才显示正在生长的数量）
+
+* 【修复】玩家回報「面板的『生長中』只有在種植槽種滿農作物時才會顯示正在生長的農作物數量」。
+  顯示/資料鏈本身沒有「種滿才顯示」的條件（第一格種下就出行，見 REQ-V2-UI-05 與 VERIFICATION §28），
+  真正原因是**入口判定錯誤**：`HdbfBoxFarmController.ReadEntranceBlocked` 原本要求門口那格上有
+  **Path 方塊物件**，但這只對「門口就在路面層」的農場成立。屋頂是真正的樓層（REQ-V2-BLD-04），
+  疊在另一座盒子農場屋頂上的農場，其門口前方是**屋頂格**而不是 Path，於是被永遠判定「入口堵塞」，
+  每日農事（補種）完全不執行 → 槽位永遠空、面板永遠 0，而地面上那座（門口有 Path）正常顯示，
+  玩家於是看到「只有種滿的那座才顯示」。
+* 【修改】入口判定改用**遊戲原版定義**（`Timberborn.Buildings.BuildingBlockedAccessible.IsBlocked`）：
+  `INavMeshService.AreConnected(門口格, 門前台階格)`。導航網格連通即視為可通行（屋頂/樓層也算），
+  真正被牆堵住的入口仍然判定堵塞並照舊暫停農事、顯示「入口堵塞」；REQ-V2-BLD-02 的
+  「入口前方至少 1 格通路」因此對所有樓層都成立。
+* 【依賴】控制器不再注入 `IBlockService`（唯一用途就是上述錯誤判定），改注入 `INavMeshService`
+  （遊戲單例，Bindito 已綁定）。
+* 【測試】L1 新增 2 條回歸：`V2GameplayContractTests.TestEntranceProbeUsesNavMeshConnectivityNotAPathObject`
+  釘住入口判定必須用導航網格連通、不得再要求門口 Path；`V2CropReportTests.TestEveryTierReportsCropsFromTheFirstPlantedSlot`
+  對四檔各驗證「只種 1 格也立即產出作物列」。L1 606/606、發布門禁 PASSED。
+
+### 修复 2：600 槽农场收获后只送出 50 个作物
+
+#### 变更（玩家 bug 回報：Steam Workshop 留言）
+
+* 【修复】玩家回報「600 個玉米成熟後只有 50 個送進倉庫，其餘完全沒有運出」。根因不是搬運鏈壞掉，而是
+  建築輸出庫存沿用原版農家的固定容量 **50**：本模組是**每日批量收穫**，50 的緩衝只夠收約 25 槽，
+  之後所有槽位卡在成熟、`blockedByOutput` 一直累積，玩家只看到 50 個作物離開農場。
+* 【修改】四檔 `SimpleOutputInventorySpec.Capacity` 改為**整盒一次收成的上限** `槽位上限 × 4`：
+  基礎 240、中級 600、高級 1200、頂級 2400（4 = 最高原版作物基礎產量 3 × 密植 1.35 四捨五入；
+  疲勞與模式過渡只會降低產量，因此任何一槽最多 4 件）。一盒收成永遠放得下，瓶頸只剩搬運，
+  不會再出現「收不了、送不出」的卡死。
+* 【修改】面板「輸出」列的容量改為依快照槽位上限推算的每檔容量（`HdbfIndoorPanelLimits.OutputCapacity`），
+  不再寫死 50；`HdbfIndoorPanelLimits.OutputFill` 同步接受槽位上限。
+* 【修改】`tools/validate` 的 inventory 檢查由「四檔同為 50、範圍 [20,100]」改為「每檔 == PlotCapacity × 4」；
+  `V2BlueprintContractTests` 與 `V2PanelContractTests` 以同一條規則釘住資料/面板，資料再漂移會紅燈。
+* 【測試】L1 契約更新（面板 12/600、藍圖容量 = 槽位 × 4）；全套 L1 **606/606 PASS**、`tools/validate` OK、
+  `build.ps1` **RELEASE GATES: PASSED (44 checks)**。
 
 ## [2.4.2] — 2026-10-29（修复「正在生长」卡看不到 / 数量不够显眼）
 

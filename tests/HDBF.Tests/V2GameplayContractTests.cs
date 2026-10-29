@@ -83,6 +83,30 @@ namespace HDBF.Tests
             }
         }
 
+        /// <summary>
+        /// Regression (2026-10-29 player report: "the growing-crop count only shows when the planting
+        /// slots are full"). The entrance probe must use the game's own nav-mesh connectivity, exactly
+        /// like <c>Timberborn.Buildings.BuildingBlockedAccessible.IsBlocked</c>. The old probe required
+        /// a Path block object on the doorstep, which is only true for a farm whose doorstep sits on the
+        /// path layer: every farm on a raised floor - e.g. a box farm stacked on another box farm's flat
+        /// roof (REQ-V2-BLD-04) - was flagged blocked forever, so its daily actions (planting) never ran
+        /// and the panel kept showing 0 growing crops until the whole box was filled some other way.
+        /// </summary>
+        public static void TestEntranceProbeUsesNavMeshConnectivityNotAPathObject()
+        {
+            var source = ReadControllerSources();
+            TestAssert.True(source.Contains("INavMeshService", StringComparison.Ordinal),
+                "the entrance probe must ask the game's nav-mesh service whether the doorway is usable");
+            TestAssert.True(
+                source.Contains("AreConnected(entrance.Coordinates, entrance.DoorstepCoordinates)",
+                    StringComparison.Ordinal),
+                "entrance blocked must mean 'doorway and doorstep are not nav-mesh connected' "
+                + "(BuildingBlockedAccessible.IsBlocked semantics)");
+            TestAssert.False(source.Contains("GetPathObjectAt", StringComparison.Ordinal),
+                "a Path block object on the doorstep must not be required: a stacked farm's doorstep is "
+                + "a roof/floor cell, and a genuinely walled-in entrance still fails the nav-mesh test");
+        }
+
         public static void TestSaveAndLoadAreGuardedAndFailSafe()
         {
             var source = ReadControllerSources() + ReadBridgeSources();

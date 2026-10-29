@@ -1349,3 +1349,95 @@ Load time: 30029ms (scene index: 2)
 **證據檔案**：`docs/in-game/round57-growing-partial-small.jpg`、`round57-growing-partial-panel.jpg`、
 `round57-growing-live-small.jpg`、`round57-growing-live-panel.jpg`、`round57-Player.log`、
 `round57-summary.txt`。
+
+## 29. 輸出庫存容量修正：600 槽農場只送出 50 個作物（2026-10-29，離線驗證）
+
+**回報**（Steam Workshop item 3828809784 留言，玩家 OngLaoCheoDo）：「600 個玉米成熟後只有 50 個
+送進倉庫，其餘完全沒有運出。」影響採收→搬運→農場內儲存整條鏈。
+
+**根因（已定位）**：建築輸出庫存沿用原版農家的固定 `SimpleOutputInventorySpec.Capacity = 50`。
+本模組是**每日日 tick 批量收穫**（頂級 16 人 × 13 = 208 動作/日），且自動補種會讓整盒槽位同時成熟；
+50 的緩衝只夠收 2–4 檔作物約 13–25 槽就滿，之後 `IndoorLaborMath` 依設計「庫存滿不收割、槽位保持
+成熟」，於是 600 槽中絕大多數永遠卡在成熟，玩家只看到 50 個離開農場。搬運鏈本身沒有壞：
+`SimpleOutputInventoryHaulBehaviorProvider` 的 `GetWeightedBehaviors` 在 `Inventory.Enabled` 且
+`BlockableObject.IsUnblocked` 時把 `EmptyOutputWorkplaceBehavior` 交給搬運工（1.1.2.8 IL 已核對）。
+
+**修正**：四檔 `SimpleOutputInventorySpec.Capacity` 改為**整盒一次收成上限**
+`PlotCapacity × 4`（240/600/1200/2400）。4 = 原版最高作物基礎產量 3 × 密植 1.35 四捨五入；疲勞與
+模式過渡只會降低產量，故任何一槽最多 4 件。如此一盒收成永遠放得下，瓶頸只剩玩家自己的搬運配置，
+不會再出現「收不了、送不出」。核心常數 `IndoorConstants.OutputCapacityFor`、面板
+`HdbfIndoorPanelLimits.OutputCapacity`、8 份藍圖與 `tools/validate` 共用同一條規則。
+
+**離線證據（本輪實際輸出）**
+
+1. L1 `PASSED 604 / FAILED 0`（含 3 條新回歸測試）：
+   * `V2LaborTests.TestTierSizedOutputBufferHarvestsAWholeMatureBox`：頂級 600 槽全成熟，3 天內收完
+     600 槽、`BlockedByOutput = 0`；
+   * `V2LaborTests.TestVanillaFiftyBufferBlocksAWholeMatureBox`（負向對照）：容量 50 時只收 16 槽
+     （16 × 3 = 48，第 17 槽 51 > 50），584 槽保持成熟並回報積壓；
+   * `V2BlueprintContractTests.TestOutputInventoryMatchesHarvestCapacityPerTier`：8 份藍圖容量 ==
+     `PlotCapacity × 4`。
+2. 純 Core 模擬（`IndoorDayTick` + 有上限的 sink，頂級 600 槽全成熟、搬運工可搬 200/日）：
+
+   | 緩衝 | 第 1 天 | 收完 600 個原始槽 | 累計送達 ≥1200 件 | 積壓 |
+   |---|---|---|---|---|
+   | 修正後 2400 | 收 208 槽（416 件） | 第 3 天 | 第 7 天 | 0 |
+   | 舊值 50 | 收 25 槽（50 件） | 第 24 天 | 第 25 天 | 575 起一直存在 |
+
+   → 舊容量把搬運能力 200/日壓成 50/日；修正後搬運能力完整發揮。
+3. `tools/validate`：inventory 檢查改為「每檔 == PlotCapacity × 4」；負向對照把頂級容量改回 50 →
+   `[inventory] ... must be 2400 (PlotCapacity 600 x 4 ...; found 50)`；還原後 `RESULT: OK`。
+4. 完整 `build.ps1`（2.5.1 發佈建置）：5 個組件 0 warning / 0 error、L1
+   `PASSED 606 / FAILED 0`、`tools/validate`「WARNINGS: none / RESULT: OK」、
+   **RELEASE GATES: PASSED (44 checks)**。同一張卡順手修好兩個發佈工具問題：`build.ps1` 以
+   `-Encoding UTF8` 讀 manifest（PS5.1 以 ANSI 讀 BOM-less UTF-8 會讓 `ConvertFrom-Json` 失敗），
+   以及 validator 的過時 manifest 名稱/pinned 版本檢查，讓門禁能直接對正式 manifest 跑。
+5. 藍圖資料無 schema/存檔變更：容量是藍圖值，舊存檔載入後自動套用新容量，庫存中 ≤50 的舊貨保留。
+
+**未實機**：本輪未啟動遊戲；「600 玉米全部收下並由搬運工送達」的實機截圖/日誌列為發佈前最後一項
+（fixture 可用 `CraftIndoorFixture --tier Top --faction IronTeeth --crop Corn --growth 10 --planted 600`
+＋ `craft-farm-fixture.py --tier BoxFarm.Top.IronTeeth --indoor-payload ...` 重現，預期
+`blockedByOutput=0`、農場庫存可達 1200、數日內送達）。
+
+## 30. 疊層/升高層農場入口判定修正（2026-10-29，離線驗證 + 實機驗證）
+
+**回報**：玩家回報面板「生長中」只在種植槽種滿時才顯示生長數量；另一座疊在盒子農場屋頂上的農場
+（屋頂是真正的樓層，REQ-V2-BLD-04）則完全不播種、面板一直 0。
+
+**根因**：`HdbfBoxFarmController.ReadEntranceBlocked` 原本要求**門口台階那格上有 Path 方塊物件**才算
+入口可用。這只對「門口就在路面層」的農場成立；屋頂/樓層上的農場，其台階格是屋頂格而非 Path，
+於是每天都被判定「入口堵塞」，每日農事（補種）完全不執行。
+
+**修正**：改用遊戲原版定義（`Timberborn.Buildings.BuildingBlockedAccessible.IsBlocked`）：
+`INavMeshService.AreConnected(entrance.Coordinates, entrance.DoorstepCoordinates)` 判斷導航網格連通；
+真正被牆堵住的入口仍判定堵塞並照舊暫停農事。控制器依賴由 `IBlockService` 換成 `INavMeshService`
+（Bindito 已綁定）。
+
+**證據**
+
+1. L1 新增 2 條回歸：`V2GameplayContractTests.TestEntranceProbeUsesNavMeshConnectivityNotAPathObject`
+   （入口必須用 `INavMeshService.AreConnected`、不得再要求門口 Path）與
+   `V2CropReportTests.TestEveryTierReportsCropsFromTheFirstPlantedSlot`（四檔只種 1 格也立即出作物列）。
+2. 完整 L1 **606/606 PASS**、`tools/validate` OK、`build.ps1` RELEASE GATES 44 PASSED（與 §29 同一次
+   2.5.1 發佈建置）。
+3. **實機（2026-10-29 21:04–21:09，`reprostack2` 回合）**：把使用者自己的雙層疊放存檔
+   `Saves\Repro3\repro.timber`（上層 05abcd57 在 Z=4、60 槽全空、2 名工人已在建築內、水罐 2.359）
+   複製為 `Saves\HDBFRepro\repro.timber`（**原始存檔未動**），部署本修正後以
+   `-skipModManager -saveName repro -settlementName HDBFRepro` 自動載入（Load time 120.5 s）並以
+   最高速跑 150 s：
+   * 日誌 `docs/in-game/reprostack2-Player.log`：
+     `[HDBF/Info] indoor.entity: indoor farm active, entityId=c6c2da15…` 後，
+     `[HDBF/Info] indoor.day: indoor actions: harvested=0, planted=60, actionsUsed=0,
+     blockedByOutput=0, growthMultiplier=1.000, entityId=05abcd57-e29b-4484-bdcc-7bb0eaabc445`
+     —— **修正前永遠被判「入口堵塞」而完全不播種的那座上層農場，現在一次日 tick 把 60 個空槽全部播種**。
+   * 全篇日誌 **0 行** `entrance is blocked`、**0 個** `[HDBF/Error]`／Exception。
+   * 截圖 `docs/in-game/reprostack2-run.png`（2560×1440）：同一座上層農場面板顯示
+     「胡蘿蔔 生長 60 · 待收 0」、槽位卡「空槽 0／**生長中 60**／可收穫 0」，即「正在生長」卡從
+     第一格起就有數量，不再需要等整盒種滿。
+   * 21:03 的第一次嘗試（`reprostack`）在載入完成前被停止，其截圖為桌面畫面、日誌無
+     `indoor.entity` 行，**不作證據**，已刪除。
+   * 未做同條件的「舊版 vs 新版」A/B 實機對照：舊版行為由舊程式碼（門口需 Path）＋存檔實測
+     （Z=4 附近全無 Path、Z=3 有 Path）可確定性推出；本次只跑修正後版本。
+4. 屋頂疊放 A/B（原版小建築）仍為發佈後補驗項；本節只證明「疊在盒子農場屋頂上的盒子農場」已可正常播種。
+
+**2.5.1 發佈記錄**：見 §31（Steam Workshop 更新與 GitHub push 的 manifest ID / commit）。
