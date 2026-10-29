@@ -1441,3 +1441,28 @@ Load time: 30029ms (scene index: 2)
 4. 屋頂疊放 A/B（原版小建築）仍為發佈後補驗項；本節只證明「疊在盒子農場屋頂上的盒子農場」已可正常播種。
 
 **2.5.1 發佈記錄**：見 §31（Steam Workshop 更新與 GitHub push 的 manifest ID / commit）。
+
+## 31. 2.5.1 發佈記錄：Steam Workshop 更新 + GitHub push（2026-10-29）
+
+- **建置**：`build.ps1` 全綠（5 組件 0 warning / 0 error、L1 **606/606**、`tools/validate`
+  「WARNINGS: none / RESULT: OK」、**RELEASE GATES: PASSED (44 checks)**），staged package 2,078 KB；
+  部署到 `Documents\Timberborn\Mods\HDBF`（48 files、2,128,345 bytes、`manifest.json` Version **2.5.1**）。
+- **Steam Workshop item 3828809784**：2026-10-29 21:39:53（Asia/Macau）上傳開始，21:40:01
+  `Uploaded new content ( ManifestID 895539692198601087 )`、`Upload finished : OK`
+  （Steam `logs/workshop_log.txt`）；`SubmitItemUpdateResult_t` EResult = `k_EResultOK`、
+  publishedFileId = 3828809784、legalAgreementNeeded = false。
+  * 上傳方式：Steamworks UGC API（一次性工具，未入庫）：`SteamAPI.InitEx` →
+    `SteamUGC.StartItemUpdate(AppId 1062090, PubId 3828809784)` →
+    `SetItemContent(Documents\Timberborn\Mods\HDBF)` → `SubmitItemUpdate(handle, changeNote)`。
+    刻意**沒有**呼叫 SetItemTitle/Description/Preview/Tags/Visibility，避免覆蓋工坊頁面既有文案、封面與標籤。
+  * 工坊頁面核對（2026-10-29 21:41 抓取）：File Size 2.027 MB → **2.128 MB**（與部署包 2,128,345 bytes
+    一致）、Updated **29 Oct @ 6:40am**（Steam 顯示時區）、Change Notes 2 → **3**；第三筆內容即上方
+    「2.5.1 - Fixed two player-reported bugs: …」。
+- **GitHub `stanley-1028/HighDensityBoxFarm`**：`master` 已 push
+  `56e1a8b`（v2.5.1：輸出緩衝 + 疊層入口修正、L1 606/606、44 gates、證據檔）與
+  `40b112e`（Workshop metadata / cover / publish backup，release commit）；push 前遠端 = `ba2ec2a`，
+  push 時遠端 `master` = `40b112e`（本節與 workshop README 的發佈記錄另以 docs commit 補上）。
+- **注意**：上傳只更新內容與 Change Note；若日後在工坊網頁編輯器加圖，仍要把圖片 URL 同步回
+  `data/manifest.json` 的 `[img]` 行，否則下次更新會用無圖版覆蓋。
+- **未做（誠實記錄）**：實機「訂閱端下載新 manifest 後載入」的二次驗證、屋頂疊放原版建築 A/B、
+  600 槽玉米全量收成的實機錄影（§29 為 Core 模擬、§30 為入口修正實機；兩者分開驗證）。

@@ -78,3 +78,14 @@ cp docs/workshop/publish/* "$USERPROFILE/Documents/Timberborn/Mods/HDBF/"
 - 标签永久不可删，别加没验证过的 `Update 1.0`。
 - 不要在正式封面里赌模型拼标题（压字更稳）。
 - 不要用「求好评/求收藏」拉数据（违反 Steam 行为准则）。
+
+## 發佈記錄（2026-10-29，2.5.1）
+
+- 2.5.1 於 **2026-10-29 21:40（Asia/Macau）** 上傳成功：`ManifestID 895539692198601087`、
+  `Upload finished : OK`（Steam `logs/workshop_log.txt`）。
+- 上傳只更新**內容與 Change Note**（Steamworks UGC API，等同遊戲內上傳器的核心呼叫），
+  標題/描述/封面/標籤/可見性刻意未動，避免覆蓋頁面既有內容。
+- 工坊頁面核對：File Size **2.128 MB**（部署包 48 files / 2,128,345 bytes）、
+  Updated **29 Oct @ 6:40am**（Steam 顯示時區）、Change Notes 2 → **3** 筆。
+- 建置：L1 **606/606**、`tools/validate` OK、`build.ps1` **44 gates PASSED**；GitHub `master` = `40b112e`。
+- 註：上面「構建狀態（2026-10-29）」的 597/3 是 2.5.0 當時的狀態；2.5.1 已全綠並完成上傳。
