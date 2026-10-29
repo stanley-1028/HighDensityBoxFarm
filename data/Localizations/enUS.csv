@@ -190,3 +190,5 @@ HDBF.Panel.SectionGrowing,Growing now,v2 UI
 HDBF.Panel.GrowingValue,{0} growing · {1} ready,v2 UI
 HDBF.Panel.GrowingEmpty,Nothing planted yet,v2 UI
 HDBF.Tooltip.Growing,{0} slots in use · average growth {1}% · matures in {2} days,v2 UI
+HDBF.Panel.GrowingPlanted,Planted slots,v2 UI
+HDBF.Panel.GrowingPlantedValue,{0} / {1} slots,v2 UI

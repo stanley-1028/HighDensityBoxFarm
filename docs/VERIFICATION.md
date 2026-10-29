@@ -1334,6 +1334,18 @@ Load time: 30029ms (scene index: 2)
 * 工坊頁面 metadata（標題／說明／封面）由工坊頁面工作流一併更新；頁面 `更新日期` = 2026-10-29 13:22。
   本輪未新增 changelog 文字（Change Notes 仍為 28 Oct 的 2 筆）——版本號已寫在 mod 內 `manifest.json`。
 
+### 28.4 2.4.2 修正：卡片位置與「數量」可視性（2026-10-29）
+
+* 使用者實機回報「面板找不到正在生長卡、生長中的數量無法動態顯示」。核對其存檔（settlement 02、
+  Day 3-4）發現：該局有 **兩座上下堆疊的基礎農場**，下層（Z=3）60 槽全在長 Carrot、上層（Z=4）60 槽
+  全空；使用者截圖的面板是**上層空農場**（空槽 60／生長中 0 為正確值），而「正在生長」卡在 1080p 高度
+  下排在「槽位」卡之後、需要滾動才看得到。
+* 修正：卡片移到「工人與效率」卡正下方（不必滾動），並新增總覽列「已種植槽位 n/capacity」＋平均生長
+  百分比，讓數量與進度在卡片第一行就看得見；種下第一格即出現，隨 4 Hz 髒標記更新。
+* 離線門禁：L1 **601/601**、`tools/validate` OK、`build.ps1` 44 gates PASSED；版本 2.4.2。
+* 未完成：使用者的雙層堆疊選取混淆仍需在實機再確認一次（面板顯示的是被選中的那一座）；本輪無法在
+  使用者遊戲執行中重現載入，改以存檔內容比對與畫面回報推斷。
+
 **證據檔案**：`docs/in-game/round57-growing-partial-small.jpg`、`round57-growing-partial-panel.jpg`、
 `round57-growing-live-small.jpg`、`round57-growing-live-panel.jpg`、`round57-Player.log`、
 `round57-summary.txt`。

@@ -58,6 +58,12 @@ namespace HDBF.UI.Localization
         /// <summary>Per-crop value of the live growing card: "{0} growing · {1} ready".</summary>
         public const string PanelGrowingValue = "HDBF.Panel.GrowingValue";
 
+        /// <summary>Label of the planted-slot summary row of the live growing card.</summary>
+        public const string PanelGrowingPlanted = "HDBF.Panel.GrowingPlanted";
+
+        /// <summary>Planted/capacity value of the growing card summary row ("{0} / {1} slots").</summary>
+        public const string PanelGrowingPlantedValue = "HDBF.Panel.GrowingPlantedValue";
+
         /// <summary>Empty-state row of the live growing card ("Nothing planted yet").</summary>
         public const string PanelGrowingEmpty = "HDBF.Panel.GrowingEmpty";
 

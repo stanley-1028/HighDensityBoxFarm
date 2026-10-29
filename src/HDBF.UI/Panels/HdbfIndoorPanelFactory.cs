@@ -92,8 +92,10 @@ namespace HDBF.UI.Panels
                 Sections = new[]
                 {
                     BuildWorkersSection(snapshot, irrigation, entranceBlocked, localize),
-                    BuildSlotsSection(snapshot, localize),
+                    // REQ-V2-UI-05: the live crop rows sit directly under the worker/header card so a
+                    // partly planted farm is visible without scrolling the 325 px panel.
                     BuildGrowingSection(snapshot, localize),
+                    BuildSlotsSection(snapshot, localize),
                     BuildWaterSection(snapshot, coverage, minCoverage, irrigation, localize),
                     BuildMaintenanceSection(snapshot, profile, localize),
                     BuildPowerSection(snapshot, localize),

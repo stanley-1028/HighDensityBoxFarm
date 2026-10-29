@@ -190,3 +190,5 @@ HDBF.Panel.SectionGrowing,正在生长,v2 UI
 HDBF.Panel.GrowingValue,生长 {0} · 待收 {1},v2 UI
 HDBF.Panel.GrowingEmpty,尚未种植,v2 UI
 HDBF.Tooltip.Growing,占用 {0} 格 · 平均生长 {1}% · {2} 天成熟,v2 UI
+HDBF.Panel.GrowingPlanted,已种植槽位,v2 UI
+HDBF.Panel.GrowingPlantedValue,{0} / {1} 格,v2 UI
