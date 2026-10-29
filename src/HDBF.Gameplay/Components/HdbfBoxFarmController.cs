@@ -158,6 +158,7 @@ namespace HDBF.Gameplay.Components
                 }
 
                 ResolveWaterInventory();
+                ResolvePauseComponents();
                 ResolveTierProfile();
                 _faction = GameCropCatalog.ResolveFaction(BlueprintId());
                 _record = IndoorFarmRecord.Create(_profile.Tier, _faction);

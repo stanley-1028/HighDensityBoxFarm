@@ -3,20 +3,20 @@
 > 按需求蓝图 §19（v2.1）实现的 Timberborn 1.1.2.8 模组：**3×3×1 室内高密度农场**。
 > 本工程不是文档摘要，而是可构建、可测试、可安装的代码与数据。
 >
-> **当前版本 2.5.2（v2 室内版）**：四档 3×3×1 建筑，内部 60/150/300/600 个抽象槽位，
+> **当前版本 2.5.3（v2 室内版）**：四档 3×3×1 建筑，内部 60/150/300/600 个抽象槽位，
 > 平屋顶可叠放，内部水罐 + 管道/人工补水；v1 的世界地块扫描、托管格、原版种植派发、
 > 地块高亮、作物可见性补丁与 Harmony 补丁**已全部删除（0 Harmony）**。
 > v2 设计入口：[docs/v2/README.md](docs/v2/README.md)、需求唯一来源 [§19](docs/REQ_V2_SECTION_19.md)。
 
 | 项目 | 值 |
 |---|---|
-| 模组版本 | **2.5.2（v2）** |
+| 模组版本 | **2.5.3（v2）** |
 | 目标游戏 | Timberborn 1.1.2.8（`1.1.2.8-ffc2de0-sw`，Unity 6000.5.11f1） |
 | 存档 schema | **2**（每建筑一条原生持久化记录，含 v1→v2 迁移；见 ADR-V2-003） |
 | 配置 schema | **2**（v1 配置可读并迁移；未知键忽略） |
 | 程序集 | `HDBF.Core` / `HDBF.Persistence` / `HDBF.Gameplay` / `HDBF.Integration` / `HDBF.UI` |
 | Harmony 补丁 | **0** |
-| L1 测试 | **607**（零游戏依赖，`FAILED 0`） |
+| L1 测试 | **613**（零游戏依赖，`FAILED 0`） |
 | 发布门禁 | **PASSED (44 checks)** + `NFR GATE MATRIX: PASSED` |
 
 ## 1. 这是什么
@@ -32,6 +32,7 @@
 农民只占建筑工作位；水由**内部水罐**提供（管道自动补水或工人人工补水）；
 产物进入建筑输出库存后由原版搬运/传送带送出。模型屋顶是**平的、可通行、可叠放建筑**。
 
+- **2.5.3 修复（玩家回报）：暂停农场不再崩溃。** 暂停建筑时农场同步停下（日 tick、连续水耗、世界警告图标），并把仍留在已封锁建筑内的工人安全移出（原版暂停只会解除雇佣、不会把室内工人带出来）；恢复后自动继续。
 - 面板新增 **「正在生长」** 卡（2.5.2：生长中＝种植槽内作物总数（生长中＋待收），「可收获」是其中已成熟的细分；卡片在工人卡正下方并含「已种植槽位 n/capacity + 平均生长 %」总览列）：每个当前占用的作物一行（作物名、槽内总株数/其中待收、
   平均生长进度条），**第一格种下就出现**并随面板 4 Hz 实时更新，不再等种植槽种满；无作物时显示空状态。
 
@@ -68,7 +69,7 @@ mod/
 `C:\Program Files (x86)\Steam\steamapps\common\Timberborn`）。
 
 ```powershell
-# 全量门禁：5 程序集 → L1 601 → data 校验 → 打包 → 44 条 release gates
+# 全量门禁：5 程序集 → L1 613 → data 校验 → 打包 → 44 条 release gates
 powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1 -WorkRoot "$env:TEMP\hdbf-work"
 
 # + 部署到 Documents\Timberborn\Mods\HDBF
@@ -114,7 +115,7 @@ python .\tools\dev\fixtures\craft-farm-fixture.py --out "$env:USERPROFILE\Docume
 | 已验证（离线） | 方式 |
 |---|---|
 | 5 程序集对真实游戏 1.1.2.8 程序集编译 | `build.ps1`：0 warning / 0 error |
-| v2 Core 公式/日 tick/存档/迁移/损坏注入/性能预算 | `tests/HDBF.Tests`：**601 条** L1 断言全绿 |
+| v2 Core 公式/日 tick/存档/迁移/损坏注入/性能预算 | `tests/HDBF.Tests`：**613 条** L1 断言全绿 |
 | 100×600 日 tick 0.0113 ms/栋、存档 1.05 MB、编码 34.8 ms、30/144 fps 一致 | `V2NfrPerformanceTests` |
 | 3×3×1 蓝图（9 块、Stackable、建造 1/1.5/2.5/4 工日） | `V2BlueprintContractTests` + `tools/validate` |
 | 16 个 `.timbermesh` 3.000×1.000×3.000、平屋顶、3 端口、无 slot 节点 | 128/128 美术校验 PASS + 契约测试 |

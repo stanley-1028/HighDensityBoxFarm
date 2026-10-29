@@ -5,6 +5,23 @@
 > **适用版本**：2.5.2
 > **变更摘要**：v2.1 需求引入室内农场方案；本文件记录 v1→v2 的行为/数据/工程变更与实现状态。
 
+## [2.5.3] — 2026-10-29（修复：暂停建筑导致游戏崩溃）
+
+### 变更（玩家回报：「it crash when you paused it」）
+
+* 【修复】暂停农场时游戏可能崩溃：原版暂停按钮只做 `BlockableObject.Block` →
+  `Workplace.OnObjectBlocked` → `UnassignAllWorkers` → `Worker.Unemploy`，**不会**把已经进入建筑的工人
+  带出来；而 HDBF 是唯一让农民持续待在室内的农场（`WaitInsideIdlyWorkplaceBehavior`）。暂停后这些
+  「已解除雇佣但仍在已封锁建筑内」的角色会撞上原版 Enterer/Enterable/Accessible 的不变量
+  （`Enterer.Enter` "already inside"、`Enterable.Remove` "not inside"、
+  `Accessible.UnblockedSingleAccess` 的 `Single()` 等），都属于未捕获异常。
+* 【修复】农场现在完整接管原版暂停：订阅 `PausableBuilding.PausedChanged`；暂停时停止日 tick、连续水耗
+  与世界警告图标，并用原版 `Enterer.Exit()` 把室内工人安全移出（逐个隔离，单个失败不影响暂停）；恢复时
+  重新注册/恢复以上子系统。读档时若建筑本来就是暂停状态，激活阶段直接进入暂停态；离开 finished 态时解绑。
+* 【说明】行为语义：暂停的农场真的停下（不再在暂停期间增长作物/继续日 tick），恢复后由原版工作系统自动
+  补聘工人继续；不改存档 schema、不改面板契约、0 Harmony。
+* 【测试】新增 `V2PauseContractTests`（6 条 L1 源码/日志键契约）；L1 613/613。
+
 ## [2.5.2] — 2026-10-29（面板：「生长中」= 种植槽内作物总数）
 
 ### 变更（玩家需求：有多少个农作物在种植槽中，就显示多少个正在生长的农作物）

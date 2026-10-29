@@ -79,6 +79,11 @@ namespace HDBF.Gameplay.Components
 
                 _dayTrigger.Resume();
                 _worldIcons.Register(_entityId, this);
+                // Player report 2026-10-29 "it crash when you paused it": subscribe to the vanilla
+                // building pause and stop every per-farm subsystem while the farm is paused; a farm
+                // loaded in the paused state enters the paused state right here (see .Pause.cs).
+                BindPauseState();
+                SyncPauseStateOnActivate();
                 _log.Write(HdbfLogCategory.Info, LogKeyEntity,
                     "indoor farm active, entityId=" + _entityId + ", tier=" + _profile.Tier
                     + ", faction=" + _faction + ", blueprint=" + (BlueprintId() ?? "<null>"));
@@ -100,6 +105,10 @@ namespace HDBF.Gameplay.Components
             }
 
             _activated = false;
+            // Pause integration stops with the finished state; a later activation re-binds and
+            // re-syncs from the live PausableBuilding value (see .Pause.cs).
+            UnbindPauseState();
+            _paused = false;
             // Continuous drain stops with the finished state; the tank keeps its last value.
             _waterFlow.Unregister(this);
             try

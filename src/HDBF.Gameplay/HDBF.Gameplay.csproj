@@ -179,6 +179,14 @@
       <HintPath>$(TimberbornManagedDir)\Unity.InputSystem.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <!-- Pause integration (player report 2026-10-29 "it crash when you paused it"): the vanilla
+         PausableBuilding.PausedChanged event plus Enterable.EnterersInside/Enterer.Exit are how a
+         paused farm stops its own subsystems and moves its beavers out of the blocked building
+         (see HdbfBoxFarmController.Pause.cs). -->
+    <Reference Include="Timberborn.EnterableSystem">
+      <HintPath>$(TimberbornManagedDir)\Timberborn.EnterableSystem.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
   </ItemGroup>
 
 </Project>

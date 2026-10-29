@@ -1556,3 +1556,86 @@ push 後 `git fetch` 核對 `origin/master` = `ee0a279`。
 **未做（誠實記錄）**：訂閱端下載 2.5.2 manifest 後的載入二次驗證（待 Steam 快取更新）；工坊頁面
 標題/描述/封面/標籤本次未改。另：2026-10-29 22:09 左右工坊出現新玩家留言「it crash when you
 paused it」，尚未調查（與本次 2.5.2 顯示改動無關，另案處理）。
+
+## 34. 2.5.3 修復：暫停農場導致的遊戲崩潰（建置 + 實機驗證，2026-10-29）
+
+**玩家回報**（Steam Workshop 留言，2026-10-29 22:09 前後，Dissko54）：「hi, it crash when you
+paused it..」。本輪依此修復：暫停建築（原版面板的暫停鈕）時遊戲可能崩潰。
+
+**根因（對 1.1.2.8 的 IL 取證，證據 `.tmp-pause/pause-rootcause.md` + `.tmp-pause/il/`）**
+
+* 原版暫停鈕 = `PausableBuilding.Pause()` → `_blockableObject.Block(this)` →
+  `Timberborn.WorkSystem.Workplace.OnObjectBlocked()` → `UnassignAllWorkers()` →
+  `UnassignWorker()` → `Worker.Unemploy()`。`Unemploy` **只清掉 Workplace 指派，不呼叫
+  `Enterer.Exit()`/`Enterable.Remove()`**；`IFinishedPausable` 只是空標記介面，原版不會替
+  「已進入建築的工人」做任何撤離。
+* HDBF 是唯一讓農夫**持續待在室內**的農場（`WaitInsideIdlyWorkplaceBehavior` 修飾，
+  `src/HDBF.Gameplay/HdbfGameConfigurator.cs:113`）。因此暫停後會出現「已被解僱、卻仍留在
+  **已封鎖**建築內」的 enterer；它之後任何移動/再進入都會撞上原版**未捕獲**的不變量：
+  `Enterer.Enter()` 的「tried to enter … while already inside」（`InvalidOperationException`）、
+  `Enterable.Remove()` 的「can't remove enterer … not inside」（`ArgumentException`）、
+  `Accessible.UnblockedSingleAccess` 的 `Enumerable.Single()`（疊層/多 access 農場）與
+  `Enterer.Exit` 路徑等。這是 HDBF 特有的暫停崩潰面；純單棟農場若沒有室內工人就不會踩到。
+* 附帶的既有缺陷：暫停期間農場仍會跑日 tick/耗水（原版暫停只封鎖 blockable，**不停遊戲時鐘**），
+  而工人被永久解僱且卡在室內。修復一併把「暫停的農場真的停下」做對。
+
+**修復**（`0 Harmony`、不改存檔 schema、不改面板契約）
+
+* 新增 `src/HDBF.Gameplay/Components/HdbfBoxFarmController.Pause.cs` 與 `.Pause.Eject.cs`：
+  * `Activate()` 解析 `PausableBuilding`/`Enterable` 並訂閱 `PausedChanged`；`Deactivate()` 解綁；
+    讀檔時若建築本來就是暫停狀態（`PausableBuilding.Load()` 會呼叫 `Pause()`），啟動時直接進入
+    暫停態。
+  * 暫停：停止連續水耗（`HdbfWaterFlowService.Unregister`）、停止日 tick（`ITimeTrigger.Pause`）、
+    停用世界警告圖示，並用原版 `Enterer.Exit()`（= `Enterable.Remove` + `Abandon`）把室內工人
+    **逐個**安全移出（單一失敗只記錄、不影響其他與暫停本身）。
+  * 恢復：重新註冊水耗/日 tick/圖示；工人由原版工作系統重新指派。`ITimeTrigger.Resume()` 會把
+    trigger 以「剩餘天數」重新 `Add` 回服務（IL 已核對），恢復後日 tick 不會漏拍。
+  * 新 log key：`indoor.paused` / `indoor.resumed`（節流）。
+* 新增 L1 `tests/HDBF.Tests/V2PauseContractTests.cs`（6 條：暫停事件綁定/解綁、四項子系統停止與
+  恢復、室內工人撤離、日誌鍵命名、0 Harmony）。
+
+**建置**（`build.ps1 -WorkRoot %TEMP%\hdbf-release-253`，2026-10-29 23:00 前後）
+
+* 5 組件 **0 warning / 0 error**；L1 **613/613（FAILED 0）**；`tools/validate`
+  「**WARNINGS: none** / RESULT: OK」；**RELEASE GATES: PASSED (44 checks)**。
+* staged package：**48 files / 2,132,440 bytes / `manifest.json` Version 2.5.3**
+  （路徑 `C:\Users\user\AppData\Local\Temp\hdbf-release-253\stage\HDBF`；門禁輸出在
+  本次回合 console，build.log 未落檔）。
+
+| 檔案 | SHA-256 |
+|---|---|
+| `manifest.json` | `e0034805d8d818ebcbaff29026dfd29597df34932c0811425800ed5da2f8333c` |
+| `HDBF.Core.dll` | `ef85b13db4d65eece456989b9285146648f79638fa04bb72e9dcf7efb8a2d894` |
+| `HDBF.Gameplay.dll` | `ea8911d84c689cf62d205d106a7457bfb6129bcc7d50a1aef23f4eb11b99672a` |
+| `HDBF.UI.dll` | `c678db729079ffa0ea094c06586f0e464a1f88d164275f77331d6470a0e7181e` |
+| `HDBF.Integration.dll` | `2d47499b5b4a8f17eb4d1b317b99f4b72ba9e9e508fb7ddc48dc7d567af1cf5f` |
+| `HDBF.Persistence.dll` | `523db4c2b451fb95b240dded33acc5b95de0aaf6761384c9b6191e1bc065aeb2` |
+
+**實機驗證（Timberborn 1.1.2.8；2.5.3 staged 包暫時換進工坊資料夾、只載入一份 HDBF；跑完即還原）**
+
+1. **活動中暫停/恢復**（`docs/in-game/pause-fix2-A-Player.log`，截圖 `pause-fix2-A-paused.jpg` /
+   `pause-fix2-A-resumed.jpg`）：載入 finished 基礎農場（2 工人、60 格生長中）→ 點選農場打開原版面板
+   → 按暫停鈕：日誌 `indoor.paused: moved 2 beaver(s) out of the paused farm`，暫停圖示出現、
+   面板工人 2/2→0/2，**遊戲存活**；再按恢復：`indoor.resumed: … restarted`，遊戲存活。
+   全程 0 個 `[HDBF/Error]`、0 個未捕獲例外。
+2. **暫停存檔載入**（`docs/in-game/pause-fix3-A2-Player.log`）：把存檔的 `PausableBuilding` 標成
+   `Paused: true` 後載入（原版 `PausableBuilding.Load()` 會 `Pause()`；vanilla 同日誌出現
+   `After loading … couldn't get employed at their old workplace`，正是根因段 C2 的「blocked
+   workplace 不再 understaffed」 throw 家族）→ 啟動階段即寫入
+   `indoor.paused: indoor farm paused by the player; … stopped`（在 `indoor.entity: active` 之前）
+   且無崩潰；接著按面板恢復 → `indoor.paused: moved 2 beaver(s) out of the paused farm` +
+   `indoor.resumed: … restarted`：**讀檔後仍在室內的 2 名工人由恢復前的安全網撤出**，遊戲存活，
+   0 `[HDBF/Error]`。
+3. **另一份暫停存檔（無室內工人）載入**（`docs/in-game/pause-fix3-B-Player.log`）：啟動時
+   `indoor.paused: … stopped`、無撤離行（預期）；面板恢復 → `indoor.resumed: … restarted`，
+   遊戲存活、0 `[HDBF/Error]`。
+
+**誠實邊界**
+
+* 未能取得玩家的 error report zip / stack；本機以 2.5.2 重現過的暫停路徑（finished 農場、
+  疊層農場、面板開關 + 遊戲暫停/恢復）本身不崩潰，故根因以上述 IL 取證的「HDBF 特有
+  室內 enterer 殘留」判定，修復直接消除該狀態。
+* 本機 harness 的合成鍵盤/速度列滑鼠點擊無法把**遊戲時鐘**從暫停推進（原版 `||` 始終為當前速度），
+  因此「恢復後日 tick 繼續」未用實機天數取證；由 `TimeTrigger.Pause/Resume` 的 IL
+  （`Resume` 以 `_delayLeftInDays` 重新 `Add` 回服務）與 `V2PauseContractTests` 釘住。
+* 工坊 2.5.3 上傳後、Steam 快取實際下載 2.5.3 manifest 的訂閱端二次載入仍待日後驗證。

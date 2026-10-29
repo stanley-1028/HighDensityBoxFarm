@@ -54,6 +54,12 @@ namespace HDBF.Core.Indoor
         /// <summary>The crop policy (rotation/fixed) was accepted or rejected.</summary>
         public const string CropPolicy = "indoor.crop-policy";
 
+        /// <summary>The player paused the building; daily tick, water drain and icons stopped.</summary>
+        public const string Paused = "indoor.paused";
+
+        /// <summary>The player resumed the building; daily tick, water drain and icons restarted.</summary>
+        public const string Resumed = "indoor.resumed";
+
         // ---------------------------------------------------------------- water.*
 
         /// <summary>Daily tank settlement: demand, deducted amount, coverage C and G_irr.</summary>
