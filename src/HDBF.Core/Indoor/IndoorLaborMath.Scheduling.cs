@@ -25,29 +25,34 @@ namespace HDBF.Core.Indoor
             }
 
             var amount = IndoorGrowthMath.HarvestItems(crop.BaseYield, slot.Fatigue, record.Mode, yieldScale);
-            if (amount > 0)
+            if (amount <= 0)
             {
-                if (output is null)
-                {
-                    blocked = true;
-                    return false;
-                }
+                // L-01 (2026-11-02): a zero yield must never destroy a grown crop. The slot stays
+                // mature until a day that can actually produce items (previously the whole box was
+                // cleared with 0 produce on the first day after a fallow -> normal switch).
+                return false;
+            }
 
-                try
+            if (output is null)
+            {
+                blocked = true;
+                return false;
+            }
+
+            try
+            {
+                if (!output.TryAdd(crop.YieldItemId, amount))
                 {
-                    if (!output.TryAdd(crop.YieldItemId, amount))
-                    {
-                        // REQ-V2-CORE-01/section 19.5: output full -> do not harvest, keep it mature.
-                        blocked = true;
-                        return false;
-                    }
-                }
-                catch
-                {
-                    // A throwing sink means "not stored": keep the slot mature (never double add).
+                    // REQ-V2-CORE-01/section 19.5: output full -> do not harvest, keep it mature.
                     blocked = true;
                     return false;
                 }
+            }
+            catch
+            {
+                // A throwing sink means "not stored": keep the slot mature (never double add).
+                blocked = true;
+                return false;
             }
 
             // Harvest succeeded: apply fatigue/rotation bookkeeping and clear the slot.

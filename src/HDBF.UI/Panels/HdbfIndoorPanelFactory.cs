@@ -50,6 +50,9 @@ namespace HDBF.UI.Panels
             // REQ-V2-UI-02: a refill needs a manual source, a crew and a free entrance.
             var refillReason = RefillBlockedReason(snapshot, entranceBlocked, localize);
             var maintenanceReason = MaintenanceBlockedReason(snapshot, profile, localize);
+            // WP-06/L-03: one single "why nothing happens" reason for the status line at the top
+            // of the first card; a paused snapshot that predates the reason field still says so.
+            var idleReason = ResolveIdleReason(snapshot);
 
             var subtitle = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelSubtitle,
                 HdbfIndoorPanelFormat.Text(localize, HdbfIndoorPanelFormat.TierKey(snapshot.Tier)),
@@ -65,6 +68,13 @@ namespace HDBF.UI.Panels
                 ModeTransitionText = snapshot.ModeTransitioning
                     ? HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelModeTransition)
                     : string.Empty,
+                IdleReasonText = HdbfIndoorPanelFormat.Text(localize,
+                    IndoorIdleReasonMath.LocalizationKey(idleReason)),
+                IdleReasonTooltip = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.TooltipIdleReason),
+                AutoMaintenance = snapshot.AutoMaintenance,
+                AutoMaintenanceTooltip = HdbfIndoorPanelFormat.Text(localize,
+                    HdbfUiLocKeys.TooltipAutoMaintenance),
+                WaterPathText = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelWaterPaths),
                 Tier = snapshot.Tier,
                 Faction = snapshot.Faction,
                 Mode = snapshot.Mode,
@@ -91,7 +101,10 @@ namespace HDBF.UI.Panels
 
                 Sections = new[]
                 {
-                    BuildWorkersSection(snapshot, irrigation, entranceBlocked, localize),
+                    BuildWorkersSection(snapshot, irrigation, entranceBlocked,
+                        HdbfIndoorPanelFormat.Text(localize,
+                            IndoorIdleReasonMath.LocalizationKey(idleReason)),
+                        HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.TooltipIdleReason), localize),
                     // REQ-V2-UI-05: the live crop rows sit directly under the worker/header card so a
                     // partly planted farm is visible without scrolling the 325 px panel.
                     BuildGrowingSection(snapshot, localize),
@@ -211,50 +224,22 @@ namespace HDBF.UI.Panels
             return HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.TooltipRefill);
         }
 
-        private static string? MaintenanceBlockedReason(IndoorFarmSnapshot snapshot, TierProfile? profile,
-            Func<string, string> localize)
+        /// <summary>
+        /// Reason shown by the first-card status line (WP-06). The snapshot reason is authoritative
+        /// (gameplay resolves it with <see cref="IndoorIdleReasonMath.Resolve"/>); a paused snapshot
+        /// from an older gameplay build that never filled the field still reports Paused instead of
+        /// a misleading "Working".
+        /// </summary>
+        /// <param name="snapshot">Read-only farm snapshot.</param>
+        /// <returns>The single reason the status line renders.</returns>
+        internal static IndoorIdleReason ResolveIdleReason(IndoorFarmSnapshot snapshot)
         {
-            if (profile is null || profile.MaintenanceKind == HdbfMaintenanceKind.IrrigationOnly)
+            if (snapshot.IdleReason == IndoorIdleReason.None && snapshot.Paused)
             {
-                return HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelMaintenanceNone);
+                return IndoorIdleReason.Paused;
             }
 
-            if ((snapshot.Warnings & IndoorWarningFlags.MissingMaterial) != 0)
-            {
-                return FormatMissingMaterials(snapshot, profile, localize);
-            }
-
-            return null;
-        }
-
-        private static string MaintenanceTooltip(IndoorFarmSnapshot snapshot, TierProfile? profile,
-            string? blockedReason, Func<string, string> localize)
-        {
-            if (!string.IsNullOrEmpty(blockedReason))
-            {
-                return blockedReason;
-            }
-
-            var materialFree = profile is null || profile.MaintenanceKind == HdbfMaintenanceKind.IrrigationOnly;
-            var stalled = (snapshot.Warnings & IndoorWarningFlags.MaintenanceStalled) != 0;
-            return HdbfIndoorPanelFormat.Text(localize, materialFree
-                ? HdbfUiLocKeys.PanelMaintenanceNone
-                : stalled
-                    ? HdbfUiLocKeys.TooltipMaintenanceShutdown
-                    : HdbfUiLocKeys.TooltipMaintenance);
-        }
-
-        private static string FormatMissingMaterials(IndoorFarmSnapshot snapshot, TierProfile? profile,
-            Func<string, string> localize)
-        {
-            if (!HdbfIndoorPanelFormat.TryGetMaintenanceMaterial(profile, snapshot.Power,
-                    snapshot.PowerConnected, out var materialKey, out var count))
-            {
-                return HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.WarningMissingMaterial);
-            }
-
-            return HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelMaintenanceMaterials,
-                HdbfIndoorPanelFormat.Text(localize, materialKey), count);
+            return snapshot.IdleReason;
         }
 
         // ------------------------------------------------------------------ shared helpers

@@ -39,7 +39,10 @@ namespace HDBF.Gameplay.Components
             // stale 0 % that made the panel render "water shortage: growth 0 %".
             var demand = IndoorWaterMath.DemandPerDay(effective, _profile.WaterPerSlotPerDay, record.Mode);
             var coverage = IndoorWaterMath.Coverage(record.Tank, demand);
-            return new IndoorFarmSnapshot(
+            // WP-01/WP-02: the catch-up numbers of the next maintenance click are computed from the
+            // live day, so the panel can never show the previous day's value (RE-01).
+            var catchUp = CatchUpBillForPanel(ReadCurrentDay());
+            var snapshot = new IndoorFarmSnapshot(
                 record.Tier,
                 record.Faction,
                 workers,
@@ -79,7 +82,16 @@ namespace HDBF.Gameplay.Components
                 // REQ-V2-UI-05: the live "growing now" card reads this list; it is computed from the
                 // same slots the counters above use, so the card and the counters always agree.
                 Crops = CropStatuses(record),
+                Paused = _paused,
+                AutoMaintenance = record.AutoMaintenance,
+                MaintenanceCyclesToCatchUp = catchUp.Cycles,
+                MaintenanceCatchUpMaterialAmount = catchUp.Amount,
+                ManualRefillSourceAvailable = _manualSourceAvailable,
+                PipeProbeState = ProbePipeState(),
             };
+            // WP-06/L-03: the single idle reason is derived from the finished snapshot itself, so the
+            // panel status line and the world icon cannot disagree about why the farm is not working.
+            return snapshot with { IdleReason = IndoorIdleReasonMath.Resolve(snapshot) };
         }
 
         /// <summary>

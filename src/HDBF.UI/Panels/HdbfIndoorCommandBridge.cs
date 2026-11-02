@@ -16,12 +16,13 @@ using HDBF.UI.Localization;
 namespace HDBF.UI.Panels
 {
     /// <summary>
-    /// Small reflection adapter for the three v2 members the panel needs beyond the frozen Core
+    /// Small reflection adapter for the four v2 members the panel needs beyond the frozen Core
     /// interfaces:
     /// <list type="bullet">
     /// <item><c>IndoorFarmSnapshot? GetIndoorSnapshot(Guid)</c> on the query singleton - the panel read model;</item>
     /// <item><c>bool TrySetCropPolicy(Guid, CropPolicy, string, out string)</c> on the command singleton - crop strategy;</item>
-    /// <item><c>bool TryRequestManualRefill(Guid, out string)</c> on the command singleton - the refill action.</item>
+    /// <item><c>bool TryRequestManualRefill(Guid, out string)</c> on the command singleton - the refill action;</item>
+    /// <item><c>bool TrySetAutoMaintenance(Guid, bool, out string)</c> on the command singleton - WP-02 toggle.</item>
     /// </list>
     /// Why reflection instead of a compile-time call: HDBF.UI references HDBF.Core only (dependency
     /// rule of docs/v2/ARCHITECTURE.md section 1), and the Core read/command interfaces are frozen
@@ -37,6 +38,7 @@ namespace HDBF.UI.Panels
         private readonly MethodInfo? _getSnapshot;
         private readonly MethodInfo? _setCropPolicy;
         private readonly MethodInfo? _requestRefill;
+        private readonly MethodInfo? _setAutoMaintenance;
         /// <summary>Reused invoke buffer of the 4 Hz snapshot query (no per-call array allocation).</summary>
         private readonly object?[] _snapshotArgs = new object?[1];
 
@@ -65,6 +67,10 @@ namespace HDBF.UI.Panels
             _requestRefill = Find(type, "TryRequestManualRefill", new[]
             {
                 typeof(Guid), typeof(string).MakeByRefType(),
+            });
+            _setAutoMaintenance = Find(type, "TrySetAutoMaintenance", new[]
+            {
+                typeof(Guid), typeof(bool), typeof(string).MakeByRefType(),
             });
         }
 
@@ -152,6 +158,38 @@ namespace HDBF.UI.Panels
                 var performed = _requestRefill.Invoke(_commandService, args) is bool result && result;
                 failureKey = performed ? null : args[1] as string;
                 return performed;
+            }
+            catch (Exception)
+            {
+                failureKey = HdbfUiLocKeys.ErrorActionFailed;
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Stores the per-building automatic-maintenance choice (WP-02). Gameplay keeps the same
+        /// material bill as the manual button; a rejection returns its specific failure key
+        /// (<c>NotActive</c>/<c>Unknown</c>).
+        /// </summary>
+        /// <param name="entityId">Runtime entity id of the selected building.</param>
+        /// <param name="enabled">True to enable automatic maintenance, false to disable it.</param>
+        /// <param name="failureKey">Specific failure key when false.</param>
+        /// <returns>True when gameplay stored the choice.</returns>
+        public bool TrySetAutoMaintenance(Guid entityId, bool enabled, out string? failureKey)
+        {
+            failureKey = null;
+            if (_commandService is null || _setAutoMaintenance is null || entityId == Guid.Empty)
+            {
+                failureKey = HdbfUiLocKeys.ErrorActionFailed;
+                return false;
+            }
+
+            var args = new object?[] { entityId, enabled, null };
+            try
+            {
+                var applied = _setAutoMaintenance.Invoke(_commandService, args) is bool result && result;
+                failureKey = applied ? null : args[2] as string;
+                return applied;
             }
             catch (Exception)
             {

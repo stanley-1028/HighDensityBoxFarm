@@ -177,7 +177,8 @@ namespace HDBF.Tests
             var labels = output.Rows.Select(row => row.Label).ToArray();
             foreach (var expected in new[]
                      {
-                         "Output stock", "Output port", "Pipe port", "Logistics port", "Power port",
+                         "Output stock", "Output port", "Pipe network (auto-refill)", "Logistics port",
+                         "Power port",
                      })
             {
                 TestAssert.True(labels.Contains(expected), "missing separate row: " + expected);
@@ -193,8 +194,12 @@ namespace HDBF.Tests
             var builder = ReadUiSources("Panels/HdbfIndoorPanelFactory.Cards.Output.cs");
             TestAssert.False(builder.Contains("FormatPorts", StringComparison.Ordinal),
                 "the combined port formatter must be deleted");
-            TestAssert.Equal(4, CountOccurrences(builder, "PortRow("),
-                "three separate port rows are built (plus the PortRow helper definition)");
+            // Three plain PortRow call sites (+ its definition) and the dedicated pipe row builder
+            // with its probe mapping (WP-05) - each port state stays on its own row.
+            TestAssert.Equal(5, CountOccurrences(builder, "PortRow("),
+                "two plain port row calls + the pipe row call and both helper definitions");
+            TestAssert.True(builder.Contains("snapshot.PipeProbeState.Reason", StringComparison.Ordinal),
+                "the pipe row must map the read-only probe reason");
         }
 
         public static void TestWaterMaintenanceModeAndOutputRowsAreAllPresent()
@@ -258,6 +263,20 @@ namespace HDBF.Tests
             TestAssert.True(render.Contains("data.RefillReasonText", StringComparison.Ordinal)
                              && render.Contains("data.MaintenanceReasonText", StringComparison.Ordinal),
                 "both inline rejection reasons must be rendered");
+
+            // WP-02: the automatic-maintenance toggle is a reachable vanilla button whose text and
+            // enabled state come from the read model, and its click goes through the bridge.
+            TestAssert.True(build.Contains("OnAutoMaintenanceClicked", StringComparison.Ordinal),
+                "the action card must build the auto-maintenance toggle");
+            TestAssert.True(render.Contains("AutoMaintenanceText(data.AutoMaintenance)", StringComparison.Ordinal),
+                "the toggle label must follow the read model");
+            TestAssert.True(render.Contains("data.AutoMaintenanceTooltip", StringComparison.Ordinal),
+                "the toggle carries its tooltip");
+            var commands = ReadUiSources("Panels/HdbfFarmPanelFragment.Commands.cs");
+            TestAssert.True(commands.Contains("TrySetAutoMaintenance", StringComparison.Ordinal),
+                "the toggle must call the auto-maintenance command through the bridge");
+            TestAssert.True(commands.Contains("Refresh(force: true)", StringComparison.Ordinal),
+                "the toggle re-reads the authoritative snapshot after the command");
         }
 
         // ------------------------------------------------------------------ G: vacant chips
@@ -327,6 +346,21 @@ namespace HDBF.Tests
                      {
                          HdbfUiLocKeys.PanelMaintenanceMaterialLabel,
                          HdbfUiLocKeys.PanelMaintenanceMaterialValue,
+                         HdbfUiLocKeys.PanelAutoMaintenanceLabel,
+                         HdbfUiLocKeys.PanelAutoMaintenanceOn,
+                         HdbfUiLocKeys.PanelAutoMaintenanceOff,
+                         HdbfUiLocKeys.TooltipAutoMaintenance,
+                         HdbfUiLocKeys.PanelMaintenanceCatchUpLabel,
+                         HdbfUiLocKeys.PanelMaintenanceCatchUpValue,
+                         HdbfUiLocKeys.ErrorMaintenanceNotDue,
+                         HdbfUiLocKeys.ErrorRefillTankFull,
+                         HdbfUiLocKeys.PanelWaterPaths,
+                         HdbfUiLocKeys.TooltipIdleReason,
+                         HdbfUiLocKeys.PortNoPipeTank,
+                         HdbfUiLocKeys.PortNoPipeNetwork,
+                         HdbfUiLocKeys.PortTankDry,
+                         HdbfUiLocKeys.PortAdapterUnavailable,
+                         HdbfUiLocKeys.PortBindingFailed,
                      })
             {
                 foreach (var language in Languages)
@@ -341,6 +375,9 @@ namespace HDBF.Tests
             var value = en[HdbfUiLocKeys.PanelMaintenanceMaterialValue];
             TestAssert.True(value.Contains("{0}") && value.Contains("{1}") && value.Contains("{2}"),
                 "the upkeep-material value must format material, count and cycle days: " + value);
+            var catchUp = en[HdbfUiLocKeys.PanelMaintenanceCatchUpValue];
+            TestAssert.True(catchUp.Contains("{0}") && catchUp.Contains("{1}") && catchUp.Contains("{2}"),
+                "the catch-up value must format cycles, count and material: " + catchUp);
         }
 
         public static void TestLocalizedMetaLineUsesTheThreeLanguageTerms()
@@ -650,7 +687,8 @@ namespace HDBF.Tests
                 data.MetaLine, data.MetaTooltip, data.ModeTransitionText,
                 data.WorkerRosterNote, data.CropPolicyLabel, data.CropPolicyText, data.CropTooltip,
                 data.RefillTooltip, data.RefillReasonText, data.MaintenanceTooltip,
-                data.MaintenanceReasonText,
+                data.MaintenanceReasonText, data.IdleReasonText, data.IdleReasonTooltip,
+                data.AutoMaintenanceTooltip, data.WaterPathText,
             };
             foreach (var chip in data.WorkerChips)
             {

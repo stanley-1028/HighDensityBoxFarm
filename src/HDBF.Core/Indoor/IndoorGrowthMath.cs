@@ -125,6 +125,14 @@ namespace HDBF.Core.Indoor
             }
 
             var previousYield = ModeYieldMultiplier(previous.Value);
+            // L-01 (2026-11-02): fallow has a yield of 0 by design ("fallow never harvests"), so a
+            // fallow -> normal transition must not scale the first normal harvest down to 0. A
+            // non-positive previous mode simply means "no lower bound to settle against".
+            if (!(previousYield > 0f))
+            {
+                return 1f;
+            }
+
             var lower = previousYield < currentYield ? previousYield : currentYield;
             return IndoorMath.Clamp01(lower / currentYield);
         }

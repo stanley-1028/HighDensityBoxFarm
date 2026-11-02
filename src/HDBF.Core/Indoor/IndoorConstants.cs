@@ -86,6 +86,12 @@ namespace HDBF.Core.Indoor
         /// <summary>Fraction of the tank filled by one manual refill trip (1/3 tank).</summary>
         public const float ManualRefillTankFraction = 1f / 3f;
 
+        /// <summary>
+        /// Minimum free tank space (water units) a manual refill trip needs (WP-08 / L-05): with less
+        /// headroom the tank counts as full, no water is drawn and no farm action is spent.
+        /// </summary>
+        public const float ManualRefillMinHeadroom = 1f;
+
         /// <summary>Maximum walk distance (cells) to a manual water source (section 19.6).</summary>
         public const int ManualRefillRadiusCells = 12;
 

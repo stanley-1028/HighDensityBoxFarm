@@ -18,10 +18,21 @@ namespace HDBF.UI.Panels
     public static partial class HdbfIndoorPanelFactory
     {
         private static HdbfPanelSection BuildWorkersSection(IndoorFarmSnapshot snapshot, float irrigation,
-            bool entranceBlocked, Func<string, string> localize)
+            bool entranceBlocked, string idleReasonText, string idleReasonTooltip,
+            Func<string, string> localize)
         {
-            var rows = new List<HdbfPanelRow>(2)
+            var hasCrew = snapshot.Workers > 0;
+            var rows = new List<HdbfPanelRow>(3)
             {
+                // WP-06/L-03: the status line is the very first row of the very first card, so the
+                // reason the farm is not moving is always visible without scrolling.
+                new()
+                {
+                    IconKey = "workers",
+                    Label = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelIdleReasonLabel),
+                    Value = idleReasonText,
+                    Tooltip = idleReasonTooltip,
+                },
                 new()
                 {
                     IconKey = "workers",
@@ -34,13 +45,20 @@ namespace HDBF.UI.Panels
                 {
                     IconKey = "efficiency",
                     Label = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelEfficiencyLabel),
-                    Value = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelPercentValue,
-                        PanelNumbers.Percent(irrigation, roundUp: false)),
+                    // L-10: with no crew the irrigation multiplier is mechanically 100 % but the
+                    // farm does nothing, so the value is the shared "—" glyph instead of a green
+                    // 100 % that reads as "all fine".
+                    Value = hasCrew
+                        ? HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelPercentValue,
+                            PanelNumbers.Percent(irrigation, roundUp: false))
+                        : HdbfIndoorPanelFormat.Unknown,
                     Tooltip = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.TooltipEfficiency),
-                    HasBar = true,
+                    HasBar = hasCrew,
                     Bar = HdbfIndoorPanelLimits.Fill(irrigation),
-                    BarText = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelPercentValue,
-                        PanelNumbers.Percent(irrigation, roundUp: false)),
+                    BarText = hasCrew
+                        ? HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelPercentValue,
+                            PanelNumbers.Percent(irrigation, roundUp: false))
+                        : string.Empty,
                 },
             };
 
@@ -51,8 +69,32 @@ namespace HDBF.UI.Panels
                 Title = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelSectionWorkers),
                 IconKey = "workers",
                 Tone = "green",
-                Rows = WithWarnings(warnings, rows),
+                // WP-06: the status line is ALWAYS the first visible row, even when the card also
+                // has warning rows, so "why nothing happens" is never pushed below them.
+                Rows = WithStatusFirst(warnings, rows),
             };
+        }
+
+        /// <summary>
+        /// Merges warning rows after the first data row: the caller keeps its status line as the very
+        /// first row of the card while the warnings stay in their own (unchanged) order behind it.
+        /// </summary>
+        private static IReadOnlyList<HdbfPanelRow> WithStatusFirst(
+            IReadOnlyList<HdbfPanelRow> warnings, List<HdbfPanelRow> rows)
+        {
+            if (warnings.Count == 0 || rows.Count == 0)
+            {
+                return WithWarnings(warnings, rows);
+            }
+
+            var merged = new List<HdbfPanelRow>(warnings.Count + rows.Count) { rows[0] };
+            merged.AddRange(warnings);
+            for (var index = 1; index < rows.Count; index++)
+            {
+                merged.Add(rows[index]);
+            }
+
+            return merged;
         }
 
         private static HdbfPanelSection BuildSlotsSection(IndoorFarmSnapshot snapshot,

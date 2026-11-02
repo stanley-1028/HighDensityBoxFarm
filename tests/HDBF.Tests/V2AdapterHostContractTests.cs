@@ -30,6 +30,7 @@ namespace HDBF.Tests
         private const string BindingResource = "HDBF.Tests.Source.TimberPipesWaterBinding.cs";
         private const string InterfaceResource = "HDBF.Tests.Source.IIndoorAdapterHost.cs";
         private const string TankFile = "src/HDBF.Integration/Adapters/TimberPipesWaterBinding.Tank.cs";
+        private const string ProbeFile = "src/HDBF.Integration/Adapters/TimberPipesWaterBinding.Probe.cs";
         private const string RegistryFile = "src/HDBF.Integration/Adapters/CompatAdapterRegistry.IndoorHost.cs";
 
         private static readonly string[] HostSources = { HostResource, SourceResource, BindingResource, InterfaceResource };
@@ -217,7 +218,163 @@ namespace HDBF.Tests
                 StringComparison.Ordinal), "the only static field is the immutable empty parameter list");
         }
 
+        // ------------------------------------------- WP-05/RE-05: read-only pipe probe
+
+        public static void TestPipeProbeContractIsFrozenAndReadOnly()
+        {
+            var contract = typeof(IIndoorPipeProbe);
+            TestAssert.Equal(1, contract.GetMethods().Length, "IIndoorPipeProbe has exactly one method");
+            var probeMethod = contract.GetMethod("ProbePipe");
+            TestAssert.NotNull(probeMethod, "IIndoorPipeProbe must expose ProbePipe()");
+            TestAssert.True(probeMethod!.ReturnType == typeof(PipeProbe),
+                "ProbePipe must return the immutable PipeProbe DTO");
+            TestAssert.Equal(0, probeMethod.GetParameters().Length, "ProbePipe takes no arguments");
+            TestAssert.False(typeof(IIndoorAdapterHost).IsAssignableFrom(typeof(IIndoorPipeProbe)),
+                "the probe is a separate optional contract, not a new IIndoorAdapterHost member");
+
+            TestAssert.True(typeof(PipeProbe).IsValueType,
+                "PipeProbe must stay a value type (readonly record struct)");
+            TestAssert.Equal(0, (int)PipeProbeReason.Unknown, "reason numeric values are the panel contract");
+            TestAssert.Equal(1, (int)PipeProbeReason.Connected);
+            TestAssert.Equal(2, (int)PipeProbeReason.NoPipeNetwork);
+            TestAssert.Equal(3, (int)PipeProbeReason.NoPipeTank);
+            TestAssert.Equal(4, (int)PipeProbeReason.TankDry);
+            TestAssert.Equal(5, (int)PipeProbeReason.AdapterUnavailable);
+            TestAssert.Equal(6, (int)PipeProbeReason.BindingFailed);
+            TestAssert.Equal(7, (int)PipeProbeReason.PortOff);
+
+            var unknown = PipeProbe.Unknown;
+            TestAssert.Equal(PipeProbeReason.Unknown, unknown.Reason, "the default probe answers Unknown");
+            TestAssert.Equal(0, unknown.TankCount);
+            TestAssert.Equal(0, unknown.WaterTankCount);
+            TestAssert.Equal(string.Empty, unknown.Detail, "a probed Detail is never null");
+        }
+
+        public static void TestTimberPipesWaterSourceReportsFourDistinctProbeStates()
+        {
+            var source = ReadResource(SourceResource);
+            TestAssert.True(source.Contains(
+                    "public sealed class TimberPipesWaterSource : IWaterSource, IIndoorPipeProbe",
+                    StringComparison.Ordinal), "the pipe source must implement the read-only probe contract");
+            TestAssert.True(source.Contains("public PipeProbe ProbePipe()", StringComparison.Ordinal),
+                "the pipe source owns ProbePipe()");
+            TestAssert.True(source.Contains("IndoorLogKeys.PipeProbe", StringComparison.Ordinal),
+                "the probe line must use the registered water.pipe-probe throttle key");
+
+            var probeFile = ReadRepoFile(ProbeFile);
+            var probeText = source + "\n" + probeFile;
+            var reasons = new[]
+            {
+                "PipeProbeReason.AdapterUnavailable", "PipeProbeReason.BindingFailed",
+                "PipeProbeReason.NoPipeNetwork", "PipeProbeReason.NoPipeTank",
+                "PipeProbeReason.TankDry", "PipeProbeReason.Connected",
+            };
+            var previous = -1;
+            foreach (var reason in reasons)
+            {
+                var index = probeText.IndexOf(reason, StringComparison.Ordinal);
+                TestAssert.True(index > previous,
+                    "probe reason missing or out of precedence order: " + reason);
+                previous = index;
+            }
+
+            foreach (var step in new[]
+                     {
+                         "if (!IsAdaptorServing())", "!state.IsFinished || !state.HasPipeGraph",
+                         "if (pipeTanks == 0)", "if (waterTanks == 0)", "if (wateredTanks == 0)",
+                         "state.VolumeM3 > 0f", "candidate.TakesWaterGood",
+                     })
+            {
+                TestAssert.True(probeText.Contains(step, StringComparison.Ordinal),
+                    "probe classification step missing: " + step);
+            }
+        }
+
+        public static void TestPipeProbeNeverDrawsWaterOrFeedsTheFailureCounter()
+        {
+            var source = ReadResource(SourceResource);
+            var probeFile = ReadRepoFile(ProbeFile);
+            var probeBody = MethodText(source, "public PipeProbe ProbePipe()")
+                            + MethodText(probeFile, "internal PipeProbe ProbeTanks()");
+            AssertLacks("the pipe probe", probeBody, "TryDrawVolume", "ApplyVolume", "FailDraw",
+                "ReportRuntimeFailure", "_reportFailure", "TryDraw(");
+            AssertLacks("the probe file", probeFile, "void Tick", "void Update", "ITickable",
+                "IUpdatable", "DeltaTime", "deltaTime", "Time.deltaTime");
+            TestAssert.True(MethodText(probeFile, "internal PipeProbe ProbeTanks()")
+                    .Contains("catch (Exception", StringComparison.Ordinal),
+                "the probe must be exception-isolated (REQ-V2-SAFE-01)");
+        }
+
+        public static void TestIndoorAdapterHostDelegatesThePipeProbe()
+        {
+            var host = ReadResource(HostResource);
+            TestAssert.True(host.Contains(
+                    "public sealed class IndoorAdapterHost : IIndoorAdapterHost, IIndoorPipeProbe",
+                    StringComparison.Ordinal),
+                "the host must implement both the frozen host contract and the read-only probe");
+            TestAssert.True(host.Contains("public PipeProbe ProbePipe()", StringComparison.Ordinal),
+                "the host must expose ProbePipe() of the optional probe contract");
+
+            var body = MethodText(host, "public PipeProbe ProbePipe()");
+            TestAssert.True(body.Contains(".ProbePipe()", StringComparison.Ordinal),
+                "the host probe must delegate to the Timber Pipes water source");
+            TestAssert.True(body.Contains("PipeProbeReason.AdapterUnavailable", StringComparison.Ordinal),
+                "a null source or a probe exception must answer AdapterUnavailable");
+            TestAssert.True(body.Contains("catch (Exception", StringComparison.Ordinal),
+                "the host probe must never throw into the panel/render path");
+        }
+
+        public static void TestDailyTickNeverOverwritesThePlayerPortChoice()
+        {
+            var context = ReadRepoFile("src/HDBF.Gameplay/Components/HdbfBoxFarmController.Context.cs");
+            var updatePorts = MethodText(context, "private bool UpdatePorts()");
+            AssertLacks("UpdatePorts (L-06)", updatePorts, "record.PipePort =", "record.LogisticsPort =");
+            TestAssert.True(updatePorts.Contains("record.PowerPort = nextPower;", StringComparison.Ordinal),
+                "the power port stays profile-derived (grid power is not a player toggle)");
+            TestAssert.True(updatePorts.Contains("IndoorLogKeys.Port", StringComparison.Ordinal),
+                "an adapter-state change still emits the once-per-day indoor.port line");
+
+            var tick = ReadRepoFile("src/HDBF.Gameplay/Components/HdbfBoxFarmController.Tick.cs");
+            TestAssert.True(tick.Contains("UpdatePorts()", StringComparison.Ordinal),
+                "the daily tick still observes the live port/adapter state");
+        }
+
         // ------------------------------------------------------------------ helpers
+
+        /// <summary>Extracts one method's source text (signature through its closing brace).</summary>
+        private static string MethodText(string source, string signature)
+        {
+            var start = source.IndexOf(signature, StringComparison.Ordinal);
+            if (start < 0)
+            {
+                throw new TestFailureException("method not found: " + signature);
+            }
+
+            var open = source.IndexOf('{', start);
+            if (open < 0)
+            {
+                throw new TestFailureException("method body not found: " + signature);
+            }
+
+            var depth = 0;
+            for (var index = open; index < source.Length; index++)
+            {
+                if (source[index] == '{')
+                {
+                    depth++;
+                }
+                else if (source[index] == '}')
+                {
+                    depth--;
+                    if (depth == 0)
+                    {
+                        return source.Substring(start, index - start + 1);
+                    }
+                }
+            }
+
+            throw new TestFailureException("unterminated method: " + signature);
+        }
 
         private static void AssertLacks(string what, string text, params string[] forbidden)
         {

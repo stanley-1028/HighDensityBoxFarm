@@ -46,9 +46,38 @@ namespace HDBF.Tests
             var source = ReadControllerSources();
             AssertContains(source, "EjectBeaversFromPausedFarm", "pause ejects the stranded enterers");
             AssertContains(source, "EnterersInside", "reads the vanilla enterer list");
-            AssertContains(source, "enterer.Exit()", "uses the vanilla enterer exit path (Abandon + Remove)");
+            AssertContains(source, "UnreserveSlotAndExit", "clears the paused building reservation (vanilla path)");
+            AssertContains(source, "enterer.IsInside", "skips half-state enterers (CurrentBuilding null)");
+            AssertContains(source, "enterer.CurrentBuilding", "only exits enterers that are inside this enterable");
             AssertContains(source, "NumberOfEnterersInside", "skips the ejection when nobody is inside");
+            AssertContains(source, "ForceRemoveEveryone", "documents the vanilla force-remove fallback it mirrors");
+            AssertContains(source, "PausedEjectSummary", "reports a requested/ejected/skipped/remaining summary");
+            AssertContains(source, "PausedEjectFailed", "reports a failed ejection");
             AssertContains(source, "try", "the ejection is failure-isolated (REQ-V2-SAFE-01)");
+        }
+
+        /// <summary>
+        /// 2026-11-02 residue R1/R2: a paused save restores its enterers after the one-shot pause
+        /// ejection, and a beaver can still walk into a blocked building. A 1 Hz session singleton
+        /// must keep reconciling the paused farms and the EntererAdded event must trigger an
+        /// immediate ejection; the summary log keys must stay in the indoor.* namespace.
+        /// </summary>
+        public static void TestPausedFarmReconcilesResidualEnterers()
+        {
+            var source = ReadControllerSources();
+            AssertContains(source, "IndoorPauseReconcileService", "a session singleton reconciles paused farms");
+            AssertContains(source, "ReconcilePausedEnterers", "a paused farm exposes a reconcile entry point");
+            AssertContains(source, "UpdateSingleton", "the reconcile service runs once per update tick");
+            AssertContains(source, "OnEntererAddedWhilePaused", "a walk-in during the pause is ejected immediately");
+            AssertContains(source, "BindEntererAdded", "the enterer-added guard is bound with the pause integration");
+            AssertContains(source, "PausedResidualEnterer", "residual enterers are reported");
+            AssertContains(source, "PausedReconcile", "the reconcile pass is reported");
+
+            TestAssert.True(IndoorLogKeys.PausedReconcile.StartsWith("indoor.", StringComparison.Ordinal),
+                "indoor.paused.reconcile must keep the indoor.* log-key namespace");
+            TestAssert.True(IndoorLogKeys.PausedEjectSummary.StartsWith("indoor.", StringComparison.Ordinal));
+            TestAssert.True(IndoorLogKeys.PausedEjectFailed.StartsWith("indoor.", StringComparison.Ordinal));
+            TestAssert.True(IndoorLogKeys.PausedResidualEnterer.StartsWith("indoor.", StringComparison.Ordinal));
         }
 
         public static void TestPauseIntegrationIsWiredIntoTheControllerLifecycle()
@@ -57,9 +86,19 @@ namespace HDBF.Tests
             AssertContains(activation, "BindPauseState();", "activation binds the pause event");
             AssertContains(activation, "SyncPauseStateOnActivate();", "activation applies a restored paused state");
             AssertContains(activation, "UnbindPauseState();", "deactivation unbinds the pause event");
+            // L-13 (2026-11-02): losing the finished state must eject before the vanilla cleanup runs.
+            AssertContains(activation, "_pauseReconcile.Unregister(this);",
+                "deactivation stops the paused-farm reconcile");
+            AssertContains(activation, "EjectBeaversFromPausedFarm(\"deactivate\")",
+                "deactivation ejects a residual enterer (L-13)");
 
             var controller = ReadSourceEnding("HdbfBoxFarmController.cs");
             AssertContains(controller, "ResolvePauseComponents();", "Awake resolves the pause components");
+            AssertContains(controller, "_pauseReconcile", "the controller holds the reconcile singleton");
+
+            var configurator = ReadSourceEnding("HdbfGameConfigurator.cs");
+            AssertContains(configurator, "Bind<IndoorPauseReconcileService>().AsSingleton();",
+                "the reconcile singleton is bound in the game context");
         }
 
         public static void TestPauseLogKeysFollowTheIndoorNamespace()

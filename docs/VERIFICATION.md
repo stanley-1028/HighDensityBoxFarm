@@ -1661,3 +1661,51 @@ paused it..」。本輪依此修復：暫停建築（原版面板的暫停鈕）
   `Saves\HDBFTest\repro.timber` 為驗證副本（原始存檔未動）。Steam 客戶端快取何時下載新 manifest
   由 Steam 決定；訂閱端二次載入待日後確認。
 * **未做**：工坊頁面標題/描述/封面/標籤未改（沿用 2026-10-28 改版包）；玩家側 crash report 仍未取得。
+
+## 36. 2.5.4 維修輪：離線驗證（2026-11-02）
+
+> 依據 `docs/BUG_REPAIR_20261102.md`（玩家回饋調查）＋實作卡 `docs/workstreams/bugfix-20261102/REPAIR_PLAN.md`。
+> **本節只有離線證據**：本輪沒有可互動的遊戲會話，故 §7.2 的 A–K 實機 fixture 全部維持 pending（見下）。
+
+### 36.1 全量門禁（本輪最終建置）
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1
+```
+
+* 5 個程式集（Core / Persistence / Gameplay / Integration / UI）**0 warning / 0 error**。
+* L1 測試：**PASSED 655 / FAILED 0**（基線 613；本輪新增 42 條契約）。
+* `tools/validate`：`mod assemblies 5/5 OK`、`WARNINGS: none`、`RESULT: OK - data/ is valid`（含新增
+  `features.autoMaintenance`、三語 218 keys 與 `IdleReason` 分類）。
+* `RELEASE GATES: PASSED (44 checks)`；staged 套件仍是 5 個程式集 + 10 份 blueprint，0 Harmony。
+* 本專案是 source workspace，未 `-Install`、未替換工坊資料夾；本輪**沒有**上傳 Steam Workshop。
+
+### 36.2 各工作包的離線證據
+
+| WP | 證據（L1 / validator） |
+|---|---|
+| WP-03 / L-01 | `V2FallowTransitionTests.TestFallowExitTransitionDayDoesNotDestroyMatureCrops`（20 成熟槽、PreviousMode=Fallow → 收穫 20 槽、庫存 60 件；修前為 0 件）、`TestZeroYieldHarvestKeepsTheMatureSlot`、`TestModeTransitionScaleNeverZeroWhenPreviousModeHasNoYield` |
+| WP-01 / L-08 | `V2MaintenancePowerTests.TestMaintenanceCatchUpCyclesMatrix`、`TestCatchUpBillSaturatesAndRejectsInvalidInput`、`TestOneCycleBillCannotClearTwoMissedCycles`（回歸釘死舊 bug）、`TestMissingMaterialUsesTheWholeCatchUpBill`；`V2GameplayWiringTests` 維護命令段 |
+| WP-02 | `V2GameplayWiringTests.TestAutoMaintenancePaysTheSameBillAsManual`、`...SkipsWithoutMaterial`、`...DisabledDoesNothing`、`ConfigCodecTests`（預設 true / 解析 false）、`V2SaveCodecTests`（auto 往返、舊 payload 缺欄位→true+note） |
+| WP-04 / L-13 | `V2PauseContractTests.TestPausedFarmMovesBeaversOutOfTheBlockedBuilding`、`TestPausedFarmReconcilesResidualEnterers`、`TestPauseIntegrationIsWiredIntoTheControllerLifecycle`（reconcile singleton / Deactivate 撤出）、既有 0-Harmony 契約 |
+| WP-05 / L-06 | `V2AdapterHostContractTests.TestPipeProbeContractIsFrozenAndReadOnly`、`TestTimberPipesWaterSourceReportsFourDistinctProbeStates`、`TestPipeProbeNeverDrawsWaterOrFeedsTheFailureCounter`、`TestIndoorAdapterHostDelegatesThePipeProbe`、`TestDailyTickNeverOverwritesThePlayerPortChoice` |
+| WP-06 / L-05 / L-10 UI / L-17 | `V2IdleReasonTests`（優先序矩陣 + loc key）、`V2WaterTests`（`ManualRefillDrawAmount`、`TankFull` 不扣動作/不扣水）、`V2PanelContractTests`（狀態列、自動維護列、追平列、管口原因碼、0 工人「—」）、`V2PanelVisualContractTests`、`V2LocalizationTests`（218 keys 三語一致、IdleReason⇄enum 對齊、L-17 去重） |
+| WP-09 / L-07 | `V2GameplayWiringTests`（單一庫存可付整筆；面板 `Available` 與交易同判定）|
+
+### 36.3 誠實邊界（pending）
+
+* **無實機會話**：面板按鈕（維護/自動維護/補水）、真實管網供水、暫停存檔載入殘留、拆除撤出、
+  100 棟效能，全部仍待 §7.2 的 A–K fixture 回合；本節不把它們寫成已驗證。
+* **管道真實連通判定**未做：本輪只做「原因碼 + 唯讀 census + 文案」，用 `PipeRegistry.TryGetGraph(農場座標)`
+  判本農場是否真的接上管網仍 pending（需 Timber Pipes 實機 fixture 先取證）。
+* **RE-03 第三方補丁崩潰**未修：HDBF 仍 0 Harmony；玩家端隔離流程與回覆模板見 `BUG_REPAIR_20261102.md`
+  §3.4/§7.3。唯讀 `indoor.behavior-probe` 診斷因與 0-Harmony 發布門禁的字串掃描衝突，留待另案。
+* **未回報 P1/P2 潛在 bug**（L-04 存檔拒寫、L-09 物流端口、L-11 圖示即時化、L-12 作物 mod、L-14 效能、
+  L-15 config 覆寫、L-16 backward 清單、L-18/L-19 文件漂移、WP-12/13/14）維持原方案，本輪未動。
+* **主機負載對時序測試的影響（量測方法已修正）**：`V2NfrPerformanceTests` 的 encode 預算是「best of 40」。
+  本輪在四名代理同時建置的滿載主機上曾量到 56–85 ms wall（預算 50 ms），而同一棵樹以獨立 process 量到
+  27–30 ms、同一輪的 CPU 時間只有 31.2 ms — 差距來自 Windows 排程把測試執行緒 deschedule，不是編碼成本。
+  因此本輪把該 NFR 閘門改為**對 best CPU time 斷言 50 ms**（section 19.13 的序列化成本），wall time 保留與
+  `[save-budget]` 相同的 2000 ms CI sanity bound，並把兩個數字都印進日誌；程式面本輪只多一個 `AppendBool`
+  （約 +12 bytes/筆），未改編碼演算法。最終門禁（無並行建置）量到 **28.1 ms wall / 15.6 ms CPU**，
+  `[save-budget]` 37.1 ms，兩者都在 50 ms 目標內。

@@ -56,6 +56,12 @@ namespace HDBF.Core.Config
         /// <summary>Maintenance cycles and shutdown (chapter 6.5).</summary>
         public bool Maintenance { get; init; } = true;
 
+        /// <summary>
+        /// Automatic material maintenance, paid with the same bill as the manual action (WP-02,
+        /// REQ-V2-MAINT-03). On by default; a building can override it per record.
+        /// </summary>
+        public bool AutoMaintenance { get; init; } = true;
+
         /// <summary>Top-tier power connection with off-grid fallback (chapter 6.5).</summary>
         public bool PowerConnection { get; init; } = true;
 

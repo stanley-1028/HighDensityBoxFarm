@@ -60,6 +60,30 @@ namespace HDBF.Core.Indoor
         /// <summary>The player resumed the building; daily tick, water drain and icons restarted.</summary>
         public const string Resumed = "indoor.resumed";
 
+        /// <summary>Automatic maintenance paid one catch-up bill and advanced the due day (WP-02).</summary>
+        public const string MaintenanceAuto = "indoor.maintenance-auto";
+
+        /// <summary>Automatic maintenance was due but the material stockpile could not pay it (WP-02).</summary>
+        public const string MaintenanceAutoMissing = "indoor.maintenance-auto-missing";
+
+        /// <summary>The 1 Hz session singleton reconciled residual enterers of paused farms (RE-04 R1).</summary>
+        public const string PausedReconcile = "indoor.paused.reconcile";
+
+        /// <summary>A beaver walked into a blocked paused farm and was ejected immediately (RE-04 R2).</summary>
+        public const string PausedResidualEnterer = "indoor.paused.residual-enterer";
+
+        /// <summary>One paused-farm ejection pass finished; carries requested/ejected/skipped/remaining.</summary>
+        public const string PausedEjectSummary = "indoor.paused.eject-summary";
+
+        /// <summary>An ejection could not be confirmed and needs the force-remove fallback (RE-04 R3/R4).</summary>
+        public const string PausedEjectFailed = "indoor.paused.eject-failed";
+
+        /// <summary>The force-remove fallback removed the remaining enterers of a paused farm (RE-04 R3).</summary>
+        public const string PausedForceRemove = "indoor.paused.force-remove";
+
+        /// <summary>The farm was already blocked when it was paused; a second blocker was added (RE-04 R6).</summary>
+        public const string PausedAlreadyBlocked = "indoor.paused.already-blocked";
+
         // ---------------------------------------------------------------- water.*
 
         /// <summary>Daily tank settlement: demand, deducted amount, coverage C and G_irr.</summary>
@@ -76,6 +100,9 @@ namespace HDBF.Core.Indoor
 
         /// <summary>The pipe is connected but degraded/unavailable; the farm falls back to manual refill.</summary>
         public const string PipeUnavailable = "water.pipe-unavailable";
+
+        /// <summary>Throttled read-only pipe probe result (tank/network/water counts and reason).</summary>
+        public const string PipeProbe = "water.pipe-probe";
 
         // ---------------------------------------------------------------- save.*
 

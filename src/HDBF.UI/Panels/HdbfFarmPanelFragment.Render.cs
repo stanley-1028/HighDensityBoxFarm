@@ -175,6 +175,27 @@ namespace HDBF.UI.Panels
             }
 
             SetOptional(_maintenanceReason, data.MaintenanceReasonText);
+
+            if (_autoMaintenanceButton is not null)
+            {
+                _autoMaintenanceButton.text = AutoMaintenanceText(data.AutoMaintenance);
+                _autoMaintenanceButton.tooltip = data.AutoMaintenanceTooltip;
+                _autoMaintenanceButton.style.unityFontStyleAndWeight =
+                    data.AutoMaintenance ? FontStyle.Bold : FontStyle.Normal;
+            }
+        }
+
+        /// <summary>
+        /// Localized "Automatic maintenance: On/Off" label of the WP-02 toggle. The read model only
+        /// carries the boolean, so the renderer composes the two shipped short labels.
+        /// </summary>
+        /// <param name="enabled">Current automatic-maintenance choice.</param>
+        /// <returns>One-line toggle label with the current state.</returns>
+        private string AutoMaintenanceText(bool enabled)
+        {
+            return _loc.T(HdbfUiLocKeys.PanelAutoMaintenanceLabel) + ": " + _loc.T(enabled
+                ? HdbfUiLocKeys.PanelAutoMaintenanceOn
+                : HdbfUiLocKeys.PanelAutoMaintenanceOff);
         }
 
         private void RenderActionMessage(string message)

@@ -12,6 +12,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using HDBF.Core.Indoor;
 using HDBF.UI.Localization;
 
 namespace HDBF.Tests
@@ -32,6 +33,8 @@ namespace HDBF.Tests
         private static readonly string[] Categories =
         {
             "Building", "Panel", "Mode", "Port", "Action", "Warning", "Compat", "Error", "Tooltip",
+            // WP-06: the Core idle-reason key contract is HDBF.IdleReason.<EnumName>.
+            "IdleReason",
         };
 
         /// <summary>v1 keys that must no longer exist anywhere (REQ-V2-UI-04).</summary>
@@ -335,6 +338,9 @@ namespace HDBF.Tests
                 HdbfUiLocKeys.PanelRotationLabel, HdbfUiLocKeys.PanelOutputLabel,
                 HdbfUiLocKeys.PanelOutputPortLabel, HdbfUiLocKeys.PanelPortsLabel,
                 HdbfUiLocKeys.PanelMaintenanceMaterialLabel,
+                HdbfUiLocKeys.PanelIdleReasonLabel,
+                HdbfUiLocKeys.PanelAutoMaintenanceLabel,
+                HdbfUiLocKeys.PanelMaintenanceCatchUpLabel,
             };
             foreach (var key in labelKeys)
             {
@@ -442,6 +448,151 @@ namespace HDBF.Tests
                     TestAssert.Equal(0, Placeholders(texts[key]).Count,
                         language + " warning text must not carry placeholders: " + key);
                 }
+            }
+        }
+
+        // ------------------------------------------------------------------ WP-01/02/05/06 + L-17
+
+        /// <summary>
+        /// WP-06: every Core <see cref="IndoorIdleReason"/> has its contract key shipped in all three
+        /// languages, and no extra idle-reason key exists that the enum does not define. This pins
+        /// <c>IndoorIdleReasonMath.LocalizationKey</c> to the real CSV data.
+        /// </summary>
+        public static void TestIdleReasonKeysMatchTheCoreEnum()
+        {
+            var en = LoadTexts("enUS");
+            var expected = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var reason in Enum.GetValues(typeof(IndoorIdleReason)))
+            {
+                expected.Add(IndoorIdleReasonMath.LocalizationKey((IndoorIdleReason)reason!));
+            }
+
+            TestAssert.Equal(9, expected.Count, "nine idle reasons (None..Fallow)");
+            foreach (var language in Languages)
+            {
+                var texts = LoadTexts(language);
+                foreach (var key in expected)
+                {
+                    TestAssert.True(texts.ContainsKey(key), language + " is missing idle-reason key " + key);
+                    TestAssert.True(texts[key].Trim().Length > 0, language + " empty idle-reason text " + key);
+                }
+            }
+
+            foreach (var key in en.Keys)
+            {
+                if (key.StartsWith("HDBF.IdleReason.", StringComparison.Ordinal))
+                {
+                    TestAssert.True(expected.Contains(key), "shipped idle key without a Core enum value: " + key);
+                }
+            }
+        }
+
+        /// <summary>
+        /// WP-02/WP-01: the new automatic-maintenance and catch-up strings exist in every language
+        /// and the catch-up template carries exactly the three documented placeholders.
+        /// </summary>
+        public static void TestMaintenanceAndWaterKeysAreShipped()
+        {
+            var required = new[]
+            {
+                HdbfUiLocKeys.PanelAutoMaintenanceLabel, HdbfUiLocKeys.PanelAutoMaintenanceOn,
+                HdbfUiLocKeys.PanelAutoMaintenanceOff, HdbfUiLocKeys.TooltipAutoMaintenance,
+                HdbfUiLocKeys.PanelMaintenanceCatchUpLabel, HdbfUiLocKeys.PanelMaintenanceCatchUpValue,
+                HdbfUiLocKeys.ErrorMaintenanceNotDue, HdbfUiLocKeys.ErrorRefillTankFull,
+                HdbfUiLocKeys.PanelWaterPaths, HdbfUiLocKeys.TooltipIdleReason,
+                HdbfUiLocKeys.PortNoPipeTank, HdbfUiLocKeys.PortNoPipeNetwork, HdbfUiLocKeys.PortTankDry,
+                HdbfUiLocKeys.PortAdapterUnavailable, HdbfUiLocKeys.PortBindingFailed,
+            };
+            foreach (var language in Languages)
+            {
+                var texts = LoadTexts(language);
+                foreach (var key in required)
+                {
+                    TestAssert.True(texts.ContainsKey(key), language + " missing key " + key);
+                    TestAssert.True(texts[key].Trim().Length > 0, language + " empty text " + key);
+                    TestAssert.False(texts[key].Contains("HDBF.", StringComparison.Ordinal),
+                        language + " renders a raw key for " + key);
+                }
+
+                var placeholders = Placeholders(texts[HdbfUiLocKeys.PanelMaintenanceCatchUpValue]);
+                TestAssert.Equal(3, placeholders.Count, language + " catch-up placeholder count");
+                TestAssert.Equal(0, placeholders[0]);
+                TestAssert.Equal(1, placeholders[1]);
+                TestAssert.Equal(2, placeholders[2]);
+
+                // The pipe reason keys must be distinct strings (never one shared "Not connected").
+                var portKeys = new[]
+                {
+                    HdbfUiLocKeys.PortNotConnected, HdbfUiLocKeys.PortNoPipeTank,
+                    HdbfUiLocKeys.PortNoPipeNetwork, HdbfUiLocKeys.PortTankDry,
+                    HdbfUiLocKeys.PortAdapterUnavailable, HdbfUiLocKeys.PortBindingFailed,
+                };
+                var distinct = new HashSet<string>(StringComparer.Ordinal);
+                foreach (var key in portKeys)
+                {
+                    distinct.Add(texts[key]);
+                }
+
+                TestAssert.Equal(portKeys.Length, distinct.Count,
+                    language + " pipe port reasons must be distinct texts");
+            }
+        }
+
+        /// <summary>
+        /// L-17: the misleading/duplicated strings are fixed - the warning slots no longer copy
+        /// another category, the refill error names the source instead of claiming the feature does
+        /// not exist, the shortage sentence says growth slowed (not yield loss) and the pipe texts
+        /// describe the real draw rule (vanilla liquid tanks in the network, not the farm shell).
+        /// </summary>
+        public static void TestMisleadingAndDuplicatedStringsAreFixed()
+        {
+            var en = LoadTexts("enUS");
+            var zh = LoadTexts("zhCN");
+            var tw = LoadTexts("zhTW");
+
+            foreach (var language in new[] { en, zh, tw })
+            {
+                TestAssert.False(string.Equals(language[HdbfUiLocKeys.WarningShutdown],
+                        language[HdbfUiLocKeys.WarningMaintenanceOverdue], StringComparison.Ordinal),
+                    "HDBF.Warning.Shutdown must not copy the maintenance category text");
+                TestAssert.False(string.Equals(language[HdbfUiLocKeys.WarningAdapterFailed],
+                        language[HdbfUiLocKeys.WarningEntranceBlocked], StringComparison.Ordinal),
+                    "HDBF.Warning.AdapterFailed must not copy the entrance category text");
+            }
+
+            TestAssert.False(en[HdbfUiLocKeys.ErrorRefillUnavailable]
+                    .Contains("not available in this build", StringComparison.OrdinalIgnoreCase),
+                "manual refill is implemented; the old 'not available' text is a lie (L-17)");
+            TestAssert.True(en[HdbfUiLocKeys.ErrorRefillUnavailable].Contains("source", StringComparison.OrdinalIgnoreCase),
+                "the refill error names the missing source instead: " + en[HdbfUiLocKeys.ErrorRefillUnavailable]);
+
+            TestAssert.True(en[HdbfUiLocKeys.PanelWaterShortage].Contains("growth slowed", StringComparison.Ordinal),
+                "the shortage penalty is slower growth, not yield loss: " + en[HdbfUiLocKeys.PanelWaterShortage]);
+            TestAssert.False(zh[HdbfUiLocKeys.PanelWaterShortage].Contains("减产", StringComparison.Ordinal),
+                "zhCN shortage text still says 减产");
+            TestAssert.False(tw[HdbfUiLocKeys.PanelWaterShortage].Contains("減產", StringComparison.Ordinal),
+                "zhTW shortage text still says 減產");
+
+            TestAssert.True(en[HdbfUiLocKeys.PortPipe].Contains("network", StringComparison.OrdinalIgnoreCase),
+                "the pipe port is a pipe NETWORK: " + en[HdbfUiLocKeys.PortPipe]);
+            TestAssert.True(zh[HdbfUiLocKeys.PortPipe].Contains("管网", StringComparison.Ordinal));
+            TestAssert.True(tw[HdbfUiLocKeys.PortPipe].Contains("管網", StringComparison.Ordinal));
+
+            TestAssert.True(en[HdbfUiLocKeys.TooltipPipeWater].Contains("liquid tanks", StringComparison.Ordinal),
+                "the pipe tooltip names the vanilla liquid tanks: " + en[HdbfUiLocKeys.TooltipPipeWater]);
+            TestAssert.True(en[HdbfUiLocKeys.TooltipPipeWater].Contains("farm shell", StringComparison.Ordinal),
+                "the pipe tooltip says a pipe on the farm shell does nothing");
+            TestAssert.True(zh[HdbfUiLocKeys.TooltipPipeWater].Contains("水塔", StringComparison.Ordinal)
+                             && zh[HdbfUiLocKeys.TooltipPipeWater].Contains("外", StringComparison.Ordinal));
+            TestAssert.True(tw[HdbfUiLocKeys.TooltipPipeWater].Contains("水塔", StringComparison.Ordinal)
+                             && tw[HdbfUiLocKeys.TooltipPipeWater].Contains("外", StringComparison.Ordinal));
+
+            foreach (var language in Languages)
+            {
+                var texts = LoadTexts(language);
+                TestAssert.True(texts[HdbfUiLocKeys.TooltipMaintenance].Contains("overdue", StringComparison.OrdinalIgnoreCase)
+                                 || texts[HdbfUiLocKeys.TooltipMaintenance].Contains("逾期", StringComparison.Ordinal),
+                    language + " maintenance tooltip must describe the catch-up behaviour");
             }
         }
 

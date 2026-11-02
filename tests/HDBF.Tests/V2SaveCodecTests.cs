@@ -196,6 +196,46 @@ namespace HDBF.Tests
             V2SaveFixtures.AssertInvariants(record, V2SaveFixtures.Basic, "corrupt rows repaired");
         }
 
+        public static void TestAutoMaintenanceRoundTripsAndDefaultsToOn()
+        {
+            // WP-02: the per-building automatic-maintenance choice is persisted inside the
+            // maintenance object; false and true both survive, and the marker is restored.
+            var record = V2SaveFixtures.RichRecord(HdbfTier.Intermediate);
+            record.AutoMaintenance = false;
+            record.AutoMaintenanceSpecified = true;
+            var text = IndoorSaveCodec.Encode(record);
+            TestAssert.True(text.Contains("\"auto\":false", StringComparison.Ordinal), text);
+            var decoded = V2SaveFixtures.DecodeStrict(text);
+            TestAssert.False(decoded.AutoMaintenance);
+            TestAssert.True(decoded.AutoMaintenanceSpecified);
+            TestAssert.Equal(text, IndoorSaveCodec.Encode(decoded), "auto=false is byte stable");
+
+            record.AutoMaintenance = true;
+            var onText = IndoorSaveCodec.Encode(record);
+            TestAssert.True(onText.Contains("\"auto\":true", StringComparison.Ordinal), onText);
+            TestAssert.True(V2SaveFixtures.DecodeStrict(onText).AutoMaintenance);
+        }
+
+        public static void TestDecodeOldPayloadWithoutAutoDefaultsToOnAndReports()
+        {
+            // WP-02 save compatibility: an old payload has no maintenance.auto member; it must decode
+            // to the safe default (on), report the default and keep every other field unchanged.
+            var record = V2SaveFixtures.RichRecord(HdbfTier.Advanced, HdbfFaction.IronTeeth);
+            var text = IndoorSaveCodec.Encode(record);
+            var legacy = text.Replace(",\"auto\":true", string.Empty, StringComparison.Ordinal);
+            TestAssert.False(string.Equals(text, legacy, StringComparison.Ordinal), "the auto member must be removed");
+            TestAssert.False(legacy.Contains("\"auto\"", StringComparison.Ordinal), legacy);
+
+            var ok = IndoorSaveCodec.TryDecode(legacy, out var decoded, out var error);
+
+            TestAssert.True(ok, error);
+            TestAssert.True(decoded.AutoMaintenance, "an old payload defaults automatic maintenance to on");
+            TestAssert.False(decoded.AutoMaintenanceSpecified, "the default is not an explicit player choice");
+            TestAssert.True(error.Contains("maintenance.auto-default", StringComparison.Ordinal),
+                "the defaulted field must be reported: " + error);
+            V2SaveFixtures.AssertRecordsEqual(record, decoded, "legacy payload without auto");
+        }
+
         public static void TestMeasureBytesMatchesEncodedUtf8Size()
         {
             var record = V2SaveFixtures.RichRecord(HdbfTier.Top);

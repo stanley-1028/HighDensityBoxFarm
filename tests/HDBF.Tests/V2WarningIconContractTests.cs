@@ -120,6 +120,33 @@ namespace HDBF.Tests
                 IndoorWarningMap.WarningKeyOf(IndoorWarningIconKind.EntranceBlocked));
         }
 
+        public static void TestPipeProbeReasonsArePartOfThePanelContract()
+        {
+            // WP-05/RE-05: the panel maps these exact numeric values onto port state texts; the
+            // numbers are a contract and must not be renumbered.
+            TestAssert.Equal(0, (int)PipeProbeReason.Unknown);
+            TestAssert.Equal(1, (int)PipeProbeReason.Connected);
+            TestAssert.Equal(2, (int)PipeProbeReason.NoPipeNetwork);
+            TestAssert.Equal(3, (int)PipeProbeReason.NoPipeTank);
+            TestAssert.Equal(4, (int)PipeProbeReason.TankDry);
+            TestAssert.Equal(5, (int)PipeProbeReason.AdapterUnavailable);
+            TestAssert.Equal(6, (int)PipeProbeReason.BindingFailed);
+            TestAssert.Equal(7, (int)PipeProbeReason.PortOff);
+
+            TestAssert.Equal(PipeProbeReason.Unknown, PipeProbe.Unknown.Reason,
+                "the default probe is the explicit 'no probe ran' value");
+            TestAssert.Equal(0, PipeProbe.Unknown.TankCount);
+            TestAssert.Equal(0, PipeProbe.Unknown.WaterTankCount);
+
+            // The five reason texts the panel renders are distinct UI keys (never one shared
+            // "Not connected" string): a genuine probe reason must be nameable.
+            TestAssert.Equal(HdbfUiLocKeys.PortNoPipeTank, "HDBF.Port.NoPipeTank");
+            TestAssert.Equal(HdbfUiLocKeys.PortNoPipeNetwork, "HDBF.Port.NoPipeNetwork");
+            TestAssert.Equal(HdbfUiLocKeys.PortTankDry, "HDBF.Port.TankDry");
+            TestAssert.Equal(HdbfUiLocKeys.PortAdapterUnavailable, "HDBF.Port.AdapterUnavailable");
+            TestAssert.Equal(HdbfUiLocKeys.PortBindingFailed, "HDBF.Port.BindingFailed");
+        }
+
         public static void TestVisibilityPolicyCullsOffscreenFarAndNonFiniteInput()
         {
             TestAssert.True(IndoorIconPolicy.IsWorldIconVisible(true, 10f, 40f));

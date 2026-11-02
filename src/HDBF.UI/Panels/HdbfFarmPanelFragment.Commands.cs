@@ -163,6 +163,40 @@ namespace HDBF.UI.Panels
             Refresh(force: true);
         }
 
+        /// <summary>
+        /// WP-02 automatic-maintenance toggle. UI keeps no optimistic state: gameplay stores the
+        /// choice and the next snapshot renders the authoritative value; a rejection shows its
+        /// specific localized reason (inactive farm) instead of a silent no-op.
+        /// </summary>
+        private void OnAutoMaintenanceClicked()
+        {
+            if (_entityId == Guid.Empty || _lastData is null)
+            {
+                return;
+            }
+
+            var enabled = !_lastData.AutoMaintenance;
+            try
+            {
+                if (_indoor.TrySetAutoMaintenance(_entityId, enabled, out var failureKey))
+                {
+                    SetActionMessage(AutoMaintenanceText(enabled));
+                }
+                else
+                {
+                    SetActionMessage(HdbfIndoorPanelFormat.FormatCommandFailure(_loc.T, failureKey));
+                    LogRejected("set automatic maintenance " + enabled, failureKey);
+                }
+            }
+            catch (Exception exception)
+            {
+                SetActionMessage(_loc.T(HdbfUiLocKeys.ErrorActionFailed));
+                LogCommandException("set automatic maintenance", exception);
+            }
+
+            Refresh(force: true);
+        }
+
         private static HdbfMode ToLegacyMode(IndoorMode mode)
         {
             switch (mode)

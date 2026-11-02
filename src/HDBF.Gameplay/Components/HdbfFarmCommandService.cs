@@ -84,33 +84,68 @@ namespace HDBF.Gameplay.Components
 
             try
             {
-                // Plan first: the bill and the new deadline are validated before any item moves,
-                // so a rejected command can never eat the upkeep material (all-or-nothing).
-                if (!farm.TryGetMaintenancePlan(out var itemId, out var amount, out var cycleDays))
-                {
-                    failureKey = HdbfIndoorCommandFailures.MaintenanceUnavailable;
-                    return false;
-                }
-
-                if (!_maintenance.TryConsumeNearest(farm, entityId, itemId, amount, out failureKey))
+                // Plan first: the whole catch-up bill (WP-01: cycles x per-cycle amount), the new
+                // deadline and the not-due rejection are validated before any item moves, so a
+                // rejected command can never eat the upkeep material (all-or-nothing).
+                if (!farm.TryGetMaintenancePlan(out var itemId, out var amountPerCycle, out var cycleDays,
+                        out var cycles, out failureKey))
                 {
                     return false;
                 }
 
-                if (!farm.TryApplyMaintenance(cycleDays, out failureKey))
+                var totalAmount = IndoorMaintenanceMath.CatchUpMaterialAmount(amountPerCycle, cycles);
+                if (!_maintenance.TryConsumeNearest(farm, entityId, itemId, totalAmount, out failureKey))
+                {
+                    return false;
+                }
+
+                if (!farm.TryApplyMaintenance(cycleDays, cycles, out failureKey))
                 {
                     return false;
                 }
 
                 _log.Write(HdbfLogCategory.Info, IndoorLogKeys.Maintenance,
                     "indoor maintenance performed; entityId=" + entityId + ", item=" + (itemId ?? "<none>")
-                    + ", amount=" + amount + ", cycleDays=" + cycleDays);
+                    + ", amount=" + totalAmount + ", cycles=" + cycles + ", cycleDays=" + cycleDays);
                 return true;
             }
             catch (Exception exception)
             {
                 _log.Error(HdbfLogCategory.Error, LogKeyCommand,
                     "indoor maintenance failed; no state changed", exception, entityId.ToString());
+                failureKey = HdbfCommandFailures.Unknown;
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Stores the per-building automatic-maintenance choice (WP-02 / RE-07). From this point on
+        /// the farm no longer follows the config default, so the choice is persisted with the save.
+        /// A panel-only command resolved by the UI command bridge by name, not part of the Core
+        /// <see cref="IBoxFarmCommand"/> surface.
+        /// </summary>
+        /// <param name="entityId">Runtime entity id of the farm.</param>
+        /// <param name="enabled">True to pay the material maintenance automatically every day.</param>
+        /// <param name="failureKey">Specific failure key when false.</param>
+        /// <returns>True when the choice was stored.</returns>
+        public bool TrySetAutoMaintenance(Guid entityId, bool enabled, out string? failureKey)
+        {
+            failureKey = null;
+            if (!TryGetController(entityId, out var farm))
+            {
+                failureKey = HdbfCommandFailures.NotABoxFarm;
+                return false;
+            }
+
+            try
+            {
+                return farm.TrySetAutoMaintenance(enabled, out failureKey);
+            }
+            catch (Exception exception)
+            {
+                _log.Error(HdbfLogCategory.Error, LogKeyCommand,
+                    "indoor automatic maintenance command failed; no state changed", exception,
+                    entityId.ToString());
                 failureKey = HdbfCommandFailures.Unknown;
                 return false;
             }

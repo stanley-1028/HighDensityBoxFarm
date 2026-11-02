@@ -149,6 +149,7 @@ namespace HDBF.Core.Config
                 .Property("densePlanting").BooleanValue(features.DensePlanting)
                 .Property("rotation").BooleanValue(features.Rotation)
                 .Property("maintenance").BooleanValue(features.Maintenance)
+                .Property("autoMaintenance").BooleanValue(features.AutoMaintenance)
                 .Property("powerConnection").BooleanValue(features.PowerConnection)
                 .Property("pipeConnection").BooleanValue(features.PipeConnection)
                 .Property("logisticsOutput").BooleanValue(features.LogisticsOutput)

@@ -32,6 +32,7 @@ namespace HDBF.UI.Panels
         private Label? _refillReason;
         private Button? _maintenanceButton;
         private Label? _maintenanceReason;
+        private Button? _autoMaintenanceButton;
         private Label? _actionStatus;
         private Label? _actionTitle;
 
@@ -164,6 +165,18 @@ namespace HDBF.UI.Panels
             _maintenanceReason = HdbfPanelControls.CreateNoteLabel(string.Empty);
             _maintenanceReason.style.marginTop = 2f;
             _actionCard.Add(_maintenanceReason);
+
+            // WP-02: the per-building automatic-maintenance toggle is a vanilla game button (the
+            // shipped DebugButton nine-slice template) whose text carries the current On/Off state;
+            // pressing it flips the persisted choice. The maintenance card repeats the state as a
+            // read-only row, so the setting is visible even with the action card scrolled away.
+            _autoMaintenanceButton = HdbfPanelControls.CreateButton(_visualElementLoader,
+                string.Empty, OnAutoMaintenanceClicked);
+            _tooltips.Register(_autoMaintenanceButton,
+                () => _lastData?.AutoMaintenanceTooltip ?? string.Empty);
+            _autoMaintenanceButton.style.alignSelf = Align.Stretch;
+            _autoMaintenanceButton.style.marginTop = 4f;
+            _actionCard.Add(_autoMaintenanceButton);
 
             // One readable line for the last action result (success or the specific failure).
             _actionStatus = HdbfPanelControls.CreateNoteLabel(string.Empty);

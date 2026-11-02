@@ -38,6 +38,9 @@ namespace HDBF.Tests
         public static void TestManualRefillNeverBorrowsTheNextDayBudget()
         {
             var record = Record(HdbfTier.Basic);
+            // WP-08/L-05: a full tank short-circuits before the budget check, so start below the
+            // capacity to exercise the branch under test.
+            record.Tank = 0f;
             FillMature(record, 2);
             var water = new TestWater();
             var dayOne = Tick(record, Context(1, day: 1f, reserved: 12, refill: true, manual: water));
@@ -52,12 +55,95 @@ namespace HDBF.Tests
         public static void TestManualRefillFailuresAreSpecificAndNeverMoveWater()
         {
             var record = Record(HdbfTier.Basic);
+            // WP-08/L-05: start below capacity so the TankFull short-circuit does not mask the
+            // specific failure reasons of the trip.
+            record.Tank = 0f;
             var noSource = Tick(record, Context(1, refill: true));
             TestAssert.Equal(ManualRefillOutcome.NoSource, noSource.ManualRefill, "never refill without a real source");
             TestAssert.True(Has(noSource.Warnings, IndoorWarningFlags.NoWater));
             var noWorkers = Tick(record, Context(0, refill: true, manual: new TestWater()));
             TestAssert.Equal(ManualRefillOutcome.NoWorkers, noWorkers.ManualRefill);
             TestAssert.True(Has(noWorkers.Warnings, IndoorWarningFlags.NoWorkers));
+        }
+
+        public static void TestManualRefillRejectsANearlyFullTankWithoutSpending()
+        {
+            // WP-08/L-05: the tank is full enough that the trip would draw nothing (headroom below
+            // one unit), so the request is rejected instead of drawing water that is then discarded.
+            var record = Record(HdbfTier.Basic);
+            var capacity = Tier(HdbfTier.Basic).TankCapacity;
+            record.Tank = capacity - 0.25f;
+            var water = new TestWater();
+            var result = Tick(record, Context(1, refill: true, manual: water));
+            TestAssert.Equal(ManualRefillOutcome.TankFull, result.ManualRefill);
+            TestAssert.Equal(0, result.RefillActionsUsed, "a tank-full trip spends no farm action");
+            TestAssert.Equal(100f, water.Supply, 1e-4f, "a tank-full trip draws no water");
+            TestAssert.Equal(capacity - 0.25f, record.Tank, 1e-5f, "the tank is untouched");
+            TestAssert.False(Has(result.Warnings, IndoorWarningFlags.NoWater),
+                "a nearly full tank is not a water shortage");
+            TestAssert.True(Read(Components + "HdbfBoxFarmController.ManualRefill.cs")
+                    .Contains("ManualRefillOutcome.TankFull", StringComparison.Ordinal),
+                "the queued trip maps the Core TankFull outcome to the panel failure reason");
+        }
+
+        public static void TestMaterialSourceReportsTheLargestSingleInventory()
+        {
+            // L-07: the transaction needs one inventory that holds the WHOLE bill unreserved, so the
+            // reported availability must be the largest single inventory, never the sum across them.
+            var source = Read(Components + "IndoorMaintenanceMaterialSource.cs");
+            TestAssert.True(source.Contains("UnreservedAmountInStock", StringComparison.Ordinal),
+                "availability must read the unreserved stock of each inventory");
+            TestAssert.True(source.Contains("HasUnreservedStock", StringComparison.Ordinal),
+                "the consume side keeps the single-inventory all-or-nothing rule");
+            TestAssert.True(source.Contains("largest", StringComparison.Ordinal),
+                "availability must keep the largest single-inventory count (L-07)");
+            TestAssert.False(source.Contains("available +=", StringComparison.Ordinal),
+                "availability must never sum across inventories (L-07)");
+        }
+
+        public static void TestMaintenanceCatchUpAndAutoMaintenanceWiring()
+        {
+            // WP-01: one click pays the whole catch-up bill and the not-due click is rejected.
+            AssertTokens("HdbfBoxFarmController.Commands.cs", "CatchUpCycles", "MaintenanceNotDue",
+                "cycleDays * cycles", "cycles <= 0");
+            AssertTokens("HdbfFarmCommandService.cs", "CatchUpMaterialAmount", "TrySetAutoMaintenance",
+                "TryConsumeNearest", "cycles");
+            // WP-02: the per-building toggle, its config default and the daily automatic pass run
+            // before the day is simulated; a stockpile that cannot pay the whole bill consumes
+            // nothing (missing-material log key) and the manual command stays available.
+            AssertTokens("HdbfBoxFarmController.Maintenance.cs", "AutoMaintenanceSpecified",
+                "SafeConfigAutoMaintenance", "IndoorLogKeys.MaintenanceAuto",
+                "IndoorLogKeys.MaintenanceAutoMissing", "TryGetCatchUpBill", "TryConsume",
+                "IIndoorPipeProbe", "AutoMaintenance");
+            AssertTokens("HdbfBoxFarmController.Tick.cs", "RunAutoMaintenance", "UpdatePower",
+                "UpdatePorts", "IndoorDayTick.Run");
+            TestAssert.True(Read(Components + "HdbfFarmCommandService.cs").Contains(
+                    "public bool TrySetAutoMaintenance(Guid entityId, bool enabled, out string? failureKey)",
+                    StringComparison.Ordinal),
+                "the command service must expose TrySetAutoMaintenance(Guid, bool, out string?)");
+            // WP-08/L-05: the immediate refill draws only the headroom-limited amount.
+            AssertTokens("HdbfBoxFarmController.ManualRefill.cs", "IndoorWaterMath.ManualRefillDrawAmount",
+                "HdbfIndoorCommandFailures.RefillTankFull");
+            // WP-06/L-03/WP-05: the snapshot carries the new panel fields.
+            AssertTokens("HdbfBoxFarmController.IndoorSnapshot.cs", "Paused = _paused",
+                "MaintenanceCyclesToCatchUp", "MaintenanceCatchUpMaterialAmount",
+                "IndoorIdleReasonMath.Resolve", "ManualRefillSourceAvailable", "PipeProbeState");
+        }
+
+        public static void TestNewIndoorFailureKeysMatchTheUiContract()
+        {
+            var source = Read(Components + "HdbfIndoorCommandFailures.cs");
+            foreach (var (name, value) in new[]
+                     {
+                         ("MaintenanceNotDue", "HDBF.Error.MaintenanceNotDue"),
+                         ("RefillTankFull", "HDBF.Error.RefillTankFull"),
+                     })
+            {
+                TestAssert.True(source.Contains(name, StringComparison.Ordinal),
+                    "the failure key table must declare " + name);
+                TestAssert.True(source.Contains("\"" + value + "\"", StringComparison.Ordinal),
+                    "the UI localizes the exact key " + value);
+            }
         }
 
         public static void TestMaintenanceBillsUseVerifiedItemsAndAmounts()

@@ -240,6 +240,10 @@ namespace HDBF.Persistence.Indoor
                 Tank = source.Tank,
                 MaintenanceDueDay = source.MaintenanceDueDay,
                 MaintenanceCyclesMissed = source.MaintenanceCyclesMissed,
+                // WP-02: the validation copy must carry the automatic-maintenance choice too,
+                // otherwise the encoded candidate would silently fall back to the default (true).
+                AutoMaintenance = source.AutoMaintenance,
+                AutoMaintenanceSpecified = source.AutoMaintenanceSpecified,
                 PowerConnected = source.PowerConnected,
                 PowerMode = source.PowerMode,
                 PipePort = source.PipePort,

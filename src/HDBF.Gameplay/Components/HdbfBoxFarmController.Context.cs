@@ -237,9 +237,17 @@ namespace HDBF.Gameplay.Components
         }
 
         /// <summary>
-        /// Daily port availability refresh (REQ-V2-COMPAT-02): the record flags describe what the
-        /// player can actually use today. A missing/broken adapter hides the port (false) instead of
-        /// showing a "missing mod" error, and the farm itself never stops because of it.
+        /// Daily power refresh plus a read-only observation of the adapter state
+        /// (REQ-V2-BAL-03, REQ-V2-COMPAT-02). L-06: the persisted
+        /// <see cref="IndoorFarmRecord.PipePort"/> and
+        /// <see cref="IndoorFarmRecord.LogisticsPort"/> flags are the player's enable choice (set
+        /// through <c>TrySetPortConnected</c>) and are NEVER overwritten here. The old daily
+        /// overwrite silently switched a port the player had turned off back on, so the panel
+        /// reported it as usable again the next day. Port availability is now reported read-only
+        /// through <see cref="IIndoorPipeProbe.ProbePipe"/> and the adapter health state, not by
+        /// rewriting the persisted player choice. <see cref="IndoorFarmRecord.PowerPort"/> stays
+        /// profile-derived (grid power is not a player toggle), and only a real adapter-state
+        /// change emits the once-per-day <c>indoor.port</c> diagnostic line.
         /// </summary>
         /// <returns>True when a persisted port flag changed.</returns>
         private bool UpdatePorts()
@@ -250,50 +258,26 @@ namespace HDBF.Gameplay.Components
                 return false;
             }
 
-            var health = ReadAdapterHealth();
-            // Missing/disabled adapter = hide (greyed "not applicable"); a failed adapter keeps the
-            // port visible as Fault so the panel can show a degraded state without an error text.
-            var adapterHidden = health == HdbfAdapterHealth.Disabled || health == HdbfAdapterHealth.Unknown;
-            var nextPipe = _spec.HasPipePort && !adapterHidden;
-            var nextLogistics = _spec.HasLogisticsPort && !adapterHidden;
             var nextPower = _profile.NeedsPower && _spec.HasPowerPort;
-
-            var changed = false;
-            if (record.PipePort != nextPipe)
-            {
-                if (!nextPipe && _spec.HasPipePort)
-                {
-                    // REQ-V2-WATER-02/COMPAT-02: the pipe path degraded to manual refill; throttled
-                    // so a missing adapter produces one water.* warning, never a per-farm spam.
-                    _log.Write(HdbfLogCategory.Warn, IndoorLogKeys.PipeUnavailable,
-                        "pipe port unavailable (adapter=" + health + "); degrading to manual refill, entityId="
-                        + _entityId);
-                }
-
-                record.PipePort = nextPipe;
-                changed = true;
-            }
-
-            if (record.LogisticsPort != nextLogistics)
-            {
-                record.LogisticsPort = nextLogistics;
-                changed = true;
-            }
-
-            if (record.PowerPort != nextPower)
+            var powerChanged = record.PowerPort != nextPower;
+            if (powerChanged)
             {
                 record.PowerPort = nextPower;
-                changed = true;
             }
 
-            if (changed)
+            var adapterState = ReadAdapterState();
+            var adapterChanged =
+                !string.Equals(record.TimberPipesAdapter, adapterState, StringComparison.Ordinal);
+            if (powerChanged || adapterChanged)
             {
                 _log.Write(HdbfLogCategory.Compat, IndoorLogKeys.Port,
-                    "indoor port availability refreshed: pipe=" + nextPipe + ", logistics=" + nextLogistics
-                    + ", power=" + nextPower + ", adapter=" + health + ", entityId=" + _entityId);
+                    "indoor port state refreshed: adapter=" + adapterState + ", adapterChanged="
+                    + adapterChanged + ", pipePort=" + (record.PipePort && _spec.HasPipePort)
+                    + ", logisticsPort=" + (record.LogisticsPort && _spec.HasLogisticsPort)
+                    + ", powerPort=" + nextPower + ", entityId=" + _entityId);
             }
 
-            return changed;
+            return powerChanged;
         }
     }
 }

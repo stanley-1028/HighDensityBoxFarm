@@ -18,6 +18,7 @@ internal sealed class ConfigValidator
         ("densePlanting", true),
         ("rotation", true),
         ("maintenance", true),
+        ("autoMaintenance", true),
         ("powerConnection", true),
         ("pipeConnection", true),
         ("logisticsOutput", false),

@@ -30,8 +30,12 @@ namespace HDBF.Integration.Adapters
     /// A missing/broken mod never throws here: every member answers <c>null</c>/<c>false</c>/
     /// <see cref="HdbfAdapterHealth.Unknown"/> and Gameplay degrades to manual refill and vanilla
     /// output storage (REQ-V2-COMPAT-02/03).
+    ///
+    /// It also implements the read-only <see cref="IIndoorPipeProbe"/> (WP-05/RE-05): the panel
+    /// gets a reason code for the pipe port instead of a single misleading "Not connected" text,
+    /// and the probe never draws water nor reports a runtime failure (L-02/L-06).
     /// </summary>
-    public sealed class IndoorAdapterHost : IIndoorAdapterHost
+    public sealed class IndoorAdapterHost : IIndoorAdapterHost, IIndoorPipeProbe
     {
         private readonly CompatAdapterRegistry? _compat;
         private readonly IContainer? _container;
@@ -133,6 +137,29 @@ namespace HDBF.Integration.Adapters
                     LogError("logistics-connected-query-failed", exception);
                     return false;
                 }
+            }
+        }
+
+        /// <inheritdoc />
+        /// <remarks>
+        /// Delegates to the Timber Pipes water source. A null source (adaptor missing/disabled/
+        /// failed) or an exception answers <see cref="PipeProbeReason.AdapterUnavailable"/>, so the
+        /// panel can distinguish "no mod" from "no tank/network/dry" without throwing into render
+        /// (REQ-V2-SAFE-01, REQ-V2-COMPAT-01).
+        /// </remarks>
+        public PipeProbe ProbePipe()
+        {
+            try
+            {
+                var source = PipeWaterSource as TimberPipesWaterSource;
+                return source is null
+                    ? new PipeProbe(PipeProbeReason.AdapterUnavailable, 0, 0, "pipe-source-unavailable")
+                    : source.ProbePipe();
+            }
+            catch (Exception exception)
+            {
+                LogError("pipe-probe-failed", exception);
+                return new PipeProbe(PipeProbeReason.AdapterUnavailable, 0, 0, "probe-exception");
             }
         }
 

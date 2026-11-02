@@ -34,7 +34,7 @@ HDBF.Panel.Tank,水罐 {0}/{1} 單位（約 {2} 天）,v2 UI
 HDBF.Panel.Coverage,覆蓋率 C {0}%,v2 UI
 HDBF.Panel.MinCoverage,下限 C_min {0}%,v2 UI
 HDBF.Panel.WaterSupply,補水來源：{0},v2 UI
-HDBF.Panel.WaterShortage,缺水：生長效率 {0}%（減產 {1}%）,v2 UI
+HDBF.Panel.WaterShortage,缺水：生長效率 {0}%（生長變慢 {1}%）,v2 UI
 HDBF.Panel.WaterPipe,管道,v2 UI
 HDBF.Panel.WaterManual,人工,v2 UI
 HDBF.Panel.WaterNone,無,v2 UI
@@ -75,7 +75,7 @@ HDBF.Mode.Dense,密植,v2 UI
 HDBF.Mode.Fallow,休耕,v2 UI
 HDBF.Mode.SwitchCooldown,模式切換冷卻中,v2 UI
 HDBF.Port.Power,動力接口,v2 UI
-HDBF.Port.Pipe,管道接口,v2 UI
+HDBF.Port.Pipe,管網（自動補水）,v2 UI
 HDBF.Port.Logistics,物流接口,v2 UI
 HDBF.Port.Connected,已連接,v2 UI
 HDBF.Port.NotConnected,未連接,v2 UI
@@ -92,8 +92,8 @@ HDBF.Warning.IrrigationLow,水位偏低,v2 UI
 HDBF.Warning.MaintenanceOverdue,維護逾期,v2 UI
 HDBF.Warning.NoPower,斷電,v2 UI
 HDBF.Warning.EntranceBlocked,入口堵塞,v2 UI
-HDBF.Warning.Shutdown,維護逾期,v2 UI (world-icon slot for maintenance; frozen Core enum)
-HDBF.Warning.AdapterFailed,入口堵塞,v2 UI (world-icon slot for entrance blocking; frozen Core enum)
+HDBF.Warning.Shutdown,生產停擺,v2 UI (world-icon slot for maintenance; frozen Core enum)
+HDBF.Warning.AdapterFailed,相容適配器失效,v2 UI (world-icon slot for entrance blocking; frozen Core enum)
 HDBF.Warning.OutputFull,輸出庫存已滿,v2 UI
 HDBF.Warning.NoWorkers,無工人在崗,v2 UI
 HDBF.Warning.MissingMaterial,維護材料不足,v2 UI
@@ -118,7 +118,7 @@ HDBF.Error.MaterialsMissing,維護材料不足。,v2 UI
 HDBF.Error.DenseDisabled,模組設定已停用密植。,v2 UI
 HDBF.Error.NotBoxFarm,該建築不是高密度盒子農場。,v2 UI
 HDBF.Error.FarmNotActive,農場尚未啟用。,v2 UI
-HDBF.Error.RefillUnavailable,本版本尚未開放人工補水。,v2 UI
+HDBF.Error.RefillUnavailable,補水來源不可用。,v2 UI
 HDBF.Error.CropNotAvailable,該作物不可用於此陣營。,v2 UI
 HDBF.Error.MaintenanceUnavailable,該檔位沒有材料維護。,v2 UI
 HDBF.Error.InvalidMode,模式無效。,v2 UI
@@ -134,12 +134,12 @@ HDBF.Error.OutputFull,輸出庫存已滿，無法搬運產物。,v2 UI (action r
 HDBF.Tooltip.EffectiveSlots,"有效槽位 P_eff = min({0}, {1} × {2})。",v2 UI
 HDBF.Tooltip.Tank,水罐單位與可用天數；覆蓋率 C 需保持在 C_min 以上。,v2 UI
 HDBF.Tooltip.Coverage,C 為水罐覆蓋率；低於 C_min 會減產，低於其四分之一則停止生長。,v2 UI
-HDBF.Tooltip.Maintenance,消耗維護材料並重置維護倒數。,v2 UI
-HDBF.Tooltip.MaintenanceShutdown,農場已停擺，執行維護可恢復產出。,v2 UI
+HDBF.Tooltip.Maintenance,一次付清所有逾期期數的維護材料，並重置維護倒數。,v2 UI
+HDBF.Tooltip.MaintenanceShutdown,農場已停擺；執行一次維護會付清所有逾期期數並恢復產出。,v2 UI
 HDBF.Tooltip.Power,頂級：接電時生長全速；離網或斷電會降低生長。,v2 UI
 HDBF.Tooltip.Rotation,輪作每輪更換作物；固定作物則始終補種所選作物。,v2 UI
 HDBF.Tooltip.Refill,請求一次人工補水。,v2 UI
-HDBF.Tooltip.PipeWater,管道接口會自動補水。,v2 UI
+HDBF.Tooltip.PipeWater,自動補水只從接上管網的原版液體水塔（小型/中型/大型）抽水；把管道接在農場外殼上不會生效，農場也不必緊鄰管道。,v2 UI
 HDBF.Tooltip.NoWaterSource,沒有補水來源，水罐只會消耗。,v2 UI
 HDBF.Tooltip.Output,輸出庫存與物流端口狀態。,v2 UI
 HDBF.Tooltip.CurrentMode,目前模式。,v2 UI
@@ -192,3 +192,28 @@ HDBF.Panel.GrowingEmpty,尚未種植,v2 UI
 HDBF.Tooltip.Growing,佔用 {0} 格 · 平均生長 {1}% · {2} 天成熟,v2 UI
 HDBF.Panel.GrowingPlanted,已種植槽位,v2 UI
 HDBF.Panel.GrowingPlantedValue,{0} / {1} 格,v2 UI
+HDBF.Panel.IdleReasonLabel,狀態,v2 UI (WP-06 status line)
+HDBF.IdleReason.None,運作中,v2 UI (WP-06 status line)
+HDBF.IdleReason.Paused,已暫停,v2 UI (WP-06 status line)
+HDBF.IdleReason.NoWorkers,無工人在崗,v2 UI (WP-06 status line)
+HDBF.IdleReason.EntranceBlocked,入口堵塞,v2 UI (WP-06 status line)
+HDBF.IdleReason.OutputFull,輸出庫存已滿,v2 UI (WP-06 status line)
+HDBF.IdleReason.WaterShortage,缺水,v2 UI (WP-06 status line)
+HDBF.IdleReason.MaintenanceStalled,維護停擺,v2 UI (WP-06 status line)
+HDBF.IdleReason.MaintenanceDue,維護到期,v2 UI (WP-06 status line)
+HDBF.IdleReason.Fallow,休耕中,v2 UI (WP-06 status line)
+HDBF.Tooltip.IdleReason,農場停工的首要原因；顯示運作中表示一切正常。,v2 UI (WP-06 status line)
+HDBF.Panel.AutoMaintenanceLabel,自動維護,v2 UI (WP-02)
+HDBF.Panel.AutoMaintenanceOn,開,v2 UI (WP-02)
+HDBF.Panel.AutoMaintenanceOff,關,v2 UI (WP-02)
+HDBF.Tooltip.AutoMaintenance,開啟後，農場每天自動付清所有逾期維護，材料消耗與手動執行維護相同。,v2 UI (WP-02)
+HDBF.Panel.MaintenanceCatchUpLabel,追平帳單,v2 UI (WP-01)
+HDBF.Panel.MaintenanceCatchUpValue,{0} 期逾期 · 需 {2} ×{1},v2 UI (WP-01)
+HDBF.Error.MaintenanceNotDue,維護尚未到期。,v2 UI (WP-01)
+HDBF.Error.RefillTankFull,水罐已滿。,v2 UI (WP-08/L-05)
+HDBF.Port.NoPipeTank,管網內沒有可抽水的水塔,v2 UI (WP-05)
+HDBF.Port.NoPipeNetwork,未接上管網,v2 UI (WP-05)
+HDBF.Port.TankDry,管網水塔已空,v2 UI (WP-05)
+HDBF.Port.AdapterUnavailable,Timber Pipes 不可用,v2 UI (WP-05)
+HDBF.Port.BindingFailed,管道綁定失敗,v2 UI (WP-05)
+HDBF.Panel.WaterPaths,補水途徑：管道管網（自動）· 12 格內人工補水 · 從倉庫搬運水,v2 UI (WP-06/L-03)

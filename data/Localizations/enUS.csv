@@ -34,7 +34,7 @@ HDBF.Panel.Tank,Tank {0}/{1} units (about {2} days),v2 UI
 HDBF.Panel.Coverage,Coverage C {0}%,v2 UI
 HDBF.Panel.MinCoverage,Minimum C_min {0}%,v2 UI
 HDBF.Panel.WaterSupply,Water source: {0},v2 UI
-HDBF.Panel.WaterShortage,Water shortage: growth {0}% (yield -{1}%),v2 UI
+HDBF.Panel.WaterShortage,Water shortage: growth {0}% (growth slowed {1}%),v2 UI
 HDBF.Panel.WaterPipe,pipe,v2 UI
 HDBF.Panel.WaterManual,manual,v2 UI
 HDBF.Panel.WaterNone,none,v2 UI
@@ -75,7 +75,7 @@ HDBF.Mode.Dense,Dense planting,v2 UI
 HDBF.Mode.Fallow,Fallow,v2 UI
 HDBF.Mode.SwitchCooldown,Mode change on cooldown,v2 UI
 HDBF.Port.Power,Power port,v2 UI
-HDBF.Port.Pipe,Pipe port,v2 UI
+HDBF.Port.Pipe,Pipe network (auto-refill),v2 UI
 HDBF.Port.Logistics,Logistics port,v2 UI
 HDBF.Port.Connected,Connected,v2 UI
 HDBF.Port.NotConnected,Not connected,v2 UI
@@ -92,8 +92,8 @@ HDBF.Warning.IrrigationLow,Water low,v2 UI
 HDBF.Warning.MaintenanceOverdue,Maintenance overdue,v2 UI
 HDBF.Warning.NoPower,No power,v2 UI
 HDBF.Warning.EntranceBlocked,Entrance blocked,v2 UI
-HDBF.Warning.Shutdown,Maintenance overdue,v2 UI (world-icon slot for maintenance; frozen Core enum)
-HDBF.Warning.AdapterFailed,Entrance blocked,v2 UI (world-icon slot for entrance blocking; frozen Core enum)
+HDBF.Warning.Shutdown,Production halted,v2 UI (world-icon slot for maintenance; frozen Core enum)
+HDBF.Warning.AdapterFailed,Compatibility adapter failed,v2 UI (world-icon slot for entrance blocking; frozen Core enum)
 HDBF.Warning.OutputFull,Output inventory full,v2 UI
 HDBF.Warning.NoWorkers,No workers on duty,v2 UI
 HDBF.Warning.MissingMaterial,Maintenance material missing,v2 UI
@@ -118,7 +118,7 @@ HDBF.Error.MaterialsMissing,Not enough maintenance materials.,v2 UI
 HDBF.Error.DenseDisabled,Dense planting is disabled by the mod configuration.,v2 UI
 HDBF.Error.NotBoxFarm,This building is not a High-Density Box Farm.,v2 UI
 HDBF.Error.FarmNotActive,The farm is not active yet.,v2 UI
-HDBF.Error.RefillUnavailable,Manual refill is not available in this build.,v2 UI
+HDBF.Error.RefillUnavailable,The manual refill source is not reachable.,v2 UI
 HDBF.Error.CropNotAvailable,That crop is not available to this faction.,v2 UI
 HDBF.Error.MaintenanceUnavailable,This tier has no material maintenance.,v2 UI
 HDBF.Error.InvalidMode,Invalid mode.,v2 UI
@@ -134,12 +134,12 @@ HDBF.Error.OutputFull,The output inventory is full; nothing can be moved.,v2 UI 
 HDBF.Tooltip.EffectiveSlots,"Effective slots P_eff = min({0}, {1} × {2}).",v2 UI
 HDBF.Tooltip.Tank,Tank units and remaining days; coverage C must stay above C_min.,v2 UI
 HDBF.Tooltip.Coverage,C is the tank coverage; growth falls below C_min and stops under a quarter of it.,v2 UI
-HDBF.Tooltip.Maintenance,Consumes upkeep materials and resets the maintenance timer.,v2 UI
-HDBF.Tooltip.MaintenanceShutdown,The farm is stalled; performing maintenance restores output.,v2 UI
+HDBF.Tooltip.Maintenance,One click pays every overdue cycle and resets the maintenance timer.,v2 UI
+HDBF.Tooltip.MaintenanceShutdown,The farm is stalled; one maintenance click pays every overdue cycle and restores output.,v2 UI
 HDBF.Tooltip.Power,Top tier: grid power gives full growth; off-grid or a power cut reduces it.,v2 UI
 HDBF.Tooltip.Rotation,Rotation plants a different crop each cycle; fixed crop always replants the selected crop.,v2 UI
 HDBF.Tooltip.Refill,Requests one manual refill trip.,v2 UI
-HDBF.Tooltip.PipeWater,The pipe port supplies water automatically.,v2 UI
+HDBF.Tooltip.PipeWater,Auto-refill draws only from vanilla liquid tanks (Small/Medium/Large) connected to the pipe network; a pipe attached to the farm shell does nothing and the farm does not need to stand next to the pipes.,v2 UI
 HDBF.Tooltip.NoWaterSource,No water source is connected; the tank only drains.,v2 UI
 HDBF.Tooltip.Output,Output inventory and logistics port state.,v2 UI
 HDBF.Tooltip.CurrentMode,This is the current mode.,v2 UI
@@ -192,3 +192,28 @@ HDBF.Panel.GrowingEmpty,Nothing planted yet,v2 UI
 HDBF.Tooltip.Growing,{0} slots in use · average growth {1}% · matures in {2} days,v2 UI
 HDBF.Panel.GrowingPlanted,Planted slots,v2 UI
 HDBF.Panel.GrowingPlantedValue,{0} / {1} slots,v2 UI
+HDBF.Panel.IdleReasonLabel,Status,v2 UI (WP-06 status line)
+HDBF.IdleReason.None,Working,v2 UI (WP-06 status line)
+HDBF.IdleReason.Paused,Paused,v2 UI (WP-06 status line)
+HDBF.IdleReason.NoWorkers,No workers on duty,v2 UI (WP-06 status line)
+HDBF.IdleReason.EntranceBlocked,Entrance blocked,v2 UI (WP-06 status line)
+HDBF.IdleReason.OutputFull,Output inventory full,v2 UI (WP-06 status line)
+HDBF.IdleReason.WaterShortage,Water shortage,v2 UI (WP-06 status line)
+HDBF.IdleReason.MaintenanceStalled,Maintenance stalled,v2 UI (WP-06 status line)
+HDBF.IdleReason.MaintenanceDue,Maintenance due,v2 UI (WP-06 status line)
+HDBF.IdleReason.Fallow,Fallow (resting),v2 UI (WP-06 status line)
+HDBF.Tooltip.IdleReason,The first active reason the farm is not doing farm work; Working means everything is fine.,v2 UI (WP-06 status line)
+HDBF.Panel.AutoMaintenanceLabel,Automatic maintenance,v2 UI (WP-02)
+HDBF.Panel.AutoMaintenanceOn,On,v2 UI (WP-02)
+HDBF.Panel.AutoMaintenanceOff,Off,v2 UI (WP-02)
+HDBF.Tooltip.AutoMaintenance,When enabled the farm pays every overdue upkeep cycle automatically each day at the same material cost as pressing Perform maintenance.,v2 UI (WP-02)
+HDBF.Panel.MaintenanceCatchUpLabel,Catch-up bill,v2 UI (WP-01)
+HDBF.Panel.MaintenanceCatchUpValue,{0} cycle(s) overdue · needs {2} ×{1},v2 UI (WP-01)
+HDBF.Error.MaintenanceNotDue,Maintenance is not due yet.,v2 UI (WP-01)
+HDBF.Error.RefillTankFull,The water tank is already full.,v2 UI (WP-08/L-05)
+HDBF.Port.NoPipeTank,No water tank in pipe network,v2 UI (WP-05)
+HDBF.Port.NoPipeNetwork,No pipe network,v2 UI (WP-05)
+HDBF.Port.TankDry,Pipe tank empty,v2 UI (WP-05)
+HDBF.Port.AdapterUnavailable,Timber Pipes unavailable,v2 UI (WP-05)
+HDBF.Port.BindingFailed,Pipe binding failed,v2 UI (WP-05)
+HDBF.Panel.WaterPaths,Water refill paths: pipe network (auto) · manual refill within 12 cells · hauling water from storage,v2 UI (WP-06/L-03)

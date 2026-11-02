@@ -95,34 +95,43 @@ namespace HDBF.Core.Indoor
                 if (manualRefillRequested)
                 {
                     var source = manualWater ?? water;
-                    var freeActions = IndoorLaborMath.RemainingActions(activeWorkers, reservedActions);
-                    if (activeWorkers <= 0)
+                    // WP-08 / L-05: draw only what the tank can actually take. A tank that is full
+                    // enough is a no-op: no water, no farm action and no NoWater warning.
+                    var drawAmount = IndoorWaterMath.ManualRefillDrawAmount(record.Tank, tier.TankCapacity);
+                    if (!(drawAmount > 0f))
                     {
-                        refillOutcome = ManualRefillOutcome.NoWorkers;
-                    }
-                    else if (entranceBlocked)
-                    {
-                        refillOutcome = ManualRefillOutcome.EntranceBlocked;
-                    }
-                    else if (freeActions < IndoorConstants.ManualRefillActions)
-                    {
-                        refillOutcome = ManualRefillOutcome.NoBudget;
-                    }
-                    else if (IndoorWaterMath.TryDrawSource(source,
-                                 IndoorWaterMath.RefillAmount(tier.TankCapacity), out var drawn) && drawn > 0f)
-                    {
-                        IndoorWaterMath.TryRefill(record, drawn);
-                        refillActions = IndoorConstants.ManualRefillActions;
-                        refillOutcome = ManualRefillOutcome.Completed;
+                        refillOutcome = ManualRefillOutcome.TankFull;
                     }
                     else
                     {
-                        refillOutcome = ManualRefillOutcome.NoSource;
-                    }
+                        var freeActions = IndoorLaborMath.RemainingActions(activeWorkers, reservedActions);
+                        if (activeWorkers <= 0)
+                        {
+                            refillOutcome = ManualRefillOutcome.NoWorkers;
+                        }
+                        else if (entranceBlocked)
+                        {
+                            refillOutcome = ManualRefillOutcome.EntranceBlocked;
+                        }
+                        else if (freeActions < IndoorConstants.ManualRefillActions)
+                        {
+                            refillOutcome = ManualRefillOutcome.NoBudget;
+                        }
+                        else if (IndoorWaterMath.TryDrawSource(source, drawAmount, out var drawn) && drawn > 0f)
+                        {
+                            IndoorWaterMath.TryRefill(record, drawn);
+                            refillActions = IndoorConstants.ManualRefillActions;
+                            refillOutcome = ManualRefillOutcome.Completed;
+                        }
+                        else
+                        {
+                            refillOutcome = ManualRefillOutcome.NoSource;
+                        }
 
-                    if (refillOutcome != ManualRefillOutcome.Completed)
-                    {
-                        warnings |= IndoorWarningFlags.NoWater;
+                        if (refillOutcome != ManualRefillOutcome.Completed)
+                        {
+                            warnings |= IndoorWarningFlags.NoWater;
+                        }
                     }
                 }
 
@@ -241,7 +250,9 @@ namespace HDBF.Core.Indoor
                 {
                     warnings |= IndoorWarningFlags.MaintenanceDue;
                     if (stalled) warnings |= IndoorWarningFlags.MaintenanceStalled;
-                    if (IndoorMaintenanceMath.IsMaterialMissing(materials, tier, record))
+                    // WP-01/L-07: judge the material against the whole catch-up bill, the same amount
+                    // a maintenance click or the automatic maintenance pass has to withdraw.
+                    if (IndoorMaintenanceMath.IsMaterialMissingForCycles(materials, tier, record, cycles))
                     {
                         warnings |= IndoorWarningFlags.MissingMaterial;
                     }

@@ -1,21 +1,19 @@
 // ============================================================================
 // HDBF v2 | Layer: UI/Localization | Owner: V2-UI-01
-// Purpose: Every localization key the v2 indoor panel formats, as compile-time
-//          constants. No v1 field terminology survives here (REQ-V2-UI-04).
+// Purpose: Compile-time constants of every localization key the v2 indoor panel formats.
 // Requirements: REQ-V2-UI-02/03/04, REQ-V2-READ-04
+// Size: kept as one constant table (REQ-V2-MAINT-02 written reason): it is a pure declarative
+//       table and splitting it would scatter the one localization contract across partials.
 // ============================================================================
 namespace HDBF.UI.Localization
 {
     /// <summary>
     /// Every localization key the v2 indoor panel uses (REQ-V2-UI-03). Each constant must appear
-    /// verbatim in <c>data/Localizations/enUS.csv</c>, <c>zhCN.csv</c> and <c>zhTW.csv</c> (the
-    /// three files carry identical key sets); <c>tools/validate</c> cross-checks these constants
-    /// against the shipped CSVs, and <c>V2LocalizationTests</c> pins the parity from L1.
-    ///
-    /// The <c>Error*</c> constants are the failure keys returned by <c>IBoxFarmCommand</c> and by
-    /// the v2 indoor command surface; their string values are duplicated in gameplay. Core cannot
-    /// reference UI, so the duplication is deliberate (same rule as the v1 contract) and the
-    /// <c>V2PanelContractTests</c> whitelist keeps an unknown key from reaching the player.
+    /// verbatim in <c>data/Localizations/enUS.csv</c>, <c>zhCN.csv</c> and <c>zhTW.csv</c> (identical
+    /// key sets); <c>tools/validate</c> cross-checks these constants against the shipped CSVs, and
+    /// <c>V2LocalizationTests</c> pins the parity from L1. The <c>Error*</c> values are duplicated in
+    /// gameplay because Core cannot reference UI; the <c>V2PanelContractTests</c> whitelist keeps an
+    /// unknown key from reaching the player.
     /// </summary>
     public static class HdbfUiLocKeys
     {
@@ -52,26 +50,16 @@ namespace HDBF.UI.Localization
         public const string PanelSectionWorkers = "HDBF.Panel.SectionWorkers";
         public const string PanelSectionActions = "HDBF.Panel.SectionActions";
 
-        /// <summary>Title of the live "Growing now" card (REQ-V2-UI-05).</summary>
+        // Live "Growing now" card (REQ-V2-UI-05).
         public const string PanelSectionGrowing = "HDBF.Panel.SectionGrowing";
-
-        /// <summary>Per-crop value of the live growing card: "{0} growing · {1} ready".</summary>
         public const string PanelGrowingValue = "HDBF.Panel.GrowingValue";
-
-        /// <summary>Label of the planted-slot summary row of the live growing card.</summary>
         public const string PanelGrowingPlanted = "HDBF.Panel.GrowingPlanted";
-
-        /// <summary>Planted/capacity value of the growing card summary row ("{0} / {1} slots").</summary>
         public const string PanelGrowingPlantedValue = "HDBF.Panel.GrowingPlantedValue";
-
-        /// <summary>Empty-state row of the live growing card ("Nothing planted yet").</summary>
         public const string PanelGrowingEmpty = "HDBF.Panel.GrowingEmpty";
-
-        /// <summary>Per-crop hover text: slots in use, average growth and days to maturity.</summary>
         public const string TooltipGrowing = "HDBF.Tooltip.Growing";
 
-        // Header card and vanilla row labels (one localized label per panel row; values are numbers
-        // or enum labels so a row never concatenates two sentences).
+        // Header card and vanilla row labels (one localized label per row; values are numbers or
+        // enum labels so a row never concatenates two sentences).
         public const string PanelSubtitle = "HDBF.Panel.Subtitle";
         public const string PanelCrewLabel = "HDBF.Panel.CrewLabel";
         public const string PanelCountValue = "HDBF.Panel.CountValue";
@@ -91,9 +79,7 @@ namespace HDBF.UI.Localization
         public const string PanelSupplyLabel = "HDBF.Panel.SupplyLabel";
         public const string PanelMaintenanceDueLabel = "HDBF.Panel.MaintenanceDueLabel";
         public const string PanelMaintenanceCyclesLabel = "HDBF.Panel.MaintenanceCyclesLabel";
-        /// <summary>Label of the always-visible upkeep-material requirement row (requirement F).</summary>
         public const string PanelMaintenanceMaterialLabel = "HDBF.Panel.MaintenanceMaterialLabel";
-        /// <summary>"material ×count / cycle days" value of the upkeep-material row.</summary>
         public const string PanelMaintenanceMaterialValue = "HDBF.Panel.MaintenanceMaterialValue";
         public const string PanelPowerLabel = "HDBF.Panel.PowerLabel";
         public const string PanelCropPolicyLabel = "HDBF.Panel.CropPolicyLabel";
@@ -108,7 +94,6 @@ namespace HDBF.UI.Localization
         public const string PanelBarCoverage = "HDBF.Panel.BarCoverage";
         public const string PanelBarSlots = "HDBF.Panel.BarSlots";
         public const string PanelBarOutput = "HDBF.Panel.BarOutput";
-
         // Read-only worker roster: names are not exposed to mods, so the chips explain themselves.
         public const string PanelWorkerNote = "HDBF.Panel.WorkerNote";
         public const string PanelWorkerVacant = "HDBF.Panel.WorkerVacant";
@@ -122,7 +107,8 @@ namespace HDBF.UI.Localization
         public const string PanelMatureSlots = "HDBF.Panel.MatureSlots";
         public const string PanelBacklog = "HDBF.Panel.Backlog";
 
-        // Water block: tank units / days, C, C_min, supply kind and the shortage derate.
+        // Water block: tank units/days, C, C_min, supply kind, the three refill paths (WP-06/L-03)
+        // and the shortage sentence. The shortage text says GROWTH SLOWED, not yield loss (L-17).
         public const string PanelTank = "HDBF.Panel.Tank";
         public const string PanelCoverage = "HDBF.Panel.Coverage";
         public const string PanelMinCoverage = "HDBF.Panel.MinCoverage";
@@ -131,14 +117,38 @@ namespace HDBF.UI.Localization
         public const string PanelWaterPipe = "HDBF.Panel.WaterPipe";
         public const string PanelWaterManual = "HDBF.Panel.WaterManual";
         public const string PanelWaterNone = "HDBF.Panel.WaterNone";
+        /// <summary>The three refill paths (pipe network / manual refill / hauled water).</summary>
+        public const string PanelWaterPaths = "HDBF.Panel.WaterPaths";
 
-        // Maintenance block: due day, overdue cycles, missing material list.
+        // Status line (WP-06/L-03): one single "why nothing happens" reason plus its tooltip.
+        public const string PanelIdleReasonLabel = "HDBF.Panel.IdleReasonLabel";
+        public const string IdleReasonNone = "HDBF.IdleReason.None";
+        public const string IdleReasonPaused = "HDBF.IdleReason.Paused";
+        public const string IdleReasonNoWorkers = "HDBF.IdleReason.NoWorkers";
+        public const string IdleReasonEntranceBlocked = "HDBF.IdleReason.EntranceBlocked";
+        public const string IdleReasonOutputFull = "HDBF.IdleReason.OutputFull";
+        public const string IdleReasonWaterShortage = "HDBF.IdleReason.WaterShortage";
+        public const string IdleReasonMaintenanceStalled = "HDBF.IdleReason.MaintenanceStalled";
+        public const string IdleReasonMaintenanceDue = "HDBF.IdleReason.MaintenanceDue";
+        public const string IdleReasonFallow = "HDBF.IdleReason.Fallow";
+        public const string TooltipIdleReason = "HDBF.Tooltip.IdleReason";
+
+        // Maintenance block: due day, overdue cycles, missing material list, automatic maintenance
+        // (WP-02) and the catch-up bill of the next click (WP-01/L-08).
         public const string PanelMaintenanceDue = "HDBF.Panel.MaintenanceDue";
         public const string PanelMaintenanceCycles = "HDBF.Panel.MaintenanceCycles";
         public const string PanelMaintenanceMaterials = "HDBF.Panel.MaintenanceMaterials";
         public const string PanelMaintenanceNone = "HDBF.Panel.MaintenanceNone";
         public const string PanelMaterialPlank = "HDBF.Panel.MaterialPlank";
         public const string PanelMaterialMetalBlock = "HDBF.Panel.MaterialMetalBlock";
+        public const string PanelAutoMaintenanceLabel = "HDBF.Panel.AutoMaintenanceLabel";
+        public const string PanelAutoMaintenanceOn = "HDBF.Panel.AutoMaintenanceOn";
+        public const string PanelAutoMaintenanceOff = "HDBF.Panel.AutoMaintenanceOff";
+        public const string TooltipAutoMaintenance = "HDBF.Tooltip.AutoMaintenance";
+        /// <summary>Label of the catch-up hint row shown while cycles are owed (WP-01).</summary>
+        public const string PanelMaintenanceCatchUpLabel = "HDBF.Panel.MaintenanceCatchUpLabel";
+        /// <summary>Catch-up value: "{0} cycles overdue · needs {2} ×{1}" (cycles, count, material).</summary>
+        public const string PanelMaintenanceCatchUpValue = "HDBF.Panel.MaintenanceCatchUpValue";
 
         // Power block: grid / off-grid / power cut / not required.
         public const string PanelPower = "HDBF.Panel.Power";
@@ -159,7 +169,7 @@ namespace HDBF.UI.Localization
         public const string PanelOutputPort = "HDBF.Panel.OutputPort";
         public const string PanelPorts = "HDBF.Panel.Ports";
 
-        // Status area: warning rows an the concrete "why nothing happens" reasons.
+        // Status area: warning rows and the concrete "why nothing happens" reasons.
         public const string PanelStatus = "HDBF.Panel.Status";
         public const string PanelProblems = "HDBF.Panel.Problems";
 
@@ -184,7 +194,8 @@ namespace HDBF.UI.Localization
         public const string ModeFallow = "HDBF.Mode.Fallow";
         public const string ModeSwitchCooldown = "HDBF.Mode.SwitchCooldown";
 
-        // Port names and shared port states.
+        // Port names and shared port states. `PortPipe` names the pipe NETWORK (auto-refill), not a
+        // bare "pipe port" (L-17); the probe reason keys replace the old single misleading text.
         public const string PortPower = "HDBF.Port.Power";
         public const string PortPipe = "HDBF.Port.Pipe";
         public const string PortLogistics = "HDBF.Port.Logistics";
@@ -192,6 +203,11 @@ namespace HDBF.UI.Localization
         public const string PortNotConnected = "HDBF.Port.NotConnected";
         public const string PortDisabled = "HDBF.Port.Disabled";
         public const string PortNotApplicable = "HDBF.Port.NotApplicable";
+        public const string PortNoPipeTank = "HDBF.Port.NoPipeTank";
+        public const string PortNoPipeNetwork = "HDBF.Port.NoPipeNetwork";
+        public const string PortTankDry = "HDBF.Port.TankDry";
+        public const string PortAdapterUnavailable = "HDBF.Port.AdapterUnavailable";
+        public const string PortBindingFailed = "HDBF.Port.BindingFailed";
 
         // Actions: refill, maintenance, mode switch, crop policy.
         public const string ActionMaintenance = "HDBF.Action.Maintenance";
@@ -244,6 +260,8 @@ namespace HDBF.UI.Localization
         public const string ErrorRefillUnavailable = "HDBF.Error.RefillUnavailable";
         public const string ErrorCropNotAvailable = "HDBF.Error.CropNotAvailable";
         public const string ErrorMaintenanceUnavailable = "HDBF.Error.MaintenanceUnavailable";
+        public const string ErrorMaintenanceNotDue = "HDBF.Error.MaintenanceNotDue";
+        public const string ErrorRefillTankFull = "HDBF.Error.RefillTankFull";
         public const string ErrorInvalidMode = "HDBF.Error.InvalidMode";
         public const string ErrorMissingMod = "HDBF.Error.MissingMod";
 

@@ -36,6 +36,7 @@ namespace HDBF.Tests
             TestAssert.True(features.DensePlanting);
             TestAssert.True(features.Rotation);
             TestAssert.True(features.Maintenance);
+            TestAssert.True(features.AutoMaintenance, "autoMaintenance defaults to true (WP-02)");
             TestAssert.True(features.PowerConnection);
             TestAssert.True(features.PipeConnection);
             TestAssert.False(features.LogisticsOutput, "logisticsOutput defaults to false (table 10-3)");
@@ -158,6 +159,22 @@ namespace HDBF.Tests
             TestAssert.False(config.Features.Rotation);
             TestAssert.True(config.Features.LogisticsOutput);
             TestAssert.True(config.Features.DensePlanting, "unspecified flags keep their defaults");
+        }
+
+        public static void TestParseReadsAutoMaintenanceFlag()
+        {
+            // WP-02: the per-building default comes from features.autoMaintenance.
+            var parsed = HdbfConfigCodec.Parse("{\"features\":{\"autoMaintenance\":false}}");
+            TestAssert.False(parsed.Features.AutoMaintenance);
+            TestAssert.True(parsed.Features.Maintenance, "the existing maintenance flag is independent");
+            TestAssert.True(HdbfConfigCodec.Parse("{}").Features.AutoMaintenance,
+                "a missing key keeps the shipped default (on)");
+
+            var json = HdbfConfigCodec.Serialize(
+                new HdbfConfig { Features = new FeatureFlags { AutoMaintenance = false } });
+            TestAssert.True(json.Contains("\"autoMaintenance\": false", StringComparison.Ordinal), json);
+            var reparsed = HdbfConfigCodec.Parse(json);
+            TestAssert.False(reparsed.Features.AutoMaintenance, "the flag survives serialize -> parse");
         }
 
         public static void TestParseWrongTypeUsesDefaultAndWarns()

@@ -121,7 +121,9 @@ internal sealed class Localizations
     private static readonly HashSet<string> Categories =
         new(StringComparer.Ordinal)
         {
+            // IdleReason: the single "why is this farm idle" status line (WP-06, 2026-11-02).
             "Building", "Panel", "Mode", "Port", "Action", "Warning", "Compat", "Error", "Tooltip",
+            "IdleReason",
         };
 
     private readonly Report _report;

@@ -24,8 +24,8 @@ namespace HDBF.Core.Config
         /// <summary>Feature flags of schema 2.</summary>
         public static readonly string[] FeatureKeys =
         {
-            "densePlanting", "rotation", "maintenance", "powerConnection", "pipeConnection",
-            "logisticsOutput", "soilFatigue",
+            "densePlanting", "rotation", "maintenance", "autoMaintenance", "powerConnection",
+            "pipeConnection", "logisticsOutput", "soilFatigue",
         };
 
         /// <summary>Perf keys of schema 2 (the v1 scan/irrigation/crop-visibility keys are gone).</summary>
@@ -52,8 +52,8 @@ namespace HDBF.Core.Config
         /// <summary>Feature keys a schema-1 file may carry (one was deleted in schema 2).</summary>
         public static readonly string[] KnownFeatureKeys =
         {
-            "densePlanting", "rotation", "maintenance", "powerConnection", "pipeConnection",
-            "logisticsOutput", "soilFatigue", "growthMultiplierPatch",
+            "densePlanting", "rotation", "maintenance", "autoMaintenance", "powerConnection",
+            "pipeConnection", "logisticsOutput", "soilFatigue", "growthMultiplierPatch",
         };
 
         /// <summary>Perf keys a schema-1 file may carry (scan/irrigation/visibility were deleted).</summary>

@@ -44,6 +44,10 @@ namespace HDBF.Tests
             "CropPolicy", "FixedCropId", "RotationSequence", "OutputOccupied", "OutputPortConnected",
             "PipePort", "LogisticsPort", "PowerPort", "Warnings", "OutputInventoryPortState",
             "Crops",
+            // WP-01/02/04/05/06 init properties (plan section 3.6); the panel and its fingerprint
+            // must read every one of them.
+            "Paused", "AutoMaintenance", "MaintenanceCyclesToCatchUp", "MaintenanceCatchUpMaterialAmount",
+            "IdleReason", "ManualRefillSourceAvailable", "PipeProbeState",
         };
 
         // ------------------------------------------------------------------ contract / order
@@ -327,13 +331,14 @@ namespace HDBF.Tests
                 Coverage = 0.30f,
                 MinCoverage = 0.60f,
                 WaterSupply = WaterSupplyKind.Manual,
+                ManualRefillSourceAvailable = true,
                 Warnings = IndoorWarningFlags.LowWater,
             };
             var data = CreateData(dry, out _);
             var water = Section(data, HdbfPanelSectionKind.Water);
-            // G_irr = (0.30 - 0.25*0.60) / (0.75*0.60) = 1/3 -> growth 33 %, yield loss 67 %.
+            // G_irr = (0.30 - 0.25*0.60) / (0.75*0.60) = 1/3 -> growth 33 %, growth slowed 67 %.
             var shortage = water.Rows.Single(row => row.Label.StartsWith("Water shortage", StringComparison.Ordinal));
-            TestAssert.Equal("Water shortage: growth 33% (yield -67%)", shortage.Label);
+            TestAssert.Equal("Water shortage: growth 33% (growth slowed 67%)", shortage.Label);
             TestAssert.True(shortage.IsWarning);
             TestAssert.Equal("Water low", water.Rows[0].Label, "the low-water warning keeps its text");
             TestAssert.True(data.CanRefill, "manual supply with a crew enables the refill action");
@@ -366,6 +371,14 @@ namespace HDBF.Tests
             // Requirement F: the upkeep-material requirement row is always present, not only when
             // the material is missing (Intermediate: 8 plank per 10-day cycle).
             TestAssert.Equal("Plank ×8 / 10 days", Row(maintenance, "Upkeep material").Value);
+            // WP-02: the automatic-maintenance state is a visible On/Off row.
+            TestAssert.Equal("Automatic maintenance", Row(maintenance, "Automatic maintenance").Label);
+            TestAssert.Equal("On", Row(maintenance, "Automatic maintenance").Value);
+            TestAssert.True(Row(maintenance, "Automatic maintenance").Tooltip.Length > 0,
+                "the auto-maintenance tooltip explains the same material cost as manual");
+            // WP-01: the catch-up row spells out the whole bill of the next click.
+            TestAssert.Equal("Catch-up bill", Row(maintenance, "Catch-up bill").Label);
+            TestAssert.Equal("1 cycle(s) overdue · needs Plank ×8", Row(maintenance, "Catch-up bill").Value);
             var warning = maintenance.Rows[0];
             TestAssert.True(warning.IsWarning);
             TestAssert.True(warning.Label.Contains("Maintenance material missing", StringComparison.Ordinal),
@@ -497,7 +510,7 @@ namespace HDBF.Tests
 
             // Requirement E: the output port and the three physical ports are independent rows;
             // no combined "Pipe port Connected · ..." value can overlap the line above any more.
-            TestAssert.Equal("Connected", Row(output, "Pipe port").Value);
+            TestAssert.Equal("Connected", Row(output, "Pipe network (auto-refill)").Value);
             TestAssert.Equal("Connected", Row(output, "Logistics port").Value);
             TestAssert.Equal("Not applicable", Row(output, "Power port").Value);
             TestAssert.False(output.Rows.Any(row => row.Label == "Ports"),
@@ -505,6 +518,188 @@ namespace HDBF.Tests
             TestAssert.Equal(5, output.Rows.Count, "stock + output port + three port rows");
             TestAssert.True(Row(output, "Output stock").Tooltip.Contains("Ok", StringComparison.Ordinal),
                 "the output adapter state stays in the tooltip");
+        }
+
+        // ------------------------------------------------------------------ status line / WP-06
+
+        /// <summary>
+        /// WP-06/L-03: the very first row of the first card is the single status line. It reads the
+        /// snapshot's Core idle reason (a paused snapshot from an older gameplay build still says
+        /// Paused) and always carries its explanatory tooltip.
+        /// </summary>
+        public static void TestStatusLineIsTheFirstRowAndShowsTheIdleReason()
+        {
+            var data = CreateData(IntermediateFixture(), out _);
+            var workers = Section(data, HdbfPanelSectionKind.Workers);
+            TestAssert.Equal("Status", workers.Rows[0].Label, "the status line is the first row of the first card");
+            TestAssert.Equal("Maintenance due", workers.Rows[0].Value);
+            TestAssert.Equal("Maintenance due", data.IdleReasonText);
+            TestAssert.True(data.IdleReasonTooltip.Length > 0, "the status line explains what the reason means");
+            TestAssert.Equal(data.IdleReasonTooltip, workers.Rows[0].Tooltip);
+
+            var paused = CreateData(IntermediateFixture() with
+            {
+                Paused = true,
+                IdleReason = IndoorIdleReason.Paused,
+            }, out _);
+            TestAssert.Equal("Paused", Section(paused, HdbfPanelSectionKind.Workers).Rows[0].Value);
+
+            var legacyPaused = CreateData(IntermediateFixture() with
+            {
+                Paused = true,
+                IdleReason = IndoorIdleReason.None,
+            }, out _);
+            TestAssert.Equal("Paused", legacyPaused.IdleReasonText,
+                "a snapshot that predates the idle-reason field still reports Paused");
+
+            var working = CreateData(IntermediateFixture() with
+            {
+                Paused = false,
+                IdleReason = IndoorIdleReason.None,
+                Warnings = IndoorWarningFlags.None,
+                MaintenanceCyclesMissed = 0,
+                Coverage = 0.73f,
+            }, out _);
+            TestAssert.Equal("Working", working.IdleReasonText);
+
+            // Even a card with warning rows keeps the status line as its very first row.
+            var warn = CreateData(IntermediateFixture() with
+            {
+                Workers = 0,
+                Warnings = IndoorWarningFlags.NoWorkers | IndoorWarningFlags.EntranceBlocked,
+                IdleReason = IndoorIdleReason.NoWorkers,
+            }, out _);
+            var warnWorkers = Section(warn, HdbfPanelSectionKind.Workers);
+            TestAssert.Equal("Status", warnWorkers.Rows[0].Label,
+                "the status line stays first even when warning rows exist");
+            TestAssert.Equal("No workers on duty", warnWorkers.Rows[0].Value);
+            TestAssert.Equal(2, warnWorkers.Rows.Count(row => row.IsWarning),
+                "both warning rows survive in their own order behind the status line");
+        }
+
+        // ------------------------------------------------------------------ WP-01 / WP-02
+
+        /// <summary>
+        /// WP-02: the maintenance card has an always-visible automatic-maintenance On/Off row, and
+        /// the read model carries the boolean + tooltip the action-card toggle renders.
+        /// </summary>
+        public static void TestAutoMaintenanceStateAndTooltipFollowTheSnapshot()
+        {
+            var on = CreateData(IntermediateFixture(), out _);
+            TestAssert.True(on.AutoMaintenance, "the snapshot default is automatic maintenance on");
+            TestAssert.True(on.AutoMaintenanceTooltip.Length > 0);
+            TestAssert.True(on.AutoMaintenanceTooltip.Contains("material cost", StringComparison.Ordinal),
+                "the tooltip says the automatic bill costs the same as the manual one");
+
+            var off = CreateData(IntermediateFixture() with { AutoMaintenance = false }, out _);
+            TestAssert.False(off.AutoMaintenance);
+            TestAssert.Equal("Off",
+                Row(Section(off, HdbfPanelSectionKind.Maintenance), "Automatic maintenance").Value);
+        }
+
+        /// <summary>WP-01: the catch-up hint only appears while cycles are actually owed.</summary>
+        public static void TestCatchUpRowIsHiddenWhenNothingIsDue()
+        {
+            var notDue = CreateData(IntermediateFixture() with
+            {
+                MaintenanceMaterialMissing = false,
+                MaintenanceCyclesMissed = 0,
+                MaintenanceCyclesToCatchUp = 0,
+                MaintenanceCatchUpMaterialAmount = 0,
+                Warnings = IndoorWarningFlags.None,
+            }, out _);
+            var maintenance = Section(notDue, HdbfPanelSectionKind.Maintenance);
+            TestAssert.False(maintenance.Rows.Any(row => row.Label == "Catch-up bill"),
+                "no catch-up hint when nothing is due");
+        }
+
+        // ------------------------------------------------------------------ water paths / L-10
+
+        /// <summary>WP-06/L-03: the water card spells out the three refill paths.</summary>
+        public static void TestWaterCardShowsTheThreeRefillPaths()
+        {
+            var data = CreateData(IntermediateFixture(), out _);
+            var water = Section(data, HdbfPanelSectionKind.Water);
+            var paths = water.Rows.Single(row => row.Label.StartsWith("Water refill paths", StringComparison.Ordinal));
+            TestAssert.Equal("—", paths.Value, "an informational row carries the shared dash value");
+            TestAssert.True(paths.Label.Contains("pipe network", StringComparison.Ordinal)
+                             && paths.Label.Contains("manual refill", StringComparison.Ordinal)
+                             && paths.Label.Contains("hauling water", StringComparison.Ordinal),
+                "all three refill paths are named: " + paths.Label);
+            TestAssert.Equal(paths.Label, data.WaterPathText);
+        }
+
+        /// <summary>
+        /// L-10: 0 workers must not render a green 100 % coverage/efficiency (the farm is not
+        /// working). Both values become the shared "—" glyph and lose their bars.
+        /// </summary>
+        public static void TestZeroWorkersRenderTheDashInsteadOfGreenHundred()
+        {
+            var noCrew = IntermediateFixture() with
+            {
+                Workers = 0,
+                Warnings = IndoorWarningFlags.NoWorkers,
+                IdleReason = IndoorIdleReason.NoWorkers,
+            };
+            var data = CreateData(noCrew, out _);
+            var workers = Section(data, HdbfPanelSectionKind.Workers);
+            TestAssert.Equal("—", Row(workers, "Growth efficiency").Value);
+            TestAssert.False(Row(workers, "Growth efficiency").HasBar, "no green bar without a crew");
+            TestAssert.Equal("No workers on duty", data.IdleReasonText);
+
+            var water = Section(data, HdbfPanelSectionKind.Water);
+            TestAssert.Equal("—", Row(water, "Coverage C").Value);
+            TestAssert.False(Row(water, "Coverage C").HasBar, "no coverage bar without a crew");
+            TestAssert.Equal("60%", Row(water, "Minimum C_min").Value,
+                "C_min is a tier constant and stays visible");
+        }
+
+        // ------------------------------------------------------------------ WP-05 / RE-05 pipes
+
+        /// <summary>
+        /// WP-05/RE-05: the pipe port row names the probe reason (no more single misleading
+        /// "Not connected"), maps PortOff to Disabled and keeps the legacy fallback only when no
+        /// probe ran at all.
+        /// </summary>
+        public static void TestPipePortRowNamesTheProbeReason()
+        {
+            var scenarios = new[]
+            {
+                (PipeProbeReason.Connected, "Connected"),
+                (PipeProbeReason.NoPipeNetwork, "No pipe network"),
+                (PipeProbeReason.NoPipeTank, "No water tank in pipe network"),
+                (PipeProbeReason.TankDry, "Pipe tank empty"),
+                (PipeProbeReason.AdapterUnavailable, "Timber Pipes unavailable"),
+                (PipeProbeReason.BindingFailed, "Pipe binding failed"),
+                (PipeProbeReason.PortOff, "Disabled"),
+            };
+            foreach (var scenario in scenarios)
+            {
+                var snapshot = IntermediateFixture() with
+                {
+                    PipeProbeState = new PipeProbe(scenario.Item1, 2, 1, string.Empty),
+                };
+                var output = Section(CreateData(snapshot, out _), HdbfPanelSectionKind.Output);
+                TestAssert.Equal(scenario.Item2, Row(output, "Pipe network (auto-refill)").Value,
+                    "probe reason " + scenario.Item1);
+                TestAssert.True(Row(output, "Pipe network (auto-refill)").Tooltip
+                        .StartsWith("Auto-refill draws only from", StringComparison.Ordinal),
+                    "the pipe row tooltip explains where auto-refill draws from");
+            }
+
+            // Unknown = no probe ran: keep the pre-probe fallback (pipe supply says connected).
+            var unprobed = Section(CreateData(IntermediateFixture(), out _), HdbfPanelSectionKind.Output);
+            TestAssert.Equal("Connected", Row(unprobed, "Pipe network (auto-refill)").Value);
+
+            var noPort = IntermediateFixture() with
+            {
+                PipePort = false,
+                WaterSupply = WaterSupplyKind.None,
+                PipeProbeState = PipeProbe.Unknown,
+            };
+            TestAssert.Equal("Not applicable",
+                Row(Section(CreateData(noPort, out _), HdbfPanelSectionKind.Output),
+                    "Pipe network (auto-refill)").Value);
         }
 
         public static void TestOutputCapacityMatchesEveryShippedBlueprint()
@@ -588,7 +783,8 @@ namespace HDBF.Tests
         {
             var pipe = CreateData(IntermediateFixture(), out _);
             TestAssert.False(pipe.CanRefill, "a pipe source is not the manual refill path");
-            TestAssert.Equal("The pipe port supplies water automatically.", pipe.RefillReasonText);
+            TestAssert.True(pipe.RefillReasonText.StartsWith("Auto-refill draws only from", StringComparison.Ordinal),
+                "the pipe refill reason must explain where auto-refill draws from: " + pipe.RefillReasonText);
             TestAssert.Equal(pipe.RefillReasonText, pipe.RefillTooltip);
 
             var noWorkers = CreateData(IntermediateFixture() with
@@ -621,6 +817,31 @@ namespace HDBF.Tests
             TestAssert.False(material.CanPerformMaintenance);
             TestAssert.Equal("Missing materials: Plank ×8", material.MaintenanceReasonText);
             TestAssert.True(material.MaintenanceUrgent);
+
+            // WP-01/L-08: 0 cycles means "not due yet" and the button is disabled with its own
+            // specific reason; having cycles and material enables the (catch-up) click again.
+            var notDue = CreateData(IntermediateFixture() with
+            {
+                MaintenanceMaterialMissing = false,
+                MaintenanceCyclesMissed = 0,
+                MaintenanceCyclesToCatchUp = 0,
+                Warnings = IndoorWarningFlags.None,
+            }, out _);
+            TestAssert.False(notDue.CanPerformMaintenance);
+            TestAssert.Equal("Maintenance is not due yet.", notDue.MaintenanceReasonText);
+            TestAssert.Equal(notDue.MaintenanceReasonText, notDue.MaintenanceTooltip,
+                "a disabled maintenance button explains itself in its tooltip");
+
+            var due = CreateData(IntermediateFixture() with
+            {
+                MaintenanceMaterialMissing = false,
+                Warnings = IndoorWarningFlags.None,
+                MaintenanceCyclesToCatchUp = 3,
+            }, out _);
+            TestAssert.True(due.CanPerformMaintenance, "material + due cycles enable the catch-up click");
+            TestAssert.Equal(string.Empty, due.MaintenanceReasonText);
+            TestAssert.True(due.MaintenanceTooltip.Contains("every overdue cycle", StringComparison.Ordinal),
+                "the enabled maintenance tooltip describes the catch-up behaviour: " + due.MaintenanceTooltip);
         }
 
         // ------------------------------------------------------------------ formatting rules
@@ -707,6 +928,7 @@ namespace HDBF.Tests
                 HdbfUiLocKeys.ErrorNotBoxFarm, HdbfUiLocKeys.ErrorFarmNotActive,
                 HdbfUiLocKeys.ErrorRefillUnavailable, HdbfUiLocKeys.ErrorCropNotAvailable,
                 HdbfUiLocKeys.ErrorMaintenanceUnavailable, HdbfUiLocKeys.ErrorInvalidMode,
+                HdbfUiLocKeys.ErrorMaintenanceNotDue, HdbfUiLocKeys.ErrorRefillTankFull,
                 HdbfUiLocKeys.ErrorMissingMod, HdbfUiLocKeys.ModeSwitchCooldown,
                 HdbfUiLocKeys.PortNotApplicable,
                 HdbfUiLocKeys.ErrorNoWorkers, HdbfUiLocKeys.ErrorEntranceBlocked,
@@ -735,8 +957,8 @@ namespace HDBF.Tests
                 "REQ-V2-UI-01: the panel must refresh at most 4 times per second");
             TestAssert.True(source.Contains("Time.unscaledTime", StringComparison.Ordinal),
                 "the refresh gate must use the unscaled wall clock");
-            TestAssert.True(source.Contains("ComputeFingerprint", StringComparison.Ordinal),
-                "the dirty check must compare a value fingerprint");
+            TestAssert.True(source.Contains("HdbfIndoorPanelFingerprint", StringComparison.Ordinal),
+                "the dirty check must compare a pure value fingerprint");
             TestAssert.True(source.Contains("UpdateFragment", StringComparison.Ordinal));
             foreach (var forbidden in new[] { "override void Update", "Time.deltaTime", "void Tick(" })
             {
@@ -844,6 +1066,18 @@ namespace HDBF.Tests
             TestAssert.False(bridge.TryRequestManualRefill(EntityId, out var refillFailure));
             TestAssert.Equal(HdbfUiLocKeys.ErrorNoWaterSource, refillFailure);
             TestAssert.Equal(1, command.RefillCalls);
+
+            // WP-02: the auto-maintenance toggle binds the Guid wrapper exactly like the others.
+            command.AutoMaintenanceFailureKey = HdbfUiLocKeys.ErrorFarmNotActive;
+            TestAssert.False(bridge.TrySetAutoMaintenance(EntityId, false, out var autoFailure));
+            TestAssert.Equal(HdbfUiLocKeys.ErrorFarmNotActive, autoFailure);
+            TestAssert.Equal(1, command.AutoMaintenanceCalls);
+            TestAssert.False(command.LastAutoMaintenance);
+
+            command.AutoMaintenanceFailureKey = null;
+            TestAssert.True(bridge.TrySetAutoMaintenance(EntityId, true, out var autoNone));
+            TestAssert.Null(autoNone);
+            TestAssert.True(command.LastAutoMaintenance);
         }
 
         public static void TestCommandBridgeDegradesWithoutTheV2Members()
@@ -855,6 +1089,8 @@ namespace HDBF.Tests
             TestAssert.Equal(HdbfUiLocKeys.ErrorActionFailed, cropKey);
             TestAssert.False(bridge.TryRequestManualRefill(EntityId, out var refillKey));
             TestAssert.Equal(HdbfUiLocKeys.ErrorActionFailed, refillKey);
+            TestAssert.False(bridge.TrySetAutoMaintenance(EntityId, true, out var autoKey));
+            TestAssert.Equal(HdbfUiLocKeys.ErrorActionFailed, autoKey);
 
             var nullBridge = new HdbfIndoorCommandBridge(null, null);
             TestAssert.False(nullBridge.IsAvailable);
@@ -885,7 +1121,8 @@ namespace HDBF.Tests
                 data.MetaLine, data.MetaTooltip, data.ModeTransitionText,
                 data.WorkerRosterNote, data.CropPolicyLabel, data.CropPolicyText,
                 data.CropTooltip, data.RefillTooltip, data.RefillReasonText, data.MaintenanceTooltip,
-                data.MaintenanceReasonText,
+                data.MaintenanceReasonText, data.IdleReasonText, data.IdleReasonTooltip,
+                data.AutoMaintenanceTooltip, data.WaterPathText,
             };
 
             foreach (var chip in data.WorkerChips)
@@ -950,7 +1187,18 @@ namespace HDBF.Tests
                 LogisticsPort: true,
                 PowerPort: false,
                 Warnings: IndoorWarningFlags.MissingMaterial,
-                OutputInventoryPortState: "Ok");
+                OutputInventoryPortState: "Ok")
+            {
+                // WP-01/02/05/06 init properties (plan section 3.6): one owed cycle with a known
+                // bill, automatic maintenance on and an unprobed pipe (legacy fallback).
+                Paused = false,
+                AutoMaintenance = true,
+                MaintenanceCyclesToCatchUp = 1,
+                MaintenanceCatchUpMaterialAmount = 8,
+                IdleReason = IndoorIdleReason.MaintenanceDue,
+                ManualRefillSourceAvailable = false,
+                PipeProbeState = PipeProbe.Unknown,
+            };
         }
 
         private static HdbfIndoorPanelData CreateData(IndoorFarmSnapshot snapshot, out List<string> missingKeys)
@@ -1127,11 +1375,17 @@ namespace HDBF.Tests
 
             public string? RefillFailureKey { get; set; }
 
+            public string? AutoMaintenanceFailureKey { get; set; }
+
             public int CropCalls { get; private set; }
 
             public int RefillCalls { get; private set; }
 
+            public int AutoMaintenanceCalls { get; private set; }
+
             public CropPolicy LastPolicy { get; private set; }
+
+            public bool LastAutoMaintenance { get; private set; }
 
             public bool TrySetCropPolicy(Guid entityId, CropPolicy policy, string fixedCropId,
                 out string? failureKey)
@@ -1147,6 +1401,14 @@ namespace HDBF.Tests
                 RefillCalls++;
                 failureKey = RefillFailureKey ?? HdbfUiLocKeys.ErrorRefillUnavailable;
                 return false;
+            }
+
+            public bool TrySetAutoMaintenance(Guid entityId, bool enabled, out string? failureKey)
+            {
+                AutoMaintenanceCalls++;
+                LastAutoMaintenance = enabled;
+                failureKey = AutoMaintenanceFailureKey;
+                return failureKey is null;
             }
         }
     }

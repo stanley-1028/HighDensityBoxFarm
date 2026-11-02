@@ -88,6 +88,10 @@ namespace HDBF.Gameplay.Components
                     "vanilla pause event could not be bound; pause integration stays off", exception,
                     _entityId.ToString());
             }
+
+            // 2026-11-02 pause-residual fix: a beaver walking in after the pause can still enter a
+            // blocked farm (CanEnter only checks Enabled/capacity), so react to the vanilla event.
+            BindEntererAdded();
         }
 
         /// <summary>Removes the pause handler when the farm leaves the finished state.</summary>
@@ -108,6 +112,8 @@ namespace HDBF.Gameplay.Components
                 _log.Error(HdbfLogCategory.Warn, IndoorLogKeys.Paused,
                     "vanilla pause event could not be unbound", exception, _entityId.ToString());
             }
+
+            UnbindEntererAdded();
         }
 
         /// <summary>
@@ -211,7 +217,12 @@ namespace HDBF.Gameplay.Components
                     "world warning icons could not be deactivated on pause", exception, _entityId.ToString());
             }
 
-            EjectBeaversFromPausedFarm();
+            // 2026-11-02 pause-residual fix (R1): a paused save can finish loading its enterers
+            // after this one-shot ejection, so a 1 Hz session singleton keeps reconciling until the
+            // farm resumes. Registering before the eject also catches the enterers that are already
+            // restored at this point.
+            _pauseReconcile.Register(this);
+            EjectBeaversFromPausedFarm("pause");
             _log.Write(HdbfLogCategory.Info, IndoorLogKeys.Paused,
                 "indoor farm paused by the player; daily tick, water drain and warning icons stopped, entityId="
                 + _entityId);
@@ -224,8 +235,10 @@ namespace HDBF.Gameplay.Components
         private void ExitPausedState()
         {
             // A paused save can finish loading with an enterer inside; clear it before work resumes
-            // so the re-enter path never sees an "already inside" state.
-            EjectBeaversFromPausedFarm();
+            // so the re-enter path never sees an "already inside" state. The reconcile singleton
+            // stops first: this ejection is the final one of the paused period.
+            _pauseReconcile.Unregister(this);
+            EjectBeaversFromPausedFarm("resume");
             _waterFlow.Register(this);
             try
             {

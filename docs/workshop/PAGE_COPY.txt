@@ -19,7 +19,7 @@ The building is designed to be strong, not to be a cheat.
 [list]
 [*][b]Water[/b] — every slot drinks a little each day, and the tank holds about 3–4 days. Tank coverage sets the growth multiplier; growth slows below the minimum coverage and stops at a quarter of it.
 [*][b]Labour[/b] — one farmer tends 38 slots, and every tier's crew is sized to cover its box exactly. 600 slots with 2 farmers is a very expensive empty box.
-[*][b]Maintenance[/b] — Intermediate and above consume upkeep materials on a cycle (planks first, then metal blocks). Miss it and the farm stalls until a beaver performs maintenance.
+[*][b]Maintenance[/b] — Intermediate and above consume upkeep materials on a cycle (planks first, then metal blocks). Fail to maintain it and the farm stalls until you perform maintenance — or enable automatic maintenance (same material cost, no extra micromanagement).
 [*][b]Power[/b] — the Top tier needs 150 power for full growth.
 [*][b]Soil[/b] — [b]Normal[/b] is neutral, [b]Dense planting[/b] trades more water, more work and faster fatigue for +35% yield, and [b]Fallow[/b] stops production while the soil recovers. Rotate crops automatically or lock one crop per building.
 [/list]

@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // HDBF v2 | Layer: UI/Panels | Owner: V2-UI-01
 // Purpose: Card builders of the v2 indoor panel read model (second half): power, crop strategy
 //          and output cards plus their port/tooltip helpers. Split from .Cards.cs so both files
@@ -106,8 +106,9 @@ namespace HDBF.UI.Panels
                         : HdbfUiLocKeys.PortNotConnected),
                     Tooltip = tooltip,
                 },
-                PortRow(snapshot.PipePort, snapshot.WaterSupply == WaterSupplyKind.Pipe,
-                    HdbfUiLocKeys.PortPipe, localize, tooltip),
+                // WP-05/RE-05: the pipe row reports the probe reason (network/tank/dry/adapter)
+                // instead of the old single misleading "Not connected" state.
+                PipePortRow(snapshot, localize),
                 PortRow(snapshot.LogisticsPort, snapshot.OutputPortConnected,
                     HdbfUiLocKeys.PortLogistics, localize, tooltip),
                 PortRow(snapshot.PowerPort, snapshot.PowerConnected,
@@ -145,6 +146,61 @@ namespace HDBF.UI.Panels
                 Value = HdbfIndoorPanelFormat.Text(localize, stateKey),
                 Tooltip = tooltip,
             };
+        }
+
+        /// <summary>
+        /// Pipe-network row (WP-05/RE-05): the state comes from the read-only probe reason, so a
+        /// farm whose pipe is not usable names WHY (no network, no water tank, dry tank, missing or
+        /// broken adapter, player-disabled port) instead of the old single "Not connected" string.
+        /// </summary>
+        private static HdbfPanelRow PipePortRow(IndoorFarmSnapshot snapshot,
+            Func<string, string> localize)
+        {
+            return new HdbfPanelRow
+            {
+                IconKey = "port",
+                Label = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PortPipe),
+                Value = HdbfIndoorPanelFormat.Text(localize, PipePortStateKey(snapshot)),
+                Tooltip = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.TooltipPipeWater),
+            };
+        }
+
+        /// <summary>
+        /// Maps the snapshot's pipe probe onto a port state key. A probed reason always wins (so a
+        /// genuine problem is named); the only "unprobed" state keeps the pre-probe behaviour:
+        /// no port at all -> not applicable, legacy pipe supply -> connected, otherwise not
+        /// connected.
+        /// </summary>
+        /// <param name="snapshot">Read-only farm snapshot.</param>
+        /// <returns>Localization key of the state to render.</returns>
+        internal static string PipePortStateKey(IndoorFarmSnapshot snapshot)
+        {
+            switch (snapshot.PipeProbeState.Reason)
+            {
+                case PipeProbeReason.Connected:
+                    return HdbfUiLocKeys.PortConnected;
+                case PipeProbeReason.NoPipeNetwork:
+                    return HdbfUiLocKeys.PortNoPipeNetwork;
+                case PipeProbeReason.NoPipeTank:
+                    return HdbfUiLocKeys.PortNoPipeTank;
+                case PipeProbeReason.TankDry:
+                    return HdbfUiLocKeys.PortTankDry;
+                case PipeProbeReason.AdapterUnavailable:
+                    return HdbfUiLocKeys.PortAdapterUnavailable;
+                case PipeProbeReason.BindingFailed:
+                    return HdbfUiLocKeys.PortBindingFailed;
+                case PipeProbeReason.PortOff:
+                    return HdbfUiLocKeys.PortDisabled;
+            }
+
+            if (!snapshot.PipePort)
+            {
+                return HdbfUiLocKeys.PortNotApplicable;
+            }
+
+            return snapshot.WaterSupply == WaterSupplyKind.Pipe
+                ? HdbfUiLocKeys.PortConnected
+                : HdbfUiLocKeys.PortNotConnected;
         }
 
         private static string OutputTooltip(IndoorFarmSnapshot snapshot, Func<string, string> localize)

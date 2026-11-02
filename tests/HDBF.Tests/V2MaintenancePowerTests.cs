@@ -134,6 +134,138 @@ namespace HDBF.Tests
             TestAssert.True(Has(result.Warnings, IndoorWarningFlags.MaintenanceDue));
         }
 
+        // ---------------------------------------------------------------- catch-up bill (WP-01/02)
+
+        public static void TestCatchUpCyclesMatrix()
+        {
+            // Not due yet: the click/automatic pass must do nothing.
+            TestAssert.Equal(0, IndoorMaintenanceMath.CatchUpCycles(10f, 0f, 10f));
+            TestAssert.Equal(0, IndoorMaintenanceMath.CatchUpCycles(10f, 9.99f, 10f));
+            // Exactly on the due day: one cycle.
+            TestAssert.Equal(1, IndoorMaintenanceMath.CatchUpCycles(10f, 10f, 10f));
+            TestAssert.Equal(1, IndoorMaintenanceMath.CatchUpCycles(10f, 19.9f, 10f));
+            // Whole overdue cycles are each paid: 1 + floor((today - due) / cycle).
+            TestAssert.Equal(2, IndoorMaintenanceMath.CatchUpCycles(10f, 20f, 10f));
+            TestAssert.Equal(4, IndoorMaintenanceMath.CatchUpCycles(10f, 45f, 10f));
+            TestAssert.Equal(2, IndoorMaintenanceMath.CatchUpCycles(0f, 15f, 10f));
+            // Invalid inputs never produce a bill.
+            TestAssert.Equal(0, IndoorMaintenanceMath.CatchUpCycles(10f, 20f, 0f));
+            TestAssert.Equal(0, IndoorMaintenanceMath.CatchUpCycles(10f, 20f, -5f));
+            TestAssert.Equal(0, IndoorMaintenanceMath.CatchUpCycles(float.NaN, 20f, 10f));
+            TestAssert.Equal(0, IndoorMaintenanceMath.CatchUpCycles(10f, float.NaN, 10f));
+            TestAssert.Equal(0, IndoorMaintenanceMath.CatchUpCycles(10f, 20f, float.NaN));
+            TestAssert.Equal(0, IndoorMaintenanceMath.CatchUpCycles(float.PositiveInfinity, 20f, 10f));
+            TestAssert.Equal(int.MaxValue, IndoorMaintenanceMath.CatchUpCycles(0f, 4e9f, 1f),
+                "an absurd overdue count saturates instead of overflowing");
+        }
+
+        public static void TestCatchUpMaterialAmountIsSaturated()
+        {
+            TestAssert.Equal(18, IndoorMaintenanceMath.CatchUpMaterialAmount(6, 3));
+            TestAssert.Equal(0, IndoorMaintenanceMath.CatchUpMaterialAmount(6, 0));
+            TestAssert.Equal(0, IndoorMaintenanceMath.CatchUpMaterialAmount(0, 3));
+            TestAssert.Equal(0, IndoorMaintenanceMath.CatchUpMaterialAmount(-2, 3));
+            TestAssert.Equal(0, IndoorMaintenanceMath.CatchUpMaterialAmount(6, -1));
+            TestAssert.Equal(int.MaxValue, IndoorMaintenanceMath.CatchUpMaterialAmount(int.MaxValue, 2));
+        }
+
+        public static void TestCatchUpBillForOverdueIntermediateFarm()
+        {
+            var record = IntermediateRecord();
+            record.MaintenanceDueDay = 10f;
+
+            var due = IndoorMaintenanceMath.TryGetCatchUpBill(TierCatalog.Get(HdbfTier.Intermediate),
+                record, 35f, out var itemId, out var total, out var cycles, out var cycleDays);
+
+            TestAssert.True(due, "3 cycles overdue must be a payable bill");
+            TestAssert.Equal("Plank", itemId);
+            TestAssert.Equal(3, cycles);
+            TestAssert.Equal(24, total, "8 planks x 3 cycles");
+            TestAssert.Equal(10f, cycleDays, 1e-5f);
+            TestAssert.Equal(10f, record.MaintenanceDueDay, 1e-5f, "querying the bill never mutates the record");
+        }
+
+        public static void TestCatchUpBillSkipsNotDueAndMaterialFreeTiers()
+        {
+            var intermediate = IntermediateRecord();
+            intermediate.MaintenanceDueDay = 40f;
+            TestAssert.False(IndoorMaintenanceMath.TryGetCatchUpBill(TierCatalog.Get(HdbfTier.Intermediate),
+                intermediate, 35f, out _, out _, out _, out _), "not due yet");
+
+            var basic = IndoorFarmRecord.Create(HdbfTier.Basic, HdbfFaction.Folktails);
+            TestAssert.False(IndoorMaintenanceMath.TryGetCatchUpBill(TierCatalog.Get(HdbfTier.Basic),
+                basic, 100f, out _, out _, out _, out _), "the basic tier has no material maintenance");
+
+            var top = TopRecord(PowerConnection.Grid, powerConnected: true);
+            TestAssert.False(IndoorMaintenanceMath.TryGetCatchUpBill(TierCatalog.Get(HdbfTier.Top),
+                top, 100f, out _, out _, out _, out _), "connected top tier is maintained by the grid");
+
+            TestAssert.False(IndoorMaintenanceMath.TryGetCatchUpBill(null, intermediate, 35f,
+                out _, out _, out _, out _));
+            TestAssert.False(IndoorMaintenanceMath.TryGetCatchUpBill(TierCatalog.Get(HdbfTier.Intermediate),
+                null, 35f, out _, out _, out _, out _));
+        }
+
+        public static void TestOffGridTopTierCatchUpBillUsesOffGridCycleAndMultiplier()
+        {
+            var top = TopRecord(PowerConnection.OffGrid, powerConnected: false);
+            top.MaintenanceDueDay = 100f;
+
+            var due = IndoorMaintenanceMath.TryGetCatchUpBill(TierCatalog.Get(HdbfTier.Top), top, 117f,
+                out var itemId, out var total, out var cycles, out var cycleDays);
+
+            TestAssert.True(due);
+            TestAssert.Equal("MetalBlock", itemId);
+            TestAssert.Equal(3, cycles, "(117 - 100) / 8 = 2.125 -> 3 cycles");
+            TestAssert.Equal(45, total, "15 metal per cycle x 3");
+            TestAssert.Equal(8f, cycleDays, 1e-5f);
+        }
+
+        public static void TestMaterialMissingJudgesTheWholeCatchUpBill()
+        {
+            var advanced = AdvancedRecord();
+            advanced.MaintenanceDueDay = 0f;
+
+            // 2 cycles overdue = 12 metal; 6 metal pays only one cycle, so the bill is missing.
+            TestAssert.True(IndoorMaintenanceMath.IsMaterialMissingForCycles(
+                new Stockpile { MetalCount = 6 }, TierCatalog.Get(HdbfTier.Advanced), advanced, 2));
+            TestAssert.False(IndoorMaintenanceMath.IsMaterialMissingForCycles(
+                new Stockpile { MetalCount = 12 }, TierCatalog.Get(HdbfTier.Advanced), advanced, 2));
+            // The legacy single-cycle overload stays valid (one cycle = 6 metal).
+            TestAssert.False(IndoorMaintenanceMath.IsMaterialMissing(
+                new Stockpile { MetalCount = 6 }, TierCatalog.Get(HdbfTier.Advanced), advanced));
+            TestAssert.True(IndoorMaintenanceMath.IsMaterialMissing(
+                new Stockpile { MetalCount = 5 }, TierCatalog.Get(HdbfTier.Advanced), advanced));
+            TestAssert.False(IndoorMaintenanceMath.IsMaterialMissingForCycles(
+                new Stockpile { MetalCount = 0 }, TierCatalog.Get(HdbfTier.Advanced), advanced, 0),
+                "no cycles means no bill");
+        }
+
+        public static void TestMissingMaterialWarningUsesTheCatchUpBill()
+        {
+            var record = AdvancedRecord();
+            record.MaintenanceDueDay = 0f;
+
+            // Cycle 10, today 15 -> 2 cycles -> 12 metal. 6 metal is not enough.
+            var shortBill = Tick(record, new IndoorDayContext
+            {
+                ActiveWorkers = 0,
+                CurrentDay = 15f,
+                Materials = new Stockpile { MetalCount = 6 },
+            });
+            TestAssert.True(Has(shortBill.Warnings, IndoorWarningFlags.MissingMaterial),
+                "the panel/tick must judge the whole catch-up bill (L-07)");
+
+            record.MaintenanceCyclesMissed = 0;
+            var enough = Tick(record, new IndoorDayContext
+            {
+                ActiveWorkers = 0,
+                CurrentDay = 15f,
+                Materials = new Stockpile { MetalCount = 12 },
+            });
+            TestAssert.False(Has(enough.Warnings, IndoorWarningFlags.MissingMaterial));
+        }
+
         // ---------------------------------------------------------------- power
 
         public static void TestTopTierPowerCutDeratesGrowth()

@@ -68,6 +68,8 @@ namespace HDBF.Core.Indoor
             builder.Append('{');
             IndoorSaveFormat.AppendFloat(builder, "dueDay", record.MaintenanceDueDay, true);
             IndoorSaveFormat.AppendInt(builder, "cyclesMissed", record.MaintenanceCyclesMissed, false);
+            // WP-02: new field appended after the existing members; old payloads keep their shape.
+            IndoorSaveFormat.AppendBool(builder, "auto", record.AutoMaintenance, false);
             builder.Append('}');
 
             IndoorSaveFormat.StartField(builder, "power", false);
@@ -186,6 +188,16 @@ namespace HDBF.Core.Indoor
             record.MaintenanceDueDay = ReadFloat(maintenance, "dueDay", "maintenance.dueDay-default", notes);
             record.MaintenanceCyclesMissed =
                 ReadInt(maintenance, "cyclesMissed", "maintenance.cyclesMissed-default", notes);
+            // WP-02: a missing "auto" decodes to the safe default (on) and is reported as a note.
+            if (IndoorSaveFormat.TryReadBool(maintenance, "auto", out var autoMaintenance))
+            {
+                record.AutoMaintenance = autoMaintenance;
+                record.AutoMaintenanceSpecified = true;
+            }
+            else
+            {
+                notes.Add("maintenance.auto-default");
+            }
 
             var power = ObjectMember(root, "power", "power-default", notes);
             record.PowerConnected = ReadBool(power, "connected", "power.connected-default", notes);

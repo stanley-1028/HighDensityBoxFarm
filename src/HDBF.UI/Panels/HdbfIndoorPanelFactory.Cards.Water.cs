@@ -20,7 +20,10 @@ namespace HDBF.UI.Panels
         private static HdbfPanelSection BuildWaterSection(IndoorFarmSnapshot snapshot, float coverage,
             float minCoverage, float irrigation, Func<string, string> localize)
         {
-            var rows = new List<HdbfPanelRow>(4)
+            // L-10: with no crew the coverage is mechanically 100 % (demand 0) but nothing grows;
+            // show the shared "—" glyph instead of a green 100 % that reads as "all fine".
+            var hasCrew = snapshot.Workers > 0;
+            var rows = new List<HdbfPanelRow>(5)
             {
                 new()
                 {
@@ -41,14 +44,18 @@ namespace HDBF.UI.Panels
                 {
                     IconKey = "coverage",
                     Label = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelCoverageLabel),
-                    Value = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelPercentValue,
-                        PanelNumbers.Percent(coverage, roundUp: false)),
+                    Value = hasCrew
+                        ? HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelPercentValue,
+                            PanelNumbers.Percent(coverage, roundUp: false))
+                        : HdbfIndoorPanelFormat.Unknown,
                     Tooltip = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.TooltipCoverage),
-                    HasBar = true,
+                    HasBar = hasCrew,
                     Bar = HdbfIndoorPanelLimits.Fill(coverage),
-                    BarText = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelBarCoverage,
-                        PanelNumbers.Percent(coverage, roundUp: false),
-                        PanelNumbers.Percent(minCoverage, roundUp: false)),
+                    BarText = hasCrew
+                        ? HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelBarCoverage,
+                            PanelNumbers.Percent(coverage, roundUp: false),
+                            PanelNumbers.Percent(minCoverage, roundUp: false))
+                        : string.Empty,
                     BarMarker = minCoverage,
                 },
                 new()
@@ -66,6 +73,15 @@ namespace HDBF.UI.Panels
                     Value = HdbfIndoorPanelFormat.Text(localize,
                         HdbfIndoorPanelFormat.SupplyKey(snapshot.WaterSupply)),
                     Tooltip = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.TooltipTank),
+                },
+                // WP-06/L-03: the three water refill paths are spelled out, so a farm that ran dry
+                // never leaves the player without a next step. The sentence is one shipped key.
+                new()
+                {
+                    IconKey = "supply",
+                    Label = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelWaterPaths),
+                    Value = HdbfIndoorPanelFormat.Unknown,
+                    Tooltip = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.TooltipPipeWater),
                 },
             };
 

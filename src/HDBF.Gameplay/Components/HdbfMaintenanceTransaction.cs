@@ -45,7 +45,7 @@ namespace HDBF.Gameplay.Components
         /// <param name="farm">Farm whose position defines "nearest".</param>
         /// <param name="entityId">Farm entity id for the log line.</param>
         /// <param name="itemId">Verified vanilla good id ("Plank"/"MetalBlock").</param>
-        /// <param name="amount">Item count of one maintenance cycle; must be positive.</param>
+        /// <param name="amount">Whole catch-up bill in items (cycles x per-cycle amount); must be positive.</param>
         /// <param name="failureKey">Specific failure key when false.</param>
         /// <returns>True when the material transaction succeeded or was not needed.</returns>
         internal bool TryConsumeNearest(BaseComponent farm, Guid entityId, string? itemId, int amount,

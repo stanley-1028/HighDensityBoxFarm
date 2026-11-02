@@ -16,11 +16,14 @@ using Timberborn.InventorySystem;
 namespace HDBF.Gameplay.Components
 {
     /// <summary>
-    /// Read-only maintenance material view of the settlement (section 19.8). It sums the
-    /// unreserved stock across finished district inventories; a missing registry or a throwing
+    /// Read-only maintenance material view of the settlement (section 19.8). <see cref="Available"/>
+    /// reports the largest unreserved stock held by a single finished district inventory: the
+    /// transaction is all-or-nothing per inventory, so summing across stockpiles would let the panel
+    /// claim "enough" while the real withdrawal fails (L-07). A missing registry or a throwing
     /// inventory answers 0, which the Core tick turns into a throttled MissingMaterial flag. This
-    /// card does not consume materials from the tick: maintenance stays an explicit player/command
-    /// action (V2-GAMEPLAY-02 owns the full nearest-stockpile transaction).
+    /// card does not consume materials from the daily tick: the explicit command
+    /// (HdbfFarmCommandService) and the automatic pass (HdbfBoxFarmController) use
+    /// <see cref="TryConsume"/>, which follows the same single-inventory rule.
     /// </summary>
     internal sealed class IndoorMaintenanceMaterialSource : IMaintenanceMaterialSource
     {
@@ -46,7 +49,9 @@ namespace HDBF.Gameplay.Components
             try
             {
                 var centers = _centers.FinishedDistrictCenters;
-                var available = 0;
+                // L-07: the transaction needs one inventory that holds the WHOLE bill unreserved, so
+                // the reported amount is the largest single inventory, never the sum across them.
+                var largest = 0;
                 for (var centerIndex = 0; centerIndex < centers.Count; centerIndex++)
                 {
                     var center = centers[centerIndex];
@@ -69,11 +74,15 @@ namespace HDBF.Gameplay.Components
                             continue;
                         }
 
-                        available += inventory.UnreservedAmountInStock(itemId);
+                        var unreserved = inventory.UnreservedAmountInStock(itemId);
+                        if (unreserved > largest)
+                        {
+                            largest = unreserved;
+                        }
                     }
                 }
 
-                return available;
+                return largest;
             }
             catch (Exception exception)
             {

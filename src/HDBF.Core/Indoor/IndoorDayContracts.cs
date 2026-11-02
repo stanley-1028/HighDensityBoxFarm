@@ -77,6 +77,12 @@ namespace HDBF.Core.Indoor
 
         /// <summary>The entrance is blocked, so a worker cannot leave/return for the trip.</summary>
         EntranceBlocked = 5,
+
+        /// <summary>
+        /// The tank is already full enough that a trip would draw nothing (WP-08 / L-05): no water is
+        /// added, no farm action is spent and no NoWater warning is raised.
+        /// </summary>
+        TankFull = 6,
     }
 
     /// <summary>Outcome of one daily indoor farm tick (INTERFACES section 5).</summary>

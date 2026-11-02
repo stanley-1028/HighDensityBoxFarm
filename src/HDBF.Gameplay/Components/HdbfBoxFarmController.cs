@@ -4,6 +4,9 @@
 //          save/load through IndoorEntitySaveBridge and the once-per-day trigger. All slot
 //          formulas live in HDBF.Core.Indoor; this file only wires game objects and services.
 // Requirements: REQ-V2-CORE-01..05, REQ-V2-SAVE-01/04/06, REQ-V2-SAFE-01/04, REQ-V2-MAINT-03
+// Size: above the 300-line soft gate with a written reason (REQ-V2-MAINT-02): the lifecycle,
+//       persistence and once-per-day trigger of the single farm component are reviewed as one
+//       unit; the pause/command/snapshot behaviour lives in the sibling partials.
 // ============================================================================
 using System;
 using System.Globalization;
@@ -58,6 +61,7 @@ namespace HDBF.Gameplay.Components
         private readonly DistrictCenterRegistry _districtCenters;
         private readonly HdbfManualWaterSource _manualWater;
         private readonly HdbfWaterFlowService _waterFlow;
+        private readonly IndoorPauseReconcileService _pauseReconcile;
 
         private HdbfBoxFarmSpec _spec = null!;
         private TierProfile _profile = TierCatalog.Get(HdbfTier.Basic);
@@ -100,7 +104,8 @@ namespace HDBF.Gameplay.Components
             INavMeshService navMesh, IIndoorAdapterHost adapterHost, ICropCatalog cropCatalog,
             HdbfFarmQueryService farms, IHdbfGameConfigProvider configProvider, IHdbfLog log,
             HdbfWorldIconService worldIcons, DistrictCenterRegistry districtCenters,
-            HdbfManualWaterSource manualWater, HdbfWaterFlowService waterFlow)
+            HdbfManualWaterSource manualWater, HdbfWaterFlowService waterFlow,
+            IndoorPauseReconcileService pauseReconcile)
         {
             _timeTriggerFactory = timeTriggerFactory ?? throw new ArgumentNullException(nameof(timeTriggerFactory));
             _dayNightCycle = dayNightCycle ?? throw new ArgumentNullException(nameof(dayNightCycle));
@@ -114,6 +119,7 @@ namespace HDBF.Gameplay.Components
             _districtCenters = districtCenters ?? throw new ArgumentNullException(nameof(districtCenters));
             _manualWater = manualWater ?? throw new ArgumentNullException(nameof(manualWater));
             _waterFlow = waterFlow ?? throw new ArgumentNullException(nameof(waterFlow));
+            _pauseReconcile = pauseReconcile ?? throw new ArgumentNullException(nameof(pauseReconcile));
         }
 
         /// <inheritdoc />

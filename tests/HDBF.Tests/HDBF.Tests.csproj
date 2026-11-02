@@ -60,6 +60,9 @@
     <EmbeddedResource Include="..\..\src\HDBF.Gameplay\Components\HdbfBoxFarmController*.cs">
       <LogicalName>HDBF.Tests.Source.Controller.%(Filename)%(Extension)</LogicalName>
     </EmbeddedResource>
+    <EmbeddedResource Include="..\..\src\HDBF.Gameplay\Components\IndoorPauseReconcileService.cs">
+      <LogicalName>HDBF.Tests.Source.Controller.IndoorPauseReconcileService.cs</LogicalName>
+    </EmbeddedResource>
     <EmbeddedResource Include="..\..\src\HDBF.Gameplay\Components\GameCropCatalog*.cs">
       <LogicalName>HDBF.Tests.Source.Catalog.%(Filename)%(Extension)</LogicalName>
     </EmbeddedResource>

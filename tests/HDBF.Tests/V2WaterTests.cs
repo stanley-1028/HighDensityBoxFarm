@@ -176,6 +176,77 @@ namespace HDBF.Tests
             TestAssert.Equal(1f, record.Tank);
         }
 
+        public static void TestManualRefillDrawAmountRespectsHeadroom()
+        {
+            // WP-08 / L-05: never draw more than the tank can take, and treat a nearly full tank
+            // (less than one unit of headroom) as full so no farm action is spent for nothing.
+            TestAssert.Equal(1.2f, IndoorWaterMath.ManualRefillDrawAmount(0f, 3.6f), 1e-4f);
+            TestAssert.Equal(1.2f, IndoorWaterMath.ManualRefillDrawAmount(2f, 3.6f), 1e-4f);
+            TestAssert.Equal(1.1f, IndoorWaterMath.ManualRefillDrawAmount(2.5f, 3.6f), 1e-4f,
+                "draw is clamped to the real headroom");
+            TestAssert.Equal(0f, IndoorWaterMath.ManualRefillDrawAmount(2.8f, 3.6f), 1e-4f,
+                "less than one unit of headroom counts as full");
+            TestAssert.Equal(0f, IndoorWaterMath.ManualRefillDrawAmount(3.6f, 3.6f), 1e-4f);
+            TestAssert.Equal(0f, IndoorWaterMath.ManualRefillDrawAmount(10f, 3.6f), 1e-4f);
+            TestAssert.Equal(25.6f, IndoorWaterMath.ManualRefillDrawAmount(0f, 76.8f), 1e-4f);
+            TestAssert.Equal(0f, IndoorWaterMath.ManualRefillDrawAmount(1f, 0f));
+            TestAssert.Equal(0f, IndoorWaterMath.ManualRefillDrawAmount(1f, float.NaN));
+            TestAssert.Equal(1.2f, IndoorWaterMath.ManualRefillDrawAmount(float.NaN, 3.6f), 1e-4f,
+                "a damaged tank is sanitized before the draw");
+        }
+
+        public static void TestTickManualRefillFullTankSpendsNothing()
+        {
+            // WP-08 / L-05: a full tank is a no-op trip: no water, no actions, no NoWater warning.
+            var record = Record(HdbfTier.Basic);
+            var source = new TestWater { Supply = 100f };
+            var result = Tick(record, new IndoorDayContext
+            {
+                ActiveWorkers = 1,
+                CurrentDay = 1f,
+                ManualRefillRequested = true,
+                Water = source,
+            });
+            TestAssert.Equal(ManualRefillOutcome.TankFull, result.ManualRefill);
+            TestAssert.Equal(0, result.RefillActionsUsed);
+            TestAssert.Equal(3.6f, record.Tank, 1e-4f);
+            TestAssert.Equal(100f, source.Supply, 1e-4f, "a full tank draws no source water");
+            TestAssert.False(HasWarning(result.Warnings, IndoorWarningFlags.NoWater),
+                "a full tank is not a water problem");
+        }
+
+        public static void TestTickManualRefillNearlyFullTankDrawsOnlyHeadroom()
+        {
+            var record = Record(HdbfTier.Basic);
+            record.Tank = 2.5f;
+            var source = new TestWater { Supply = 100f };
+            var result = Tick(record, new IndoorDayContext
+            {
+                ActiveWorkers = 1,
+                CurrentDay = 1f,
+                ManualRefillRequested = true,
+                Water = source,
+            });
+            TestAssert.Equal(ManualRefillOutcome.Completed, result.ManualRefill);
+            TestAssert.Equal(IndoorConstants.ManualRefillActions, result.RefillActionsUsed);
+            TestAssert.Equal(3.6f, record.Tank, 1e-4f, "only the 1.1 units of headroom are added");
+            TestAssert.Equal(100f - 1.1f, source.Supply, 1e-3f);
+        }
+
+        // ---------------------------------------------------------------- pipe probe
+
+        public static void TestPipeProbeDefaultsAreSafe()
+        {
+            var probe = PipeProbe.Unknown;
+            TestAssert.Equal(PipeProbeReason.Unknown, probe.Reason);
+            TestAssert.Equal(0, probe.TankCount);
+            TestAssert.Equal(0, probe.WaterTankCount);
+            TestAssert.Equal(string.Empty, probe.Detail ?? string.Empty);
+            TestAssert.Equal(PipeProbeReason.Unknown, default(PipeProbe).Reason,
+                "a default probe is Unknown, never Connected");
+            TestAssert.Equal(PipeProbeReason.TankDry, (PipeProbeReason)4);
+        }
+
         public static void TestDaysRemaining()
         {
             TestAssert.Equal(3f, IndoorWaterMath.DaysRemaining(3.6f, 1.2f), 1e-5f);
@@ -258,6 +329,7 @@ namespace HDBF.Tests
         public static void TestTickManualRefillWithoutWorkersFails()
         {
             var record = Record(HdbfTier.Basic);
+            record.Tank = 1f;
             var source = new TestWater { Supply = 100f };
             var result = Tick(record, new IndoorDayContext
             {
@@ -266,9 +338,10 @@ namespace HDBF.Tests
                 ManualRefillRequested = true,
                 Water = source,
             });
-            TestAssert.Equal(3.6f, record.Tank, 1e-4f, "nobody can fetch water without workers");
+            TestAssert.Equal(1f, record.Tank, 1e-4f, "nobody can fetch water without workers");
             TestAssert.True(HasWarning(result.Warnings, IndoorWarningFlags.NoWater));
             TestAssert.Equal(100f, source.Supply, 1e-4f, "no water may be drawn");
+            TestAssert.Equal(ManualRefillOutcome.NoWorkers, result.ManualRefill);
         }
 
         public static void TestTickNoWorkersMeansNoDemand()

@@ -27,6 +27,18 @@ namespace HDBF.Gameplay.Components
         /// <summary>The tier has no material maintenance cycle to reset (basic or on-grid top).</summary>
         public const string MaintenanceUnavailable = "HDBF.Error.MaintenanceUnavailable";
 
+        /// <summary>
+        /// The next material maintenance is still in the future, so a click/automatic pass would pay
+        /// for a cycle that is not due yet (WP-01/L-08). Nothing is consumed and the due day stays.
+        /// </summary>
+        public const string MaintenanceNotDue = "HDBF.Error.MaintenanceNotDue";
+
+        /// <summary>
+        /// The tank is already full enough that a manual refill trip would draw nothing (WP-08/L-05):
+        /// the command is rejected, no water is drawn and no farm action is spent.
+        /// </summary>
+        public const string RefillTankFull = "HDBF.Error.RefillTankFull";
+
         /// <summary>The requested mode value is not a valid indoor mode.</summary>
         public const string InvalidMode = "HDBF.Error.InvalidMode";
 

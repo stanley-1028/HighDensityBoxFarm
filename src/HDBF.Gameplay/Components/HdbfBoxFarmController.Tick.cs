@@ -1,9 +1,10 @@
 // ============================================================================
 // HDBF v2 | Layer: Gameplay/Components | Owner: V2-GAMEPLAY-01 / V2-GAMEPLAY-02
 // Purpose: Daily orchestration of one indoor farm: once-per-day power/port refresh, the
-//          game-object/service context (workers, water, manual refill, output, entrance,
-//          materials, mode transition), the pure IndoorDayTick call and the application of
-//          its result (dirty flag, action tracking, refill outcome, warnings/logs).
+//          automatic maintenance pass (WP-02), the game-object/service context (workers, water,
+//          manual refill, output, entrance, materials, mode transition), the pure IndoorDayTick
+//          call and the application of its result (dirty flag, action tracking, refill outcome,
+//          warnings/logs).
 // Requirements: REQ-V2-MAINT-03, REQ-V2-LABOR-03, REQ-V2-WATER-02/04, REQ-V2-BAL-03,
 //               REQ-V2-SAFE-01
 // ============================================================================
@@ -67,8 +68,13 @@ namespace HDBF.Gameplay.Components
 
             // Each context source is isolated: a broken service degrades to "nothing available"
             // and the Core tick still runs for the rest of the farm (REQ-V2-SAFE-01/04).
-            var activeWorkers = ReadActiveWorkers();
             var currentDay = ReadCurrentDay();
+
+            // Phase 0b (WP-02/RE-01): automatic maintenance runs between the persisted power/port
+            // refresh and the day simulation, so the tick below already sees the maintained farm.
+            RunAutoMaintenance(currentDay);
+
+            var activeWorkers = ReadActiveWorkers();
             _entranceBlocked = ReadEntranceBlocked();
             var output = _outputSink;
             var water = ReadPipeWater(out var hasPipeWater);

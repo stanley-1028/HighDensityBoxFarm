@@ -123,6 +123,38 @@ namespace HDBF.Core.Indoor
         }
 
         /// <summary>
+        /// Water one manual refill trip may actually draw (WP-08 / L-05): the smaller of one third of
+        /// the tank and the real headroom, so water is never drawn only to be truncated away by
+        /// <see cref="TryRefill"/>. With less than <see cref="IndoorConstants.ManualRefillMinHeadroom"/>
+        /// units of free space the tank counts as full and the trip must not spend a farm action.
+        /// </summary>
+        /// <param name="tank">Current tank content in water units.</param>
+        /// <param name="tankCapacity">Tier tank capacity in water units.</param>
+        /// <returns>Water units to draw; 0 when the tank is full enough or the capacity is invalid.</returns>
+        public static float ManualRefillDrawAmount(float tank, float tankCapacity)
+        {
+            if (!IndoorMath.IsPositiveFinite(tankCapacity))
+            {
+                return 0f;
+            }
+
+            var current = SanitizeTank(tank, tankCapacity);
+            var headroom = tankCapacity - current;
+            if (!(headroom >= IndoorConstants.ManualRefillMinHeadroom))
+            {
+                return 0f;
+            }
+
+            var trip = RefillAmount(tankCapacity);
+            if (!(trip > 0f))
+            {
+                return 0f;
+            }
+
+            return trip < headroom ? trip : headroom;
+        }
+
+        /// <summary>
         /// Adds water to the tank, clamped to the tier tank capacity. Used by the pipe and manual
         /// refill paths; it never creates water on its own (the caller already drew it from a real
         /// <see cref="IWaterSource"/>).

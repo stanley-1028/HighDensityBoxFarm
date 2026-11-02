@@ -44,6 +44,8 @@ namespace HDBF.UI.Panels
             HdbfUiLocKeys.ErrorRefillUnavailable,
             HdbfUiLocKeys.ErrorCropNotAvailable,
             HdbfUiLocKeys.ErrorMaintenanceUnavailable,
+            HdbfUiLocKeys.ErrorMaintenanceNotDue,
+            HdbfUiLocKeys.ErrorRefillTankFull,
             HdbfUiLocKeys.ErrorInvalidMode,
             HdbfUiLocKeys.ErrorMissingMod,
             HdbfUiLocKeys.ErrorNoWorkers,

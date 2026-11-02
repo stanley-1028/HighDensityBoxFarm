@@ -22,6 +22,8 @@ namespace HDBF.Core.Config
                     "features.rotation", warn),
                 Maintenance = HdbfConfigReaders.ReadBool(node, "maintenance", defaults.Features.Maintenance,
                     "features.maintenance", warn),
+                AutoMaintenance = HdbfConfigReaders.ReadBool(node, "autoMaintenance",
+                    defaults.Features.AutoMaintenance, "features.autoMaintenance", warn),
                 PowerConnection = HdbfConfigReaders.ReadBool(node, "powerConnection",
                     defaults.Features.PowerConnection, "features.powerConnection", warn),
                 PipeConnection = HdbfConfigReaders.ReadBool(node, "pipeConnection",

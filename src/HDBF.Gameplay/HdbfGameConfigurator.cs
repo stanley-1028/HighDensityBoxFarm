@@ -62,6 +62,10 @@ namespace HDBF.Gameplay
             // elapsed game time into water slices; finished farms register while they are active.
             Bind<HdbfWaterFlowService>().AsSingleton();
 
+            // Pause-residual reconcile (2026-11-02): a paused save can restore its enterers after
+            // the one-shot pause ejection; a 1 Hz singleton re-runs the ejection for paused farms.
+            Bind<IndoorPauseReconcileService>().AsSingleton();
+
             // Four-class world warning icons driven by the Core IndoorWarningFlags (section 19.11).
             Bind<HdbfWorldIconService>().AsSingleton();
 

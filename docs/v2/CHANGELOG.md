@@ -1,9 +1,78 @@
 # HDBF v2 变更记录
 
-> **状态**：2.5.3 已发布（Steam Workshop ManifestID 1710856574140546396；GitHub master 6c6d64a；离线门禁全绿）
-> **日期**：2026-10-29
-> **适用版本**：2.5.3
+> **状态**：2.5.4 维修轮已实现（离线 L1 / validator / 44 release gates 全绿；实机验证 pending；尚未发布 Workshop）
+> **日期**：2026-11-02
+> **适用版本**：2.5.4
 > **变更摘要**：v2.1 需求引入室内农场方案；本文件记录 v1→v2 的行为/数据/工程变更与实现状态。
+
+## [2.5.4] — 2026-11-02（玩家回馈维修轮：维护自动/追平、休耕不清空、暂停残留、管道原因、透明度）
+
+依据 `docs/BUG_REPAIR_20261102.md`（5 条只读调查）与实作卡 `docs/workstreams/bugfix-20261102/REPAIR_PLAN.md`；
+离线验证见 `docs/VERIFICATION.md` §36。**本轮回馈的 5 组问题中，除第三方补丁崩溃（RE-03）与需实机/外部模组的
+项目外，P0 工作包全部落地；没有可用的实机会话，所有实机 fixture 维持 pending。**
+
+### 【修复】维护「按了没反应」：一次点击追平所有逾期期数（WP-01 / RE-01 / L-08）
+
+* 【修复】`TryApplyMaintenance` 原本只把 `dueDay += 1 个周期`，逾期 3 期按一次仍剩 2 期 → 仍停摆。
+  现在一次点击支付 `k = 1 + floor((today − dueDay) / cycle)` 期材料（`IndoorMaintenanceMath.CatchUpCycles`
+  ＋ `CatchUpMaterialAmount`，all-or-nothing），`dueDay += k×cycle`、`cyclesMissed = 0`；材料不足 k 期时
+  不扣任何料并回 `HDBF.Error.MaterialsMissing`。
+* 【修复】未到期（k=0，例如同一天连点两下）直接禁用按钮并回 `HDBF.Error.MaintenanceNotDue`，不再多付一份料
+  （L-08）；面板新增「本次会追平 k 期、共需 n 材料」行。
+* 【修改】面板「逾期周期」与停摆状态改由即时快照计算，不再出现「逾期 0 + 红色停摆」自相矛盾；三语
+  `Tooltip.Maintenance` / `MaintenanceShutdown` 改为追平语义。
+
+### 【新增】每栋农场的自动维护开关（WP-02 / RE-02 / RE-07）
+
+* 【新增】`IndoorFarmRecord.AutoMaintenance`（持久化，旧存档缺栏位 → 安全预设 true，并记 `maintenance.auto-default`），
+  预设来自新 config `features.autoMaintenance=true`（`data/HDBF_Config.json` + schema-2 codec + validator）。
+* 【新增】每日 tick 在模拟前自动支付**与手动完全相同**的追平帐单（不改 §19.8 经济、不加动作成本）：
+  成功写 `indoor.maintenance-auto`；单仓库库存不足整笔时不扣料、不推进并写 `indoor.maintenance-auto-missing`
+  （面板沿用缺料红字，手动按钮仍可用）。Basic（无材料维护）与接电顶级（cycle=0）不动作。
+* 【新增】面板维护卡新增 On/Off 开关（`HdbfFarmCommandService.TrySetAutoMaintenance`，持久化玩家选择）。
+
+### 【修复】休耕→常规的第一个日 tick 吃掉整盒成熟作物（WP-03 / L-01）
+
+* 【修复】切回常规的转换日，`ModeTransitionYieldScale(Normal, Fallow)` 因休耕产量 0 而回传 0；旧 `TryHarvest`
+  在 `amount == 0` 时仍清空槽位并记「收获成功」→ 整盒作物无声消失。现在 `TryHarvest` 在零产量时**不清槽**
+  （视为跳过，动作不消耗），且转换 scale 在「上一模式产量非正（休耕）」时回 1。
+
+### 【修复】暂停残留：暂停存档载入后工人仍留在被封鎖農場（WP-04 / RE-04 / L-13）
+
+* 【修复】新增 `IndoorPauseReconcileService`（`IUpdatableSingleton`，约 1 Hz）持有暂停农场清单，载入完成后持续
+  reconcile 残留 enterer（R1），并在暂停中订阅原版 `EntererAdded`，走进被封锁农场的人立即撤出（R2）。
+* 【修改】撤出改用原版 `UnreserveSlotAndExit()`（清 reservation，R4），撤出前检查 `IsInside && CurrentBuilding == enterable`
+  （跳过半状态 enterer，R3）；每趟记 `indoor.paused.eject-summary`（requested/ejected/skipped/forced/remaining）、
+  `eject-failed`、`residual-enterer`、`reconcile`。仍无法清除时用「`Abandon()` + `Remove()`」等价公开路径取代
+  原版 private `ForceRemoveEveryone`（记 `indoor.paused.force-remove`）。
+* 【修复】`Deactivate()`（拆除/失去 finished 状态）先撤出室内工人一輪（L-13），失败只记 Warn；仍 0 Harmony。
+
+### 【修复】管道「已连接」语义：原因码而不是单一「未连接」（WP-05 / RE-05 / L-02）
+
+* 【新增】Core `IIndoorPipeProbe` + `PipeProbe`（`Connected` / `NoPipeNetwork` / `NoPipeTank` / `TankDry` /
+  `AdapterUnavailable` / `BindingFailed` / `PortOff` / `Unknown`）。Timber Pipes 端做**只读 census**（不抽水、
+  不计三振），面板显示对应原因与专用 tooltip：**自动补水只从「接上管网的原版液体水塔（Small/Medium/Large Tank）」
+  抽水；把管接在农场外壳不会生效，农场不必在管线旁。**（真实连通判定 `PipeRegistry.TryGetGraph` 留 pending。）
+* 【修复】L-06：`UpdatePorts` 每日 tick 不再覆写玩家的管道/物流端口开关选择（之前「关了隔天自己又打开」）。
+* 【说明】`HDBF.Port.Pipe` 改「Pipe network (auto-refill) / 管网（自动补水）」；「未连接」只保留给「没有 probe 可用」的旧路径，
+  避免与「没装模组」共用同一句话。
+
+### 【修改】水/闲置原因透明化（WP-06 / L-03 / L-05 / L-10 UI / L-17）
+
+* 【新增】Core `IndoorIdleReasonMath`（Paused > NoWorkers > EntranceBlocked > OutputFull > WaterShortage >
+  MaintenanceStalled > MaintenanceDue > Fallow）＋面板第一张卡顶部常驻状态列；缺水时写三條补水路徑
+  （管网水塔 / 人工补水 ≤12 格 / 搬水货物）。
+* 【修复】手动补水先算 `headroom`：只抽 `min(1/3 罐, headroom)`；headroom < 1 单位视为已满，不抽水、不扣 2 个动作
+  （`ManualRefillOutcome.TankFull`，L-05）。
+* 【修改】0 工人时覆盖率/生长效率显示「—」且不再全绿（L-10 面板部分；世界图标多状态仍 pending）。
+* 【修改】L-17 三语文案：`Error.RefillUnavailable`、`Warning.Shutdown`/`AdapterFailed` 重复、`Panel.WaterShortage`
+  （减產→生長變慢）、维护 tooltip、`Port.Pipe`/`Tooltip.PipeWater`。
+* 【修复】L-07：维护材料 `Available()` 改为「单一库存最大 unreserved 量」（与 all-or-nothing 交易一致），
+  面板不再出现「合计够、分散在两仓却按不下去」；缺料判定改用本次追平总帐单。
+* 【测试】L1 **655/655**（新增 42 条：休耕转换 3、维护追平/自动维护、存档/配置往返、pipe probe 5、暂停契约 2、
+  闲置原因矩阵、补水 headroom/TankFull、面板/本地化 contract）。
+* 【说明】本轮未改存檔 schema 版本号（新栏位为向后兼容选填栏位）；未执行实机 fixture；未上传 Workshop。
+  §7.2 的 A–K 实机场景仍 pending，回复玩家的诊断模板见 `docs/BUG_REPAIR_20261102.md` §7.3。
 
 ## [2.5.3] — 2026-10-29（修复：暂停建筑导致游戏崩溃）
 

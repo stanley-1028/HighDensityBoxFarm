@@ -52,6 +52,20 @@ namespace HDBF.Core.Indoor
         /// <summary>Material maintenance cycles missed; 1 derates, 2 or more stalls farm actions.</summary>
         public int MaintenanceCyclesMissed { get; set; }
 
+        /// <summary>
+        /// True when the farm pays its material maintenance automatically every day (WP-02). Persisted
+        /// with the record so a per-building choice survives save/load; the config default is applied
+        /// by gameplay while <see cref="AutoMaintenanceSpecified"/> is false.
+        /// </summary>
+        public bool AutoMaintenance { get; set; } = true;
+
+        /// <summary>
+        /// Runtime-only marker: true once the player (or a loaded save) fixed the automatic
+        /// maintenance choice. Not persisted; gameplay seeds <see cref="AutoMaintenance"/> from the
+        /// config for a record that never specified it (old saves keep their config default).
+        /// </summary>
+        public bool AutoMaintenanceSpecified { get; set; }
+
         /// <summary>True while the top tier has grid power; false when off-grid or power is lost.</summary>
         public bool PowerConnected { get; set; }
 

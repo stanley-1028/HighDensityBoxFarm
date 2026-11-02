@@ -155,6 +155,30 @@ namespace HDBF.UI.Panels
         /// <summary>One-day mode transition sentence, empty when no transition is running.</summary>
         public string ModeTransitionText { get; init; } = string.Empty;
 
+        // ----- status line (WP-06 / L-03) ----------------------------------------------------
+        /// <summary>
+        /// Localized single reason the farm is not doing farm work ("Working" when nothing is
+        /// wrong). Derived from the snapshot's <c>IdleReason</c> through the Core key contract, so
+        /// the panel and the world icon can never disagree (L-11 seam).
+        /// </summary>
+        public string IdleReasonText { get; init; } = string.Empty;
+
+        /// <summary>Localized explanation of the status line (what the reason means).</summary>
+        public string IdleReasonTooltip { get; init; } = string.Empty;
+
+        /// <summary>True when automatic material maintenance is enabled for this building (WP-02).</summary>
+        public bool AutoMaintenance { get; init; }
+
+        /// <summary>Hover text of the automatic-maintenance row/toggle (same material cost as manual).</summary>
+        public string AutoMaintenanceTooltip { get; init; } = string.Empty;
+
+        /// <summary>
+        /// Localized "three water refill paths" sentence of the water card (WP-06 / L-03): pipe
+        /// network, manual refill within 12 cells, or hauling water. Shown so an empty tank never
+        /// leaves the player without a next step.
+        /// </summary>
+        public string WaterPathText { get; init; } = string.Empty;
+
         /// <summary>Raw tier, for the game-facing tier-icon lookup.</summary>
         public HdbfTier Tier { get; init; }
 

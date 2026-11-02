@@ -3,6 +3,9 @@
 // Purpose: Finished-state activation, query/world-icon registration, tier/faction
 //          resolution and lifetime trigger creation for the indoor controller.
 // Requirements: REQ-V2-BLD-02, REQ-V2-LABOR-03, REQ-V2-SAFE-01/04, REQ-V2-MAINT-04
+// Size: above the 300-line soft gate with a written reason (REQ-V2-MAINT-02): the finished-state
+//       activation, the query/icon registration and the matching idempotent deactivation are the
+//       lifecycle contract of one entity and are reviewed as one unit.
 // ============================================================================
 using System;
 using HDBF.Core;
@@ -109,6 +112,21 @@ namespace HDBF.Gameplay.Components
             // re-syncs from the live PausableBuilding value (see .Pause.cs).
             UnbindPauseState();
             _paused = false;
+            _pauseReconcile.Unregister(this);
+            // L-13 (2026-11-02): never rely on the vanilla ForceRemoveEveryone call ordering when
+            // the finished state is lost (or the building is deleted); eject a residual enterer out
+            // first. Failure-isolated: a broken enterer must not abort the deactivation.
+            try
+            {
+                EjectBeaversFromPausedFarm("deactivate");
+            }
+            catch (Exception exception)
+            {
+                _log.Error(HdbfLogCategory.Warn, LogKeyEntity,
+                    "beaver ejection on deactivation failed; the vanilla enterable cleanup still runs",
+                    exception, _entityId.ToString());
+            }
+
             // Continuous drain stops with the finished state; the tank keeps its last value.
             _waterFlow.Unregister(this);
             try

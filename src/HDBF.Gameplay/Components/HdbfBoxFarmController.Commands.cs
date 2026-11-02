@@ -1,8 +1,9 @@
 // ============================================================================
 // HDBF v2 | Layer: Gameplay/Components | Owner: V2-GAMEPLAY-01 / V2-GAMEPLAY-02
 // Purpose: Player/UI commands on one indoor farm: mode (with the one-day transition state),
-//          ports, crop policy and the maintenance material plan/apply split. The manual-refill
-//          command lives in the .ManualRefill partial; every change is validated and dirty-marked.
+//          ports and the catch-up maintenance plan/apply split. The crop-policy command lives in
+//          the .Commands.CropPolicy partial, the manual refill in .ManualRefill; every change is
+//          validated and dirty-marked.
 // Requirements: REQ-V2-LABOR-03, REQ-V2-WATER-04, REQ-V2-UI-02, REQ-V2-BAL-02/03,
 //               REQ-V2-SAFE-01, REQ-V2-EXT-01
 // ============================================================================
@@ -150,102 +151,74 @@ namespace HDBF.Gameplay.Components
         }
 
         /// <summary>
-        /// Sets the crop policy. A fixed crop must belong to the building faction's catalog
-        /// (REQ-V2-EXT-01); an invalid choice changes nothing and returns a specific failure key.
-        /// </summary>
-        /// <param name="policy">Rotation or fixed.</param>
-        /// <param name="fixedCropId">Required crop id for <see cref="CropPolicy.Fixed"/>.</param>
-        /// <param name="failureKey">Specific failure key when false.</param>
-        /// <returns>True when the policy was applied.</returns>
-        public bool TrySetCropPolicy(CropPolicy policy, string? fixedCropId, out string? failureKey)
-        {
-            failureKey = null;
-            var record = _record;
-            if (record is null || !_activated)
-            {
-                failureKey = HdbfIndoorCommandFailures.NotActive;
-                return false;
-            }
-
-            if (!Enum.IsDefined(typeof(CropPolicy), policy))
-            {
-                failureKey = HdbfIndoorCommandFailures.InvalidMode;
-                return false;
-            }
-
-            if (policy == CropPolicy.Fixed
-                && !FallbackCropCatalog.TryResolve(_cropCatalog, _faction, fixedCropId, out _))
-            {
-                failureKey = HdbfIndoorCommandFailures.CropNotAvailable;
-                _log.Write(HdbfLogCategory.Warn, IndoorLogKeys.CropPolicy,
-                    "fixed crop rejected (not in the faction catalog): '" + (fixedCropId ?? "<null>")
-                    + "', entityId=" + _entityId);
-                return false;
-            }
-
-            try
-            {
-                record.CropPolicy = policy;
-                record.FixedCropId = policy == CropPolicy.Fixed ? fixedCropId ?? string.Empty : string.Empty;
-                _saveDirty = true;
-                _log.Write(HdbfLogCategory.Info, IndoorLogKeys.CropPolicy,
-                    "indoor crop policy set to " + policy + ", entityId=" + _entityId);
-                return true;
-            }
-            catch (Exception exception)
-            {
-                failureKey = HdbfCommandFailures.Unknown;
-                _log.Error(HdbfLogCategory.Error, IndoorLogKeys.CommandFailed,
-                    "setting the indoor crop policy failed; no state changed", exception, _entityId.ToString());
-                return false;
-            }
-        }
-
-        /// <summary>
-        /// Builds the maintenance plan of this farm without moving any material: the upkeep good and
-        /// count for the current power state plus the cycle to add to the due day. False for a tier
-        /// with no material upkeep (basic tier, or a top tier maintained by its grid connection).
+        /// Builds the catch-up maintenance plan of this farm without moving any material (WP-01): the
+        /// upkeep good, the count of one cycle, the cycle length and the cycles this click/automatic
+        /// pass settles right now. Nothing is due while the next deadline is in the future
+        /// (<see cref="HdbfIndoorCommandFailures.MaintenanceNotDue"/>); a tier with no material upkeep
+        /// (basic tier, or a top tier maintained by its grid connection) reports
+        /// <see cref="HdbfIndoorCommandFailures.MaintenanceUnavailable"/>.
         /// </summary>
         /// <param name="itemId">Good to withdraw ("Plank"/"MetalBlock") or null when free.</param>
         /// <param name="amount">Item count of one cycle (0 when free).</param>
-        /// <param name="cycleDays">Game days to add to the due day on success.</param>
-        /// <returns>True when the farm has a material maintenance cycle to perform.</returns>
-        internal bool TryGetMaintenancePlan(out string? itemId, out int amount, out float cycleDays)
+        /// <param name="cycleDays">Game days one settled cycle adds to the due day.</param>
+        /// <param name="cycles">Catch-up cycles the bill covers (&gt;= 1 on success).</param>
+        /// <param name="failureKey">Specific failure key when false.</param>
+        /// <returns>True when there is a payable catch-up bill right now.</returns>
+        internal bool TryGetMaintenancePlan(out string? itemId, out int amount, out float cycleDays,
+            out int cycles, out string? failureKey)
         {
             itemId = null;
             amount = 0;
             cycleDays = 0f;
-            if (_record is null || _profile.MaintenanceKind == HdbfMaintenanceKind.IrrigationOnly)
+            cycles = 0;
+            failureKey = null;
+            var record = _record;
+            if (record is null || _profile.MaintenanceKind == HdbfMaintenanceKind.IrrigationOnly)
             {
+                failureKey = HdbfIndoorCommandFailures.MaintenanceUnavailable;
                 return false;
             }
 
             var offGrid = _profile.NeedsPower
-                          && !(_record.PowerMode == PowerConnection.Grid && _record.PowerConnected);
+                          && !(record.PowerMode == PowerConnection.Grid && record.PowerConnected);
             cycleDays = MaintenanceDefaults.CycleDaysFor(_profile, offGrid);
-            if (cycleDays <= 0f)
+            // A grid-connected top tier is maintained by the network: no material bill at all, so
+            // the command reports MaintenanceUnavailable instead of resetting anything for free.
+            if (cycleDays <= 0f
+                || !IndoorMaintenanceMath.TryGetMaterialBill(_profile, record, out itemId, out amount))
             {
+                failureKey = HdbfIndoorCommandFailures.MaintenanceUnavailable;
                 return false;
             }
 
-            // A grid-connected top tier is maintained by the network: no material bill at all, so
-            // the command reports MaintenanceUnavailable instead of resetting anything for free.
-            return IndoorMaintenanceMath.TryGetMaterialBill(_profile, _record, out itemId, out amount);
+            // WP-01/L-08: one click pays every overdue cycle, never a cycle that is not due yet.
+            cycles = IndoorMaintenanceMath.CatchUpCycles(record.MaintenanceDueDay, ReadCurrentDay(),
+                cycleDays);
+            if (cycles <= 0)
+            {
+                failureKey = HdbfIndoorCommandFailures.MaintenanceNotDue;
+                return false;
+            }
+
+            return true;
         }
 
         /// <summary>
-        /// Applies a previously validated maintenance plan: <c>dueDay += cycle</c> (the saved
-        /// deadline keeps its cadence instead of restarting from today) and clears the missed-cycle
-        /// counter (section 19.8, REQ-V2-BAL-02).
+        /// Applies a previously validated catch-up plan (WP-01): every settled cycle advances the
+        /// saved deadline (<c>dueDay += cycleDays x cycles</c>) so the cadence is kept instead of
+        /// restarting from today, and the missed-cycle counter is cleared (section 19.8,
+        /// REQ-V2-BAL-02). The material bill itself was already withdrawn by the caller.
         /// </summary>
         /// <param name="cycleDays">Cycle length from <see cref="TryGetMaintenancePlan"/>.</param>
+        /// <param name="cycles">Catch-up cycles already paid for.</param>
         /// <param name="failureKey">Specific failure key when false.</param>
         /// <returns>True when the deadline was advanced.</returns>
-        internal bool TryApplyMaintenance(float cycleDays, out string? failureKey)
+        internal bool TryApplyMaintenance(float cycleDays, int cycles, out string? failureKey)
         {
             failureKey = null;
             var record = _record;
-            if (record is null || !(cycleDays > 0f) || float.IsNaN(cycleDays) || float.IsInfinity(cycleDays))
+            if (record is null || !(cycleDays > 0f) || float.IsNaN(cycleDays) || float.IsInfinity(cycleDays)
+                || cycles <= 0)
             {
                 failureKey = HdbfIndoorCommandFailures.MaintenanceUnavailable;
                 return false;
@@ -255,7 +228,7 @@ namespace HDBF.Gameplay.Components
             var currentDue = MaintenanceDefaults.IsUsableDueDay(_profile, record.MaintenanceDueDay)
                 ? record.MaintenanceDueDay
                 : today;
-            var nextDue = currentDue + cycleDays;
+            var nextDue = currentDue + cycleDays * cycles;
             if (float.IsNaN(nextDue) || float.IsInfinity(nextDue))
             {
                 failureKey = HdbfIndoorCommandFailures.MaintenanceUnavailable;
@@ -268,7 +241,7 @@ namespace HDBF.Gameplay.Components
             _saveDirty = true;
             _log.Write(HdbfLogCategory.Info, IndoorLogKeys.Maintenance,
                 "indoor maintenance scheduled, dueDay=" + nextDue.ToString("F2", CultureInfo.InvariantCulture)
-                + ", entityId=" + _entityId);
+                + ", cycles=" + cycles + ", entityId=" + _entityId);
             return true;
         }
 

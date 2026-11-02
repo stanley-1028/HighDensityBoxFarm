@@ -173,3 +173,32 @@ COMPAT status moves from "offline anchors only" to **实现+实机（侦测/初�
   construction-stage appearance, LOD distance switching, 50% same-frame A/B.
 * **Gate state after ART-03** (deployed): 5 assemblies 0 warnings/errors, **L1 510/510**,
   `tools/validate RESULT: OK`, **RELEASE GATES PASSED (55 checks)**, deploy 1,645 KB.
+
+## Round-24 (v2.5.4 bug-repair) update — 2026-11-02
+
+* **REQ-V2-BAL-01/02/03（维护与模式）**: maintenance now settles every overdue cycle in one click/automatic
+  pass (`IndoorMaintenanceMath.CatchUpCycles` / `CatchUpMaterialAmount` / `TryGetCatchUpBill`), keeps
+  `G_maint` thresholds unchanged, and the fallow -> normal transition day no longer zeroes the harvest
+  (`IndoorGrowthMath.ModeTransitionYieldScale`, `IndoorLaborMath.TryHarvest`). Offline evidence:
+  `V2MaintenancePowerTests`, `V2FallowTransitionTests`.
+* **REQ-V2-MAINT-03（日 tick 顺序）**: automatic maintenance runs in gameplay Phase 0b before
+  `IndoorDayTick.Run`; the Core 7-phase order is unchanged and still pinned by `V2TickOrderTests`.
+* **REQ-V2-WATER-02/04（水）**: manual refill draws `min(1/3 tank, headroom)` and reports `TankFull`
+  without spending actions; pipe water gains a read-only `IIndoorPipeProbe` reason code set (no draw,
+  no three-strike failure). Offline evidence: `V2WaterTests`, `V2AdapterHostContractTests`.
+* **REQ-V2-UI-01/02/03/04（面板与三语）**: idle-reason status line, auto-maintenance toggle, catch-up
+  hint, pipe-probe reason texts and three water paths added; 218 localization keys with identical
+  enUS/zhCN/zhTW sets; the misleading v1-style strings fixed. Evidence: `V2PanelContractTests`,
+  `V2PanelVisualContractTests`, `V2LocalizationTests`.
+* **REQ-V2-SAVE-01/04/06（存档）**: schema-2 payload gains an optional `maintenance.auto` field
+  (old payloads decode to the safe default with a `maintenance.auto-default` note; key order and
+  schema version unchanged; keyed bridge intentionally untouched because gameplay persists the
+  payload). Evidence: `V2SaveCodecTests`, `V2PersistenceBridgeContractTests`.
+* **REQ-V2-COMPAT-01/02（第三方兼容）**: Timber Pipes probe is observation-only and reports
+  `BindingFailed` separately from "no tank"; the daily port refresh no longer overwrites the
+  player's port choice. Evidence: `V2AdapterHostContractTests`.
+* **REQ-V2-SAFE-01（异常隔离）**: pause reconcile/ejection, auto-maintenance and the pipe probe are
+  per-entity isolated and never throw into the game loop. Evidence: `V2PauseContractTests`,
+  `V2GameplayWiringTests`, `V2NfrCodeContractTests` (0 Harmony / 0 debug surface).
+* **未变**: 0 Harmony、Core 无游戏引用、依赖方向、`REQ-V2-MAINT-02` 300-line 软门禁、
+  §19.8 的周期/材料/停摆数值。实机 fixture 验证（A–K）仍 pending，见 `docs/VERIFICATION.md` §36.3。

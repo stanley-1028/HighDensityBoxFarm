@@ -2,10 +2,11 @@
 // HDBF v2 | Layer: Integration/Adapters | Owner: V2-INTEG-01
 // Purpose: HDBF.Core.Indoor.IWaterSource backed by Timber Pipes (INTERFACES section 6):
 //          "draw the daily demand from the reachable pipe network", never tick, never conjure.
+//          Also implements the read-only IIndoorPipeProbe (WP-05): report why the pipe port is
+//          (not) usable without drawing water or feeding the three-strike adapter failure count.
 // Requirements: REQ-V2-WATER-02, REQ-V2-COMPAT-01, REQ-V2-COMPAT-02, REQ-V2-SAFE-05
 // ============================================================================
 using System;
-using System.Collections;
 using Bindito.Core;
 using HDBF.Core;
 using HDBF.Core.Indoor;
@@ -18,20 +19,18 @@ namespace HDBF.Integration.Adapters
     /// day and adds only the returned amount to its tank, so this class is deliberately not a
     /// timer: it offers one atomic "draw up to the requested amount" operation (REQ-V2-WATER-02).
     ///
-    /// Degradation matrix (REQ-V2-COMPAT-02, REQ-V2-SAFE-05):
-    /// <list type="bullet">
-    /// <item>mod missing / adaptor disabled/failed: the host never hands this source out;</item>
-    /// <item>API anchors missing/signature changed: <see cref="IsAvailable"/> false and
-    /// <see cref="TryDraw"/> false with actual 0, one throttled <c>compat.degraded</c> warning, and
-    /// the failure is counted by the v1 three-strike state machine of the pipe adaptor;</item>
-    /// <item>network present but dry: false with actual 0 and a throttled warning, never a failure;</item>
-    /// <item>tank read/drain throws: per-tank isolation, the remaining tanks are still tried.</item>
-    /// </list>
-    /// Unit mapping: one HDBF water unit is one vanilla water good, whose pipe volume is
-    /// <c>GoodsToVolume(1) = 0.2 m3</c> (real IL). The mod's own <c>ApplyVolume</c>/<c>pending</c>
+    /// Degradation matrix (REQ-V2-COMPAT-02, REQ-V2-SAFE-05): the host never hands this source out
+    /// while the adaptor is missing/disabled/failed; a missing API anchor answers false with actual
+    /// 0, one throttled <c>compat.degraded</c> warning and one v1 three-strike failure; a network
+    /// that is present but dry is a warning, never a failure; a throwing tank read/drain is
+    /// isolated per tank. One HDBF water unit is one vanilla water good, whose pipe volume is
+    /// <c>GoodsToVolume(1) = 0.2 m3</c> (real IL); the mod's own <c>ApplyVolume</c>/<c>pending</c>
     /// quantisation absorbs sub-good remainders, so a 1.2 unit day is not rounded up to two goods.
+    ///
+    /// <see cref="ProbePipe"/> is the observation-only half (WP-05) and delegates the census to
+    /// <see cref="TimberPipesWaterBinding.ProbeTanks"/>: no draw, no health strike.
     /// </summary>
-    public sealed class TimberPipesWaterSource : IWaterSource
+    public sealed class TimberPipesWaterSource : IWaterSource, IIndoorPipeProbe
     {
         /// <summary>Throttle identity: one water warning line per 30 s (REQ-V2-READ-03, chapter 10.4).</summary>
         internal const string LogKey = IndoorLogKeys.CompatDegraded + ":HDBF.Adapter.TimberPipes:water";
@@ -40,6 +39,7 @@ namespace HDBF.Integration.Adapters
         private readonly Func<HdbfAdapterHealth>? _health;
         private readonly Action<string>? _reportFailure;
         private readonly IHdbfLog? _log;
+
         /// <summary>
         /// Creates the source; every dependency is optional so a broken DI graph or test host
         /// degrades to "no water" instead of breaking building operation (REQ-V2-SAFE-04).
@@ -55,6 +55,7 @@ namespace HDBF.Integration.Adapters
 
         /// <inheritdoc />
         public WaterSupplyKind Kind => WaterSupplyKind.Pipe;
+
         /// <summary>
         /// True when at least one finished pipe tank is connected to a network, takes the water
         /// good and currently holds drainable water. A query only: it never drains and never
@@ -66,7 +67,7 @@ namespace HDBF.Integration.Adapters
             {
                 try
                 {
-                    if (!IsAdaptorServing() || !TryEnumerateFeedableTanks(out var tanks))
+                    if (!IsAdaptorServing() || !_binding.TryEnumerateTanks(out var tanks))
                     {
                         TryLog("no usable pipe water is available; manual refill stays possible");
                         return false;
@@ -74,7 +75,7 @@ namespace HDBF.Integration.Adapters
 
                     foreach (var tank in tanks!)
                     {
-                        if (TryDescribeFeedableTank(tank, out var state) && state.VolumeM3 > 0f)
+                        if (_binding.TryDescribeFeedableTank(tank, out var state) && state.VolumeM3 > 0f)
                         {
                             return true;
                         }
@@ -100,14 +101,14 @@ namespace HDBF.Integration.Adapters
             {
                 try
                 {
-                    if (!IsAdaptorServing() || !TryEnumerateFeedableTanks(out var tanks))
+                    if (!IsAdaptorServing() || !_binding.TryEnumerateTanks(out var tanks))
                     {
                         return false;
                     }
 
                     foreach (var tank in tanks!)
                     {
-                        if (TryDescribeFeedableTank(tank, out _))
+                        if (_binding.TryDescribeFeedableTank(tank, out _))
                         {
                             return true;
                         }
@@ -119,6 +120,30 @@ namespace HDBF.Integration.Adapters
                 }
                 return false;
             }
+        }
+
+        /// <inheritdoc />
+        public PipeProbe ProbePipe()
+        {
+            if (!IsAdaptorServing())
+            {
+                return new PipeProbe(PipeProbeReason.AdapterUnavailable, 0, 0, "adapter-not-serving");
+            }
+
+            var probe = _binding.ProbeTanks();
+            try
+            {
+                // ThrottledLog keeps this to one line per 30 s for the key (REQ-V2-READ-03).
+                _log?.Write(HdbfLogCategory.Compat, IndoorLogKeys.PipeProbe,
+                    "pipe probe: reason=" + probe.Reason + ", pipeTanks=" + probe.TankCount
+                    + ", waterTanks=" + probe.WaterTankCount + ", detail=" + probe.Detail);
+            }
+            catch (Exception)
+            {
+                // Diagnostics must never break a probe (REQ-V2-SAFE-01).
+            }
+
+            return probe;
         }
 
         /// <inheritdoc />
@@ -151,7 +176,7 @@ namespace HDBF.Integration.Adapters
                     return false;
                 }
 
-                if (!TryEnumerateFeedableTanks(out var tanks))
+                if (!_binding.TryEnumerateTanks(out var tanks))
                 {
                     FailDraw(_binding.LastFailureReason ?? "water-tanks-unavailable");
                     return false;
@@ -167,7 +192,7 @@ namespace HDBF.Integration.Adapters
                         break;
                     }
 
-                    if (!TryDescribeFeedableTank(tank, out var state))
+                    if (!_binding.TryDescribeFeedableTank(tank, out var state))
                     {
                         if (_binding.LastFailureReason is not null)
                         {
@@ -201,14 +226,12 @@ namespace HDBF.Integration.Adapters
                     actual = 0f;
                     if (anyTank)
                     {
-                        // Network exists but nothing drainable: a dry pipe is a warning, not a
-                        // failure of the external API.
+                        // A dry pipe is a warning, not a failure of the external API.
                         TryLog("pipe network is dry; no drainable water this request");
                     }
                     else
                     {
-                        // "Nothing built yet" is a play state, not an external API failure, so it
-                        // must not consume the three-strike budget.
+                        // "Nothing built yet" is a play state, so it must not consume a strike.
                         TryLog("no water tank in the pipe network; manual refill stays possible");
                     }
 
@@ -224,38 +247,6 @@ namespace HDBF.Integration.Adapters
                 FailDraw("water-draw-exception:" + exception.GetType().Name);
                 return false;
             }
-        }
-
-        private bool TryEnumerateFeedableTanks(out IEnumerable? tanks)
-        {
-            tanks = null;
-            if (!_binding.TryBind() || !_binding.TryGetTanks(out var all) || all is null)
-            {
-                return false;
-            }
-
-            tanks = all;
-            return true;
-        }
-
-        private bool TryDescribeFeedableTank(object? tank, out PipeTankState state)
-        {
-            state = default;
-            if (!_binding.TryDescribeTank(tank, out var candidate) || !candidate.IsFinished ||
-                !candidate.HasPipeGraph || !candidate.TakesWaterGood)
-            {
-                return false;
-            }
-
-            // A contaminated/badwater tank must not feed the indoor water tank.
-            if (candidate.FluidGoodId is not null &&
-                !string.Equals(candidate.FluidGoodId, _binding.WaterGoodId, StringComparison.Ordinal))
-            {
-                return false;
-            }
-
-            state = candidate;
-            return true;
         }
 
         private bool IsAdaptorServing()

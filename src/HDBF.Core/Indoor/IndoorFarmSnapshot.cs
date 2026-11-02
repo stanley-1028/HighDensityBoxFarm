@@ -91,5 +91,26 @@ namespace HDBF.Core.Indoor
         /// compiling; gameplay fills it through <see cref="IndoorCropReport.Build"/>.
         /// </summary>
         public IReadOnlyList<IndoorCropStatus> Crops { get; init; } = Array.Empty<IndoorCropStatus>();
+
+        /// <summary>True while the player paused the building (WP-04: tick, drain and icons stop).</summary>
+        public bool Paused { get; init; }
+
+        /// <summary>True when the farm pays material maintenance automatically (WP-02).</summary>
+        public bool AutoMaintenance { get; init; } = true;
+
+        /// <summary>Maintenance cycles one click/automatic pass would settle right now (WP-01).</summary>
+        public int MaintenanceCyclesToCatchUp { get; init; }
+
+        /// <summary>Material count of the catch-up bill shown to the player (0 when nothing is due).</summary>
+        public int MaintenanceCatchUpMaterialAmount { get; init; }
+
+        /// <summary>Single highest-priority reason the farm is not doing farm work (WP-06).</summary>
+        public IndoorIdleReason IdleReason { get; init; } = IndoorIdleReason.None;
+
+        /// <summary>True when a manual refill source is reachable within the manual radius (WP-06/L-03).</summary>
+        public bool ManualRefillSourceAvailable { get; init; }
+
+        /// <summary>Read-only pipe probe result when a pipe source is present; Unknown otherwise (WP-05).</summary>
+        public PipeProbe PipeProbeState { get; init; } = PipeProbe.Unknown;
     }
 }
