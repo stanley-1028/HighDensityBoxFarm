@@ -110,3 +110,18 @@ cp docs/workshop/publish/* "$USERPROFILE/Documents/Timberborn/Mods/HDBF/"
 - 建置：L1 **613/613**、`tools/validate` WARNINGS: none / OK、`build.ps1` **44 gates PASSED**；
   staged package **48 files / 2,132,440 bytes / manifest 2.5.3**；GitHub `master` = `6c6d64a`（修復）
   + 本篇發佈記錄 commit。
+
+## 發佈記錄（2026-11-02，2.5.4）
+
+- 2.5.4 於 **2026-11-02 22:56（Asia/Macau）** 上傳成功：`ManifestID 2037025195551276545`、
+  `Upload finished for workshop item 3828809784 : OK`（Steam `logs/workshop_log.txt`）。
+- 上傳只更新**內容與 Change Note**；標題/描述/封面/標籤/可見性刻意未動。
+- Change Note（雙語）：維護一鍵追平所有逾期期數 + 每棟自動維護開關、休耕→常規不再清空成熟作物、
+  暫停殘留 1 Hz reconcile + 暫停中走進/拆除前撤出、管道原因碼與「只從接上管網的原版液體水塔抽水」說明、
+  面板「為什麼不動」狀態列/三條補水路徑、補水 headroom、三語誤導文案修正。
+- 建置：L1 **655/655**、`tools/validate` WARNINGS: none / OK、`build.ps1` **44 gates PASSED**；
+  staged package **48 files / 2,165,600 bytes / manifest 2.5.4**；GitHub `master` = `2a4a237`（修復）
+  + 本篇發佈記錄 commit。
+- **頁面文案同步**：`docs/workshop/DESCRIPTION.md` / `PAGE_COPY.txt` 的 maintenance 句已改為
+  「perform maintenance — or enable automatic maintenance」，但本次 API 更新不覆寫頁面描述；
+  下次在 Steam 網頁編輯器改描述時直接貼 `PAGE_COPY.txt` 即可（避免覆寫 2026-10-28 改版頁面）。

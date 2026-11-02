@@ -1,6 +1,6 @@
 # HDBF v2 变更记录
 
-> **状态**：2.5.4 维修轮已实现（离线 L1 / validator / 44 release gates 全绿；实机验证 pending；尚未发布 Workshop）
+> **状态**：2.5.4 已发布（Steam Workshop ManifestID 2037025195551276545；GitHub master `2a4a237`；离线门禁全绿；实机验证 pending）
 > **日期**：2026-11-02
 > **适用版本**：2.5.4
 > **变更摘要**：v2.1 需求引入室内农场方案；本文件记录 v1→v2 的行为/数据/工程变更与实现状态。

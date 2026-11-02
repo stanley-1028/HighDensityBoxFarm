@@ -1709,3 +1709,30 @@ powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1
   `[save-budget]` 相同的 2000 ms CI sanity bound，並把兩個數字都印進日誌；程式面本輪只多一個 `AppendBool`
   （約 +12 bytes/筆），未改編碼演算法。最終門禁（無並行建置）量到 **28.1 ms wall / 15.6 ms CPU**，
   `[save-budget]` 37.1 ms，兩者都在 50 ms 目標內。
+
+## 37. 2.5.4 發佈記錄：Steam Workshop 更新 + GitHub push（2026-11-02）
+
+* **Steam Workshop item 3828809784**：2026-11-02 **22:56:04** 開始上傳，**22:56:09**
+  `Uploaded new content ( ManifestID 2037025195551276545 )`、`Upload finished for workshop item
+  3828809784 : OK`（Steam `logs/workshop_log.txt`）；自製 `SteamUpload.exe`（Steamworks UGC API，
+  與遊戲內上傳器核心呼叫等價）回報 `submitDone ioFailure=False eResult=k_EResultOK
+  needsLegalAgreement=False publishedFileId=3828809784`（exit 0）。
+* **上傳內容** = §36 的 staged 2.5.4 包（上傳前建置，當時 HEAD 尚未包含本篇發佈記錄）：**48 files / 2,165,600 bytes / manifest 2.5.4**。
+  SHA-256：
+  `manifest.json 4722693d…7b1ee`、`HDBF.Core.dll f6109c36…3e0ef`、`HDBF.Gameplay.dll fcc41a6d…1ba076`、
+  `HDBF.Persistence.dll 4538644d…c494a5f9`、`HDBF.Integration.dll ce81956c…a3de6`、
+  `HDBF.UI.dll 8e94c115…f63f17f`（完整值見 staged 目錄；此處只記前後 8 碼）。
+  註：發佈後重跑的 `build.ps1` 會因 .NET SDK 把 git commit 寫進 `AssemblyInformationalVersion`
+  （`ProductVersion = 1.0.0+<sha>`）而產生位元不同的 DLL；檔案數/大小相同、原始碼相同，屬預期行為。
+  已上傳內容與上表雜湊一致（該次建置的 `+de1015c` 為當時 HEAD）。
+* **Change Note（雙語）**：維護一鍵追平 + 自動維護、休耕不清空、暫停殘留 reconcile、管道原因碼
+  + 正確接法說明、面板「為什麼不動」狀態列/三條補水路徑、補水 headroom、三語文案修正。
+* **刻意未動**：標題/描述/封面/標籤/可見性（沿用 2026-10-28 改版頁面）。`docs/workshop/DESCRIPTION.md`
+  的 maintenance 文案已同步到 repo，但**頁面描述需在 Steam 網頁編輯器人工套用**，本次 API 更新不覆寫。
+* **GitHub `stanley-1028/HighDensityBoxFarm`**：v2.5.4 維修 commit **`2a4a237`** 已 push（push 前遠端
+  `de1015c`，push 後 `origin/master` = `2a4a237`）；本篇發佈記錄 commit 為其後一個 commit，同樣 push。
+* **建置**：`build.ps1`（預設 work root）全綠：5 組件 **0 warning/0 error**、L1 **655/655**、
+  `tools/validate`「WARNINGS: none / RESULT: OK」、**RELEASE GATES: PASSED (44 checks)**。
+* **環境**：Steam client 執行中且已登入（`steamRunning=True loggedOn=True`）；`%USERPROFILE%\Documents\Timberborn\Mods\HDBF`
+  不存在（不與訂閱版同 Id 兩份載入）；未 `-Install`、未替換工坊資料夾。訂閱端何時下載新 manifest 由 Steam 決定。
+* **未做**：實機 fixture 回合仍 pending（§36.3）；未改工坊頁面文案/封面/標籤；未建立 Discussion 帖。

@@ -1,7 +1,7 @@
 # 玩家回饋 Bug 維修文檔 — 2026-11-02（HDBF v2.5.3）
 
 > **文件名**：`docs/BUG_REPAIR_20261102.md`
-> **狀態**：調查完成；**維修已實作（2026-11-02 實作輪，v2.5.4；離線 L1／validator／44 gates 全綠；實機 fixture 驗證 pending）** — 見文末 §10「維修實作狀態」。§0–§8 保留原本調查內容不變。
+> **狀態**：調查完成；**維修已實作並發佈（2026-11-02 實作輪，v2.5.4；離線 L1／validator／44 gates 全綠；Steam Workshop ManifestID `2037025195551276545`；GitHub `2a4a237`；實機 fixture 驗證 pending）** — 見文末 §10「維修實作狀態」。§0–§8 保留原本調查內容不變。
 > **對象版本**：HDBF **2.5.3**（2026-10-29 發佈，HEAD `de1015c`；Steam Workshop item `3828809784`）
 > **遊戲版本**：Timberborn **1.1.2.8**（`1.1.2.8-ffc2de0-sw`，Unity 6000.5.11f1）
 > **來源**：Steam Workshop 玩家留言（截圖，2026-11-02 21:16 擷取）、Annastasya 的錯誤日誌（pastebin）、專案內既有實機紀錄/日誌
@@ -686,4 +686,5 @@ Timberborn.TickSystem.TickerUnityAdapter.Update ()
 | L-08（連點） | ✅ 併入 WP-01 | 未到期按鈕禁用＋命令層 `MaintenanceNotDue`（同一天第二下不會多付） | 同上 |
 | L-04 / L-09 / L-11 / L-12 / L-14 / L-15 / L-16 / L-18 / L-19 / WP-12 / WP-13 / WP-14 | ⏸ pending | 未在本輪變更（P1/P2 或需外部模組/實機/設計決策）；維持 §4 原方案 | — |
 
-**本輪明確未做**：未改 `§19.8` 的週期/材料/停擺門檻與經濟；未新增 Harmony；未進行任何實機回合；未上傳 Steam Workshop；未改存檔 schema 版本號（新增欄位為向後相容的選填欄位，舊檔缺欄位 → 安全預設並記 `maintenance.auto-default`）。
+**本輪明確未做**：未改 `§19.8` 的週期/材料/停擺門檻與經濟；未新增 Harmony；未進行任何實機回合；未改存檔 schema 版本號（新增欄位為向後相容的選填欄位，舊檔缺欄位 → 安全預設並記 `maintenance.auto-default`）。
+已於 2026-11-02 22:56 更新 Steam Workshop 內容與 Change Note（ManifestID `2037025195551276545`，只更新內容、未動頁面描述/封面/標籤），並 push GitHub `2a4a237`；發佈記錄見 `docs/VERIFICATION.md` §37。
