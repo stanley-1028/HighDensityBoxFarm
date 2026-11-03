@@ -31,7 +31,7 @@ namespace HDBF.Tests
 
         private static readonly string[] KeyNames =
         {
-            "HDBF.IndoorFarm", "Payload", "HDBF.BoxFarm", "SchemaVersion", "EntityId", "Tier",
+            "HDBF.IndoorFarm", "Payload", "PreviousPayload", "HDBF.BoxFarm", "SchemaVersion", "EntityId", "Tier",
             "Faction", "Mode", "CropPolicy", "FixedCropId", "Tank", "MaintenanceDueDay",
             "MaintenanceCyclesMissed", "PowerConnected", "PowerMode", "PortPipe", "PortPower",
             "PortLogistics", "TimberPipesAdapter", "SlotCropIds", "SlotGrowth", "SlotFatigue",
@@ -74,6 +74,49 @@ namespace HDBF.Tests
             TestAssert.True(save.Contains("return false", StringComparison.Ordinal),
                 "a failed save must return false without throwing");
             Console.WriteLine("[v2-save] save: validate-before-write + guarded failure path");
+        }
+
+        /// <summary>
+        /// L-04 write strategy: a repaired record is written as the repaired copy, only a
+        /// <c>CannotWrite</c> pass keeps the previous entity record, and the pre-repair state is kept
+        /// as a rollback copy under the new <c>PreviousPayload</c> key (repaired writes only).
+        /// </summary>
+        public static void TestSaveWritesRepairedCopyAndKeepsRollbackCopy()
+        {
+            var source = ReadBridge("IndoorEntitySaveBridge.cs");
+            var save = Slice(source, "public static bool Save(", "public static IndoorFarmRecord? Load(");
+
+            TestAssert.True(save.Contains("validation.CannotWrite", StringComparison.Ordinal),
+                "the write path must refuse only CannotWrite (L-04)");
+            TestAssert.False(save.Contains("validation is null || validation.Repaired", StringComparison.Ordinal),
+                "a repaired record must not be refused as a whole any more (L-04)");
+            TestAssert.True(save.Contains("IndoorLogKeys.SaveWriteRepaired", StringComparison.Ordinal),
+                "a repaired write must log save.write-repaired");
+            TestAssert.True(save.Contains("IndoorLogKeys.SavePreviousSnapshot", StringComparison.Ordinal),
+                "the rollback copy must log save.previous-snapshot");
+            TestAssert.True(save.Contains("DescribeNotes(validation)", StringComparison.Ordinal),
+                "save.write-repaired must carry the repair notes, not only the counters");
+
+            var repairedGate = save.IndexOf("validation.Repaired ? TryEncodeRollbackCopy(record) : null",
+                StringComparison.Ordinal);
+            var rollbackWrite = save.IndexOf("component.Set(PreviousPayload", StringComparison.Ordinal);
+            var payloadWrite = save.IndexOf("component.Set(Payload", StringComparison.Ordinal);
+            TestAssert.True(repairedGate >= 0,
+                "the rollback copy must be produced only for a repaired write (clean saves stay small)");
+            TestAssert.True(rollbackWrite > repairedGate && payloadWrite > rollbackWrite,
+                "PreviousPayload is set first, then the repaired payload (L-04 order)");
+
+            var rollbackNote = save.IndexOf("IndoorLogKeys.SavePreviousSnapshot", StringComparison.Ordinal);
+            TestAssert.True(rollbackNote > rollbackWrite && rollbackNote < payloadWrite,
+                "save.previous-snapshot is logged only when the rollback copy was really written");
+            TestAssert.False(save.Contains("throw new", StringComparison.Ordinal),
+                "the write path never throws into the game (REQ-V2-SAFE-01)");
+
+            var keys = ReadBridge("IndoorSaveKeys.cs");
+            TestAssert.True(keys.Contains("PreviousPayloadKeyName", StringComparison.Ordinal)
+                            && keys.Contains("\"PreviousPayload\"", StringComparison.Ordinal),
+                "IndoorSaveKeys must publish the PreviousPayload key next to Payload");
+            Console.WriteLine("[v2-save] L-04: repaired copies are written; rollback copy kept behind the repaired gate");
         }
 
         /// <summary>REQ-V2-SAVE-06: load is tolerant and reports a repair/degrade summary.</summary>

@@ -1,7 +1,7 @@
 # 玩家回饋 Bug 維修文檔 — 2026-11-02（HDBF v2.5.3 → v2.5.4 已維修並發佈）
 
 > **文件名**：`docs/BUG_REPAIR_20261102.md`
-> **狀態**：調查完成；**維修已實作並發佈（2026-11-02 實作輪，v2.5.4；離線 L1／validator／44 gates 全綠；Steam Workshop ManifestID `2037025195551276545`；GitHub `2a4a237`；實機 fixture 驗證 pending）** — 見文末 §10「維修實作狀態」。§0–§8 保留原本調查內容不變。
+> **狀態**：調查完成；**維修已實作並發佈（2026-11-02 實作輪，v2.5.4；離線 L1／validator／44 gates 全綠；Steam Workshop ManifestID `2037025195551276545`；GitHub `2a4a237`；實機 fixture 驗證 pending）**；**第二實作輪（2026-11-03，v2.5.5，未發佈）已修離線可證明的 L-04 / L-12 / L-15 / L-09（L1 672/672、44 gates 全綠；實機仍 pending）** — 見文末 §10 與 §11。§0–§8 保留原本調查內容不變。
 > **對象版本**：HDBF **2.5.3**（2026-10-29 發佈，HEAD `de1015c`；Steam Workshop item `3828809784`）
 > **遊戲版本**：Timberborn **1.1.2.8**（`1.1.2.8-ffc2de0-sw`，Unity 6000.5.11f1）
 > **來源**：Steam Workshop 玩家留言（截圖，2026-11-02 21:16 擷取）、Annastasya 的錯誤日誌（pastebin）、專案內既有實機紀錄/日誌
@@ -23,7 +23,7 @@
 | RE-05 | 把管接到農場後面板仍顯示「未連接」：**農場不是 Timber Pipes 端點**，判定看的是全世界的水塔清單 | Bug（語義/判定） | 高（玩家已回報） | WP-05 | 🟡 原因碼/文案/probe 已修；真實連通判定 pending |
 | L-01 | **休耕→常規的第一個日 tick，整盒成熟作物以 0 產量被清空**（未回報，但程式碼已證實） | Bug（資料損失） | 極高（作物人間蒸發） | WP-03 | ✅ 已修（零產量不清槽） |
 | L-03 | 水罐 3–4 天見底後農場**靜默停工**，三條補水路徑在 UI 完全沒揭露 | 設計代價 + UX | 極高（最大負評來源） | WP-06 | 🟡 面板透明度已做；水罐平衡未改 |
-| L-04 | 存檔「驗證有修復就整筆拒寫」：未知作物/舊狀態可能靜默不存檔、進度回捲 | Bug（條件式） | 中（觸發時災難） | WP-14 | ⏸ pending |
+| L-04 | 存檔「驗證有修復就整筆拒寫」：未知作物/舊狀態可能靜默不存檔、進度回捲 | Bug（條件式） | 中（觸發時災難） | WP-14 | ✅ 已修（v2.5.5 離線：可修復即寫入修復副本＋`PreviousPayload` 回滾副本；keyed bridge 待統一） |
 | RE-03 | 數分鐘後致命 NRE：**第三方 Harmony 補丁**的 `WorkerRootBehavior.Decide` 在 HDBF 的室內工人狀態上 NRE；patcher 未確定 | 相容性（非 HDBF 補丁） | 高（玩家只看到 crash） | WP-07（診斷）＋WP-04（收斂狀態） | ⏸ pending（第三方補丁；probe 未做） |
 | RE-06 | Ember-pelts 等自訂陣營**完全看不到** HDBF 建築（template collection 未註冊） | 功能缺口 | 中高（陣營玩家） | WP-13 | ⏸ pending |
 | RE-02 | 比佛不會做 upkeep（維護/補水沒有工人行為，維護是玩家按鈕、補水是瞬時） | 設計落差 | 中高 | WP-02、WP-06 | 🟡 自動維護已補；工人行為未做 |
@@ -452,7 +452,7 @@ Timberborn.TickSystem.TickerUnityAdapter.Update ()
 - **影響**：早期玩家（還沒抽水站/沒管道/附近沒水）蓋了農場，3 天後變裝飾品；極可能負評/退訂。
 - **解決方案**：短期面板缺水列寫明三條路徑＋「距離最近水源：無/12 格」＋藍圖/tooltip 標「滿罐僅夠 3 天」；長期把水輸入庫存鏈接好或低水位自動請求搬水，平衡上考慮 Basic 水罐拉到 4–5 天（需 product 決策）。
 
-#### L-04【已證實（條件式）｜P0 風險】存檔「有修復就整筆拒寫」：某些狀態會靜默不存檔、進度回捲 → ⏸ **pending**（本輪未動存檔拒寫策略）。
+#### L-04【已證實（條件式）｜P0 風險】存檔「有修復就整筆拒寫」：某些狀態會靜默不存檔、進度回捲 → ✅ **已修（v2.5.5 離線）**：可修復即寫入修復副本＋`PreviousPayload` 回滾副本（ADR-V2-006）；只有 `CannotWrite` 才拒寫。
 
 - **現象（玩家語氣）**：「存檔再讀檔，農場的作物/水罐回到好幾天前；日誌只有一行 validation failed。」
 - **原因**：`IndoorEntitySaveBridge.Save` 在驗證有任何 `Repaired` 時**整筆拒絕寫入**（`IndoorEntitySaveBridge.cs:76-81`）；驗證器會主動修掉未知作物、非正成長時間、`FixedCropId` 不在表、`dueDay=0`、非法 port 等狀態（`IndoorSlotRepair.cs:144-233`、`IndoorSaveFieldRepair.cs:103-160`、`IndoorSaveValidator.cs:157-161`）。若該「被修掉狀態」反覆出現（例如 mod 作物成長時間 0），存檔會每次拒寫 → 進度回捲，且無錯誤對話框。
@@ -468,13 +468,13 @@ Timberborn.TickSystem.TickerUnityAdapter.Update ()
 | L-06 | 「我按了管道接口關閉，隔天它自己又打開。」 | `UpdatePorts` 每個日 tick 無條件覆寫 `record.PipePort`（`Context.cs:245-297`）；玩家 toggle 只寫 record，隔日被蓋回，還可能記誤導日誌 | 日 tick 只更新「端口存在/能力」，不覆寫玩家啟用選擇；或把「存在/啟用/實際連線」三態分開 | ✅ 已完成（日 tick 不覆寫玩家端口選擇） |
 | L-07 | 「面板說材料夠，按維護卻說不足；我有 8 木板，只是分散在兩個倉庫。」 | 面板/警告的 `Available` 加總所有地區庫存（`IndoorMaintenanceMaterialSource.cs:39-84`），實際交易要求**單一倉庫**整筆（`HdbfMaintenanceTransaction.cs:82-97,109-116`）→ 加總夠但分散就失敗；反之補貨後面板也可能顯示舊缺料 | 把 `Available` 改成「找得到單一庫存能付整筆」或交易支援跨庫拼湊；面板與命令共用同一判定 | ✅ 已完成（單一庫存可付整筆；缺料用追平總帳單） |
 | L-08 | 「我手滑點兩下維護，8 木板就沒了，到期日往後跳 20 天。」 | `TryPerformMaintenance` 不檢查是否已逾期、無冷卻/確認；連點＝連付並把 dueDay 往後推（`HdbfFarmCommandService.cs:85-109`、`Commands.cs:213-273`） | dueDay 還在未來時禁用按鈕（或需確認）；同一日去重；面板顯示本次扣料與下次到期 | ✅ 已完成（未到期禁用＋MaintenanceNotDue） |
-| L-09 | 「我裝了傳送帶，面板說輸出端口已連接，但帶子不搬作物。」 | `LogisticsConnected()` 只回傳 adapter 探測結果（`IndoorSnapshot.Helpers.cs:14-24`、`IndoorAdapterHost.cs:123-137`），專案沒有把產物寫進輸送帶的程式；`features.logisticsOutput=false`（`HDBF_Config.json:9`） | 短期把「物流接口」改成「僅偵測到模組/不適用」不承諾連接；長期真接輸出端口或文件明說只支援原版搬運 | ⏸ pending |
+| L-09 | 「我裝了傳送帶，面板說輸出端口已連接，但帶子不搬作物。」 | `LogisticsConnected()` 只回傳 adapter 探測結果（`IndoorSnapshot.Helpers.cs:14-24`、`IndoorAdapterHost.cs:123-137`），專案沒有把產物寫進輸送帶的程式；`features.logisticsOutput=false`（`HDBF_Config.json:9`） | 短期把「物流接口」改成「僅偵測到模組/不適用」不承諾連接；長期真接輸出端口或文件明說只支援原版搬運 | ✅ 已完成（v2.5.5：端口永不顯示 Connected；`HDBF.Port.LogisticsDetected`＋tooltip；三語） |
 | L-10 | 「農場沒工人，面板水跟效率都是綠的，地圖也沒警告，我以為它在運作。」 | 0 工人 → `EffectiveSlots=0` → demand=0 → Coverage=1（`IndoorLaborMath.cs:30-37`、`IndoorWaterMath.cs:51-70`）；世界圖示沒有「無工人」類別（`IndoorWarnings.cs:91-148`），面板與 Icon 的嚴重度模型不一致 | 0 工人時 coverage 顯示「—」或警告；`NoWorkers` 升到 P1 並給世界圖標 | 🟡 面板「—」＋閒置原因已做；世界圖標/嚴重度 pending |
 | L-11 | 「面板說缺水，地圖上農場頭上卻沒有圖標；我補完水，圖標又掛一整天。」 | 世界圖示讀 `snapshot.Warnings`（日 tick 快取 `_lastWarnings`，`HdbfWorldIconService.Evaluate.cs:28-31`、`Tick.cs:156-174`），面板讀即時 coverage（`HdbfIndoorPanelWarnings.cs:34-59`）→ 兩者必然不同步 | 圖示改用即時快照推導的四類狀態，或命令成功後立即重算；面板/圖示共用同一 Core 純函式 | ⏸ pending |
-| L-12 | 「我裝了作物模組，固定作物只列得出原本幾種；新作物顯示英文 id，還被說無效。」 | 下拉/警告用 `FallbackCropCatalog`（`HdbfIndoorPanelWarnings.cs:159-171,177-206`），但設定命令用 live catalog（`Commands.cs:176-184`）；名稱表只硬編碼 10 個作物（`HdbfIndoorPanelFormat.cs:160-183`），表外顯示 raw id | 面板清單/驗證一律吃 `GameCropCatalog`（snapshot 帶 CropChoices）；表外作物用遊戲本地化名 | ⏸ pending |
+| L-12 | 「我裝了作物模組，固定作物只列得出原本幾種；新作物顯示英文 id，還被說無效。」 | 下拉/警告用 `FallbackCropCatalog`（`HdbfIndoorPanelWarnings.cs:159-171,177-206`），但設定命令用 live catalog（`Commands.cs:176-184`）；名稱表只硬編碼 10 個作物（`HdbfIndoorPanelFormat.cs:160-183`），表外顯示 raw id | 面板清單/驗證一律吃 `GameCropCatalog`（snapshot 帶 CropChoices）；表外作物用遊戲本地化名 | ✅ 已完成（v2.5.5：`IndoorFarmSnapshot.CropChoices`＋`CropDefinition.DisplayNameLocKey`，面板 live-first） |
 | L-13 | 「我拆掉/搬遷盒子農場，遊戲就閃退。」 | `Deactivate()` 沒有撤離室內工人（`Activation.cs:100-146`）；2.5.3 的撤出只在暫停路徑（`Pause.cs:214,228`）；依賴原版 `Enterable.OnExitFinishedState → ForceRemoveEveryone` 的順序 | 在 `Deactivate()`/`OnExitFinishedState` 前先撤一輪（與 WP-04 共用），失敗只記 Warn；這是 3–5 行的防禦性修復 | ✅ 已完成（Deactivate 前先撤出；併入 WP-04） |
 | L-14 | 「蓋到 20 幾座農場後開始卡；打開面板更卡，三倍速更明顯。」 | 每幀 `ConsumeElapsedWater` 內每幀 `ApplyHauledWater()`（含庫存不存在時每幀重掃 `Inventories.AllInventories`、查庫存、每幀成功扣水就 `_saveDirty=true`）；面板 4 Hz 每 16 次讀取觸發 `RefreshWaterSupply` → 25×25=625 格水源圖＋導航可達性；世界圖示每秒對最多 24 座農場取 snapshot（`WaterFlow.cs:25-59`、`WaterSupply.cs:20-27,37-83,94-121,152-243`、`HdbfManualWaterSource.Search.cs:39-154`、`HdbfWorldIconService.Update.cs:59-104`） | 把 `ApplyHauledWater` 移到事件/節流（每 0.5 s 或每 N 幀）；庫存解析失敗加冷卻；`_saveDirty` 只在實際變化時設；水源探測快取延長/按距離提早跳出；加 100 棟 fixture + Profiler 量測 | ⏸ pending |
-| L-15 | 「我改了 config 的水罐容量/維護材料，面板顯示跟實際行為不一樣。」 | UI 讀模型用編譯期 `TierCatalog.Get`（`HdbfIndoorPanelFactory.cs:273-284`），模擬用 config 覆寫後的 `TierProfile`（`Activation.cs:225-252`、`HDBF_Config.json` 的 `balance.tier`） | 把解析後的 profile 塞進 snapshot（或 UI 透過 query 取得），加 L1「config 覆寫→面板跟著變」 | ⏸ pending |
+| L-15 | 「我改了 config 的水罐容量/維護材料，面板顯示跟實際行為不一樣。」 | UI 讀模型用編譯期 `TierCatalog.Get`（`HdbfIndoorPanelFactory.cs:273-284`），模擬用 config 覆寫後的 `TierProfile`（`Activation.cs:225-252`、`HDBF_Config.json` 的 `balance.tier`） | 把解析後的 profile 塞進 snapshot（或 UI 透過 query 取得），加 L1「config 覆寫→面板跟著變」 | ✅ 已完成（v2.5.5：`IndoorFarmSnapshot.Profile`，面板優先它、null 才退回 `TierCatalog.Get`） |
 
 ### 4.3 P2/P3 潛在 bug 與工程風險
 
@@ -532,13 +532,15 @@ Timberborn.TickSystem.TickerUnityAdapter.Update ()
 | WP-09 | 維護材料可用性一致 | L-07 | P1 | Gameplay/Core | S | 低 | ✅ 已完成 |
 | WP-10 | 世界圖示即時化＋多狀態 | L-11、RE-01 UX | P1 | Gameplay/Core/UI | M | 中（vanilla icon 行為） | ⏸ pending |
 | WP-11 | 拆除/失去 finished 前撤出 | L-13 | P1 | Gameplay | S | 低 | ✅ 已完成（併入 WP-04） |
-| WP-12 | 作物清單與本地化（crop mod 相容） | L-12、L-17 | P1 | UI/Gameplay/data | M | 低 | ⏸ pending |
+| WP-12 | 作物清單與本地化（crop mod 相容） | L-12、L-17 | P1 | UI/Gameplay/data | M | 低 | ✅ 已完成（v2.5.5：live 作物表＋`DisplayNameLocKey`；世界圖示 tooltip 延遲本地化仍 pending） |
 | WP-13 | 自訂陣營支援 M0（Ember-pelts） | RE-06 | P1 | data/UI/Gameplay/Persistence | L | 中高（需 Emberpelts） | ⏸ pending |
-| WP-14 | 其他 P2（物流端口語義、config 死旗標、0 工人、backward 清單、L-04 存檔策略、效能量測） | L-09/10/14/15/16/18/19 | P2/P3 | 多層 | L | 中 | ⏸ pending |
+| WP-14 | 其他 P2（物流端口語義、config 死旗標、0 工人、backward 清單、L-04 存檔策略、效能量測） | L-09/10/14/15/16/18/19 | P2/P3 | 多層 | L | 中 | 🟡 部分完成（v2.5.5：L-09/L-15 完成；L-14/L-16/L-18/L-19 與 100 棟量測 pending） |
 
 ### 6.2 建議排程（依風險與回報）
 
 **本輪（v2.5.4）執行結果**：第 1 批 ✅ 全部完成（WP-03→WP-01→WP-02→WP-04→WP-05 文案/原因列→WP-06 面板狀態列；WP-05 真實連通判定與 §7.2 實機仍 pending）。第 2 批只完成 WP-08 的補水 headroom、WP-09、WP-11（併入 WP-04）；WP-10/WP-12 ⏸。第 3 批（WP-13/WP-14/100 棟/L-04）⏸ 未做。
+
+**第二輪（v2.5.5）執行結果**：第 2 批剩餘的 **WP-12（L-12）** 與第 3 批的 **L-04、L-09、L-15** ✅ 完成（離線可證明，見 §11；L-04 的寫入策略修訂見 ADR-V2-006）；WP-10/L-11、WP-05 真實判定、WP-13、L-14/L-16/L-18/L-19 維持 ⏸ pending。
 
 1. **第 1 批（P0，可離線完成＋L1 釘死）**：WP-03（2 行修法，最高性價比）→ WP-01 → WP-02 → WP-04（含 L-13 防禦）→ WP-05 的文案/原因列＋實機驗證準備 → WP-06 面板狀態列。
 2. **第 2 批（P1，實機驗證綁定）**：WP-05 真實連通判定＋probe、WP-08、WP-09、WP-10、WP-11、WP-12。
@@ -680,6 +682,7 @@ Timberborn.TickSystem.TickerUnityAdapter.Update ()
 ## 9. 修復完成定義（Definition of Done，給實作卡）
 
 **本輪（v2.5.4）結果**：第 1、2、3、4、6 項 ✅ 已滿足；**第 5 項（實機 fixture 回合）⏸ pending** — 因此本輪不宣稱 DoD 全部完成，實機證據仍待補。
+**第二輪（v2.5.5，未發佈）結果**：第 1、2、3、4、6 項 ✅（L1 672/672、44 gates PASSED）；第 5 項（實機 fixture）仍 ⏸ pending。
 
 一項修復只有同時滿足以下條件才算完成：
 
@@ -719,3 +722,31 @@ Timberborn.TickSystem.TickerUnityAdapter.Update ()
 
 **本輪明確未做**：未改 `§19.8` 的週期/材料/停擺門檻與經濟；未新增 Harmony；未進行任何實機回合；未改存檔 schema 版本號（新增欄位為向後相容的選填欄位，舊檔缺欄位 → 安全預設並記 `maintenance.auto-default`）。
 已於 2026-11-02 22:56 更新 Steam Workshop 內容與 Change Note（ManifestID `2037025195551276545`，只更新內容、未動頁面描述/封面/標籤），並 push GitHub `2a4a237`；發佈記錄見 `docs/VERIFICATION.md` §37。
+
+---
+
+## 11. 第二實作輪（2026-11-03，v2.5.5，未發佈）
+
+> 實作卡計畫：`docs/workstreams/bugfix-20261102/REPAIR_PLAN_ROUND2.md`（範圍、檔案所有權、契約、驗收）。
+> 離線驗證：`docs/VERIFICATION.md` §38；變更記錄：`docs/v2/CHANGELOG.md` [2.5.5]；存檔語意修訂：`ADR-V2-006`。
+> **本輪同樣沒有可互動的遊戲會話**：只做 §4 清單中「離線可證明」的項目；所有實機 fixture（§7.2 A–K）維持 pending，
+> 不把任何未實機驗證的項目寫成已完成。
+
+| Bug | 狀態 | 實際修法（一句話） | 釘死測試 |
+|---|---|---|---|
+| L-04（P0 風險） | ✅ 完成（離線） | 寫前校驗分兩態：`CannotWrite`（記錄/檔位缺失、tier profile/容量非法、校驗器例外）→ 維持拒寫＋`save.validation-failed`；`Repaired`（欄位/槽位可修復）→ **寫入修復後的副本**＋`save.write-repaired`（含摘要/notes）＋修復前狀態存 `PreviousPayload` 回滾副本（`save.previous-snapshot`，乾淨存檔不寫）；entity ID 不一致仍以 Clamp 修復、不列不可寫。**偏離處理見 ADR-V2-006**。 | `V2SaveWriteStrategyTests`（7 條）、`V2PersistenceBridgeContractTests.TestSaveWritesRepairedCopyAndKeepsRollbackCopy`、`V2SaveValidatorTests`（`CannotWrite` 矩陣） |
+| L-12 / WP-12 | ✅ 完成（離線） | `IndoorCropChoice`（Core）＋`IndoorFarmSnapshot.CropChoices`（gameplay 以 live `_cropCatalog.ForFaction` 快取填充）＋`CropDefinition.DisplayNameLocKey`（blueprint `LabeledEntitySpec.DisplayNameLocKey`，guarded）；面板下拉/固定作物名/invalid-crop 警告/Growing 列名改 live-first，空清單才退回內建表與 10 種名稱。 | `V2PanelContractTests.TestCropDropdownUsesTheLiveSnapshotCatalogue`、`V2CropCatalogTests`（3 條）、`V2PanelVisualContractTests` |
+| L-15 | ✅ 完成（離線） | `IndoorFarmSnapshot.Profile` 帶 config 覆寫後的 `TierProfile`；UI `FindProfile(snapshot)` 先吃 snapshot.Profile、null 才退回 `TierCatalog.Get`（既有 snapshot/測試行為不變）；面板指紋混入 Profile/CropChoices。 | `V2PanelContractTests.TestPanelUsesTheConfigOverrideProfileFromTheSnapshot`、`TestFingerprintCoversTheLiveProfileAndCropChoices` |
+| L-09 | ✅ 完成（離線） | 物流/輸出端口列永不再顯示 Connected：無端口 → Not applicable；偵測到模組 → 新 `HDBF.Port.LogisticsDetected`（尚未接出貨物）；有端口未偵測 → Not connected；新 `HDBF.Tooltip.LogisticsPort` 說明請用原版搬運（三語，key 集一致）。 | `V2PanelContractTests.TestLogisticsPortRowsNeverClaimAConnection`、`V2LocalizationTests.TestLogisticsPortTextsDescribeTheHonestOutputSemantics`、`V2PanelVisualContractTests` |
+| L-11 / WP-10 | ⏸ pending | 世界圖示即時化與面板同源：需實機驗證 vanilla icon 行為；本輪未動。 | — |
+| WP-05 真實連通 / L-02(b)(c) | ⏸ pending | `PipeRegistry.TryGetGraph(農場座標)` 真實判定、全域假連通解耦、3-strike 時間窗：需第三方程 API 與實機。 | — |
+| WP-07 / L-20 | ⏸ pending | `indoor.behavior-probe` 唯讀診斷：G-08 掃 source 禁 Harmony 字樣，需另案設計。 | — |
+| WP-13 / RE-06 | ⏸ pending | 自訂陣營（Ember-pelts）：需外部主模組。 | — |
+| L-14 / L-16 / L-18 / L-19 | ⏸ pending | 100 棟效能量測、backward 清單、config 死旗標、ADR/需求漂移：需設計決策或量測。 | — |
+
+**本輪明確未做／已知風險**：
+
+* 未改 `§19.8` 的週期/材料/停擺門檻與經濟；未新增 Harmony；未進行任何實機回合；未上傳 Steam Workshop、未 push GitHub、未 `-Install`。
+* `IndoorEntitySaveBridge.Keyed.cs`（非 live 存檔路徑）仍保留舊「`Repaired` 即拒寫」契約，統一留待後續小卡。
+* `PreviousPayload` 是「修復前回滾副本」，**不保證可載入**、`Load` 不讀它；一次修復寫入後，後續乾淨寫入不會主動清除它（殘留不影響讀取）。
+* `HdbfUiLocKeys.cs` 已達 300 行上限；下一批面板字串需先拆 partial 並授權改 `tests/HDBF.Tests/HDBF.Tests.csproj` 的 linked Compile。

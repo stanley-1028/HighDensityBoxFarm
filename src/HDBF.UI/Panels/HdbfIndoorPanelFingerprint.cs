@@ -97,6 +97,21 @@ namespace HDBF.UI.Panels
                 hash = hash * 31 + (int)snapshot.PipeProbeState.Reason;
                 hash = hash * 31 + snapshot.PipeProbeState.TankCount;
                 hash = hash * 31 + snapshot.PipeProbeState.WaterTankCount;
+                // L-15: the config-resolved profile changes the rendered upkeep material/cycle.
+                hash = hash * 31 + (snapshot.Profile is null ? 0 : snapshot.Profile.GetHashCode());
+                // L-12: the live crop table drives the dropdown and every crop name, so a catalog
+                // rebuild (a crop mod (re)loaded its specs) must invalidate the panel too.
+                var choices = snapshot.CropChoices;
+                hash = hash * 31 + (choices is null ? 0 : choices.Count);
+                for (var index = 0; choices is not null && index < choices.Count; index++)
+                {
+                    var choice = choices[index];
+                    hash = hash * 31 + (choice?.Id is null ? 0 : choice.Id.GetHashCode());
+                    hash = hash * 31 + (choice?.DisplayNameLocKey is null
+                        ? 0
+                        : choice.DisplayNameLocKey.GetHashCode());
+                }
+
                 // REQ-V2-UI-05: the live "Growing now" rows change without any scalar above changing,
                 // so the dirty check mixes each crop's identity, slot split and growth progress.
                 var crops = snapshot.Crops;

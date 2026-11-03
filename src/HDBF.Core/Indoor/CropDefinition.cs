@@ -14,5 +14,15 @@ namespace HDBF.Core.Indoor
     /// <param name="GrowthTimeInDays">Game days from planting to maturity; must be positive.</param>
     /// <param name="YieldItemId">Vanilla good id the harvest adds to the output inventory.</param>
     /// <param name="BaseYield">Base item yield per harvest before G_fat and G_mode.</param>
-    public sealed record CropDefinition(string Id, float GrowthTimeInDays, string YieldItemId, int BaseYield);
+    public sealed record CropDefinition(string Id, float GrowthTimeInDays, string YieldItemId, int BaseYield)
+    {
+        /// <summary>
+        /// Localization key of the crop display name read from the blueprint's
+        /// <c>LabeledEntitySpec.DisplayNameLocKey</c> (L-12). Kept as an init property, not a
+        /// positional parameter, so the existing constructors and the built-in fallback table keep
+        /// compiling. Null/empty when the spec is missing: the panel then uses its built-in name
+        /// table (section 19.5) instead of showing a raw key.
+        /// </summary>
+        public string? DisplayNameLocKey { get; init; }
+    }
 }

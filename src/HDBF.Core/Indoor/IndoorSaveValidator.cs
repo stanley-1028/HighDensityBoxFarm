@@ -18,9 +18,9 @@ namespace HDBF.Core.Indoor
     /// entry of section 19.18.3-A2 must pass before a record may be written). The repair is
     /// conservative: it clamps, clears and pads, it never invents crops, water or maintenance
     /// credit. The record is repaired <b>in place</b> (the interface returns only the summary);
-    /// a caller on the write path must keep the previous good snapshot and skip the write when
-    /// <see cref="IndoorRepairResult.Repaired"/> is true. The pass never throws: a broken catalog
-    /// or a null argument degrades to "not writable" (REQ-V2-SAVE-06).
+    /// a caller on the write path persists the repaired copy and only skips the write when
+    /// <see cref="IndoorRepairResult.CannotWrite"/> is true (L-04). The pass never throws: a broken
+    /// catalog or a null argument degrades to "not writable" (REQ-V2-SAVE-06).
     /// </summary>
     public static class IndoorSaveValidator
     {
@@ -32,7 +32,10 @@ namespace HDBF.Core.Indoor
         /// <param name="tier">Resolved tier profile; supplies capacity, tank capacity and power contract.</param>
         /// <param name="catalog">Live crop catalog; the built-in fallback table covers missing specs.</param>
         /// <param name="expectedEntityId">Entity key the record is stored under, or null when unknown.</param>
-        /// <returns>What was repaired; <see cref="IndoorRepairResult.Repaired"/> forbids the write.</returns>
+        /// <returns>
+        /// What was repaired; <see cref="IndoorRepairResult.Repaired"/> means "write the repaired
+        /// copy", <see cref="IndoorRepairResult.CannotWrite"/> forbids the write (L-04).
+        /// </returns>
         public static IndoorRepairResult ValidateAndRepair(IndoorFarmRecord record, TierProfile tier,
             ICropCatalog catalog, string? expectedEntityId)
         {

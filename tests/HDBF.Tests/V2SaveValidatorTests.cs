@@ -25,6 +25,7 @@ namespace HDBF.Tests
                 var result = IndoorSaveValidator.ValidateAndRepair(record, profile,
                     FallbackCropCatalog.Default, record.EntityId);
                 TestAssert.False(result.Repaired, profile.Tier + " clean record was repaired: " + result);
+                TestAssert.False(result.CannotWrite, profile.Tier + " clean record must stay writable: " + result);
                 TestAssert.Equal(0, result.SlotsTrimmed, profile.Tier + ": trimmed");
                 TestAssert.Equal(0, result.SlotsPadded, profile.Tier + ": padded");
                 TestAssert.Equal(0, result.ValuesClamped, profile.Tier + ": clamped");
@@ -224,21 +225,25 @@ namespace HDBF.Tests
             var missingRecord = IndoorSaveValidator.ValidateAndRepair(null!, V2SaveFixtures.Basic,
                 FallbackCropCatalog.Default, null);
             TestAssert.True(missingRecord.Repaired);
+            TestAssert.True(missingRecord.CannotWrite, "a missing record is not writable (L-04)");
             TestAssert.True(HasNote(missingRecord, "record-missing"), "note: " + string.Join("|", missingRecord.Notes));
 
             var record = V2SaveFixtures.RichRecord(HdbfTier.Basic);
             var missingTier = IndoorSaveValidator.ValidateAndRepair(record, null!, null!, null);
             TestAssert.True(missingTier.Repaired);
+            TestAssert.True(missingTier.CannotWrite, "a missing tier profile is not writable (L-04)");
             TestAssert.True(HasNote(missingTier, "tier-missing"), "note: " + string.Join("|", missingTier.Notes));
 
             var noCatalog = V2SaveFixtures.RichRecord(HdbfTier.Basic);
             var result = IndoorSaveValidator.ValidateAndRepair(noCatalog, V2SaveFixtures.Basic, null!, null);
             TestAssert.False(result.Repaired, "the built-in fallback covers a null catalog: " + result);
+            TestAssert.False(result.CannotWrite, "the built-in fallback keeps the record writable: " + result);
 
             var brokenProfile = V2SaveFixtures.Basic with { Tier = (HdbfTier)9 };
             var badProfile = IndoorSaveValidator.ValidateAndRepair(V2SaveFixtures.RichRecord(HdbfTier.Basic),
                 brokenProfile, FallbackCropCatalog.Default, null);
             TestAssert.True(badProfile.Repaired, "an unresolvable tier profile must block the write");
+            TestAssert.True(badProfile.CannotWrite, "an unresolvable tier profile is not writable (L-04)");
             TestAssert.True(HasNote(badProfile, "tier-profile-invalid"),
                 "note: " + string.Join("|", badProfile.Notes));
         }

@@ -6,6 +6,8 @@
 // ============================================================================
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Text;
 using HDBF.Core;
 using HDBF.Core.Indoor;
 
@@ -138,7 +140,89 @@ namespace HDBF.Tests
             TestAssert.True(ReferenceEquals(FallbackCropCatalog.Default, FallbackCropCatalog.Default));
         }
 
+        // ---------------------------------------------------------------- L-12 display names
+
+        /// <summary>
+        /// L-12: the crop definition carries the optional blueprint display-name key without
+        /// changing its positional constructor, and equality still works for the built-in table.
+        /// </summary>
+        public static void TestCropDefinitionCarriesAnOptionalDisplayNameLocKey()
+        {
+            var withKey = new CropDefinition("Carrot", 4f, "Carrot", 3)
+            {
+                DisplayNameLocKey = "HDBF.Panel.CropCarrot",
+            };
+            TestAssert.Equal("HDBF.Panel.CropCarrot", withKey.DisplayNameLocKey);
+            TestAssert.Equal("Carrot", withKey.Id);
+
+            var withoutKey = new CropDefinition("Carrot", 4f, "Carrot", 3);
+            TestAssert.Null(withoutKey.DisplayNameLocKey,
+                "a definition without a blueprint key must stay null and keep the old equality semantics");
+            TestAssert.True(withoutKey.Equals(new CropDefinition("Carrot", 4f, "Carrot", 3)),
+                "the init property must not break record equality");
+            TestAssert.False(withoutKey.Equals(withKey),
+                "a different display-name key is a different definition");
+        }
+
+        public static void TestFallbackCropsLeaveTheDisplayNameKeyEmpty()
+        {
+            foreach (var faction in new[] { HdbfFaction.Folktails, HdbfFaction.IronTeeth })
+            {
+                var crops = FallbackCropCatalog.Default.ForFaction(faction);
+                for (var index = 0; index < crops.Count; index++)
+                {
+                    TestAssert.Null(crops[index].DisplayNameLocKey,
+                        "the built-in table carries no game key; the panel keeps its own name table");
+                }
+            }
+        }
+
+        /// <summary>
+        /// L-12: the game-backed catalog reads <c>LabeledEntitySpec.DisplayNameLocKey</c> from the
+        /// crop blueprint (in a guarded read, so a crop mod without the spec keeps its crop).
+        /// </summary>
+        public static void TestGameCropCatalogReadsTheBlueprintDisplayNameKey()
+        {
+            var source = ReadEmbeddedSource("GameCropCatalog.SpecReader.cs");
+            foreach (var token in new[] { "LabeledEntitySpec", "DisplayNameLocKey",
+                         "GetSpec<LabeledEntitySpec>()", "catch (Exception)" })
+            {
+                TestAssert.True(source.Contains(token, StringComparison.Ordinal),
+                    "the crop spec reader must contain " + token);
+            }
+
+            var catalog = ReadEmbeddedSource("GameCropCatalog.cs");
+            TestAssert.True(catalog.Contains("DisplayNameLocKey", StringComparison.Ordinal)
+                            || source.Contains("DisplayNameLocKey", StringComparison.Ordinal),
+                "the catalog must map the spec key onto CropDefinition.DisplayNameLocKey");
+        }
+
         // ---------------------------------------------------------------- helpers
+
+        /// <summary>Reads an embedded Gameplay source file (the game-facing catalog cannot compile here).</summary>
+        private static string ReadEmbeddedSource(string fileName)
+        {
+            var assembly = typeof(V2CropCatalogTests).Assembly;
+            var suffix = "." + fileName;
+            foreach (var resource in assembly.GetManifestResourceNames())
+            {
+                if (!resource.EndsWith(suffix, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                using var stream = assembly.GetManifestResourceStream(resource);
+                if (stream is null)
+                {
+                    continue;
+                }
+
+                using var reader = new StreamReader(stream, Encoding.UTF8);
+                return reader.ReadToEnd();
+            }
+
+            throw new TestFailureException("missing embedded source: " + fileName);
+        }
 
         private sealed class EmptyCatalog : ICropCatalog
         {

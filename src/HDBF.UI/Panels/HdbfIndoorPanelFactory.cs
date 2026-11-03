@@ -40,7 +40,7 @@ namespace HDBF.UI.Panels
                 return Empty;
             }
 
-            var profile = FindProfile(snapshot.Tier);
+            var profile = FindProfile(snapshot);
             var coverage = snapshot.Coverage;
             var minCoverage = snapshot.MinCoverage;
             var irrigation = IndoorWaterMath.IrrigationMultiplier(coverage, minCoverage);
@@ -161,13 +161,14 @@ namespace HDBF.UI.Panels
             }
 
             return HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelFixedCrop,
-                HdbfIndoorPanelFormat.CropName(localize, snapshot.FixedCropId));
+                HdbfIndoorPanelFormat.CropName(localize, snapshot.CropChoices, snapshot.FixedCropId));
         }
 
         /// <summary>
         /// Rotation sequence with localized crop names; the snapshot carries ids ("Carrot → Potato").
         /// </summary>
-        internal static string FormatRotationSequence(string? sequence, Func<string, string> localize)
+        internal static string FormatRotationSequence(string? sequence,
+            IReadOnlyList<IndoorCropChoice>? live, Func<string, string> localize)
         {
             if (string.IsNullOrEmpty(sequence))
             {
@@ -177,13 +178,13 @@ namespace HDBF.UI.Panels
             var parts = sequence!.Split(new[] { " > ", " → " }, StringSplitOptions.RemoveEmptyEntries);
             if (parts.Length <= 1)
             {
-                return HdbfIndoorPanelFormat.CropName(localize, sequence);
+                return HdbfIndoorPanelFormat.CropName(localize, live, sequence);
             }
 
             var names = new List<string>(parts.Length);
             for (var index = 0; index < parts.Length; index++)
             {
-                names.Add(HdbfIndoorPanelFormat.CropName(localize, parts[index].Trim()));
+                names.Add(HdbfIndoorPanelFormat.CropName(localize, live, parts[index].Trim()));
             }
 
             // ASCII arrow keeps the sequence readable in every font shipped by the game.
@@ -255,11 +256,22 @@ namespace HDBF.UI.Panels
             }
         }
 
-        internal static TierProfile? FindProfile(HdbfTier tier)
+        /// <summary>
+        /// Tier profile the panel renders: the config-resolved profile carried by the snapshot
+        /// (L-15) wins, so a <c>balance.tier</c> JSON override reaches the upkeep rows; the compiled
+        /// <see cref="TierCatalog"/> table is only the fallback for snapshots without a profile
+        /// (older gameplay builds/tests), which keeps their previous behaviour.
+        /// </summary>
+        internal static TierProfile? FindProfile(IndoorFarmSnapshot snapshot)
         {
+            if (snapshot.Profile is not null)
+            {
+                return snapshot.Profile;
+            }
+
             try
             {
-                return TierCatalog.Get(tier);
+                return TierCatalog.Get(snapshot.Tier);
             }
             catch (ArgumentOutOfRangeException)
             {

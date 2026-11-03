@@ -1,9 +1,69 @@
 # HDBF v2 变更记录
 
-> **状态**：2.5.4 已发布（Steam Workshop ManifestID 2037025195551276545；GitHub master `2a4a237`；离线门禁全绿；实机验证 pending）
-> **日期**：2026-11-02
-> **适用版本**：2.5.4
+> **状态**：2.5.5 为原始码轮（**未发布**；离线门禁全绿，实机验证 pending）；2.5.4 已发布（Steam Workshop ManifestID 2037025195551276545；GitHub master `2a4a237`；离线门禁全绿；实机验证 pending）
+> **日期**：2026-11-03
+> **适用版本**：2.5.5
 > **变更摘要**：v2.1 需求引入室内农场方案；本文件记录 v1→v2 的行为/数据/工程变更与实现状态。
+
+## [2.5.5] — 2026-11-03（第二维修轮：L-04 存档修复副本、L-12 live 作物表、L-15 config profile、L-09 物流端口语义）
+
+依据 `docs/BUG_REPAIR_20261102.md` §4 的 pending 清单与实作卡
+`docs/workstreams/bugfix-20261102/REPAIR_PLAN_ROUND2.md`；离线验证见 `docs/VERIFICATION.md` §38，
+存档语义修订见 ADR-V2-006。**本文件只收可离线证明的修复；需要实机/外部模组的项目维持 pending，
+没有可用的实机会话，所有实机 fixture（BUG_REPAIR §7.2 A–K）仍为 pending。**
+
+### 【修复】存档不再因「校验修复过」而整笔拒写（L-04 / REQ-V2-SAVE-01/04/06）
+
+* 【修复】`IndoorEntitySaveBridge.Save` 原本只要验证过程 `Repaired` 就拒写整笔记录；未知作物、
+  非正成长时间、`dueDay=0` 等状态会反复触发修复 → 每次存档都拒写 → 玩家进度回卷且只有一行日志。
+* 【修复】`IndoorRepairResult` 新增 `CannotWrite`（`Fail(...)` 触发：记录/档位缺失、tier profile 非法、
+  容量非法、校验器例外），把「不可写」与「可修复」分开；`Repaired` 的语义改为「写入修复后的副本」。
+* 【新增】可修复记录的写入路径：`save.write-repaired`（含修复摘要与可定位 notes）＋
+  `PreviousPayload` 回滚副本（修复前状态编码，仅修复路径写入，记 `save.previous-snapshot`）；
+  干净存档不增加该属性。实体 ID 不一致仍按字段修复（修正为存档键），不列为不可写。
+* 【新增】记录键 `PreviousPayload`（`IndoorSaveKeys`）与日志键 `save.write-repaired` /
+  `save.previous-snapshot`；回滚副本不保证可载入、`Load` 不读它（见 ADR-V2-006）。
+* 证据：`V2SaveWriteStrategyTests`（7 条）、
+  `V2PersistenceBridgeContractTests.TestSaveWritesRepairedCopyAndKeepsRollbackCopy`、
+  `V2SaveValidatorTests` 的 `CannotWrite` 矩阵。
+
+### 【修复】固定作物下拉/名称/无效判定改吃游戏 live 作物表（L-12 / REQ-V2-EXT-01、REQ-V2-UI-02/03）
+
+* 【修复】面板固定作物下拉与 invalid-crop 警告读 `FallbackCropCatalog`、名称表硬编码 10 种作物；
+  作物模组新增的作物会显示 raw id 或被判无效，而命令层其实接受它。
+* 【新增】`IndoorCropChoice`（Core）＋ `IndoorFarmSnapshot.CropChoices`：gameplay 以
+  `_cropCatalog.ForFaction(_faction)` 的 live 表填充（`ReferenceEquals` 快取，steady state 不配置）；
+  `CropDefinition.DisplayNameLocKey` 从 blueprint 的 `LabeledEntitySpec.DisplayNameLocKey` 读取（guarded）。
+* 【修改】下拉、固定作物行、Growing 卡作物名与 invalid-crop 判定改为 live-first；live 清表为空时
+  才退回内建表与 10 种内置名称（旧行为保留）。
+* 证据：`V2PanelContractTests`、`V2CropCatalogTests`（`DisplayNameLocKey` 契约）。
+
+### 【修复】面板维护材料/周期改吃 config 覆写后的真实 profile（L-15 / REQ-V2-EXT-04、REQ-V2-UI-02）
+
+* 【修复】面板用编译期 `TierCatalog.Get` 的 profile，模拟却用 `balance.tier` JSON 覆写后的 profile →
+  玩家改 config 后，维护材料/周期与面板显示不一致。
+* 【新增】`IndoorFarmSnapshot.Profile`（config 解析后的 `TierProfile`）；gameplay 填 `_profile`；
+  UI `FindProfile(snapshot)` 先吃 snapshot.Profile、null 才退回 `TierCatalog.Get`（旧测试/snapshot 行为不变）。
+* 证据：`V2PanelContractTests.TestPanelUsesTheConfigOverrideProfileFromTheSnapshot`。
+
+### 【修复】物流端口不再宣称「已连接」（L-09 / REQ-V2-COMPAT-02、REQ-V2-UI-02/03）
+
+* 【修复】Output 卡物流/输出端口行只反映 adapter 探测结果却显示「已连接」，但 HDBF 没有把产物
+  交给输送带的实作（`features.logisticsOutput=false`）→ 玩家以为输送带会搬作物。
+* 【修改】物流端口永不显示 Connected：无端口 → `Not applicable`；检测到模块 → 新键
+  `HDBF.Port.LogisticsDetected`（「已检测到模组（尚未接出货物）」）；有端口未检测 → `Not connected`。
+* 【新增】`HDBF.Tooltip.LogisticsPort`（三语）：HDBF 目前不把产物交给输送带/物流模组，请用原版搬运
+  或仓库。三语 key 集一致（220 keys、0 空字符串、0 v1 术语）。
+* 证据：`V2PanelContractTests.TestLogisticsPortRowsNeverClaimAConnection`、
+  `V2LocalizationTests.TestLogisticsPortTextsDescribeTheHonestOutputSemantics`、
+  `V2PanelVisualContractTests` 的端口/tooltip 契约。
+
+### 发布状态
+
+* 【修改】`data/manifest.json` 版本 `2.5.5`；README 版本/L1 数字同步（**未上传 Steam Workshop、未 `-Install`
+  部署，未跑实机**）。
+* 离线门禁：5 组程序集 0 warning / 0 error；L1 **672/672**（基线 655，本卡 +17）；`tools/validate`
+  `RESULT: OK`；`RELEASE GATES: PASSED (44 checks)`。
 
 ## [2.5.4] — 2026-11-02（玩家回馈维修轮：维护自动/追平、休耕不清空、暂停残留、管道原因、透明度）
 

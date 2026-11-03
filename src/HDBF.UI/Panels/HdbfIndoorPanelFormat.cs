@@ -6,6 +6,7 @@
 // Requirements: REQ-V2-UI-02/03/04, REQ-V2-READ-04
 // ============================================================================
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using HDBF.Core;
 using HDBF.Core.Abstractions;
@@ -180,6 +181,41 @@ namespace HDBF.UI.Panels
         /// <summary>Localized name of a crop id; unknown ids fall back to the raw id (never a raw key).</summary>
         public static string CropName(Func<string, string> localize, string cropId)
         {
+            return CropName(localize, null, cropId);
+        }
+
+        /// <summary>
+        /// Localized name of a crop id, preferring the live catalog row of the panel snapshot
+        /// (L-12): a crop added by a crop mod shows the game's own localized name read from its
+        /// blueprint. A crop outside the live list falls back to the built-in ten-crop table and
+        /// finally to the raw id, never to a raw localization key.
+        /// </summary>
+        /// <param name="localize">Localization resolver.</param>
+        /// <param name="live">Live crop list of the snapshot; null/empty selects the built-in table.</param>
+        /// <param name="cropId">Crop template id.</param>
+        /// <returns>Localized display name, or the raw id when nothing knows the crop.</returns>
+        public static string CropName(Func<string, string> localize,
+            IReadOnlyList<IndoorCropChoice>? live, string cropId)
+        {
+            if (live is not null && !string.IsNullOrEmpty(cropId))
+            {
+                for (var index = 0; index < live.Count; index++)
+                {
+                    var choice = live[index];
+                    if (choice is null || !string.Equals(choice.Id, cropId, StringComparison.Ordinal))
+                    {
+                        continue;
+                    }
+
+                    if (!string.IsNullOrEmpty(choice.DisplayNameLocKey))
+                    {
+                        return Text(localize, choice.DisplayNameLocKey!);
+                    }
+
+                    break;
+                }
+            }
+
             var key = CropNameKey(cropId);
             return key is null ? cropId : Text(localize, key);
         }

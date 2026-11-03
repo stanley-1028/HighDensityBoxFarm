@@ -15,6 +15,7 @@ using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using HDBF.Core;
+using HDBF.Core.Balance;
 using HDBF.Core.Formatting;
 using HDBF.Core.Indoor;
 using HDBF.UI.Localization;
@@ -48,6 +49,8 @@ namespace HDBF.Tests
             // must read every one of them.
             "Paused", "AutoMaintenance", "MaintenanceCyclesToCatchUp", "MaintenanceCatchUpMaterialAmount",
             "IdleReason", "ManualRefillSourceAvailable", "PipeProbeState",
+            // L-12/L-15: the config-resolved tier profile and the live faction crop table.
+            "Profile", "CropChoices",
         };
 
         // ------------------------------------------------------------------ contract / order
@@ -506,18 +509,229 @@ namespace HDBF.Tests
             TestAssert.Equal("12/600 stored", Row(output, "Output stock").BarText);
             TestAssert.True(Row(output, "Output stock").HasBar,
                 "requirement F: the occupancy is a vanilla ProgressBar");
-            TestAssert.Equal("Connected", Row(output, "Output port").Value);
 
             // Requirement E: the output port and the three physical ports are independent rows;
             // no combined "Pipe port Connected · ..." value can overlap the line above any more.
             TestAssert.Equal("Connected", Row(output, "Pipe network (auto-refill)").Value);
-            TestAssert.Equal("Connected", Row(output, "Logistics port").Value);
             TestAssert.Equal("Not applicable", Row(output, "Power port").Value);
             TestAssert.False(output.Rows.Any(row => row.Label == "Ports"),
                 "the combined ports row must be gone (requirement E)");
             TestAssert.Equal(5, output.Rows.Count, "stock + output port + three port rows");
             TestAssert.True(Row(output, "Output stock").Tooltip.Contains("Ok", StringComparison.Ordinal),
                 "the output adapter state stays in the tooltip");
+        }
+
+        /// <summary>
+        /// L-09: HDBF does not hand its produce to a conveyor, so the logistics rows must never say
+        /// "Connected" (the reported defect). A tier that owns the port reports the detected module
+        /// with the honest "produce not handed over yet" text plus a tooltip that points the player
+        /// at vanilla hauling; a tier without the port says "not applicable".
+        /// </summary>
+        public static void TestLogisticsPortRowsNeverClaimAConnection()
+        {
+            var detected = IntermediateFixture();
+            var output = Section(CreateData(detected, out _), HdbfPanelSectionKind.Output);
+            var expected = "Logistics module detected (produce not handed over yet)";
+            TestAssert.Equal(expected, Row(output, "Output port").Value,
+                "the output-port row must not claim the conveyor is connected");
+            TestAssert.Equal(expected, Row(output, "Logistics port").Value,
+                "the logistics-port row reports the detected module, not a connection");
+            var tooltip = Row(output, "Logistics port").Tooltip;
+            TestAssert.True(tooltip.Contains("conveyors", StringComparison.Ordinal),
+                "the logistics tooltip names the conveyor limitation: " + tooltip);
+            TestAssert.True(tooltip.Contains("haulers", StringComparison.Ordinal),
+                "the logistics tooltip points at vanilla hauling: " + tooltip);
+
+            var noPort = detected with { LogisticsPort = false, OutputPortConnected = true };
+            var noPortOutput = Section(CreateData(noPort, out _), HdbfPanelSectionKind.Output);
+            TestAssert.Equal("Not applicable", Row(noPortOutput, "Output port").Value);
+            TestAssert.Equal("Not applicable", Row(noPortOutput, "Logistics port").Value,
+                "a tier without a logistics port is not applicable, never connected");
+
+            // A port without a detected module stays honest in the other direction: not connected.
+            var undetected = detected with { LogisticsPort = true, OutputPortConnected = false };
+            var undetectedOutput = Section(CreateData(undetected, out _), HdbfPanelSectionKind.Output);
+            TestAssert.Equal("Not connected", Row(undetectedOutput, "Logistics port").Value);
+        }
+
+        /// <summary>
+        /// L-15: the panel renders the config-resolved profile carried by the snapshot, not the
+        /// compiled TierCatalog row. A profile override of the upkeep material/cycle and of the
+        /// material-free state must reach the maintenance card; a snapshot without a profile keeps
+        /// the compiled values (the existing tests above pin those).
+        /// </summary>
+        public static void TestPanelUsesTheConfigOverrideProfileFromTheSnapshot()
+        {
+            var overridden = new TierProfile
+            {
+                Tier = HdbfTier.Intermediate,
+                MaintenanceKind = HdbfMaintenanceKind.Plank,
+                MaintenanceCycleDays = 6f,
+                MaintenanceMaterialCount = 13,
+            };
+            var snapshot = IntermediateFixture() with
+            {
+                Profile = overridden,
+                MaintenanceMaterialMissing = false,
+                MaintenanceCyclesMissed = 0,
+                Warnings = IndoorWarningFlags.None,
+            };
+            var maintenance = Section(CreateData(snapshot, out _), HdbfPanelSectionKind.Maintenance);
+            TestAssert.Equal("Plank ×13 / 6 days", Row(maintenance, "Upkeep material").Value,
+                "the panel must show the config-resolved profile, not the compiled 8 plank / 10 days");
+
+            // The compiled table is still the fallback for a snapshot without a profile.
+            var compiled = Section(CreateData(snapshot with { Profile = null }, out _),
+                HdbfPanelSectionKind.Maintenance);
+            TestAssert.Equal("Plank ×8 / 10 days", Row(compiled, "Upkeep material").Value,
+                "a snapshot without Profile keeps the previous compiled behaviour");
+
+            // A profile that turns the tier material-free wins over the compiled Intermediate row.
+            var materialFree = IntermediateFixture() with
+            {
+                Profile = new TierProfile
+                {
+                    Tier = HdbfTier.Intermediate,
+                    MaintenanceKind = HdbfMaintenanceKind.IrrigationOnly,
+                },
+                MaintenanceMaterialMissing = false,
+                MaintenanceCyclesMissed = 0,
+                Warnings = IndoorWarningFlags.None,
+            };
+            var freeData = CreateData(materialFree, out _);
+            TestAssert.Equal("No material upkeep",
+                Row(Section(freeData, HdbfPanelSectionKind.Maintenance), "Upkeep material").Value);
+            TestAssert.False(freeData.CanPerformMaintenance,
+                "an irrigation-only profile has no maintenance action");
+        }
+
+        /// <summary>
+        /// L-12: the dropdown, the fixed-crop name and the invalid-crop warning read the live crop
+        /// list of the snapshot. A crop only a crop mod knows is a valid choice and shows its own
+        /// game-localized name; a live crop is never reported as invalid.
+        /// </summary>
+        public static void TestCropDropdownUsesTheLiveSnapshotCatalogue()
+        {
+            var live = new[]
+            {
+                new IndoorCropChoice
+                {
+                    Id = "Glowberry",
+                    DisplayNameLocKey = HdbfUiLocKeys.CropKohlrabi,
+                },
+                new IndoorCropChoice { Id = "Corn" },
+            };
+            var snapshot = IntermediateFixture() with
+            {
+                CropChoices = live,
+                CropPolicy = CropPolicy.Fixed,
+                FixedCropId = "Glowberry",
+            };
+            var data = CreateData(snapshot, out _);
+            var crops = Section(data, HdbfPanelSectionKind.Crops);
+
+            // Auto rotation + the two live crops; the mod crop shows the localized name of the
+            // blueprint key, not its raw template id.
+            TestAssert.Equal(3, data.CropChoices.Count, "auto rotation + two live crops");
+            TestAssert.Equal("Kohlrabi", data.CropChoices.Single(choice => choice.Id == "Glowberry").Text,
+                "the live crop name is resolved from its localization key");
+            TestAssert.Equal("Kohlrabi", crops.Rows[1].Value,
+                "the fixed crop row shows the live localized name");
+            TestAssert.True(data.CropPolicyText.Contains("Kohlrabi", StringComparison.Ordinal),
+                "the policy sentence shows the live localized name");
+            TestAssert.Equal("Glowberry", data.SelectedCropId);
+            TestAssert.False(crops.Rows.Any(row => row.IsWarning),
+                "a live crop accepted by the command layer must not be reported as invalid");
+
+            // A live crop without a display key falls back to its id instead of a raw key.
+            var noKey = snapshot with
+            {
+                CropChoices = new[] { new IndoorCropChoice { Id = "Mystery" } },
+                FixedCropId = "Mystery",
+            };
+            var noKeyData = CreateData(noKey, out _);
+            TestAssert.Equal("Mystery", noKeyData.CropChoices.Single(choice => choice.Id == "Mystery").Text);
+            TestAssert.Equal("Mystery", Section(noKeyData, HdbfPanelSectionKind.Crops).Rows[1].Value);
+
+            // A fixed crop outside both the live list and the built-in table is invalid again.
+            var unknown = snapshot with { FixedCropId = "Bogus" };
+            var unknownCrops = Section(CreateData(unknown, out _), HdbfPanelSectionKind.Crops);
+            TestAssert.True(unknownCrops.Rows.Any(row => row.IsWarning
+                && row.Label.Contains("Invalid fixed crop", StringComparison.Ordinal)),
+                "an unknown fixed crop keeps its warning");
+
+            // The live "Growing now" card uses the same live names.
+            var growing = Section(CreateData(IntermediateFixture() with
+            {
+                CropChoices = live,
+                Crops = new[]
+                {
+                    new IndoorCropStatus("Glowberry", "Glowberry", GrowingSlots: 4, MatureSlots: 1,
+                        AverageProgress: 0.5f, GrowthTimeInDays: 5f),
+                },
+            }, out _), HdbfPanelSectionKind.Growing);
+            TestAssert.True(growing.Rows.Any(row => row.Label == "Kohlrabi"),
+                "the growing card shows the live localized crop name");
+        }
+
+        /// <summary>
+        /// L-12/L-15: the 4 Hz dirty check must notice a changed live crop table and a changed
+        /// config-resolved profile; otherwise a rebuilt catalog would leave the dropdown stale.
+        /// </summary>
+        public static void TestFingerprintCoversTheLiveProfileAndCropChoices()
+        {
+            var baseline = IntermediateFixture();
+            var before = HdbfIndoorPanelFingerprint.Compute(baseline, key => key);
+            var withCrops = baseline with
+            {
+                CropChoices = new[]
+                {
+                    new IndoorCropChoice { Id = "Glowberry", DisplayNameLocKey = "HDBF.Panel.CropKohlrabi" },
+                },
+            };
+            TestAssert.True(before != HdbfIndoorPanelFingerprint.Compute(withCrops, key => key),
+                "a changed live crop list must force a panel refresh");
+
+            var withProfile = baseline with
+            {
+                Profile = new TierProfile
+                {
+                    Tier = HdbfTier.Intermediate,
+                    MaintenanceKind = HdbfMaintenanceKind.Plank,
+                    MaintenanceCycleDays = 6f,
+                    MaintenanceMaterialCount = 13,
+                },
+            };
+            TestAssert.True(before != HdbfIndoorPanelFingerprint.Compute(withProfile, key => key),
+                "a changed config-resolved profile must force a panel refresh");
+        }
+
+        /// <summary>
+        /// L-12/L-15 seam: the Gameplay snapshot builder fills the config-resolved profile and the
+        /// live faction crop list of the game-backed catalog, and maps it to Core choices; the UI
+        /// mapping reads both (pinned by TestEverySnapshotFieldIsReadByThePanelMapper).
+        /// </summary>
+        public static void TestGameplayFillsTheLiveProfileAndCropChoices()
+        {
+            var snapshotSource = ReadEmbeddedGameplaySource("HdbfBoxFarmController.IndoorSnapshot.cs");
+            TestAssert.True(snapshotSource.Contains("Profile = _profile", StringComparison.Ordinal),
+                "the snapshot must carry the config-resolved tier profile (L-15)");
+            TestAssert.True(snapshotSource.Contains("CropChoices = LiveCropChoices()", StringComparison.Ordinal),
+                "the snapshot must carry the live faction crop list (L-12)");
+
+            var cropSource = ReadEmbeddedGameplaySource("HdbfBoxFarmController.IndoorSnapshot.Crops.cs");
+            TestAssert.True(cropSource.Contains("_cropCatalog.ForFaction(_faction)", StringComparison.Ordinal),
+                "the crop list must come from the live game-backed catalog of the building faction");
+            TestAssert.True(cropSource.Contains("crop.DisplayNameLocKey", StringComparison.Ordinal),
+                "the live display-name key must reach the Core choice");
+
+            var catalogSource = ReadEmbeddedGameplaySource("GameCropCatalog.SpecReader.cs");
+            TestAssert.True(catalogSource.Contains("GetSpec<LabeledEntitySpec>()", StringComparison.Ordinal),
+                "the catalog must read the blueprint LabeledEntitySpec (L-12)");
+            TestAssert.True(catalogSource.Contains("DisplayNameLocKey", StringComparison.Ordinal),
+                "the catalog must read LabeledEntitySpec.DisplayNameLocKey");
+            TestAssert.True(catalogSource.Contains("catch (Exception)", StringComparison.Ordinal),
+                "a broken LabeledEntitySpec must not stop the catalog");
         }
 
         // ------------------------------------------------------------------ status line / WP-06
@@ -1250,6 +1464,34 @@ namespace HDBF.Tests
         private static string ReadUiFile(string relativePath)
         {
             return File.ReadAllText(Path.Combine(RepoRoot(), UiPanelFolder, relativePath), Encoding.UTF8);
+        }
+
+        /// <summary>
+        /// Reads one embedded Gameplay source file (the game-facing half references Timberborn and
+        /// is embedded as text, so its contract can still be asserted offline, REQ-V2-TEST-01).
+        /// </summary>
+        private static string ReadEmbeddedGameplaySource(string fileName)
+        {
+            var assembly = typeof(V2PanelContractTests).Assembly;
+            var suffix = "." + fileName;
+            foreach (var resource in assembly.GetManifestResourceNames())
+            {
+                if (!resource.EndsWith(suffix, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                using var stream = assembly.GetManifestResourceStream(resource);
+                if (stream is null)
+                {
+                    continue;
+                }
+
+                using var reader = new StreamReader(stream, Encoding.UTF8);
+                return reader.ReadToEnd();
+            }
+
+            throw new TestFailureException("missing embedded gameplay source: " + fileName);
         }
 
         private static string RepoPath(string relativePath)

@@ -1,8 +1,8 @@
 # HDBF v2 架构决策记录（ADR）
 
-> **状态**：实现基线（ADR-V2-001..004 已实现；ADR-V2-005 为过程决策）；需求 §19.15/§19.16 的待确认项仍待用户确认
-> **日期**：2026-10-26｜**适用版本**：2.2.0
-> **变更摘要**：记录 v2（室内农场）四项架构决策与一项过程性决策（构建沙箱）；实现状态与实机证据见 `docs/VERIFICATION.md` §26。
+> **状态**：实现基线（ADR-V2-001..004 已实现；ADR-V2-005 为过程决策；ADR-V2-006 修订 L-04 存档写入策略）；需求 §19.15/§19.16 的待确认项仍待用户确认
+> **日期**：2026-11-03｜**适用版本**：2.5.5
+> **变更摘要**：记录 v2（室内农场）四项架构决策、一项过程性决策（构建沙箱）与 L-04 存档写入策略修订；实现状态与实机证据见 `docs/VERIFICATION.md` §26/§38。
 
 ## ADR-V2-001 — 室内槽位农场（D 方案）替代外部农田
 
@@ -76,3 +76,29 @@ v1→v2 尽力迁移：v1 地块数组按序映射槽位，`tank`/维护/模式/
 并在 `VERIFICATION.md` 记录当天证据。**源码仓库不是 mod 目录**这一不变式不变（无 manifest.json）。
 
 **影响**：README §3 的命令补充该写法；本决策不影响产品行为或发布包结构。
+
+## ADR-V2-006 — 存档写入策略：可修复即写入修复副本（L-04）
+
+**背景**：ADR-V2-003 规定「写前校验失败不写、保留上一份良好快照」。2.5.4 之前
+`IndoorEntitySaveBridge.Save` 把「校验过程修好了任何东西」也当成失败：只要状态反复需要修
+（未知作物、成长时间非正、`dueDay=0`、非法 port 等），存档就每次整笔拒写，玩家看到进度回卷。
+这条策略把「可修复」与「不可写」混为一谈（`docs/BUG_REPAIR_20261102.md` §4.1 L-04）。
+
+**决策**：写前校验结果分两态，由 `IndoorRepairResult` 表达：
+
+* `CannotWrite`（记录/档位缺失、tier profile 非法、容量非法、校验器例外）：不写，保留上一份实体记录，
+  记 `save.validation-failed`（与 ADR-V2-003 一致）。
+* `Repaired` 且非 `CannotWrite`（字段/槽位可修复）：**写入修复后的副本**，记 `save.write-repaired`
+  （含修复摘要与可定位 notes）；同时把修复前状态编码成 `PreviousPayload` 回滚副本并记
+  `save.previous-snapshot`，只在此路径保留，干净存档不增加该属性。实体 ID 不一致仍按字段修复处理
+  （修正为存档键），不列为 `CannotWrite`。
+
+**理由**：游戏实体持久化没有「读回旧 payload」的 API（`IEntitySaver` 只写），无法在写入时保存真正的
+上一份良好快照；把修复后的合法副本写入并保留修复前副本，既避免静默丢进度，也保留可取证/回滚素材。
+经济、平衡与 0 Harmony 不变。
+
+**代价与防线**：`PreviousPayload` 不保证可载入、`Load` 不读它（只作回滚素材）；一次修复写入后，
+后续干净写入不会主动清除它（component 可能残留旧副本，不影响读取）；修复本身仍是保守的
+clamp/clear/pad，不凭空生数据。`IndoorEntitySaveBridge.Keyed.cs`（非 live 存档路径）维持旧契约，
+统一留待后续小卡。离线契约测试：`V2SaveWriteStrategyTests`、
+`V2PersistenceBridgeContractTests.TestSaveWritesRepairedCopyAndKeepsRollbackCopy`。

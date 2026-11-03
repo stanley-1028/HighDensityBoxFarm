@@ -191,15 +191,26 @@ namespace HDBF.Tests
                     "a port row must only carry its own state: " + row.Label + " = " + row.Value);
             }
 
+            // L-09: HDBF never hands its produce to a conveyor, so the logistics rows must not
+            // claim the port is connected any more.
+            foreach (var label in new[] { "Output port", "Logistics port" })
+            {
+                TestAssert.False(string.Equals(Row(output, label).Value, "Connected",
+                        StringComparison.Ordinal),
+                    "the logistics interface must not claim a connection: " + label);
+            }
+
             var builder = ReadUiSources("Panels/HdbfIndoorPanelFactory.Cards.Output.cs");
             TestAssert.False(builder.Contains("FormatPorts", StringComparison.Ordinal),
                 "the combined port formatter must be deleted");
-            // Three plain PortRow call sites (+ its definition) and the dedicated pipe row builder
-            // with its probe mapping (WP-05) - each port state stays on its own row.
-            TestAssert.Equal(5, CountOccurrences(builder, "PortRow("),
-                "two plain port row calls + the pipe row call and both helper definitions");
+            // Three port-row call/definition pairs (plain, pipe and logistics) keep every port state
+            // on its own row (L-09 split the logistics row out of the plain PortRow helper).
+            TestAssert.Equal(6, CountOccurrences(builder, "PortRow("),
+                "the plain/power row, the pipe row and the logistics row each own a helper");
             TestAssert.True(builder.Contains("snapshot.PipeProbeState.Reason", StringComparison.Ordinal),
                 "the pipe row must map the read-only probe reason");
+            TestAssert.True(builder.Contains("HdbfUiLocKeys.TooltipLogisticsPort", StringComparison.Ordinal),
+                "the logistics row must carry the honest logistics tooltip (L-09)");
         }
 
         public static void TestWaterMaintenanceModeAndOutputRowsAreAllPresent()
@@ -361,6 +372,9 @@ namespace HDBF.Tests
                          HdbfUiLocKeys.PortTankDry,
                          HdbfUiLocKeys.PortAdapterUnavailable,
                          HdbfUiLocKeys.PortBindingFailed,
+                         // L-09: the honest logistics-module state and its tooltip.
+                         HdbfUiLocKeys.PortLogisticsDetected,
+                         HdbfUiLocKeys.TooltipLogisticsPort,
                      })
             {
                 foreach (var language in Languages)

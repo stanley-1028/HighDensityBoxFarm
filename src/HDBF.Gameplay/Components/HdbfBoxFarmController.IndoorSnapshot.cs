@@ -88,6 +88,11 @@ namespace HDBF.Gameplay.Components
                 MaintenanceCatchUpMaterialAmount = catchUp.Amount,
                 ManualRefillSourceAvailable = _manualSourceAvailable,
                 PipeProbeState = ProbePipeState(),
+                // L-15: the snapshot carries the config-resolved profile the simulation uses, so a
+                // JSON override of balance.tier is visible in the panel instead of the compiled table.
+                Profile = _profile,
+                // L-12: the live faction crop table, so a crop-mod crop is a real dropdown choice.
+                CropChoices = LiveCropChoices(),
             };
             // WP-06/L-03: the single idle reason is derived from the finished snapshot itself, so the
             // panel status line and the world icon cannot disagree about why the farm is not working.
@@ -121,7 +126,14 @@ namespace HDBF.Gameplay.Components
                 0f, _profile.TankCapacity, float.PositiveInfinity, 1f,
                 _profile.MinIrrigationCoverage, WaterSupplyKind.None, 0f, 0, false,
                 PowerConnection.NotRequired, false, CropPolicy.Rotation, string.Empty,
-                string.Empty, 0, false, true, false, false, IndoorWarningFlags.None, string.Empty);
+                string.Empty, 0, false, true, false, false, IndoorWarningFlags.None, string.Empty)
+            {
+                // Even the not-ready snapshot carries the live profile/crop table (L-12/L-15): the
+                // dropdown and the upkeep rows must not flip back to compiled values before the
+                // record exists.
+                Profile = _profile,
+                CropChoices = LiveCropChoices(),
+            };
         }
 
         private void CountSlots(out int empty, out int growing, out int mature)        {
@@ -203,67 +215,6 @@ namespace HDBF.Gameplay.Components
             }
 
             return _waterSupply;
-        }
-
-        /// <summary>
-        /// Crop rotation sequence shown by the panel: the faction crop table in order (fixed mode
-        /// shows the fixed crop). The string is built once per farm and cached; this method does not
-        /// allocate in the steady state (REQ-V2-PERF-02).
-        /// </summary>
-        private string RotationSequence()
-        {
-            var record = _record;
-            if (record is null)
-            {
-                return string.Empty;
-            }
-
-            if (record.CropPolicy == CropPolicy.Fixed)
-            {
-                return record.FixedCropId;
-            }
-
-            if (!string.IsNullOrEmpty(_rotationSequence))
-            {
-                return _rotationSequence;
-            }
-
-            try
-            {
-                var crops = _cropCatalog.ForFaction(_faction);
-                if (crops is null || crops.Count == 0)
-                {
-                    return string.Empty;
-                }
-
-                var builder = new System.Text.StringBuilder();
-                for (var index = 0; index < crops.Count; index++)
-                {
-                    var crop = crops[index];
-                    if (crop is null || string.IsNullOrEmpty(crop.Id))
-                    {
-                        continue;
-                    }
-
-                    if (builder.Length > 0)
-                    {
-                        builder.Append(" > ");
-                    }
-
-                    builder.Append(crop.Id);
-                    if (builder.Length > 160)
-                    {
-                        break;
-                    }
-                }
-
-                _rotationSequence = builder.ToString();
-                return _rotationSequence;
-            }
-            catch (Exception)
-            {
-                return string.Empty;
-            }
         }
 
         /// <summary>Workers currently on duty; a broken workplace counts as unstaffed.</summary>

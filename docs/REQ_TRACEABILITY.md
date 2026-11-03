@@ -202,3 +202,31 @@ COMPAT status moves from "offline anchors only" to **实现+实机（侦测/初�
   `V2GameplayWiringTests`, `V2NfrCodeContractTests` (0 Harmony / 0 debug surface).
 * **未变**: 0 Harmony、Core 无游戏引用、依赖方向、`REQ-V2-MAINT-02` 300-line 软门禁、
   §19.8 的周期/材料/停摆数值。实机 fixture 验证（A–K）仍 pending，见 `docs/VERIFICATION.md` §36.3。
+
+## Round-25 (v2.5.5 second bug-repair) update — 2026-11-03
+
+* **REQ-V2-SAVE-01/04/06（存档写入策略，L-04）**: the pre-write pass now separates `CannotWrite`
+  (missing record/tier, invalid tier profile or capacity, validator exception -> refuse and keep the
+  previous entity record) from `Repaired` (field/slot repairs -> write the repaired copy, log
+  `save.write-repaired`, keep the pre-repair state as a `PreviousPayload` rollback copy with
+  `save.previous-snapshot`). Clean saves do not gain the extra property. This intentionally revises
+  the earlier "any repair refuses the write" reading of SAVE-04; decision ADR-V2-006. Evidence:
+  `V2SaveWriteStrategyTests`, `V2PersistenceBridgeContractTests.TestSaveWritesRepairedCopyAndKeepsRollbackCopy`,
+  `V2SaveValidatorTests`.
+* **REQ-V2-EXT-01 / REQ-V2-UI-02/03（作物表，L-12）**: the panel dropdown, fixed-crop names and the
+  invalid-crop warning now read the live game crop catalog carried by the snapshot
+  (`IndoorCropChoice` + `CropDefinition.DisplayNameLocKey` from `LabeledEntitySpec`); the built-in
+  ten-crop fallback is only used when the live list is empty. Evidence: `V2PanelContractTests`,
+  `V2CropCatalogTests`, `V2PanelVisualContractTests`.
+* **REQ-V2-EXT-04 / REQ-V2-UI-02（config 覆写，L-15）**: the snapshot carries the config-resolved
+  `TierProfile`; the panel prefers it and only falls back to the compiled `TierCatalog` when absent,
+  so `balance.tier` overrides reach the upkeep rows. Evidence:
+  `V2PanelContractTests.TestPanelUsesTheConfigOverrideProfileFromTheSnapshot`.
+* **REQ-V2-COMPAT-02 / REQ-V2-UI-02/03（物流端口，L-09）**: the logistics/output port rows never claim
+  a connection; they report a detected module (`HDBF.Port.LogisticsDetected`), not connected, or not
+  applicable, with a tooltip stating that HDBF does not hand produce to logistics mods yet; three
+  languages kept identical. Evidence: `V2PanelContractTests`, `V2LocalizationTests`,
+  `V2PanelVisualContractTests`.
+* **未变**: 0 Harmony、Core 无游戏引用、依赖方向、§19.8 周期/材料/停摆数值；实机 fixture（A–K）仍
+  pending，见 `docs/VERIFICATION.md` §38.3。`IndoorEntitySaveBridge.Keyed.cs`（非 live 存档路径）仍
+  保留旧契约，待后续小卡统一。

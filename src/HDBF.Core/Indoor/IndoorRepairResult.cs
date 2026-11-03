@@ -19,29 +19,40 @@ namespace HDBF.Core.Indoor
     /// <see cref="IndoorRepairResult.Clean"/>; every repair is counted and, when it can be
     /// attributed to a field or slot index, described by one entry of <see cref="Notes"/> so the
     /// persistence bridge can write a locatable <c>save.*</c> log line.
+    /// <see cref="Repaired"/> means "the caller must write this repaired copy"; only
+    /// <see cref="CannotWrite"/> means "the record must not be written at all" (L-04).
     /// </summary>
     public sealed class IndoorRepairResult
     {
         /// <summary>Shared result of a pass that found nothing to repair (immutable, thread-safe).</summary>
-        public static IndoorRepairResult Clean { get; } = new IndoorRepairResult(false, 0, 0, 0, Array.Empty<string>());
+        public static IndoorRepairResult Clean { get; } =
+            new IndoorRepairResult(false, 0, 0, 0, Array.Empty<string>());
 
         private readonly ReadOnlyCollection<string> _notes;
 
         /// <summary>
         /// Creates a repair summary. Counters below zero are treated as zero; a null note list is
-        /// treated as empty, so callers (and tests) can synthesize a summary safely.
+        /// treated as empty, so callers (and tests) can synthesize a summary safely. The
+        /// <paramref name="cannotWrite"/> flag is optional so every pre-L-04 constructor call keeps
+        /// compiling and meaning "repairable, writable".
         /// </summary>
         /// <param name="repaired">True when any counter is non-zero.</param>
         /// <param name="slotsTrimmed">Slot array entries dropped because the array was too long.</param>
         /// <param name="slotsPadded">Empty slots appended because the array was too short.</param>
         /// <param name="valuesClamped">Individual field/slot values repaired, clamped or cleared.</param>
         /// <param name="notes">Optional locatable repair notes, e.g. <c>slot[3].growth-clamped</c>.</param>
+        /// <param name="cannotWrite">
+        /// True when <see cref="IndoorRepairAccumulator.Fail"/> marked the record as not writable at
+        /// all (missing record/tier/capacity, invalid tier profile, or a validator exception); the
+        /// bridge then keeps the previous entity record untouched (L-04).
+        /// </param>
         public IndoorRepairResult(bool repaired, int slotsTrimmed, int slotsPadded, int valuesClamped,
-            IReadOnlyList<string>? notes)
+            IReadOnlyList<string>? notes, bool cannotWrite = false)
         {
             SlotsTrimmed = slotsTrimmed > 0 ? slotsTrimmed : 0;
             SlotsPadded = slotsPadded > 0 ? slotsPadded : 0;
             ValuesClamped = valuesClamped > 0 ? valuesClamped : 0;
+            CannotWrite = cannotWrite;
 
             var copy = new List<string>(notes is null ? 0 : notes.Count);
             if (notes is not null)
@@ -60,8 +71,20 @@ namespace HDBF.Core.Indoor
             Repaired = repaired || SlotsTrimmed > 0 || SlotsPadded > 0 || ValuesClamped > 0;
         }
 
-        /// <summary>True when the record was changed by the repair pass and must not be written as-is.</summary>
+        /// <summary>
+        /// True when the record was changed by the repair pass; the write path must persist this
+        /// repaired copy, never the caller's original record (L-04: a repair no longer refuses the
+        /// write by itself).
+        /// </summary>
         public bool Repaired { get; }
+
+        /// <summary>
+        /// True only when the pass hit a condition that makes the record unwritable (missing
+        /// record/tier, invalid tier profile or capacity, validator exception). It implies
+        /// <see cref="Repaired"/> (the record is not writable as-is) but never the other way round:
+        /// a record that only needed field/slot repairs is written as the repaired copy (L-04).
+        /// </summary>
+        public bool CannotWrite { get; }
 
         /// <summary>Number of trailing slot entries dropped because the array exceeded the capacity.</summary>
         public int SlotsTrimmed { get; }
@@ -80,8 +103,8 @@ namespace HDBF.Core.Indoor
         public override string ToString()
         {
             return string.Format(CultureInfo.InvariantCulture,
-                "repaired={0} trimmed={1} padded={2} clamped={3} notes={4}",
-                Repaired, SlotsTrimmed, SlotsPadded, ValuesClamped, _notes.Count);
+                "repaired={0} trimmed={1} padded={2} clamped={3} notes={4} cannotWrite={5}",
+                Repaired, SlotsTrimmed, SlotsPadded, ValuesClamped, _notes.Count, CannotWrite);
         }
 
         private static string Shorten(string value)
@@ -102,6 +125,7 @@ namespace HDBF.Core.Indoor
         private readonly List<string> _notes = new List<string>(4);
         private int _suppressedNotes;
         private bool _invalid;
+        private bool _cannotWrite;
 
         /// <summary>Slot entries dropped because the array exceeded the tier capacity.</summary>
         public int SlotsTrimmed { get; private set; }
@@ -115,6 +139,9 @@ namespace HDBF.Core.Indoor
         /// <summary>True when the record was changed.</summary>
         public bool Repaired => _invalid || SlotsTrimmed > 0 || SlotsPadded > 0 || ValuesClamped > 0;
 
+        /// <summary>True when the record is not writable at all, not just repairable (L-04).</summary>
+        public bool CannotWrite => _cannotWrite;
+
         /// <summary>
         /// Marks the record as NOT writable although no value could be repaired (missing record or
         /// missing tier profile), so the caller keeps the previous good snapshot (REQ-V2-SAVE-04).
@@ -122,6 +149,7 @@ namespace HDBF.Core.Indoor
         public void Fail(string note)
         {
             _invalid = true;
+            _cannotWrite = true;
             Note(note);
         }
 
@@ -176,7 +204,7 @@ namespace HDBF.Core.Indoor
                 notes.Add("+" + _suppressedNotes.ToString(CultureInfo.InvariantCulture) + " more");
             }
 
-            return new IndoorRepairResult(Repaired, SlotsTrimmed, SlotsPadded, ValuesClamped, notes);
+            return new IndoorRepairResult(Repaired, SlotsTrimmed, SlotsPadded, ValuesClamped, notes, _cannotWrite);
         }
     }
 }

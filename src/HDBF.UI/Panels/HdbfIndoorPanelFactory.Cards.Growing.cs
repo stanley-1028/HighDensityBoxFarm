@@ -79,7 +79,10 @@ namespace HDBF.UI.Panels
                     rows.Add(new HdbfPanelRow
                     {
                         IconKey = "crop",
-                        Label = HdbfIndoorPanelFormat.CropName(localize, crop.CropId),
+                        // L-12: the row label uses the live catalog's localized name when the
+                        // snapshot carries one, so a crop-mod crop is not shown as its raw id.
+                        Label = HdbfIndoorPanelFormat.CropName(localize, snapshot.CropChoices,
+                            crop.CropId),
                         // Product request 2026-10-29: the growing number is "crops in the planting
                         // slots" (still growing + ready to harvest), so it always matches how many
                         // crops the player sees in the box; the ready ones stay as the second number.

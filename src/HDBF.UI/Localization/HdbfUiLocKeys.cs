@@ -2,18 +2,14 @@
 // HDBF v2 | Layer: UI/Localization | Owner: V2-UI-01
 // Purpose: Compile-time constants of every localization key the v2 indoor panel formats.
 // Requirements: REQ-V2-UI-02/03/04, REQ-V2-READ-04
-// Size: kept as one constant table (REQ-V2-MAINT-02 written reason): it is a pure declarative
-//       table and splitting it would scatter the one localization contract across partials.
 // ============================================================================
 namespace HDBF.UI.Localization
 {
     /// <summary>
     /// Every localization key the v2 indoor panel uses (REQ-V2-UI-03). Each constant must appear
-    /// verbatim in <c>data/Localizations/enUS.csv</c>, <c>zhCN.csv</c> and <c>zhTW.csv</c> (identical
-    /// key sets); <c>tools/validate</c> cross-checks these constants against the shipped CSVs, and
-    /// <c>V2LocalizationTests</c> pins the parity from L1. The <c>Error*</c> values are duplicated in
-    /// gameplay because Core cannot reference UI; the <c>V2PanelContractTests</c> whitelist keeps an
-    /// unknown key from reaching the player.
+    /// verbatim in enUS.csv, zhCN.csv and zhTW.csv (identical key sets); tools/validate and
+    /// V2LocalizationTests pin the parity. The <c>Error*</c> values are duplicated in gameplay
+    /// because Core cannot reference UI; the panel whitelist keeps an unknown key from the player.
     /// </summary>
     public static class HdbfUiLocKeys
     {
@@ -134,7 +130,7 @@ namespace HDBF.UI.Localization
         public const string TooltipIdleReason = "HDBF.Tooltip.IdleReason";
 
         // Maintenance block: due day, overdue cycles, missing material list, automatic maintenance
-        // (WP-02) and the catch-up bill of the next click (WP-01/L-08).
+        // (WP-02), the catch-up bill (WP-01/L-08).
         public const string PanelMaintenanceDue = "HDBF.Panel.MaintenanceDue";
         public const string PanelMaintenanceCycles = "HDBF.Panel.MaintenanceCycles";
         public const string PanelMaintenanceMaterials = "HDBF.Panel.MaintenanceMaterials";
@@ -194,8 +190,9 @@ namespace HDBF.UI.Localization
         public const string ModeFallow = "HDBF.Mode.Fallow";
         public const string ModeSwitchCooldown = "HDBF.Mode.SwitchCooldown";
 
-        // Port names and shared port states. `PortPipe` names the pipe NETWORK (auto-refill), not a
-        // bare "pipe port" (L-17); the probe reason keys replace the old single misleading text.
+        // Port names and shared port states (L-17/L-09). PortPipe names the pipe NETWORK, not a bare
+        // "pipe port"; the probe reasons replace the old misleading text and the logistics port
+        // reports only a detected module (HDBF has no produce handover yet).
         public const string PortPower = "HDBF.Port.Power";
         public const string PortPipe = "HDBF.Port.Pipe";
         public const string PortLogistics = "HDBF.Port.Logistics";
@@ -209,6 +206,9 @@ namespace HDBF.UI.Localization
         public const string PortAdapterUnavailable = "HDBF.Port.AdapterUnavailable";
         public const string PortBindingFailed = "HDBF.Port.BindingFailed";
 
+        // L-09: the logistics module is present, but HDBF does not hand the harvest to it yet.
+        public const string PortLogisticsDetected = "HDBF.Port.LogisticsDetected";
+
         // Actions: refill, maintenance, mode switch, crop policy.
         public const string ActionMaintenance = "HDBF.Action.Maintenance";
         public const string ActionMaintenanceDone = "HDBF.Action.MaintenanceDone";
@@ -217,8 +217,7 @@ namespace HDBF.UI.Localization
         public const string ActionModeChanged = "HDBF.Action.ModeChanged";
         public const string ActionCropPolicyChanged = "HDBF.Action.CropPolicyChanged";
 
-        // The four v2 warning categories; the world icons map them through
-        // HDBF.Core.Indoor.IndoorWarningMap (no v1 warning aggregation remains).
+        // The four v2 warning categories; the world icons map them through IndoorWarningMap.
         public const string WarningNoWater = "HDBF.Warning.NoWater";
         public const string WarningIrrigationLow = "HDBF.Warning.IrrigationLow";
         public const string WarningMaintenanceOverdue = "HDBF.Warning.MaintenanceOverdue";
@@ -266,8 +265,7 @@ namespace HDBF.UI.Localization
         public const string ErrorMissingMod = "HDBF.Error.MissingMod";
 
         // Specific v2 action failures (values must equal HdbfIndoorCommandFailures in gameplay):
-        // the refill/crop commands explain no workers, a blocked entrance, a missing/unreachable/
-        // contaminated water source, an empty daily action budget, a pending trip or a full output.
+        // the refill/crop commands explain no workers, a blocked entrance, a missing source or a full output.
         public const string ErrorNoWorkers = "HDBF.Error.NoWorkers";
         public const string ErrorEntranceBlocked = "HDBF.Error.EntranceBlocked";
         public const string ErrorNoWaterSource = "HDBF.Error.NoWaterSource";
@@ -291,6 +289,8 @@ namespace HDBF.UI.Localization
         public const string TooltipRefill = "HDBF.Tooltip.Refill";
         public const string TooltipPipeWater = "HDBF.Tooltip.PipeWater";
         public const string TooltipNoWaterSource = "HDBF.Tooltip.NoWaterSource";
+        /// <summary>L-09: HDBF does not push produce onto conveyors; vanilla hauling is required.</summary>
+        public const string TooltipLogisticsPort = "HDBF.Tooltip.LogisticsPort";
         public const string TooltipOutput = "HDBF.Tooltip.Output";
         public const string TooltipCurrentMode = "HDBF.Tooltip.CurrentMode";
         public const string TooltipModeNormal = "HDBF.Tooltip.ModeNormal";

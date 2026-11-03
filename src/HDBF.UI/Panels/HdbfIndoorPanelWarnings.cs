@@ -18,7 +18,7 @@ namespace HDBF.UI.Panels
     /// Pure warning/choice builders of the v2 indoor panel. They take the localization resolver as
     /// a plain <see cref="Func{T,TResult}"/> so the whole mapping runs in the game-free L1 suite.
     /// </summary>
-    public static class HdbfIndoorPanelWarnings
+    public static partial class HdbfIndoorPanelWarnings
     {
         /// <summary>
         /// Water warning rows from the live coverage (REQ-V2-WATER-03): C = 0 is "no water", any
@@ -160,49 +160,13 @@ namespace HDBF.UI.Panels
             Func<string, string> localize)
         {
             var rows = new List<HdbfPanelRow>(1);
-            if (snapshot.CropPolicy == CropPolicy.Fixed
-                && !FallbackCropCatalog.Default.TryGet(snapshot.Faction, snapshot.FixedCropId, out _))
+            if (snapshot.CropPolicy == CropPolicy.Fixed && !IsKnownCrop(snapshot, snapshot.FixedCropId))
             {
                 AddRow(rows, "invalid-crop", HdbfUiLocKeys.WarningInvalidCrop,
                     IndoorWarningSeverity.High, HdbfUiLocKeys.TooltipRotation, localize);
             }
 
             return rows;
-        }
-
-        /// <summary>Dropdown items: automatic rotation first, then the faction crop table.</summary>
-        /// <param name="snapshot">Read-only farm snapshot.</param>
-        /// <param name="localize">Localization resolver.</param>
-        /// <returns>Ordered dropdown choices; item text is the localized display text.</returns>
-        public static IReadOnlyList<HdbfCropChoice> BuildCropChoices(IndoorFarmSnapshot snapshot,
-            Func<string, string> localize)
-        {
-            var crops = FallbackCropCatalog.Default.ForFaction(snapshot.Faction);
-            var choices = new List<HdbfCropChoice>(crops.Count + 1)
-            {
-                new HdbfCropChoice
-                {
-                    Id = string.Empty,
-                    Text = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelPolicyRotation),
-                },
-            };
-
-            for (var index = 0; index < crops.Count; index++)
-            {
-                var crop = crops[index];
-                if (crop is null || string.IsNullOrEmpty(crop.Id))
-                {
-                    continue;
-                }
-
-                choices.Add(new HdbfCropChoice
-                {
-                    Id = crop.Id,
-                    Text = HdbfIndoorPanelFormat.CropName(localize, crop.Id),
-                });
-            }
-
-            return choices;
         }
 
         /// <summary>Text severity marker: the second encoding that keeps colour from being the only carrier.</summary>

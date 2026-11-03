@@ -37,9 +37,21 @@ namespace HDBF.Persistence.Indoor
         private static readonly PropertyKey<string> Payload = new PropertyKey<string>(PayloadKeyName);
 
         /// <summary>
+        /// L-04 rollback copy: the pre-repair payload text a repair pass had to change. Written only
+        /// when a repaired record is saved, so a vanilla/clean save never grows by this property.
+        /// </summary>
+        private static readonly PropertyKey<string> PreviousPayload =
+            new PropertyKey<string>(IndoorSaveKeys.PreviousPayloadKeyName);
+
+        /// <summary>
         /// Writes one validated schema-v2 record. The live record is never mutated: validation runs
-        /// on a deep copy, so a failed pass leaves the in-memory record exactly as it was and the
-        /// caller can keep retrying with <c>SaveDirty</c> set (REQ-V2-SAVE-04).
+        /// on a deep copy, so a refused write leaves the in-memory record exactly as it was and the
+        /// caller can keep retrying (REQ-V2-SAVE-04).
+        ///
+        /// L-04 write strategy: a repaired record is no longer refused as a whole. A repair that
+        /// merely fixed field/slot values is written as the repaired copy, with the state it repaired
+        /// away kept under <c>PreviousPayload</c> and a <c>save.write-repaired</c> log line. Only
+        /// <see cref="IndoorRepairResult.CannotWrite"/> keeps the previous entity record untouched.
         /// </summary>
         /// <param name="record">Live record to persist; null fails cleanly.</param>
         /// <param name="tier">Resolved tier profile; null fails cleanly.</param>
@@ -73,8 +85,16 @@ namespace HDBF.Persistence.Indoor
                 return false;
             }
 
-            if (validation is null || validation.Repaired)
+            if (validation is null)
             {
+                Warn(log, IndoorLogKeys.ValidationFailed,
+                    "indoor save refused by pre-write validation (" + Describe(validation) + ")", null);
+                return false;
+            }
+
+            if (validation.CannotWrite)
+            {
+                // L-04: only a record that cannot be represented at all keeps the previous entity record.
                 Warn(log, IndoorLogKeys.ValidationFailed,
                     "indoor save refused by pre-write validation (" + Describe(validation) + ")", null);
                 return false;
@@ -104,9 +124,29 @@ namespace HDBF.Persistence.Indoor
                     return false;
                 }
 
+                // L-04: a repaired write first keeps the state it repaired away as a bounded rollback
+                // copy. The encoder may legitimately refuse a damaged record: then only the repaired
+                // payload is written (never a half state), and no previous-snapshot line is logged.
+                var rollback = validation.Repaired ? TryEncodeRollbackCopy(record) : null;
+                if (!string.IsNullOrEmpty(rollback))
+                {
+                    component.Set(PreviousPayload, rollback!);
+                    Write(log, IndoorLogKeys.SavePreviousSnapshot,
+                        "pre-repair rollback copy kept under PreviousPayload (" + rollback!.Length + " chars)");
+                }
+
                 component.Set(Payload, text);
-                Write(log, IndoorLogKeys.SaveWrite,
-                    "indoor record written, slots=" + SlotCount(candidate));
+                if (validation.Repaired)
+                {
+                    Write(log, IndoorLogKeys.SaveWriteRepaired,
+                        "repaired indoor record written (" + Describe(validation) + ") notes=" + DescribeNotes(validation));
+                }
+                else
+                {
+                    Write(log, IndoorLogKeys.SaveWrite,
+                        "indoor record written, slots=" + SlotCount(candidate));
+                }
+
                 return true;
             }
             catch (Exception exception)

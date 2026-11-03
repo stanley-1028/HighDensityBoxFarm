@@ -109,6 +109,18 @@ namespace HDBF.Core.Indoor
         /// <summary>One farm record was written successfully.</summary>
         public const string SaveWrite = "save.write";
 
+        /// <summary>
+        /// A repaired record was written as the repaired copy instead of being refused (L-04); carries
+        /// the repair summary and notes.
+        /// </summary>
+        public const string SaveWriteRepaired = "save.write-repaired";
+
+        /// <summary>
+        /// The pre-repair rollback copy of a repaired write was kept under the PreviousPayload key
+        /// (L-04); emitted only when that copy really exists.
+        /// </summary>
+        public const string SavePreviousSnapshot = "save.previous-snapshot";
+
         /// <summary>Pre-write validation failed; the old record is kept and the write is retried later.</summary>
         public const string ValidationFailed = "save.validation-failed";
 

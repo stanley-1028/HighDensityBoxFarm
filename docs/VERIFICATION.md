@@ -1736,3 +1736,52 @@ powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1
 * **環境**：Steam client 執行中且已登入（`steamRunning=True loggedOn=True`）；`%USERPROFILE%\Documents\Timberborn\Mods\HDBF`
   不存在（不與訂閱版同 Id 兩份載入）；未 `-Install`、未替換工坊資料夾。訂閱端何時下載新 manifest 由 Steam 決定。
 * **未做**：實機 fixture 回合仍 pending（§36.3）；未改工坊頁面文案/封面/標籤；未建立 Discussion 帖。
+
+## 38. 2.5.5 第二維修輪離線驗證（2026-11-03）
+
+> 依據 `docs/BUG_REPAIR_20261102.md` §4 的 pending 清單；實作卡
+> `docs/workstreams/bugfix-20261102/REPAIR_PLAN_ROUND2.md`。**本輪沒有可互動的遊戲會話**：所有實機
+> fixture（§7.2 A–K）仍 pending；本輪只完成離線可證明的程式碼、L1 契約與文案。存檔寫入語意修訂記錄在
+> ADR-V2-006；變更記錄見 `docs/v2/CHANGELOG.md` [2.5.5]。
+
+### 38.1 全量門禁（離線）
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1 -WorkRoot "$env:TEMP\hdbf-work"
+```
+
+* 5 個組件（Core / Persistence / Gameplay / Integration / UI）：**0 warning / 0 error**。
+* L1 測試：**PASSED 672 / FAILED 0**（基線 655；本輪新增 17 條）。
+* `tools/validate`：`mod assemblies 5/5 OK`、`RESULT: OK - data/ is valid`。
+* `RELEASE GATES: PASSED (44 checks)`；`NFR GATE MATRIX: PASSED`（220 localization keys，三語一致、
+  0 空字串、0 v1 術語）。
+* 本輪仍是 source workspace：未 `-Install`、未跑實機、未上傳 Steam Workshop、未 push GitHub。
+
+### 38.2 本輪修復釘死的契約（L1）
+
+| Bug | 修法一句話 | 釘死測試 |
+|---|---|---|
+| L-04 | 存檔寫入策略分成「可修復→寫入修復副本＋`PreviousPayload` 回滾副本」與「`CannotWrite`→拒寫」 | `V2SaveWriteStrategyTests`（7 條）、`V2PersistenceBridgeContractTests.TestSaveWritesRepairedCopyAndKeepsRollbackCopy`、`V2SaveValidatorTests`（`CannotWrite` 矩陣） |
+| L-12 | 面板下拉/固定作物名/invalid-crop 判定改吃 live 作物表；未知作物用 blueprint 的 `DisplayNameLocKey` | `V2PanelContractTests.TestCropDropdownUsesTheLiveSnapshotCatalogue`、`V2CropCatalogTests`（3 條 `DisplayNameLocKey` 契約） |
+| L-15 | snapshot 帶 config 覆寫後的 `TierProfile`，面板優先它、null 才退回編譯期表 | `V2PanelContractTests.TestPanelUsesTheConfigOverrideProfileFromTheSnapshot`、`TestFingerprintCoversTheLiveProfileAndCropChoices` |
+| L-09 | 物流/輸出端口永不再顯示 Connected（detected / not connected / not applicable＋tooltip） | `V2PanelContractTests.TestLogisticsPortRowsNeverClaimAConnection`、`V2LocalizationTests.TestLogisticsPortTextsDescribeTheHonestOutputSemantics`、`V2PanelVisualContractTests` 端口契約 |
+
+### 38.3 仍 pending（不得寫成已完成）
+
+* **實機 fixture（§36.3 / §7.2 A–K）**：維護扣料、人工補水正路徑、管道真實供水、暫停存檔載入、
+  休耕切換、拆除、Ember-pelts 等，全部 pending。
+* **WP-05 真實連通判定**（`PipeRegistry.TryGetGraph(農場座標)`）、L-02(b)(c)（全域假連通、3-strike
+  時間窗）：需第三方程 API 與實機，pending。
+* **L-11 / WP-10** 世界圖示即時化與面板同步：需實機驗證 vanilla icon 行為，pending。
+* **WP-07 / L-20** `indoor.behavior-probe`：G-08 掃描禁止 source 含 Harmony 字樣，需另案設計，pending。
+* **WP-13 / RE-06** 自訂陣營（Ember-pelts）：需外部主模組，pending。
+* **L-14 效能 100 棟實測、L-16 backward 清單、L-18 死旗標、L-19 ADR/需求漂移**：pending
+  （設計決策或量測）。
+* **已知風險**：`IndoorEntitySaveBridge.Keyed.cs`（非 live 存檔路徑）仍保留舊「`Repaired` 即拒寫」
+  契約，統一留待後續小卡；`PreviousPayload` 不保證可載入且 `Load` 不讀它；`HdbfUiLocKeys.cs` 已達
+  300 行上限，下一批面板字串需先拆 partial 並授權改 `tests/HDBF.Tests/HDBF.Tests.csproj` 的
+  linked Compile。
+* **已知設計點（留後續）**：L-09 為三態（Not applicable / 偵測到模組 / Not connected，永不宣稱
+  Connected），`Output port` 與 `Logistics port` 兩列共用同一語意（合併留後續）；`DisplayNameLocKey`
+  只讀 `LabeledEntitySpec`，只有 `SimpleLabeledEntitySpec` 的 mod 作物退回 raw id（仍可選、不再被判無效）；
+  `features.logisticsOutput` 等 config 死旗標未動（L-18 pending）。

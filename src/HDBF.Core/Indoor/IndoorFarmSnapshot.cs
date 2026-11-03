@@ -6,6 +6,7 @@
 // ============================================================================
 using System;
 using System.Collections.Generic;
+using HDBF.Core.Balance;
 
 namespace HDBF.Core.Indoor
 {
@@ -112,5 +113,22 @@ namespace HDBF.Core.Indoor
 
         /// <summary>Read-only pipe probe result when a pipe source is present; Unknown otherwise (WP-05).</summary>
         public PipeProbe PipeProbeState { get; init; } = PipeProbe.Unknown;
+
+        /// <summary>
+        /// Config-resolved tier profile the building actually runs with (L-15). Gameplay fills the
+        /// same profile the daily simulation uses, so JSON overrides of <c>balance.tier</c> reach the
+        /// panel; when it is null (older snapshots/tests) the panel falls back to the compiled
+        /// <see cref="TierCatalog.Get"/> table and keeps its previous behaviour.
+        /// </summary>
+        public TierProfile? Profile { get; init; }
+
+        /// <summary>
+        /// Live crop list of the building faction (L-12). Gameplay fills it from the game-backed
+        /// crop catalog, so a crop added by a crop mod is a valid fixed-crop choice and shows its
+        /// own localized name. Empty when the live catalog is unavailable; the panel then falls back
+        /// to <see cref="FallbackCropCatalog"/> and its built-in name table.
+        /// </summary>
+        public IReadOnlyList<IndoorCropChoice> CropChoices { get; init; } =
+            Array.Empty<IndoorCropChoice>();
     }
 }

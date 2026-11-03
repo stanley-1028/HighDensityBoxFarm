@@ -11,6 +11,7 @@ using HDBF.Core;
 using HDBF.Core.Indoor;
 using Timberborn.BlueprintSystem;
 using Timberborn.Cutting;
+using Timberborn.EntitySystem;
 using Timberborn.Growing;
 using Timberborn.Planting;
 using Timberborn.TemplateSystem;
@@ -78,13 +79,40 @@ namespace HDBF.Gameplay.Components
                     return false;
                 }
 
-                crop = new CropDefinition(cropId, growable.GrowthTimeInDays, yield.Id, yield.Amount);
+                crop = new CropDefinition(cropId, growable.GrowthTimeInDays, yield.Id, yield.Amount)
+                {
+                    // L-12: the panel shows the game's own name for a crop-mod crop instead of its
+                    // raw template id; a blueprint without LabeledEntitySpec leaves the key empty.
+                    DisplayNameLocKey = ReadDisplayNameLocKey(blueprint),
+                };
                 return true;
             }
             catch (Exception exception)
             {
                 LogMissingSpec(cropId, exception);
                 return false;
+            }
+        }
+
+        /// <summary>
+        /// Reads the display-name localization key from the blueprint's <c>LabeledEntitySpec</c>
+        /// (L-12). A missing or broken spec returns null so the panel falls back to its built-in name
+        /// table instead of showing a raw key (REQ-V2-SAFE-01/06).
+        /// </summary>
+        /// <param name="blueprint">Blueprint owning the crop spec.</param>
+        /// <returns>Localization key, or null when the spec has none.</returns>
+        private static string? ReadDisplayNameLocKey(Blueprint blueprint)
+        {
+            try
+            {
+                var labeled = blueprint.GetSpec<LabeledEntitySpec>();
+                var key = labeled?.DisplayNameLocKey;
+                return string.IsNullOrEmpty(key) ? null : key;
+            }
+            catch (Exception)
+            {
+                // A mod crop without a usable LabeledEntitySpec must not hide the crop itself.
+                return null;
             }
         }
 

@@ -56,9 +56,11 @@ namespace HDBF.UI.Panels
                 },
                 fixedCrop
                     ? SimpleTextRow("crop", HdbfUiLocKeys.PanelFixedCropLabel,
-                        HdbfIndoorPanelFormat.CropName(localize, snapshot.FixedCropId), localize)
+                        HdbfIndoorPanelFormat.CropName(localize, snapshot.CropChoices,
+                            snapshot.FixedCropId), localize)
                     : SimpleTextRow("rotation", HdbfUiLocKeys.PanelRotationLabel,
-                        FormatRotationSequence(snapshot.RotationSequence, localize), localize),
+                        FormatRotationSequence(snapshot.RotationSequence, snapshot.CropChoices, localize),
+                        localize),
             };
 
             var warnings = HdbfIndoorPanelWarnings.BuildCropWarnings(snapshot, localize);
@@ -101,16 +103,16 @@ namespace HDBF.UI.Panels
                 {
                     IconKey = "port",
                     Label = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PanelOutputPortLabel),
-                    Value = HdbfIndoorPanelFormat.Text(localize, snapshot.OutputPortConnected
-                        ? HdbfUiLocKeys.PortConnected
-                        : HdbfUiLocKeys.PortNotConnected),
-                    Tooltip = tooltip,
+                    // L-09: HDBF has no implementation that hands produce to a conveyor, so the
+                    // output-port row never claims "Connected"; it reports the detected module (or
+                    // "not connected" when nothing is detected) and the tooltip says so.
+                    Value = HdbfIndoorPanelFormat.Text(localize, LogisticsPortStateKey(snapshot)),
+                    Tooltip = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.TooltipLogisticsPort),
                 },
                 // WP-05/RE-05: the pipe row reports the probe reason (network/tank/dry/adapter)
                 // instead of the old single misleading "Not connected" state.
                 PipePortRow(snapshot, localize),
-                PortRow(snapshot.LogisticsPort, snapshot.OutputPortConnected,
-                    HdbfUiLocKeys.PortLogistics, localize, tooltip),
+                LogisticsPortRow(snapshot, localize),
                 PortRow(snapshot.PowerPort, snapshot.PowerConnected,
                     HdbfUiLocKeys.PortPower, localize, tooltip),
             };
@@ -146,6 +148,45 @@ namespace HDBF.UI.Panels
                 Value = HdbfIndoorPanelFormat.Text(localize, stateKey),
                 Tooltip = tooltip,
             };
+        }
+
+        /// <summary>
+        /// Logistics-interface row (L-09). HDBF has no implementation that hands produce to a
+        /// conveyor or another logistics mod, so the row never says "connected": a tier that owns
+        /// the port reports the detected module (or "not connected" when none is detected) and the
+        /// tooltip tells the player to move the produce with vanilla haulers or warehouses. A tier
+        /// without the port says "not applicable".
+        /// </summary>
+        private static HdbfPanelRow LogisticsPortRow(IndoorFarmSnapshot snapshot,
+            Func<string, string> localize)
+        {
+            return new HdbfPanelRow
+            {
+                IconKey = "port",
+                Label = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.PortLogistics),
+                Value = HdbfIndoorPanelFormat.Text(localize, LogisticsPortStateKey(snapshot)),
+                Tooltip = HdbfIndoorPanelFormat.Text(localize, HdbfUiLocKeys.TooltipLogisticsPort),
+            };
+        }
+
+        /// <summary>
+        /// State key of the logistics interface (L-09). No port -&gt; not applicable; a detected
+        /// module -&gt; the honest "detected, produce not handed over yet" text; a port without a
+        /// detected module -&gt; not connected. The result is never <c>PortConnected</c>, because
+        /// HDBF does not transfer its produce over the logistics interface.
+        /// </summary>
+        /// <param name="snapshot">Read-only farm snapshot.</param>
+        /// <returns>Localization key of the state to render.</returns>
+        internal static string LogisticsPortStateKey(IndoorFarmSnapshot snapshot)
+        {
+            if (!snapshot.LogisticsPort)
+            {
+                return HdbfUiLocKeys.PortNotApplicable;
+            }
+
+            return snapshot.OutputPortConnected
+                ? HdbfUiLocKeys.PortLogisticsDetected
+                : HdbfUiLocKeys.PortNotConnected;
         }
 
         /// <summary>

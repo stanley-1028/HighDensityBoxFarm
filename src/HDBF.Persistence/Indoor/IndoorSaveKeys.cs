@@ -30,6 +30,12 @@ namespace HDBF.Persistence.Indoor
         /// <summary>Legacy schema-v2 text payload property written by the pre-keyed bridge.</summary>
         public const string PayloadKeyName = "Payload";
 
+        /// <summary>
+        /// L-04 rollback copy of the pre-repair state, kept beside the current payload when a repaired
+        /// record is written. A clean save never writes it; never rename after release.
+        /// </summary>
+        public const string PreviousPayloadKeyName = "PreviousPayload";
+
         /// <summary>Component key of the v1 entity record, read only by the migration path.</summary>
         public const string LegacyComponentKeyName = "HDBF.BoxFarm";
 
@@ -41,6 +47,10 @@ namespace HDBF.Persistence.Indoor
 
         /// <summary>Payload-string fallback key kept readable for records written before the keyed format.</summary>
         public static readonly PropertyKey<string> Payload = new PropertyKey<string>(PayloadKeyName);
+
+        /// <summary>Optional L-04 rollback copy written only beside a repaired payload.</summary>
+        public static readonly PropertyKey<string> PreviousPayload =
+            new PropertyKey<string>(PreviousPayloadKeyName);
 
         // ------------------------------------------------------------ record scalars (v2)
 

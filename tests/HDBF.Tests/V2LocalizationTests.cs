@@ -539,6 +539,50 @@ namespace HDBF.Tests
         }
 
         /// <summary>
+        /// L-09: the logistics interface strings describe the real behaviour - the module is detected
+        /// but HDBF does not hand the harvest to a conveyor (never "Connected"), and the tooltip
+        /// tells the player to move the produce with vanilla hauling.
+        /// </summary>
+        public static void TestLogisticsPortTextsDescribeTheHonestOutputSemantics()
+        {
+            var en = LoadTexts("enUS");
+            var zh = LoadTexts("zhCN");
+            var tw = LoadTexts("zhTW");
+            foreach (var texts in new[] { en, zh, tw })
+            {
+                TestAssert.True(texts.ContainsKey(HdbfUiLocKeys.PortLogisticsDetected),
+                    "the logistics-detected state key must ship");
+                TestAssert.True(texts.ContainsKey(HdbfUiLocKeys.TooltipLogisticsPort),
+                    "the logistics-port tooltip must ship");
+                foreach (var key in new[] { HdbfUiLocKeys.PortLogisticsDetected,
+                             HdbfUiLocKeys.TooltipLogisticsPort })
+                {
+                    TestAssert.True(texts[key].Trim().Length > 0, "empty text for " + key);
+                    TestAssert.False(texts[key].Contains("HDBF.", StringComparison.Ordinal),
+                        "the logistics text must not render a raw key: " + key);
+                }
+
+                // The state text must not claim a working connection (never "Connected").
+                TestAssert.False(string.Equals(texts[HdbfUiLocKeys.PortLogisticsDetected],
+                        texts[HdbfUiLocKeys.PortConnected], StringComparison.Ordinal),
+                    "the detected-module text must differ from the connected text");
+            }
+
+            TestAssert.True(en[HdbfUiLocKeys.TooltipLogisticsPort].Contains("conveyors",
+                    StringComparison.OrdinalIgnoreCase),
+                "the enUS tooltip names the conveyor limitation");
+            TestAssert.True(en[HdbfUiLocKeys.TooltipLogisticsPort].Contains("haulers",
+                    StringComparison.OrdinalIgnoreCase),
+                "the enUS tooltip points at vanilla hauling");
+            AssertContains(zh, HdbfUiLocKeys.TooltipLogisticsPort, "输送带");
+            AssertContains(zh, HdbfUiLocKeys.TooltipLogisticsPort, "搬运工");
+            AssertContains(tw, HdbfUiLocKeys.TooltipLogisticsPort, "輸送帶");
+            AssertContains(tw, HdbfUiLocKeys.TooltipLogisticsPort, "搬運工");
+            AssertContains(zh, HdbfUiLocKeys.PortLogisticsDetected, "物流模块");
+            AssertContains(tw, HdbfUiLocKeys.PortLogisticsDetected, "物流模組");
+        }
+
+        /// <summary>
         /// L-17: the misleading/duplicated strings are fixed - the warning slots no longer copy
         /// another category, the refill error names the source instead of claiming the feature does
         /// not exist, the shortage sentence says growth slowed (not yield loss) and the pipe texts
