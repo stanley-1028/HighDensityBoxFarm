@@ -1,6 +1,6 @@
 # HDBF v2 变更记录
 
-> **状态**：2.5.6 为原始码轮（**未发布**；离线门禁全绿，实机验证 pending）；2.5.5 为未发布的第二维修轮；2.5.4 已发布（Steam Workshop ManifestID 2037025195551276545；GitHub master `2a4a237`；离线门禁全绿；实机验证 pending）
+> **状态**：2.5.6 已发布（Steam Workshop ManifestID 3045694293614393693；GitHub 见 push 后的 master；离线门禁全绿；实机验证部分 pending，见 VERIFICATION §40）；2.5.5 为未发布的第二维修轮；2.5.4 已发布（Steam Workshop ManifestID 2037025195551276545）
 > **日期**：2026-11-03
 > **适用版本**：2.5.6
 > **变更摘要**：v2.1 需求引入室内农场方案；本文件记录 v1→v2 的行为/数据/工程变更与实现状态。
@@ -113,7 +113,9 @@ Emberpelts 主模组的 WP-13 仍为 pending，不写成已完成。
 
 ### 发布状态
 
-* 【修改】`data/manifest.json` 版本 `2.5.6`；README 版本/L1 数字同步（**未上传 Steam Workshop**）。
+* 【修改】`data/manifest.json` 版本 `2.5.6`；README 版本/L1 数字同步。**已发布 Steam Workshop**：
+  2026-11-03 13:14:10 上传，ManifestID `3045694293614393693`（item `3828809784`，只更新内容与 Change Note；
+  页面描述/封面/标签沿用旧版）。发布记录见 `docs/VERIFICATION.md` §41。
 * 离线门禁：5 组程序集 0 warning / 0 error；L1 **712/712**（基线 672，本轮 +40）；`tools/validate`
   `RESULT: OK`；`RELEASE GATES: PASSED (44 checks)`；`NFR GATE MATRIX: PASSED`。
 * 【实机（部分）】首次 2.5.6 实机烟雾：`-Install` 部署后与数十个第三方 mod 共同加载 **0 exception**；

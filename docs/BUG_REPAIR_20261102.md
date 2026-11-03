@@ -1,7 +1,7 @@
 # 玩家回饋 Bug 維修文檔 — 2026-11-02（HDBF v2.5.3 → v2.5.4 已維修並發佈）
 
 > **文件名**：`docs/BUG_REPAIR_20261102.md`
-> **狀態**：調查完成；**維修已實作並發佈（2026-11-02 實作輪，v2.5.4；離線 L1／validator／44 gates 全綠；Steam Workshop ManifestID `2037025195551276545`；GitHub `2a4a237`；實機 fixture 驗證 pending）**；**第二實作輪（2026-11-03，v2.5.5，未發佈）已修離線可證明的 L-04 / L-12 / L-15 / L-09（L1 672/672、44 gates 全綠；實機仍 pending）**；**第三實作輪（2026-11-03，v2.5.6，未發佈）把剩餘離線可修 pending 全部落地（L-02(c)/L-10/L-11/L-14 離線部分/L-16/L-17 剩餘/L-18/L-19/WP-07/WP-08；L1 712/712、44 gates 全綠；只剩 WP-13 外部模組阻塞與實機 fixture）** — 見文末 §10、§11、§12。§0–§8 保留原本調查內容不變。
+> **狀態**：調查完成；**維修已實作並發佈（2026-11-02 實作輪，v2.5.4；離線 L1／validator／44 gates 全綠；Steam Workshop ManifestID `2037025195551276545`；GitHub `2a4a237`；實機 fixture 驗證 pending）**；**第二實作輪（2026-11-03，v2.5.5，未發佈）已修離線可證明的 L-04 / L-12 / L-15 / L-09（L1 672/672、44 gates 全綠；實機仍 pending）**；**第三實作輪（2026-11-03，v2.5.6，已發佈 Steam Workshop ManifestID `3045694293614393693`）把剩餘離線可修 pending 全部落地（L-02(c)/L-10/L-11/L-14 離線部分/L-16/L-17 剩餘/L-18/L-19/WP-07/WP-08；L1 712/712、44 gates 全綠；首次實機煙霧部分證據見 §12/VERIFICATION §40；只剩 WP-13 外部模組阻塞與實機 fixture）** — 見文末 §10、§11、§12、§41。§0–§8 保留原本調查內容不變。
 > **對象版本**：HDBF **2.5.3**（2026-10-29 發佈，HEAD `de1015c`；Steam Workshop item `3828809784`）
 > **遊戲版本**：Timberborn **1.1.2.8**（`1.1.2.8-ffc2de0-sw`，Unity 6000.5.11f1）
 > **來源**：Steam Workshop 玩家留言（截圖，2026-11-02 21:16 擷取）、Annastasya 的錯誤日誌（pastebin）、專案內既有實機紀錄/日誌
@@ -754,7 +754,7 @@ Timberborn.TickSystem.TickerUnityAdapter.Update ()
 
 ---
 
-## 12. 第三實作輪（2026-11-03，v2.5.6，未發佈）
+## 12. 第三實作輪（2026-11-03，v2.5.6，已發佈 Steam Workshop ManifestID `3045694293614393693`）
 
 > 實作卡：`docs/workstreams/bugfix-20261102/REPAIR_PLAN_ROUND3.md`（範圍、檔案所有權、契約、驗收）。
 > 離線驗證：`docs/VERIFICATION.md` §39；變更記錄：`docs/v2/CHANGELOG.md` [2.5.6]。

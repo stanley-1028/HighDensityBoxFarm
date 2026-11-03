@@ -1872,3 +1872,29 @@ powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1 -WorkRoot "$env:TE
 
 * 重算 fixture farm 座標（或恢復原始來源存檔），並在**可互動**會話完成 §7.2 A–K 的其餘項與 L-14 100 棟量測。
 * 若要把 2.5.6 交給玩家，需要先解除本機部署與訂閱版 2.5.4 的重複載入問題（發佈新 Workshop 版本或暫時移除其一）。
+
+## 41. 2.5.6 發佈記錄：Steam Workshop 更新 + GitHub push（2026-11-03）
+
+* **Steam Workshop item 3828809784**：2026-11-03 **13:14:10** 開始上傳，**13:14:11**
+  `Uploaded new content ( ManifestID 3045694293614393693 )`、`Upload finished for workshop item
+  3828809784 : OK`（Steam `logs/workshop_log.txt`）；自製 `SteamUpload.exe`（Steamworks UGC API）
+  回報 `submitDone ioFailure=False eResult=k_EResultOK needsLegalAgreement=False
+  publishedFileId=3828809784`（exit 0）。
+* **上傳內容** = 2.5.6 staged 包（上傳前建置；code HEAD `36f8f88`、文件 HEAD `fbebd65`）：
+  **48 files / 2,192,262 bytes / manifest 2.5.6**。SHA-256（前 8…後 5）：
+  `manifest.json 4B93F176…42BB5`、`HDBF.Core.dll FA8A7524…35998`、`HDBF.Gameplay.dll FBA01ADB…EE71B`、
+  `HDBF.Persistence.dll AE8EC3A2…ECD25`、`HDBF.Integration.dll D3C244C6…1B29E`、
+  `HDBF.UI.dll 33F89935…DA29C`。
+* **Change Note（雙語）**：維護追平＋自動維護、存檔修復副本、live 作物表、config profile、管道 60 秒時間窗
+  與聚落級供水、圖示/面板同源、物流端口誠實、效能節流、5 個 config 旗標、藍圖歷史門禁、一鍵補水、
+  唯讀補丁診斷。
+* **刻意未動**：標題/描述/封面/標籤/可見性（沿用 2026-10-28 改版頁面）；頁面描述仍是舊版，需在 Steam 網頁
+  編輯器人工套用（沿用 2.5.4 的做法）。
+* **GitHub `stanley-1028/HighDensityBoxFarm`**：v2.5.5/v2.5.6 的 code/docs commits（`dc5f592`、`36f8f88`、
+  `fbebd65`）＋本篇發佈記錄 commit 已 push 到 `master`（push 後以 `origin/master` 為準）。
+* **建置**：`build.ps1`（預設 work root）全綠：5 組件 **0 warning/0 error**、L1 **712/712**、
+  `tools/validate`「RESULT: OK」、**RELEASE GATES: PASSED (44 checks)**、staged 48 files / 2,141 KB。
+* **環境**：Steam client 執行中且已登入（`steamRunning=True loggedOn=True`）；`Mods\HDBF` 本機部署已移除
+  （避免與訂閱版同 Id 重複載入；訂閱端會由 Steam 下載新的 2.5.6 manifest）。
+* **未做**：實機 fixture 其餘回合（§7.2 A–K）與 100 棟量測仍 pending（見 §40）；未建立 Discussion 帖；
+  未改工坊頁面文案/封面/標籤。
