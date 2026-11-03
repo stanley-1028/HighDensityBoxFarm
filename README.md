@@ -39,7 +39,7 @@
   消费者（每栋一次性 `indoor.feature-disabled` 日志）；蓝图模板名/占格加入**历史契约门禁**（validator 硬检查）；
   世界图示 tooltip 改为不含动态距离的固定句子（game API 无可写描述，语言切换要等下次注册）；水流量/水源探测
   按帧节流（同一游戏日水量不变）；新增**一键为全部农场补水**按钮与**启动时唯读行为补丁诊断**（不注册任何补丁）。
-  详细清单见 [CHANGELOG](docs/v2/CHANGELOG.md)、[BUG_REPAIR §12](docs/BUG_REPAIR_20261102.md) 与实机 pending 清单（VERIFICATION §39）。
+  详细清单见 [CHANGELOG](docs/v2/CHANGELOG.md)、[BUG_REPAIR §12](docs/BUG_REPAIR_20261102.md) 与实机 pending 清单（VERIFICATION §39/§40）。
 - **2.5.5 修复（第二维修轮，v2.5.4 之后的离线可证明 bug）：** 存档不再因「验证修复过」而整笔拒写
   （可修好的记录写入修复副本，修复前状态保存在 `PreviousPayload` 回滚副本并记 `save.write-repaired`；只有根本不可写的记录才拒写）；
   固定作物下拉/名称/无效判定改用游戏 live 作物表（作物模组的作物不再显示 raw id 或被判无效）；

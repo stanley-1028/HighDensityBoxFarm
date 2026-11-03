@@ -113,10 +113,14 @@ Emberpelts 主模组的 WP-13 仍为 pending，不写成已完成。
 
 ### 发布状态
 
-* 【修改】`data/manifest.json` 版本 `2.5.6`；README 版本/L1 数字同步（**未上传 Steam Workshop、未 `-Install`
-  部署，未跑实机**）。
+* 【修改】`data/manifest.json` 版本 `2.5.6`；README 版本/L1 数字同步（**未上传 Steam Workshop**）。
 * 离线门禁：5 组程序集 0 warning / 0 error；L1 **712/712**（基线 672，本轮 +40）；`tools/validate`
   `RESULT: OK`；`RELEASE GATES: PASSED (44 checks)`；`NFR GATE MATRIX: PASSED`。
+* 【实机（部分）】首次 2.5.6 实机烟雾：`-Install` 部署后与数十个第三方 mod 共同加载 **0 exception**；
+  `indoor.behavior-probe-patched`（0Harmony/HarmonySharedState）实机生效、L-18 `features.logisticsOutput`
+  旗标与 L-04 `maintenance.auto-default` 迁移日志实机生效。注入 fixture 农场因坐标与现有存档不符被游戏删除、
+  无人值守输入无法解暂停/加速，**每日 tick/面板/存档往返仍未实机验证**；证据与限制见
+  `docs/VERIFICATION.md` §40。环境已还原（workshop manifest 复原、本机部署已移除，不留重复 mod）。
 
 ## [2.5.5] — 2026-11-03（第二维修轮：L-04 存档修复副本、L-12 live 作物表、L-15 config profile、L-09 物流端口语义）
 

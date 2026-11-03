@@ -1834,3 +1834,41 @@ powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1 -WorkRoot "$env:TE
 * **L-14 100 棟實機 Profiler 量測**：離線節流已落地，實機量測仍 pending。
 * **已知殘留**：`maintenance=false` 期間面板 Next due 顯示舊值（不改 UI）；port 旗標重啟後玩家需重開端口；
   世界圖示 tooltip 語言切換要等下次註冊；`IndoorEntitySaveBridge.Keyed.cs` 已與 payload bridge 對齊（本輪完成）。
+
+## 40. 2.5.6 首次實機煙霧驗證（2026-11-03，部分）
+
+> 本輪 DSH file policy 為 `danger-full-access`，因此**首次可以** `build.ps1 -Install` 部署並跑
+> `tools/dev/Invoke-GameRound.ps1`。**只取得部分證據**：注入 fixture 的農場因座標與可用存檔不符被遊戲刪除，
+> 且無人值守的合成輸入無法解除暫停/加速，故每日 tick、面板操作、存檔往返仍未實機驗證。環境已還原。
+
+### 40.1 已取得（實機）
+
+* 部署 2.5.6 → `[HDBF/Info] start HDBF version=2.5.6`，與數十個第三方 mod（0Harmony、T3MP、SyncMods Pro、
+  Progress、CustomTools 等）共同載入，**log 0 exception**；HDBF 本身仍 0 補丁。
+* **WP-07 probe 實機生效（RE-03 直接證據）**：
+  `indoor.behavior-probe-patched: patch framework loaded, frameworks=0Harmony|HarmonySharedState, behaviorMethodFound=True`
+  ——證實此機器/玩家環境確實載入 Harmony runtime（HDBF 沒有補丁，第三方 patcher 身分仍待玩家 log）。
+* **L-18 旗標實機生效**：`indoor.feature-disabled: config feature disabled: features.logisticsOutput`
+  ＋ `indoor.port … logisticsPort=False`（旗標真的關掉物流端口）。
+* **存檔遷移實機生效**：`save.migrated: schema-v2 payload decoded with repairs: maintenance.auto-default`
+  （第二輪 L-04/自動維護預設欄位的真實存檔路徑）。
+* 實體 active：`indoor.entity: indoor farm active, tier=Basic, faction=Folktails`；存檔內另一座既有農場
+  `indoor.paused` 正常（暫停路徑未崩）。
+* 證據檔：`docs/in-game/r3-2.5.6-Player.log`、`r3-pre.png`、`r3-run.png`、`r3-state.png`、`r3-run2.png`、`r3-run3.png`。
+
+### 40.2 未取得 / 限制（不得寫成已驗證）
+
+* 注入 fixture 的農場在 `(129,140,3)` 被遊戲判定
+  `Can't validate loaded BlockObject BoxFarm.Basic.Folktails(Clone) … It's not backward compatible. Deleting it.`
+  fixture 預設座標是針對已不存在的舊來源存檔（`Saves\110000\2026-10-24 18h28m`）；本機現有 110000 存檔在該
+  座標的佔格/地形不同 → 需要重算 fixture 座標或恢復原始來源存檔。
+* 無人值守輸入在此機器**無法**解除「載入問題」對話框後的時間推進（滑鼠/鍵盤事件回報成功但遊戲未收到，
+  與 §16.2 的結論一致）；每日 tick（`indoor.day`）、面板按鈕、存檔往返、維護/補水正路徑全部**仍未實機驗證**。
+* 載入時同時載入訂閱版 2.5.4（Workshop `3828809784`）與本機部署 2.5.6 = 同 Id 重複載入；已暫時停用
+  workshop manifest 取得乾淨 2.5.6 證據，之後**已還原 workshop manifest 並移除本機部署**，`Mods\` 回到
+  只有 source workspace 的原狀（不留下重複 mod 或未發佈版本）。
+
+### 40.3 後續需要
+
+* 重算 fixture farm 座標（或恢復原始來源存檔），並在**可互動**會話完成 §7.2 A–K 的其餘項與 L-14 100 棟量測。
+* 若要把 2.5.6 交給玩家，需要先解除本機部署與訂閱版 2.5.4 的重複載入問題（發佈新 Workshop 版本或暫時移除其一）。

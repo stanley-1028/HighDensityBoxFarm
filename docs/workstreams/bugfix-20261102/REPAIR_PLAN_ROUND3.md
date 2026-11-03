@@ -55,7 +55,9 @@
   失敗（比現況更糟）。因此不實作、不猜測，等主模組與工具鏈。
 - **WP-05 per-farm 真實連通/端點**：改變抽水平衡且需 Timber Pipes 實機 API 取證；本輪只做誠實標示與
   唯讀 probe。
-- **實機 fixture §7.2 A–K、L-14 100 棟 Profiler**：本環境沒有可互動遊戲會話。
+- **實機 fixture §7.2 A–K、L-14 100 棟 Profiler**：本輪首次做了實機煙霧（`build.ps1 -Install`＋
+  `Invoke-GameRound.ps1`），但注入 fixture 農場座標與現有存檔不符被刪、無人值守輸入無法解暫停/加速，
+  只取得部分證據（見 `VERIFICATION §40`）；其餘 fixture 與量測仍 pending。
 
 ## 5. 已知殘留
 

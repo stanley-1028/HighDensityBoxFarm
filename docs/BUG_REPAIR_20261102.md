@@ -782,7 +782,7 @@ Timberborn.TickSystem.TickerUnityAdapter.Update ()
 |---|---|
 | WP-13 / RE-06 自訂陣營（Ember-pelts） | **外部模組阻塞**：本機無 Emberpelts 主模組（`3346318229`），無法確認其 `FactionSpec`/材質/作物/水源；`.timbermesh` 是 zlib 壓縮二進位，中立材質變體需 Unity/timbermesh 工具鏈重匯出；盲目改材質名稱會觸發 `MaterialRepository` 失敗，依 §3.7 證據會讓整個建造選單載入失敗（比現況更糟）。不實作、不猜測。 |
 | WP-05 per-farm 真實連通 / 端點 | 改變抽水平衡與需要 Timber Pipes 實機 API 取證；本輪只做誠實標示與唯讀 probe。 |
-| 實機 fixture §7.2 A–K | 本環境沒有可互動遊戲會話（所有面板按鈕、實機供水、暫停存檔載入、100 棟量測等）。 |
+| 實機 fixture §7.2 A–K | **首次實機煙霧已做（部分，見 VERIFICATION §40）**：2.5.6 載入 0 exception、WP-07 probe 偵測到 Harmony runtime、L-18 旗標與 L-04 存檔遷移日誌實機生效；但注入 fixture 農場座標失效被刪、無人值守輸入無法解暫停/加速 → 每日 tick/面板/存檔往返/維護補水仍 pending。 |
 | L-14 100 棟 Profiler 量測 | 需實機會話。 |
 
 **已知殘留**：`maintenance=false` 期間面板 Next due 顯示舊 due day（UI 未改）；port 旗標重新啟用後玩家需在面板重開端口；世界圖示 tooltip 語言切換要等下一次註冊；大檔（`IndoorDayTick`、`HdbfBoxFarmController` 部分 partial）已用拆檔維持 300 行 gate。
