@@ -64,6 +64,8 @@ namespace HDBF.Core.Indoor
             var manualRefillRequested = context is not null && context.ManualRefillRequested;
             var reservedActions = context is null ? 0 : context.ReservedActions;
             if (reservedActions < 0) reservedActions = 0;
+            // L-18: config feature toggles. The struct default (all enabled) keeps the old behaviour.
+            var features = context is null ? default : context.Features;
             if (entranceBlocked) warnings |= IndoorWarningFlags.EntranceBlocked;
             if (activeWorkers <= 0) warnings |= IndoorWarningFlags.NoWorkers;
 
@@ -145,10 +147,14 @@ namespace HDBF.Core.Indoor
                 }
 
                 // Maintenance/power are pure reads of the persisted day; phase 6 persists them.
-                var offGridMaintenance = tier.NeedsPower
-                    && !(record.PowerMode == PowerConnection.Grid && record.PowerConnected);
+                // L-18: features.maintenance=false pins the countdown to zero (never expires) and
+                // leaves the persisted due day untouched, so re-enabling restores the countdown.
+                var maintenanceDisabled = features.MaintenanceDisabled;
+                var offGridMaintenance = !maintenanceDisabled && tier.NeedsPower
+                                         && !(record.PowerMode == PowerConnection.Grid && record.PowerConnected);
                 var cycleDays = MaintenanceDefaults.CycleDaysFor(tier, offGridMaintenance);
-                var cycles = BalanceFormulas.MaintenanceCyclesMissed(record.MaintenanceDueDay, currentDay, cycleDays);
+                var cycles = maintenanceDisabled ? 0
+                    : BalanceFormulas.MaintenanceCyclesMissed(record.MaintenanceDueDay, currentDay, cycleDays);
                 stalled = IndoorMaintenanceMath.IsStalled(cycles);
                 var needsGridPower = tier.NeedsPower && record.PowerMode == PowerConnection.Grid;
 
@@ -199,11 +205,15 @@ namespace HDBF.Core.Indoor
                 // empty worker-tended slot without spending the daily budget; an empty tank plants
                 // nothing. Harvests keep the daily action budget and run strictly before planting.
                 actions = IndoorLaborMath.RunActions(record, tier, catalog, activeWorkers, output!,
-                    actionsAllowed, budgetReserved, transitionScale, waterAvailable: record.Tank > 0f);
+                    actionsAllowed, budgetReserved, transitionScale, waterAvailable: record.Tank > 0f,
+                    soilFatigueDisabled: features.SoilFatigueDisabled,
+                    rotationDisabled: features.RotationDisabled);
                 if (actions.Harvested > 0 || actions.Planted > 0) changed = true;
                 if (actions.Backlog) warnings |= IndoorWarningFlags.OutputFull;
 
                 // Phase 5: fatigue/rotation; fallow recovers fatigue, every slot is cleaned/clamped.
+                // L-18: with features.soilFatigue=false nothing accumulates or recovers, and phase 7
+                // reports G_fat = 1 regardless of any fatigue a save still carries.
                 var fallow = record.Mode == IndoorMode.Fallow;
                 for (var index = 0; index < limit; index++)
                 {
@@ -211,7 +221,9 @@ namespace HDBF.Core.Indoor
                     if (slot is null) continue;
                     try
                     {
-                        var fatigue = fallow ? slot.Fatigue - IndoorConstants.FallowRecoveryPerDay : slot.Fatigue;
+                        var fatigue = fallow && !features.SoilFatigueDisabled
+                            ? slot.Fatigue - IndoorConstants.FallowRecoveryPerDay
+                            : slot.Fatigue;
                         var cleaned = IndoorMath.Clamp01(fatigue);
                         if (cleaned != slot.Fatigue)
                         {
@@ -232,7 +244,7 @@ namespace HDBF.Core.Indoor
                     changed = true;
                 }
 
-                if (needsGridPower && record.PowerConnected)
+                if (needsGridPower && record.PowerConnected && !maintenanceDisabled)
                 {
                     // A grid-connected top tier is maintained by the network: keep its off-grid
                     // material countdown full so a later power cut does not stall it instantly.
@@ -259,7 +271,8 @@ namespace HDBF.Core.Indoor
                 }
 
                 // Phase 7: panel multipliers and dirty flag (Changed drives the save dirty bit).
-                yieldMultiplier = IndoorGrowthMath.PanelYieldMultiplier(record, slots, limit, transitionScale);
+                yieldMultiplier = IndoorGrowthMath.PanelYieldMultiplier(record, slots, limit, transitionScale,
+                    features.SoilFatigueDisabled);
             }
             catch
             {

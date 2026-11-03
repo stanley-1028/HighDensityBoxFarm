@@ -37,6 +37,41 @@ namespace HDBF.Core.Indoor
 
         /// <summary>The farm's pipe port is switched off by the player (or the tier has none).</summary>
         PortOff = 7,
+
+        /// <summary>
+        /// A pipe graph at the farm's own pipe port is absent, but the settlement-wide pipe census
+        /// still holds a network-connected water tank (WP-05/L-02). Automatic refill can therefore
+        /// draw water - just not from a pipe the farm itself sits on - so the panel labels it
+        /// "connected (settlement-wide supply)" instead of pretending the farm is on the network.
+        /// </summary>
+        GlobalSupply = 8,
+    }
+
+    /// <summary>
+    /// Grid position of the asking farm's pipe port, used only by the read-only probe (WP-05/L-02).
+    /// A box farm is not a Timber Pipes endpoint, so a graph at this position is what distinguishes
+    /// "the farm itself sits on the network" from "the settlement supplies water elsewhere".
+    /// Core value type on purpose: no Unity/game type crosses the layer boundary.
+    /// </summary>
+    /// <param name="X">Grid x coordinate of the farm's pipe port.</param>
+    /// <param name="Y">Grid y coordinate of the farm's pipe port.</param>
+    /// <param name="Z">Grid z coordinate of the farm's pipe port.</param>
+    public readonly record struct PipeProbeAnchor(int X, int Y, int Z);
+
+    /// <summary>
+    /// Optional companion of <see cref="IIndoorPipeProbe"/> (WP-05): the caller tells the probe
+    /// where its farm stands before asking, so the probe can be honest about settlement-wide
+    /// supply. Implementations must stay observation-only - no water draw, no failure strike, no
+    /// exception into the panel/render path - and <c>null</c> must clear the anchor so the next
+    /// probe falls back to the settlement census. A separate interface keeps the frozen one-method
+    /// <see cref="IIndoorPipeProbe"/> contract unchanged, and a host that does not implement it
+    /// simply keeps the census semantics.
+    /// </summary>
+    public interface IIndoorPipeProbeAnchor
+    {
+        /// <summary>Sets the farm pipe-port position used by the following probes; null clears it.</summary>
+        /// <param name="anchor">Grid position of the farm, or null when the caller has none.</param>
+        void SetProbeAnchor(PipeProbeAnchor? anchor);
     }
 
     /// <summary>

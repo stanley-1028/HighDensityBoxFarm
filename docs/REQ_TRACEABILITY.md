@@ -230,3 +230,40 @@ COMPAT status moves from "offline anchors only" to **实现+实机（侦测/初�
 * **未变**: 0 Harmony、Core 无游戏引用、依赖方向、§19.8 周期/材料/停摆数值；实机 fixture（A–K）仍
   pending，见 `docs/VERIFICATION.md` §38.3。`IndoorEntitySaveBridge.Keyed.cs`（非 live 存档路径）仍
   保留旧契约，待后续小卡统一。
+
+## Round-26 (v2.5.6 third bug-repair) update — 2026-11-03
+
+* **REQ-V2-COMPAT-01/02（适配器失败模型，L-02(c)）**: the three-strike disable now uses a 60-second
+  rolling window (three failures inside the window fail the adapter, a success clears it; the legacy
+  `Fail(reason)` keeps the old semantics for callers without a clock) and a single farm's draw failure
+  degrades the adapter instead of failing it session-wide. Evidence: `CompatStateMachineTests`,
+  `V2AdapterHostContractTests`.
+* **REQ-V2-COMPAT-02 / REQ-V2-UI-02（管道语义，WP-05 部分）**: a read-only farm-anchor probe reports
+  `GlobalSupply` when the settlement census has connected tanks but the farm port has no pipe graph; the
+  panel renders `HDBF.Port.GlobalSupply`. The draw behaviour stays settlement-wide (per-farm delivery is
+  a balance decision that still needs in-game API evidence). Evidence: `V2AdapterHostContractTests`,
+  `V2LiveWarningContractTests`.
+* **REQ-V2-WATER-02（重定义，L-19）**: the requirement now records the 2026-10-28 player-requested
+  continuous drain (time-slice `HdbfWaterFlowService`) while keeping the original intent (no deduction in
+  panel/query paths, no frame-rate dependence). ADR-V2-004 carries the revision paragraph.
+* **REQ-V2-WATER-04（补水，WP-08）**: `IBoxFarmCommand.TryRefillAll` plus the panel button refill every
+  live farm once, each farm keeping its own all-or-nothing rules; no automatic multi-trip. Evidence:
+  `V2RefillAndProbeContractTests`.
+* **REQ-V2-UI-01/02/03（面板/图示，L-10/L-11/L-17）**: the world icons and the panel read the same live
+  warning flag set (`IndoorWarningMap.LiveFlagsOf/EffectiveFlags`, snapshot `LiveWarnings`); `NoWorkers`
+  is P1; the icon tooltip is a fixed localized sentence (vanilla has no writable description API, proven
+  via IL) so the distance setting can no longer make it stale. Evidence: `V2LiveWarningContractTests`,
+  `V2WarningIconContractTests`, `V2PanelContractTests`.
+* **REQ-V2-EXT-01/04（配置与蓝图，L-16/L-18）**: the five previously dead feature flags are consumed
+  (rotation/maintenance/pipeConnection/logisticsOutput/soilFatigue) with one `indoor.feature-disabled`
+  log per farm; a blueprint history contract (`tools/validate/boxfarm-history.json` +
+  `HDBF.Core.Data.BlueprintHistoryContract`) enforces released template names and footprints. Evidence:
+  `V2FeatureFlagContractTests`, `V2BlueprintHistoryContractTests`.
+* **REQ-V2-READ-02 / SAFE-01（诊断，WP-07/RE-03）**: a load-time read-only `indoor.behavior-probe`
+  records the loaded patch runtimes and whether the vanilla decision method resolves; it registers no
+  patch and calls no patch API. Evidence: `V2RefillAndProbeContractTests`.
+* **REQ-V2-SAVE-04（keyed bridge，L-04 剩余项）**: the keyed bridge now writes repaired copies instead of
+  refusing them (only `CannotWrite` refuses), matching the payload bridge; rollback copy kept under
+  `PreviousPayload`. Evidence: `V2PersistenceBridgeContractTests`.
+* **未变 / 仍 pending**: 0 Harmony、Core 无游戏引用、依赖方向、§19.8 数值；WP-13（Ember-pelts，受外部
+  模组阻塞）与实机 fixture（A–K）、100 栋 Profiler 量测仍 pending，见 `docs/VERIFICATION.md` §39.3。

@@ -39,6 +39,7 @@ namespace HDBF.UI.Panels
         private readonly MethodInfo? _setCropPolicy;
         private readonly MethodInfo? _requestRefill;
         private readonly MethodInfo? _setAutoMaintenance;
+        private readonly MethodInfo? _refillAll;
         /// <summary>Reused invoke buffer of the 4 Hz snapshot query (no per-call array allocation).</summary>
         private readonly object?[] _snapshotArgs = new object?[1];
 
@@ -71,6 +72,10 @@ namespace HDBF.UI.Panels
             _setAutoMaintenance = Find(type, "TrySetAutoMaintenance", new[]
             {
                 typeof(Guid), typeof(bool), typeof(string).MakeByRefType(),
+            });
+            _refillAll = Find(type, "TryRefillAll", new[]
+            {
+                typeof(string).MakeByRefType(), typeof(int).MakeByRefType(),
             });
         }
 
@@ -189,6 +194,40 @@ namespace HDBF.UI.Panels
             {
                 var applied = _setAutoMaintenance.Invoke(_commandService, args) is bool result && result;
                 failureKey = applied ? null : args[2] as string;
+                return applied;
+            }
+            catch (Exception)
+            {
+                failureKey = HdbfUiLocKeys.ErrorActionFailed;
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Settlement-wide refill (WP-08): asks gameplay for one manual refill trip per live farm.
+        /// Every farm keeps its own all-or-nothing rules; the returned count is how many received
+        /// water, and the failure key is set only when there is nothing to do (no live farm or a
+        /// missing gameplay member).
+        /// </summary>
+        /// <param name="failureKey">Specific failure key when the action did nothing.</param>
+        /// <param name="refilled">Number of farms that received their refill trip.</param>
+        /// <returns>True when at least one farm was refilled.</returns>
+        public bool TryRefillAll(out string? failureKey, out int refilled)
+        {
+            failureKey = null;
+            refilled = 0;
+            if (_commandService is null || _refillAll is null)
+            {
+                failureKey = HdbfUiLocKeys.ErrorActionFailed;
+                return false;
+            }
+
+            var args = new object?[] { null, 0 };
+            try
+            {
+                var applied = _refillAll.Invoke(_commandService, args) is bool result && result;
+                failureKey = applied ? null : args[0] as string;
+                refilled = args[1] is int count && count > 0 ? count : 0;
                 return applied;
             }
             catch (Exception)

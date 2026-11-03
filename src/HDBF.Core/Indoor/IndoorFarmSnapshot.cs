@@ -130,5 +130,28 @@ namespace HDBF.Core.Indoor
         /// </summary>
         public IReadOnlyList<IndoorCropChoice> CropChoices { get; init; } =
             Array.Empty<IndoorCropChoice>();
+
+        /// <summary>
+        /// Live game day the snapshot was taken at (L-11). Gameplay fills it from the day/night
+        /// cycle, so a pure warning derivation can judge "maintenance overdue" against the same
+        /// clock the simulation uses instead of waiting for the next daily tick; 0 when unavailable.
+        /// </summary>
+        public float CurrentDay { get; init; }
+
+        /// <summary>
+        /// Live entrance-blocked state of the building (L-11). Gameplay re-reads the vanilla
+        /// entrance on every daily context pass; false for snapshots that predate the field
+        /// (older gameplay builds/tests), which keeps their behaviour unchanged.
+        /// </summary>
+        public bool EntranceBlocked { get; init; }
+
+        /// <summary>
+        /// Warning flags derived from the live snapshot values (L-11, <see cref="IndoorWarningMap.LiveFlagsOf"/>).
+        /// Gameplay fills it in the same snapshot pass, so the panel and the world icon read one
+        /// live set instead of the once-per-day <see cref="Warnings"/> cache. Null (older gameplay
+        /// builds/tests) makes every consumer fall back to <see cref="Warnings"/> through
+        /// <see cref="IndoorWarningMap.EffectiveFlags"/> - existing snapshots behave exactly as before.
+        /// </summary>
+        public IndoorWarningFlags? LiveWarnings { get; init; }
     }
 }

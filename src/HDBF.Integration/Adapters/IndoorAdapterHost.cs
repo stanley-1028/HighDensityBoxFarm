@@ -35,7 +35,7 @@ namespace HDBF.Integration.Adapters
     /// gets a reason code for the pipe port instead of a single misleading "Not connected" text,
     /// and the probe never draws water nor reports a runtime failure (L-02/L-06).
     /// </summary>
-    public sealed class IndoorAdapterHost : IIndoorAdapterHost, IIndoorPipeProbe
+    public sealed class IndoorAdapterHost : IIndoorAdapterHost, IIndoorPipeProbe, IIndoorPipeProbeAnchor
     {
         private readonly CompatAdapterRegistry? _compat;
         private readonly IContainer? _container;
@@ -160,6 +160,28 @@ namespace HDBF.Integration.Adapters
             {
                 LogError("pipe-probe-failed", exception);
                 return new PipeProbe(PipeProbeReason.AdapterUnavailable, 0, 0, "probe-exception");
+            }
+        }
+
+        /// <inheritdoc />
+        /// <remarks>
+        /// Forwards the optional farm pipe-port anchor to the Timber Pipes water source (WP-05/L-02).
+        /// The probe keeps its frozen no-argument signature: the anchor only lets the read-only probe
+        /// distinguish settlement-wide supply from a farm that really sits on a pipe graph. It never
+        /// creates the source, never draws water and never reports a runtime failure; a null source
+        /// (adaptor missing/disabled/failed) simply keeps the anchor unset for later probes.
+        /// </remarks>
+        public void SetProbeAnchor(PipeProbeAnchor? anchor)
+        {
+            try
+            {
+                // Reuse the guarded getter (it only creates the source while the adaptor serves); a
+                // Disabled/Failed/Unknown adaptor leaves the anchor unset and the probe degrades.
+                (PipeWaterSource as TimberPipesWaterSource)?.SetProbeAnchor(anchor);
+            }
+            catch (Exception exception)
+            {
+                LogError("pipe-probe-anchor-failed", exception);
             }
         }
 

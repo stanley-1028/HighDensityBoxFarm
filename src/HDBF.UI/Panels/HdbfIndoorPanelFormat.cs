@@ -59,6 +59,7 @@ namespace HDBF.UI.Panels
             HdbfUiLocKeys.ErrorOutputFull,
             HdbfUiLocKeys.ModeSwitchCooldown,
             HdbfUiLocKeys.PortNotApplicable,
+            HdbfUiLocKeys.ErrorNoFarms,
             HdbfUiLocKeys.ErrorActionFailed,
         };
 

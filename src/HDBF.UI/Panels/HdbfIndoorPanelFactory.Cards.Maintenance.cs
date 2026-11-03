@@ -27,7 +27,8 @@ namespace HDBF.UI.Panels
             var materialFree = profile is null || profile.MaintenanceKind == HdbfMaintenanceKind.IrrigationOnly;
             var materialMissing = !materialFree
                 && (snapshot.MaintenanceMaterialMissing
-                    || (snapshot.Warnings & IndoorWarningFlags.MissingMaterial) != 0);
+                    || (IndoorWarningMap.EffectiveFlags(snapshot)
+                        & IndoorWarningFlags.MissingMaterial) != 0);
             var rows = new List<HdbfPanelRow>(5)
             {
                 new()
@@ -115,7 +116,7 @@ namespace HDBF.UI.Panels
             }
 
             if (snapshot.MaintenanceMaterialMissing
-                || (snapshot.Warnings & IndoorWarningFlags.MissingMaterial) != 0)
+                || (IndoorWarningMap.EffectiveFlags(snapshot) & IndoorWarningFlags.MissingMaterial) != 0)
             {
                 return FormatMissingMaterials(snapshot, profile, localize);
             }
@@ -137,7 +138,8 @@ namespace HDBF.UI.Panels
             }
 
             var materialFree = profile is null || profile.MaintenanceKind == HdbfMaintenanceKind.IrrigationOnly;
-            var stalled = (snapshot.Warnings & IndoorWarningFlags.MaintenanceStalled) != 0;
+            var stalled = (IndoorWarningMap.EffectiveFlags(snapshot)
+                           & IndoorWarningFlags.MaintenanceStalled) != 0;
             return HdbfIndoorPanelFormat.Text(localize, materialFree
                 ? HdbfUiLocKeys.PanelMaintenanceNone
                 : stalled

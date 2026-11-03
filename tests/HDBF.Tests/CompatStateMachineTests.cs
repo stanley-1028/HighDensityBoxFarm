@@ -231,6 +231,98 @@ namespace HDBF.Tests
             TestAssert.Equal(3, CompatStateMachine.FailureThreshold);
         }
 
+        public static void TestThreeFailuresInsideTheWindowFailTheAdapter()
+        {
+            // L-02(c): the caller supplies the monotonic time, so the policy stays pure Core logic.
+            var machine = NewDetectedAdapter();
+
+            machine.Fail("first", 100.0);
+            machine.Fail("second", 130.0);
+            TestAssert.Equal(2, machine.FailureCount);
+            TestAssert.Equal(HdbfAdapterHealth.Degraded, machine.Health);
+            TestAssert.True(machine.CanRetry, "one farm's failed draw degrades, it does not fail the adapter");
+
+            machine.Fail("third", 159.0);
+            TestAssert.Equal(CompatStateMachine.FailureThreshold, machine.FailureCount);
+            TestAssert.Equal(HdbfAdapterHealth.Failed, machine.Health);
+            TestAssert.False(machine.CanRetry, "three failures inside the window disable the adapter");
+            TestAssert.Equal("third", machine.LastFailureReason);
+        }
+
+        public static void TestFailuresOutsideTheWindowDoNotAccumulate()
+        {
+            var machine = NewDetectedAdapter();
+
+            machine.Fail("old-1", 0.0);
+            machine.Fail("old-2", 10.0);
+            machine.Fail("fresh", 100.0);
+
+            TestAssert.Equal(1, machine.FailureCount,
+                "failures older than the window must be dropped before counting");
+            TestAssert.Equal(HdbfAdapterHealth.Degraded, machine.Health);
+            TestAssert.True(machine.CanRetry);
+
+            machine.Fail("fresh-2", 140.0);
+            machine.Fail("fresh-3", 150.0);
+            TestAssert.Equal(CompatStateMachine.FailureThreshold, machine.FailureCount);
+            TestAssert.Equal(HdbfAdapterHealth.Failed, machine.Health,
+                "three failures inside one window still disable the adapter");
+        }
+
+        public static void TestWindowBoundaryIsInclusive()
+        {
+            var exact = NewDetectedAdapter();
+            exact.Fail("a", 0.0);
+            exact.Fail("b", 30.0);
+            exact.Fail("c", CompatStateMachine.FailureWindowSeconds);
+            TestAssert.Equal(HdbfAdapterHealth.Failed, exact.Health,
+                "a failure exactly FailureWindowSeconds old still belongs to the window");
+
+            var outside = NewDetectedAdapter();
+            outside.Fail("a", 0.0);
+            outside.Fail("b", 30.0);
+            outside.Fail("c", CompatStateMachine.FailureWindowSeconds + 0.001);
+            TestAssert.Equal(2, outside.FailureCount, "a failure just outside the window is dropped");
+            TestAssert.Equal(HdbfAdapterHealth.Degraded, outside.Health);
+        }
+
+        public static void TestSuccessClearsTheFailureWindow()
+        {
+            var machine = new CompatStateMachine();
+            machine.Detect();
+            machine.InitializeSucceeded();
+            machine.Fail("a", 10.0);
+            machine.Fail("b", 20.0);
+            TestAssert.Equal(2, machine.FailureCount);
+
+            TestAssert.True(machine.Detect());
+            TestAssert.True(machine.InitializeSucceeded());
+            TestAssert.Equal(0, machine.FailureCount, "a success clears every counted failure");
+            TestAssert.Equal(HdbfAdapterHealth.Ok, machine.Health);
+
+            machine.Fail("c", 30.0);
+            TestAssert.Equal(1, machine.FailureCount,
+                "failures from before the success must not come back");
+        }
+
+        public static void TestNonFiniteTimestampFallsBackToTheLegacyRule()
+        {
+            var machine = NewDetectedAdapter();
+
+            machine.Fail("nan", double.NaN);
+            machine.Fail("infinite", double.PositiveInfinity);
+            machine.Fail("third", 0.0);
+
+            TestAssert.Equal(CompatStateMachine.FailureThreshold, machine.FailureCount);
+            TestAssert.Equal(HdbfAdapterHealth.Failed, machine.Health);
+        }
+
+        public static void TestFailureWindowIsSixtySeconds()
+        {
+            TestAssert.Equal(60.0, CompatStateMachine.FailureWindowSeconds, 1e-9,
+                "L-02(c): the default 3-strike window is 60 s, not the whole session");
+        }
+
         private static CompatStateMachine NewDetectedAdapter()
         {
             var machine = new CompatStateMachine();

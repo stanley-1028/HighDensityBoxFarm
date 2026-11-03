@@ -69,6 +69,11 @@ namespace HDBF.Gameplay
             // Four-class world warning icons driven by the Core IndoorWarningFlags (section 19.11).
             Bind<HdbfWorldIconService>().AsSingleton();
 
+            // WP-07/RE-03: read-only startup probe of the loaded patch runtimes and the vanilla
+            // beaver decision method, so a third-party behavior-patch crash can be triaged from the
+            // log; it registers no patch and changes no state.
+            Bind<HdbfBehaviorProbe>().AsSingleton();
+
             Bind<HdbfBoxFarmController>().AsTransient();
             Bind<IndoorFarmWorkplaceBehavior>().AsTransient();
 

@@ -41,7 +41,8 @@ namespace HDBF.Gameplay.Components
             var coverage = IndoorWaterMath.Coverage(record.Tank, demand);
             // WP-01/WP-02: the catch-up numbers of the next maintenance click are computed from the
             // live day, so the panel can never show the previous day's value (RE-01).
-            var catchUp = CatchUpBillForPanel(ReadCurrentDay());
+            var currentDay = ReadCurrentDay();
+            var catchUp = CatchUpBillForPanel(currentDay);
             var snapshot = new IndoorFarmSnapshot(
                 record.Tier,
                 record.Faction,
@@ -93,10 +94,24 @@ namespace HDBF.Gameplay.Components
                 Profile = _profile,
                 // L-12: the live faction crop table, so a crop-mod crop is a real dropdown choice.
                 CropChoices = LiveCropChoices(),
+                // L-11: the live inputs of the warning derivation. The daily tick still owns the
+                // persisted `_lastWarnings`, but the panel/icon read the flags derived from these
+                // live values below, so a refilled tank or a hauled output is visible at once.
+                CurrentDay = currentDay,
+                EntranceBlocked = _entranceBlocked,
             };
-            // WP-06/L-03: the single idle reason is derived from the finished snapshot itself, so the
-            // panel status line and the world icon cannot disagree about why the farm is not working.
-            return snapshot with { IdleReason = IndoorIdleReasonMath.Resolve(snapshot) };
+            // L-11/WP-10: derive the warning set from the live snapshot values and re-resolve the
+            // idle reason from that same set. Both steps run on the finished snapshot through `with`
+            // (never inside the initializer), so no field can observe a half-derived state.
+            var liveWarnings = IndoorWarningMap.LiveFlagsOf(snapshot);
+            return snapshot with
+            {
+                LiveWarnings = liveWarnings,
+                // WP-06/L-03: the single idle reason is derived from the finished snapshot itself, so
+                // the panel status line and the world icon cannot disagree about why the farm is not
+                // working - both now see the live flag set.
+                IdleReason = IndoorIdleReasonMath.Resolve(snapshot with { Warnings = liveWarnings }),
+            };
         }
 
         /// <summary>

@@ -25,30 +25,66 @@ namespace HDBF.Gameplay.Components
         private void Evaluate(IconHandle handle, double now, HDBF.Core.Config.UiSettings ui,
             bool iconsEnabled)
         {
-            var snapshot = _query.GetIndoorSnapshot(handle.EntityId);
-            var flags = snapshot?.Warnings ?? IndoorWarningFlags.None;
-            var target = IndoorWarningMap.IconKindOf(flags);
-            handle.TargetKind = target;
-
+            // L-14: the pass cost is dominated by the snapshot build, so a farm whose icons are off
+            // (global switch or no vanilla status pipeline) never pays for one: settle the toggles
+            // and leave instead of querying the farm.
             if (!iconsEnabled || handle.Subject is null)
             {
-                // Icons are off (or this entity has no vanilla status pipeline): make sure no stale
-                // toggle stays active so the game never shows a status this pass did not decide.
-                for (var kind = 1; kind < handle.Toggles.Length; kind++)
-                {
-                    var toggle = handle.Toggles[kind];
-                    if (toggle is not null && toggle.IsActive)
-                    {
-                        toggle.Deactivate();
-                    }
-                }
-
-                handle.Blinking = false;
-                handle.BlinkHidden = false;
-                handle.VisibilityHidden = false;
+                DeactivateAll(handle);
                 return;
             }
 
+            var snapshot = _query.GetIndoorSnapshot(handle.EntityId);
+            // L-11: the live-derived flag set wins over the once-per-day cache, so the icon follows
+            // the panel within one pass of a refilled tank / hauled output instead of a whole day.
+            var flags = IndoorWarningMap.EffectiveFlags(snapshot);
+            var target = IndoorWarningMap.IconKindOf(flags);
+            if (!handle.Applied || handle.AppliedKind != target)
+            {
+                // L-14: the toggles are only touched when the class actually changed; an unchanged
+                // farm costs no status calls at all (the vanilla cycler keeps rendering the icon).
+                ApplyTarget(handle, target);
+                handle.Applied = true;
+                handle.AppliedKind = target;
+            }
+
+            handle.TargetKind = target;
+            var blink = IndoorIconPolicy.ShouldBlink(IndoorWarningMap.IsCritical(flags), ui.WorldIconBlink)
+                        && target != IndoorWarningIconKind.None;
+            handle.Blinking = blink;
+            handle.BlinkHidden = blink && !IndoorIconPolicy.IsBlinkOn(now, IndoorIconPolicy.DefaultBlinkHz);
+            ApplyVisibility(handle);
+        }
+
+        /// <summary>
+        /// Deactivates every class of one farm and resets its transient hide state (icons switched
+        /// off, or the entity has no vanilla status pipeline). No snapshot is needed for this.
+        /// </summary>
+        private void DeactivateAll(IconHandle handle)
+        {
+            handle.TargetKind = IndoorWarningIconKind.None;
+            handle.Applied = false;
+            handle.AppliedKind = IndoorWarningIconKind.None;
+            for (var kind = 1; kind < handle.Toggles.Length; kind++)
+            {
+                var toggle = handle.Toggles[kind];
+                if (toggle is not null && toggle.IsActive)
+                {
+                    toggle.Deactivate();
+                }
+            }
+
+            handle.Blinking = false;
+            handle.BlinkHidden = false;
+            handle.VisibilityHidden = false;
+        }
+
+        /// <summary>
+        /// Applies one icon class to the fixed toggle array: exactly the slot of the target is
+        /// active, every other class is off (the vanilla cycler shows one camera-facing icon).
+        /// </summary>
+        private static void ApplyTarget(IconHandle handle, IndoorWarningIconKind target)
+        {
             for (var kind = 1; kind < handle.Toggles.Length; kind++)
             {
                 var toggle = handle.Toggles[kind];
@@ -58,24 +94,20 @@ namespace HDBF.Gameplay.Components
                 }
 
                 var wanted = kind == IndoorWarningMap.SlotOf(target);
-                if (toggle.IsActive != wanted)
+                if (toggle.IsActive == wanted)
                 {
-                    if (wanted)
-                    {
-                        toggle.Activate();
-                    }
-                    else
-                    {
-                        toggle.Deactivate();
-                    }
+                    continue;
+                }
+
+                if (wanted)
+                {
+                    toggle.Activate();
+                }
+                else
+                {
+                    toggle.Deactivate();
                 }
             }
-
-            var blink = IndoorIconPolicy.ShouldBlink(IndoorWarningMap.IsCritical(flags), ui.WorldIconBlink)
-                        && target != IndoorWarningIconKind.None;
-            handle.Blinking = blink;
-            handle.BlinkHidden = blink && !IndoorIconPolicy.IsBlinkOn(now, IndoorIconPolicy.DefaultBlinkHz);
-            ApplyVisibility(handle);
         }
 
         private void SetCullingHidden(IconHandle handle, bool hidden)
@@ -185,6 +217,12 @@ namespace HDBF.Gameplay.Components
 
             /// <summary>Currently targeted v2 icon class (one of the four, or None).</summary>
             public IndoorWarningIconKind TargetKind { get; set; } = IndoorWarningIconKind.None;
+
+            /// <summary>True once the toggles reflect <see cref="AppliedKind"/> (L-14 skip flag).</summary>
+            public bool Applied { get; set; }
+
+            /// <summary>Icon class last written to the toggles; None after a forced deactivation.</summary>
+            public IndoorWarningIconKind AppliedKind { get; set; } = IndoorWarningIconKind.None;
 
             public bool CullingHidden { get; set; }
 

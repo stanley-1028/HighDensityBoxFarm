@@ -10,6 +10,7 @@
 using System;
 using HDBF.Core;
 using HDBF.Core.Abstractions;
+using HDBF.Core.Balance;
 using HDBF.Core.Indoor;
 using HDBF.Core.Logging;
 
@@ -80,6 +81,13 @@ namespace HDBF.Gameplay.Components
                 {
                     // Old saves carry no choice: follow the config until the player decides once.
                     record.AutoMaintenance = SafeConfigAutoMaintenance();
+                }
+
+                if (!SafeFeatures().Maintenance)
+                {
+                    // L-18: features.maintenance=false means material maintenance never expires; the
+                    // pass pays nothing and leaves the persisted due day/countdown untouched.
+                    return;
                 }
 
                 if (!record.AutoMaintenance || !(record.MaintenanceDueDay <= today))
@@ -155,6 +163,13 @@ namespace HDBF.Gameplay.Components
         {
             try
             {
+                // L-18: a disabled maintenance feature has no payable bill, so the panel renders its
+                // existing "no material maintenance" state (catchUp 0/0) instead of a fake due day.
+                if (!SafeFeatures().Maintenance)
+                {
+                    return (0, 0);
+                }
+
                 if (!IndoorMaintenanceMath.TryGetCatchUpBill(_profile, _record, today, out _,
                         out var amount, out var cycles, out _))
                 {
@@ -197,6 +212,74 @@ namespace HDBF.Gameplay.Components
             catch (Exception)
             {
                 return PipeProbe.Unknown;
+            }
+        }
+
+        /// <summary>
+        /// Fresh buildings get their first material-maintenance deadline from the activation day,
+        /// not from the (much earlier) construction-site day. A loaded record keeps its saved
+        /// deadline; only a missing/unusable deadline is resolved to one full cycle (REQ-V2-BAL-02).
+        /// Moved here from the activation partial (which stays inside the 300-line gate); the
+        /// activation path still calls it once.
+        /// </summary>
+        private void EnsureMaintenanceDeadline()
+        {
+            if (_maintenanceInitialized || _record is null)
+            {
+                return;
+            }
+
+            _maintenanceInitialized = true;
+            // L-18: features.maintenance=false means maintenance never expires; no deadline is created
+            // and the persisted due day is left untouched (re-enabling restores the documented cycle).
+            if (!SafeFeatures().Maintenance)
+            {
+                return;
+            }
+
+            if (_profile.MaintenanceKind == HdbfMaintenanceKind.IrrigationOnly)
+            {
+                return;
+            }
+
+            var today = ReadCurrentDay();
+            var cycleDays = MaintenanceDefaults.DefaultCycleDays(_profile);
+            if (cycleDays <= 0f)
+            {
+                return;
+            }
+
+            var dueDay = today + cycleDays;
+            if (float.IsNaN(dueDay) || float.IsInfinity(dueDay))
+            {
+                return;
+            }
+
+            _record.MaintenanceDueDay = dueDay;
+            _record.MaintenanceCyclesMissed = 0;
+            _saveDirty = true;
+        }
+
+        private void ResolveMaintenanceAfterLoad()
+        {
+            if (_record is null)
+            {
+                return;
+            }
+
+            _maintenanceInitialized = true;
+            // L-18: a disabled maintenance feature keeps the loaded countdown state untouched.
+            if (!SafeFeatures().Maintenance)
+            {
+                return;
+            }
+
+            var today = ReadCurrentDay();
+            var resolved = MaintenanceDefaults.ResolveDueDay(_profile, today, _record.MaintenanceDueDay);
+            if (resolved != _record.MaintenanceDueDay)
+            {
+                _record.MaintenanceDueDay = resolved;
+                _saveDirty = true;
             }
         }
     }

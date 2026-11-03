@@ -1,0 +1,203 @@
+{
+  "_readme": [
+    "L-16 blueprint history (BUG_REPAIR_20261102 §4.3 L-16). This developer-only file records, for every",
+    "shipped BoxFarm blueprint, the TemplateName values and the BlockObjectSpec.Size footprints that were",
+    "ever distributed (published Workshop releases and the pre-release/test builds whose saves can still",
+    "exist). tools/validate reads it and enforces three hard gates (same rules in the L1",
+    "test V2BlueprintHistoryContractTests via HDBF.Core.Data.BlueprintHistoryContract):",
+    "  (a) the current TemplateSpec.TemplateName must appear in publishedTemplateNames;",
+    "  (b) every historical name other than the current one must appear in the blueprint's",
+    "      TemplateSpec.BackwardCompatibleTemplateNames, otherwise old saves are deleted by the game as",
+    "      'not backward compatible';",
+    "  (c) the current BlockObjectSpec.Size must equal the LAST entry of releases, so a footprint change",
+    "      cannot ship until it is recorded here (and save-migrated).",
+    "",
+    "UPDATE PROCEDURE (a rename or footprint change is a save-migration red line):",
+    "  1. Do not delete or rewrite older entries/names - they describe already published saves.",
+    "  2. Before shipping a TemplateName change: append the new name to publishedTemplateNames and add the",
+    "     OLD name to the blueprint's BackwardCompatibleTemplateNames (keep both forever).",
+    "  3. Before shipping a BlockObjectSpec.Size change: append { version, size, note } to that blueprint's",
+    "     releases; the new entry becomes the new 'last published footprint'. A footprint change also needs",
+    "     an explicit save-migration review (docs/VERIFICATION.md §25 art04 A/B: the game deletes buildings",
+    "     whose footprint no longer matches the save, printing 'not backward compatible. Deleting it.').",
+    "  4. Run build.ps1: tools/validate fails until the blueprints and this file agree exactly.",
+    "  5. This file is not staged into the mod (only data/ ships); it is read by the validator and the L1",
+    "     tests only.",
+    "",
+    "EVIDENCE: git history of data/Buildings/Food/BoxFarm (commits ef2b398 = v1 baseline 3x2x1, 8219755 =",
+    "v2 3x3x1, later commits unchanged) plus docs/VERIFICATION.md §25 (3x1x2 -> 3x2x1 axis fix with in-game",
+    "A/B) and docs/v2/CHANGELOG.md [0.2.0] (3x2x1 -> 3x3x1). The TemplateName values never changed in the",
+    "recorded history, so every BackwardCompatibleTemplateNames list stays empty; the gate now protects any",
+    "future rename/footprint change."
+  ],
+  "blueprints": [
+    {
+      "blueprint": "Buildings/Food/BoxFarm/BoxFarm.Advanced.Folktails.blueprint.json",
+      "publishedTemplateNames": ["BoxFarm.Advanced.Folktails"],
+      "releases": [
+        {
+          "version": "0.1.0",
+          "size": [3, 1, 2],
+          "note": "Pre-ART-04 axis assumption 3x1x2, distributed during the v0.1.0 era (saves can exist); evidence docs/VERIFICATION.md §25."
+        },
+        {
+          "version": "1.0.0",
+          "size": [3, 2, 1],
+          "note": "ART-04 axis fix to 3x2x1 (the v1 git baseline ef2b398; docs/VERIFICATION.md §25 in-game A/B)."
+        },
+        {
+          "version": "2.0.0",
+          "size": [3, 3, 1],
+          "note": "v2 indoor 3x3x1 stackable blueprint; evidence docs/v2/CHANGELOG.md [0.2.0]; current release."
+        }
+      ]
+    },
+    {
+      "blueprint": "Buildings/Food/BoxFarm/BoxFarm.Advanced.IronTeeth.blueprint.json",
+      "publishedTemplateNames": ["BoxFarm.Advanced.IronTeeth"],
+      "releases": [
+        {
+          "version": "0.1.0",
+          "size": [3, 1, 2],
+          "note": "Pre-ART-04 axis assumption 3x1x2, distributed during the v0.1.0 era (saves can exist); evidence docs/VERIFICATION.md §25."
+        },
+        {
+          "version": "1.0.0",
+          "size": [3, 2, 1],
+          "note": "ART-04 axis fix to 3x2x1 (the v1 git baseline ef2b398; docs/VERIFICATION.md §25 in-game A/B)."
+        },
+        {
+          "version": "2.0.0",
+          "size": [3, 3, 1],
+          "note": "v2 indoor 3x3x1 stackable blueprint; evidence docs/v2/CHANGELOG.md [0.2.0]; current release."
+        }
+      ]
+    },
+    {
+      "blueprint": "Buildings/Food/BoxFarm/BoxFarm.Basic.Folktails.blueprint.json",
+      "publishedTemplateNames": ["BoxFarm.Basic.Folktails"],
+      "releases": [
+        {
+          "version": "0.1.0",
+          "size": [3, 1, 2],
+          "note": "Pre-ART-04 axis assumption 3x1x2, distributed during the v0.1.0 era (saves can exist); evidence docs/VERIFICATION.md §25."
+        },
+        {
+          "version": "1.0.0",
+          "size": [3, 2, 1],
+          "note": "ART-04 axis fix to 3x2x1 (the v1 git baseline ef2b398; docs/VERIFICATION.md §25 in-game A/B)."
+        },
+        {
+          "version": "2.0.0",
+          "size": [3, 3, 1],
+          "note": "v2 indoor 3x3x1 stackable blueprint; evidence docs/v2/CHANGELOG.md [0.2.0]; current release."
+        }
+      ]
+    },
+    {
+      "blueprint": "Buildings/Food/BoxFarm/BoxFarm.Basic.IronTeeth.blueprint.json",
+      "publishedTemplateNames": ["BoxFarm.Basic.IronTeeth"],
+      "releases": [
+        {
+          "version": "0.1.0",
+          "size": [3, 1, 2],
+          "note": "Pre-ART-04 axis assumption 3x1x2, distributed during the v0.1.0 era (saves can exist); evidence docs/VERIFICATION.md §25."
+        },
+        {
+          "version": "1.0.0",
+          "size": [3, 2, 1],
+          "note": "ART-04 axis fix to 3x2x1 (the v1 git baseline ef2b398; docs/VERIFICATION.md §25 in-game A/B)."
+        },
+        {
+          "version": "2.0.0",
+          "size": [3, 3, 1],
+          "note": "v2 indoor 3x3x1 stackable blueprint; evidence docs/v2/CHANGELOG.md [0.2.0]; current release."
+        }
+      ]
+    },
+    {
+      "blueprint": "Buildings/Food/BoxFarm/BoxFarm.Intermediate.Folktails.blueprint.json",
+      "publishedTemplateNames": ["BoxFarm.Intermediate.Folktails"],
+      "releases": [
+        {
+          "version": "0.1.0",
+          "size": [3, 1, 2],
+          "note": "Pre-ART-04 axis assumption 3x1x2, distributed during the v0.1.0 era (saves can exist); evidence docs/VERIFICATION.md §25."
+        },
+        {
+          "version": "1.0.0",
+          "size": [3, 2, 1],
+          "note": "ART-04 axis fix to 3x2x1 (the v1 git baseline ef2b398; docs/VERIFICATION.md §25 in-game A/B)."
+        },
+        {
+          "version": "2.0.0",
+          "size": [3, 3, 1],
+          "note": "v2 indoor 3x3x1 stackable blueprint; evidence docs/v2/CHANGELOG.md [0.2.0]; current release."
+        }
+      ]
+    },
+    {
+      "blueprint": "Buildings/Food/BoxFarm/BoxFarm.Intermediate.IronTeeth.blueprint.json",
+      "publishedTemplateNames": ["BoxFarm.Intermediate.IronTeeth"],
+      "releases": [
+        {
+          "version": "0.1.0",
+          "size": [3, 1, 2],
+          "note": "Pre-ART-04 axis assumption 3x1x2, distributed during the v0.1.0 era (saves can exist); evidence docs/VERIFICATION.md §25."
+        },
+        {
+          "version": "1.0.0",
+          "size": [3, 2, 1],
+          "note": "ART-04 axis fix to 3x2x1 (the v1 git baseline ef2b398; docs/VERIFICATION.md §25 in-game A/B)."
+        },
+        {
+          "version": "2.0.0",
+          "size": [3, 3, 1],
+          "note": "v2 indoor 3x3x1 stackable blueprint; evidence docs/v2/CHANGELOG.md [0.2.0]; current release."
+        }
+      ]
+    },
+    {
+      "blueprint": "Buildings/Food/BoxFarm/BoxFarm.Top.Folktails.blueprint.json",
+      "publishedTemplateNames": ["BoxFarm.Top.Folktails"],
+      "releases": [
+        {
+          "version": "0.1.0",
+          "size": [3, 1, 2],
+          "note": "Pre-ART-04 axis assumption 3x1x2, distributed during the v0.1.0 era (saves can exist); evidence docs/VERIFICATION.md §25."
+        },
+        {
+          "version": "1.0.0",
+          "size": [3, 2, 1],
+          "note": "ART-04 axis fix to 3x2x1 (the v1 git baseline ef2b398; docs/VERIFICATION.md §25 in-game A/B)."
+        },
+        {
+          "version": "2.0.0",
+          "size": [3, 3, 1],
+          "note": "v2 indoor 3x3x1 stackable blueprint; evidence docs/v2/CHANGELOG.md [0.2.0]; current release."
+        }
+      ]
+    },
+    {
+      "blueprint": "Buildings/Food/BoxFarm/BoxFarm.Top.IronTeeth.blueprint.json",
+      "publishedTemplateNames": ["BoxFarm.Top.IronTeeth"],
+      "releases": [
+        {
+          "version": "0.1.0",
+          "size": [3, 1, 2],
+          "note": "Pre-ART-04 axis assumption 3x1x2, distributed during the v0.1.0 era (saves can exist); evidence docs/VERIFICATION.md §25."
+        },
+        {
+          "version": "1.0.0",
+          "size": [3, 2, 1],
+          "note": "ART-04 axis fix to 3x2x1 (the v1 git baseline ef2b398; docs/VERIFICATION.md §25 in-game A/B)."
+        },
+        {
+          "version": "2.0.0",
+          "size": [3, 3, 1],
+          "note": "v2 indoor 3x3x1 stackable blueprint; evidence docs/v2/CHANGELOG.md [0.2.0]; current release."
+        }
+      ]
+    }
+  ]
+}

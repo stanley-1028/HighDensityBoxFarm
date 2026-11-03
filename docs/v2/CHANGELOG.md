@@ -1,9 +1,122 @@
 # HDBF v2 变更记录
 
-> **状态**：2.5.5 为原始码轮（**未发布**；离线门禁全绿，实机验证 pending）；2.5.4 已发布（Steam Workshop ManifestID 2037025195551276545；GitHub master `2a4a237`；离线门禁全绿；实机验证 pending）
+> **状态**：2.5.6 为原始码轮（**未发布**；离线门禁全绿，实机验证 pending）；2.5.5 为未发布的第二维修轮；2.5.4 已发布（Steam Workshop ManifestID 2037025195551276545；GitHub master `2a4a237`；离线门禁全绿；实机验证 pending）
 > **日期**：2026-11-03
-> **适用版本**：2.5.5
+> **适用版本**：2.5.6
 > **变更摘要**：v2.1 需求引入室内农场方案；本文件记录 v1→v2 的行为/数据/工程变更与实现状态。
+
+## [2.5.6] — 2026-11-03（第三维修轮：把剩余离线可修项全部落地）
+
+依据 `docs/BUG_REPAIR_20261102.md` 的 pending 清单与实作卡
+`docs/workstreams/bugfix-20261102/REPAIR_PLAN_ROUND3.md`；离线验证见 `docs/VERIFICATION.md` §39。
+**本轮把「不需要实机/外部模组」的 pending 项目全部修完**；需要实机会话的项目（§7.2 A–K）与需要
+Emberpelts 主模组的 WP-13 仍为 pending，不写成已完成。
+
+### 【修复】管道 3-strike 改成 60 秒滚动时间窗＋单农场失败不再全域停摆（L-02(c) / REQ-V2-COMPAT-01/02）
+
+* 【修复】`CompatStateMachine` 的 3-strike 原本无时间窗：一次 Timber Pipes 改版会让同一 session 的
+  adapter 直接 Failed，所有农场同日断水。新增 `FailureWindowSeconds=60` 滚动窗口：窗口内 3 次失败才
+  Failed、成功清零；`Fail(reason)` 旧语义保留给无时钟调用端，`ReflectionCompatAdapter` 改传 monotonic
+  `Stopwatch` 秒（取不到时退回旧语义）。
+* 【新增】单农场一次抽水失败只降级（Degraded），不再立即等于全域 Failed。
+* 证据：`CompatStateMachineTests`（+6 条时间窗/边界/时钟倒退/非有限时间戳）、
+  `V2AdapterHostContractTests.TestRuntimeFailuresReuseTheThreeStrikeStateMachine`。
+
+### 【修复】管道接口诚实区分「聚落级供水」（WP-05 部分 / L-02(b)）
+
+* 【新增】Core `PipeProbeReason.GlobalSupply = 8` 与 read-only `PipeProbeAnchor`/`IIndoorPipeProbeAnchor`
+  （冻结的单方法 `IIndoorPipeProbe` 不变）；Timber Pipes 端用既有 `PipeRegistry.TryGetGraph` anchor
+  在农场坐标判定：管网有接网水塔但农场端口无 graph → `GlobalSupply`；任何 reflection 失败/未设 anchor
+  → 回到原 census 结果。
+* 【修改】面板管道端口行把 `GlobalSupply` 渲染为 `HDBF.Port.GlobalSupply`（「已连接（聚落级管道供水）」）。
+* **行为仍未改**：抽水仍是 settlement-wide（per-farm 真实判定/端点是设计决策，需实机与第三方程 API 取证，
+  见 VERIFICATION §39.3）。
+* 证据：`V2AdapterHostContractTests.TestPipeProbeDistinguishesSettlementWideSupplyHonestly`、
+  `TestIndoorAdapterHostForwardsTheProbeAnchor`、`V2LiveWarningContractTests`
+  `TestGlobalSupplyProbeReasonRendersTheSettlementWideState`。
+
+### 【修复】世界图示与面板改吃同一组 live 警告旗标（L-11 / WP-10 / L-10）
+
+* 【新增】`IndoorFarmSnapshot` 新增 `CurrentDay`/`EntranceBlocked`/`LiveWarnings?`；Core 新增纯函数
+  `IndoorWarningMap.LiveFlagsOf(snapshot)`（live coverage、live day 的维护逾期/stalled、动力、工人、入口、
+  输出满）与 `EffectiveFlags(snapshot) = LiveWarnings ?? Warnings`；controller 先建 snapshot 再 `with`
+  填 LiveWarnings 并以它重算 `IdleReason`。
+* 【修复】世界图示与面板 maintenance/power/worker/output 判定全部改吃 `EffectiveFlags`，图示与面板不可能
+  再不同步（旧 snapshot 不帶 LiveWarnings → 行为不变）。
+* 【修改】`SeverityOf(NoWorkers)` 由 Low 升 **High（P1）**；四视觉限制维持（NoWorkers 无第五颗 sprite，
+  由面板列＋idle reason 承担，测试注明）。
+* 证据：新档 `V2LiveWarningContractTests`（13 条）、`V2WarningIconContractTests`、`V2PanelContractTests`。
+
+### 【修复】世界图示 tooltip 不再内嵌动态距离（L-17 剩余项）
+
+* 【修改】vanilla 1.1.2.8 经 `tools/ApiIndex` 查证**没有可写描述 API**（`StatusSpecification` 不可变、
+  `StatusInstance.StatusDescription` get-only、`StatusSubject` 无 unregister/更新入口），因此 tooltip 改为
+  **固定本地化 warning 句子**（不再把注册时的 `worldIconMaxDistance` 写死，设置改了也不会说谎）；
+  缺失 API/loc 由 try/catch 隔离。残留：语言切换要等下一次注册（finished-state/reload）才反映。
+* 证据：`V2LiveWarningContractTests.TestWorldIconTooltipIsFixedAndFreeOfTheDynamicDistance`。
+
+### 【修复】config 五个死旗标全部接上消费者（L-18 / REQ-V2-EXT-04）
+
+* 【新增】Core `IndoorFeatureToggles`（default 全启用＝v2.5.5 行为）与 `IndoorDayContext.Features`；
+  `rotation`（拒绝 Rotation、启动转 Fixed 取 live 表首作物）、`maintenance`（永不到期、G_maint=1）、
+  `pipeConnection`（端口强制关闭、不抽管水）、`logisticsOutput`（端口强制关闭）、`soilFatigue`
+  （不累积/不惩罚、G_fat 恒 1，确认无除以 0）全部接上；每栋一次性 `indoor.feature-disabled` 日志。
+* 【新增】L1 契约「每个 `FeatureFlags` property 都有非 config 消费者」＋各旗标关闭行为测试。
+* 证据：新档 `V2FeatureFlagContractTests`（7 条）。
+* 已知限制：`maintenance=false` 期间面板的「Next due」仍显示旧 due day（不改 UI，避免本轮扩散）；
+  端口旗标重新启用后玩家需在面板重新开启端口（可逆性对「玩家选择」是部分成立）。
+
+### 【修复】加水流量/水源探测的帧节流（L-14 离线部分 / SAFE-17）
+
+* 【修改】`ApplyHauledWater` 改 30 帧节流（≈0.5 s@60fps）、库存解析失败加 300 帧冷却、`_saveDirty`
+  只在 tank 真的变化时设；水源探测快取 16→24 个 snapshot；人工水源搜索改整数圆形预筛＋最近距离早停；
+  世界图示在 `ui.worldIcons=false` 时整 pass 短路、只在图示类别变化时 Activate/Deactivate。
+* 【新增】`V2WaterTests`：30 vs 144 帧同一天 tank 相同（证明节流不改每日总水量）；
+  `V2NfrPerformanceTests`：水流量/人工搜索节流契约。
+* **仍 pending**：100 栋实机 Profiler 量测（需实机会话）。
+
+### 【新增】一键为全部室内农场补水（WP-08 剩余项 / REQ-V2-WATER-04）
+
+* 【新增】Core `IBoxFarmCommand.TryRefillAll(out failureKey, out refilled)`＋`HdbfCommandFailures.NoFarms`；
+  gameplay 逐农场复用 `TryRequestManualRefill`（每座农场各自 all-or-nothing：工人/入口/2 动作/12 格水源），
+  单农场故障被隔离；面板 action card 新增「Refill all farms」按钮＋tooltip＋结果行（refilled n）。
+* 不做「多趟」：一次点击＝每农场一趟（与手动相同成本），避免自动多花玩家动作预算；已在文件记录。
+* 证据：新档 `V2RefillAndProbeContractTests`（4 条 WP-08 契约）。
+
+### 【新增】启动时唯读行为补丁诊断（WP-07 / RE-03）
+
+* 【新增】`HdbfBehaviorProbe`（game singleton，load 时一次）：用 reflection 找已载入的 Harmony/MonoMod
+  runtime 与 vanilla `WorkerRootBehavior.Decide`，记 `indoor.behavior-probe(-patched)`；**不注册任何补丁**、
+  不调用任何 patch API、不改变状态；任何反射失败吞掉。
+* 证据：`V2RefillAndProbeContractTests`（2 条 probe 契约）＋ G-08 0-Harmony 扫描仍绿。
+
+### 【修复】蓝图模板名/占格历史契约门禁（L-16）
+
+* 【新增】`tools/validate/boxfarm-history.json`（8 份 blueprint 的已发布 TemplateName＋占格历史
+  3×1×2→3×2×1→3×3×1 与更新流程）＋ `HDBF.Core.Data.BlueprintHistoryContract` 纯函数（validator 与 L1
+  共用）＋ `tools/validate` 硬检查：(a) 现 TemplateName 在历史中、(b) 历史旧名必须在
+  `BackwardCompatibleTemplateNames`、(c) Size 必须等于历史最后一笔已发布值；违反即 FAIL 并要求迁移审查。
+* 【查证】git 历史显示 8 份 blueprint 的 TemplateName **从未变更**（故 backward 清单合理维持 `[]`）。
+* 证据：新档 `V2BlueprintHistoryContractTests`（4 条，含 (a)(b)(c) negative control）＋ validator 手动
+  4 种负向案例 exit 1。
+
+### 【修复】keyed bridge 与 L-04 写入策略统一（L-04 剩余项）
+
+* 【修改】`IndoorEntitySaveBridge.Keyed.cs` 不再「Repaired 即拒写」：CannotWrite 才拒写；Repaired 写修复
+  副本＋`save.write-repaired`＋`PreviousPayload` rollback（`save.previous-snapshot`），与 payload bridge 一致。
+* 证据：`V2PersistenceBridgeContractTests.TestKeyedBridgeFollowsThePrimitiveAndFailSafeContract`（更新）。
+
+### 【修改】需求/ADR 漂移修正（L-19）
+
+* 【修改】`ADR-V2-004` 增修订段、`REQ-V2-SECTION-19` 的 `REQ-V2-WATER-02` 增修订注记：连续水耗（时间切片）
+  取代「禁止逐帧扣水」的旧表述，原意（扣水不得发生在面板/查询路径、不得帧率依赖）保留。
+
+### 发布状态
+
+* 【修改】`data/manifest.json` 版本 `2.5.6`；README 版本/L1 数字同步（**未上传 Steam Workshop、未 `-Install`
+  部署，未跑实机**）。
+* 离线门禁：5 组程序集 0 warning / 0 error；L1 **712/712**（基线 672，本轮 +40）；`tools/validate`
+  `RESULT: OK`；`RELEASE GATES: PASSED (44 checks)`；`NFR GATE MATRIX: PASSED`。
 
 ## [2.5.5] — 2026-11-03（第二维修轮：L-04 存档修复副本、L-12 live 作物表、L-15 config profile、L-09 物流端口语义）
 

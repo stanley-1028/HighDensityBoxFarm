@@ -73,6 +73,16 @@ namespace HDBF.Tests
                 IndoorWarningMap.SeverityOf(IndoorWarningFlags.EntranceBlocked));
             TestAssert.Equal(IndoorWarningSeverity.Medium,
                 IndoorWarningMap.SeverityOf(IndoorWarningFlags.MaintenanceDue));
+            // L-10: an unstaffed farm does nothing, so the panel priority is P1 (High) - it used to
+            // be the lowest priority and the panel read as "all green". The four-visual rule is
+            // unchanged: NoWorkers has no world-icon class of its own (no fifth sprite).
+            TestAssert.Equal(IndoorWarningSeverity.High,
+                IndoorWarningMap.SeverityOf(IndoorWarningFlags.NoWorkers));
+            TestAssert.Equal(IndoorWarningSeverity.Low,
+                IndoorWarningMap.SeverityOf(IndoorWarningFlags.OutputFull));
+            TestAssert.Equal(IndoorWarningIconKind.None,
+                IndoorWarningMap.IconKindOf(IndoorWarningFlags.NoWorkers),
+                "NoWorkers stays panel-only under the four-visual world-icon rule");
             TestAssert.Equal(IndoorWarningSeverity.Info,
                 IndoorWarningMap.SeverityOf(IndoorWarningFlags.None));
 

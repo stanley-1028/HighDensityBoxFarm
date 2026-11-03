@@ -77,7 +77,9 @@ namespace HDBF.Gameplay.Components
         private IWaterSource? ReadPipeWater(out bool hasPipeWater)
         {
             hasPipeWater = false;
-            if (_record is null || !_record.PipePort)
+            // L-18: features.pipeConnection=false forces the port off at activation and must also stop
+            // the automatic pipe draw here, so the farm falls back to manual/hauled water only.
+            if (_record is null || !_record.PipePort || !SafeFeatures().PipeConnection)
             {
                 return null;
             }

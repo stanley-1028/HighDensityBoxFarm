@@ -34,14 +34,28 @@ namespace HDBF.Gameplay.Components
             source = null;
             var volume = requiredUnits * VolumePerUnit;
             var radius = IndoorConstants.ManualRefillRadiusCells;
+            var radiusSquared = radius * radius;
             var foundDistance = float.MaxValue;
             Vector3Int foundCell = default;
             for (var dx = -radius; dx <= radius; dx++)
             {
+                if (dx * dx > radiusSquared)
+                {
+                    continue;
+                }
+
                 for (var dz = -radius; dz <= radius; dz++)
                 {
-                    var distance = Mathf.Sqrt(dx * dx + dz * dz);
-                    if (distance > radius || distance >= foundDistance)
+                    // L-14: reject outside the circle with integer math first; the sqrt (and the whole
+                    // water-map column probe) then runs only for cells that can still be the nearest.
+                    var offsetSquared = dx * dx + dz * dz;
+                    if (offsetSquared > radiusSquared)
+                    {
+                        continue;
+                    }
+
+                    var distance = Mathf.Sqrt(offsetSquared);
+                    if (distance >= foundDistance)
                     {
                         continue;
                     }
@@ -89,6 +103,14 @@ namespace HDBF.Gameplay.Components
 
                     foundCell = cell;
                     foundDistance = distance;
+                    if (foundDistance <= 1f)
+                    {
+                        // L-14: the farm's own cell (distance 0) is checked first, so a source already
+                        // found one cell away is the nearest possible for the rest of the scan.
+                        source = new WaterBodySource(_waterMap, _waterService, foundCell);
+                        bestDistance = foundDistance;
+                        return;
+                    }
                 }
             }
 

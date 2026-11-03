@@ -232,6 +232,11 @@ namespace HDBF.UI.Panels
                     return HdbfUiLocKeys.PortBindingFailed;
                 case PipeProbeReason.PortOff:
                     return HdbfUiLocKeys.PortDisabled;
+                // L-02/WP-05: no graph at the farm's own port, but a settlement-wide connected water
+                // tank exists. Automatic refill CAN draw water, so the row credits the global supply
+                // honestly instead of claiming the farm sits on the network or saying "not connected".
+                case PipeProbeReason.GlobalSupply:
+                    return HdbfUiLocKeys.PortGlobalSupply;
             }
 
             if (!snapshot.PipePort)

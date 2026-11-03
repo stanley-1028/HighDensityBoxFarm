@@ -69,7 +69,9 @@ namespace HDBF.UI.Panels
             bool materialMissing, Func<string, string> localize)
         {
             var rows = new List<HdbfPanelRow>(2);
-            var flags = snapshot.Warnings;
+            // L-11: the panel reads the same live-derived flag set as the world icon, never the
+            // once-per-day cache, so the card and the head-top icon cannot disagree.
+            var flags = IndoorWarningMap.EffectiveFlags(snapshot);
             var stalled = (flags & IndoorWarningFlags.MaintenanceStalled) != 0;
             if (stalled)
             {
@@ -102,7 +104,7 @@ namespace HDBF.UI.Panels
             Func<string, string> localize)
         {
             var rows = new List<HdbfPanelRow>(1);
-            if ((snapshot.Warnings & IndoorWarningFlags.NoPower) != 0)
+            if ((IndoorWarningMap.EffectiveFlags(snapshot) & IndoorWarningFlags.NoPower) != 0)
             {
                 AddRow(rows, "power", HdbfUiLocKeys.WarningNoPower, IndoorWarningSeverity.High,
                     HdbfUiLocKeys.TooltipPower, localize);
@@ -120,13 +122,17 @@ namespace HDBF.UI.Panels
             bool entranceBlocked, Func<string, string> localize)
         {
             var rows = new List<HdbfPanelRow>(2);
-            if (snapshot.Workers <= 0 || (snapshot.Warnings & IndoorWarningFlags.NoWorkers) != 0)
+            var flags = IndoorWarningMap.EffectiveFlags(snapshot);
+            if (snapshot.Workers <= 0 || (flags & IndoorWarningFlags.NoWorkers) != 0)
             {
-                AddRow(rows, "no-workers", HdbfUiLocKeys.WarningNoWorkers, IndoorWarningSeverity.Critical,
+                // L-10: no crew means the farm does nothing at all, so the row is P1 (High) - the
+                // severity the Core map reports - instead of a low-priority note that read as "fine".
+                AddRow(rows, "no-workers", HdbfUiLocKeys.WarningNoWorkers,
+                    IndoorWarningMap.SeverityOf(IndoorWarningFlags.NoWorkers),
                     HdbfUiLocKeys.ErrorNoWorkers, localize);
             }
 
-            if (entranceBlocked)
+            if (entranceBlocked || (flags & IndoorWarningFlags.EntranceBlocked) != 0)
             {
                 AddRow(rows, "entrance", HdbfUiLocKeys.WarningEntranceBlocked,
                     IndoorWarningSeverity.High, HdbfUiLocKeys.ErrorEntranceBlocked, localize);
@@ -143,7 +149,7 @@ namespace HDBF.UI.Panels
             Func<string, string> localize)
         {
             var rows = new List<HdbfPanelRow>(1);
-            if ((snapshot.Warnings & IndoorWarningFlags.OutputFull) != 0)
+            if ((IndoorWarningMap.EffectiveFlags(snapshot) & IndoorWarningFlags.OutputFull) != 0)
             {
                 AddRow(rows, "output-full", HdbfUiLocKeys.WarningOutputFull,
                     IndoorWarningSeverity.High, HdbfUiLocKeys.ErrorOutputFull, localize);

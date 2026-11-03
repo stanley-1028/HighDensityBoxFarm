@@ -16,6 +16,9 @@ namespace HDBF.Gameplay.Components
 {
     public sealed partial class HdbfWorldIconService
     {
+        /// <summary>True once every registered toggle was settled after the icons were switched off.</summary>
+        private bool _iconsDisabledSettled;
+
         /// <inheritdoc />
         public void UpdateSingleton()
         {
@@ -30,6 +33,26 @@ namespace HDBF.Gameplay.Components
                 var ui = config.Ui;
                 var iconsEnabled = ui.WorldIcons;
 
+                if (!iconsEnabled)
+                {
+                    // L-14: the whole feature is off, so stop paying for the per-farm camera math and
+                    // viewport tests every frame. The registered toggles are settled exactly once
+                    // (no icon may survive the switch) and the next enabled pass starts immediately.
+                    if (!_iconsDisabledSettled)
+                    {
+                        foreach (var pair in _handles)
+                        {
+                            DeactivateAll(pair.Value);
+                        }
+
+                        _iconsDisabledSettled = true;
+                        _nextIconPass = 0d;
+                    }
+
+                    return;
+                }
+
+                _iconsDisabledSettled = false;
                 EnsureCamera();
                 if (_camera is null)
                 {
@@ -140,6 +163,7 @@ namespace HDBF.Gameplay.Components
             _order.Clear();
             _cursor = 0;
             _nextIconPass = 0d;
+            _iconsDisabledSettled = false;
             _camera = null;
         }
 
@@ -170,18 +194,27 @@ namespace HDBF.Gameplay.Components
             }
         }
 
+        /// <summary>
+        /// Tooltip sentence of one icon class (L-17). Vanilla offers **no writable description**
+        /// after registration: <c>StatusSpecification</c> is immutable (private constructor, get-only
+        /// properties, only the static <c>Create*</c> factories), <c>StatusInstance.StatusDescription</c>
+        /// is get-only and <c>StatusSubject</c> has no unregister/update call, so re-registering would
+        /// duplicate the status entries. The sentence is therefore fixed at registration and carries
+        /// only the already-localized warning text - no dynamic <c>ui.worldIconMaxDistance</c> value,
+        /// so a changed distance setting can never leave a false "hidden beyond N cells" tooltip.
+        /// A language switch is picked up on the next registration (finished-state toggle / reload);
+        /// the panel itself refreshes immediately through the localization fingerprint.
+        /// </summary>
         private string BuildIconDescription(IndoorWarningIconKind kind)
         {
-            // Chapter 14.4/14.5: the tooltip is a HDBF.* sentence, never a raw key; the warning
-            // text is passed as {0} and the distance setting as {1}. Localized once at registration.
             try
             {
-                return _loc.T(TooltipWorldIcon, _loc.T(IndoorWarningMap.WarningKeyOf(kind)),
-                    _configProvider.Config.Ui.WorldIconMaxDistance);
+                return _loc.T(IndoorWarningMap.WarningKeyOf(kind));
             }
             catch (Exception)
             {
-                return _loc.T(TooltipWorldIcon);
+                // A broken localization provider must not break icon registration (REQ-V2-SAFE-01).
+                return string.Empty;
             }
         }
     }

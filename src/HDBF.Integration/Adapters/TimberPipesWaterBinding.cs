@@ -80,6 +80,13 @@ namespace HDBF.Integration.Adapters
         private MethodInfo? _getGraph;
         private MethodInfo? _goodsToVolume;
 
+        /// <summary>
+        /// Optional WP-05 anchor: <c>PipeRegistry.TryGetGraph(Vector3Int, out PipeGraph)</c> for the
+        /// per-farm honesty check. Not required to bind: an older mod without it keeps the census
+        /// semantics (the probe falls back instead of failing the adapter).
+        /// </summary>
+        private MethodInfo? _tryGetGraph;
+
         /// <summary>Creates the binding; the DI container is only used to resolve the mod registry.</summary>
         internal TimberPipesWaterBinding(IContainer? container)
         {
@@ -159,6 +166,9 @@ namespace HDBF.Integration.Adapters
                 var getGraph = ExternalProxy.FindMethodBySignature(pipeType, "get_Graph", NoParameters, null);
                 var goodsToVolume = ExternalProxy.FindMethodBySignature(solverType, "GoodsToVolume",
                     new[] { "System.Int32" }, "System.Single");
+                // WP-05 (L-02): documented CompatAnchorTable anchor used only by the read-only probe.
+                var tryGetGraph = ExternalProxy.FindMethodBySignature(registryType, "TryGetGraph",
+                    new[] { "UnityEngine.Vector3Int", "TimberPipes.Models.PipeGraph" }, "System.Boolean");
                 if (getTanks is null || isFinished is null || volumeM3 is null || fluidGoodId is null ||
                     getPipe is null || takesGood is null || applyVolume is null || getGraph is null ||
                     goodsToVolume is null)
@@ -179,6 +189,7 @@ namespace HDBF.Integration.Adapters
                 _applyVolume = applyVolume;
                 _getGraph = getGraph;
                 _goodsToVolume = goodsToVolume;
+                _tryGetGraph = tryGetGraph;
                 _waterGoodId = ReadWaterGoodId() ?? WaterGoodIdFallback;
                 LastFailureReason = null;
                 return true;

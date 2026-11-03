@@ -197,6 +197,35 @@ namespace HDBF.UI.Panels
             Refresh(force: true);
         }
 
+        /// <summary>
+        /// WP-08 settlement-wide refill: one click asks every live indoor farm for one manual
+        /// refill trip. Each farm keeps its own all-or-nothing rules, so the status line reports how
+        /// many farms actually received water; a session without farms shows the specific reason.
+        /// </summary>
+        private void OnRefillAllClicked()
+        {
+            try
+            {
+                if (_indoor.TryRefillAll(out var failureKey, out var refilled))
+                {
+                    SetActionMessage(HdbfIndoorPanelFormat.Text(_loc.T,
+                        HdbfUiLocKeys.ActionRefillAllDone, refilled));
+                }
+                else
+                {
+                    SetActionMessage(HdbfIndoorPanelFormat.FormatCommandFailure(_loc.T, failureKey));
+                    LogRejected("refill all farms", failureKey);
+                }
+            }
+            catch (Exception exception)
+            {
+                SetActionMessage(_loc.T(HdbfUiLocKeys.ErrorActionFailed));
+                LogCommandException("refill all farms", exception);
+            }
+
+            Refresh(force: true);
+        }
+
         private static HdbfMode ToLegacyMode(IndoorMode mode)
         {
             switch (mode)

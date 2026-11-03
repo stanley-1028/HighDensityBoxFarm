@@ -65,9 +65,6 @@ namespace HDBF.Gameplay.Components
         /// <summary>v2 world icons refresh at most once per second (section 19.11/19.13).</summary>
         private const float MinIconIntervalSeconds = IndoorIconPolicy.DefaultIconIntervalSeconds;
 
-        /// <summary>Localization key of the world-icon hover tooltip.</summary>
-        private const string TooltipWorldIcon = "HDBF.Tooltip.WorldIcon";
-
         private readonly IBoxFarmQuery _query;
         private readonly IHdbfGameConfigProvider _configProvider;
         private readonly IHdbfLog _log;

@@ -15,7 +15,8 @@ namespace HDBF.Core.Indoor
     {
         /// <summary>Harvests one mature slot; output-full and missing-spec cases are not fatal.</summary>
         private static bool TryHarvest(IndoorFarmRecord record, TierProfile tier, IndoorSlot slot,
-            ICropCatalog catalog, IInventorySink output, float yieldScale, out bool blocked)
+            ICropCatalog catalog, IInventorySink output, float yieldScale, bool soilFatigueDisabled,
+            out bool blocked)
         {
             blocked = false;
             if (!FallbackCropCatalog.TryResolve(catalog, record.Faction, slot.CropId, out var crop))
@@ -24,7 +25,11 @@ namespace HDBF.Core.Indoor
                 return false;
             }
 
-            var amount = IndoorGrowthMath.HarvestItems(crop.BaseYield, slot.Fatigue, record.Mode, yieldScale);
+            // L-18: with features.soilFatigue=false the harvest settles at G_fat = 1 (fatigue 0), and
+            // the fatigue bookkeeping below is skipped, so no penalty is ever applied. The formula
+            // itself has no division by fatigue, so a zero/disabled value is always safe.
+            var fatigue = soilFatigueDisabled ? 0f : slot.Fatigue;
+            var amount = IndoorGrowthMath.HarvestItems(crop.BaseYield, fatigue, record.Mode, yieldScale);
             if (amount <= 0)
             {
                 // L-01 (2026-11-02): a zero yield must never destroy a grown crop. The slot stays
@@ -57,7 +62,11 @@ namespace HDBF.Core.Indoor
 
             // Harvest succeeded: apply fatigue/rotation bookkeeping and clear the slot.
             var sameCrop = string.Equals(slot.CropId, slot.LastCropId, StringComparison.Ordinal);
-            ApplyHarvestFatigue(slot, tier.SoilFatigueFactor, record.Mode, sameCrop);
+            if (!soilFatigueDisabled)
+            {
+                ApplyHarvestFatigue(slot, tier.SoilFatigueFactor, record.Mode, sameCrop);
+            }
+
             slot.LastCropId = slot.CropId;
             slot.CropId = string.Empty;
             slot.GrowthDays = 0f;
@@ -68,9 +77,14 @@ namespace HDBF.Core.Indoor
 
         /// <summary>Plants one empty slot with the policy-selected crop.</summary>
         private static bool TryPlant(IndoorFarmRecord record, IndoorSlot slot, ICropCatalog catalog,
-            IReadOnlyList<CropDefinition> factionCrops)
+            IReadOnlyList<CropDefinition> factionCrops, bool rotationDisabled)
         {
-            if (!TryChooseCrop(record, slot.LastCropId, catalog, factionCrops, out var crop)) return false;
+            if (!TryChooseCrop(record, slot.LastCropId, catalog, factionCrops, rotationDisabled,
+                    out var crop))
+            {
+                return false;
+            }
+
             slot.CropId = crop.Id;
             slot.GrowthDays = 0f;
             slot.Stage = SlotStage.Growing;
@@ -80,7 +94,7 @@ namespace HDBF.Core.Indoor
 
         /// <summary>Policy-selected crop: fixed crop, or the next crop after the previous one.</summary>
         private static bool TryChooseCrop(IndoorFarmRecord record, string lastCropId, ICropCatalog catalog,
-            IReadOnlyList<CropDefinition> factionCrops, out CropDefinition crop)
+            IReadOnlyList<CropDefinition> factionCrops, bool rotationDisabled, out CropDefinition crop)
         {
             crop = null!;
             if (record.CropPolicy == CropPolicy.Fixed)
@@ -101,8 +115,10 @@ namespace HDBF.Core.Indoor
                 }
             }
 
-            // Rotation: the crop after the previous one in the faction table, wrapping around.
-            var start = lastIndex >= 0 ? (lastIndex + 1) % factionCrops.Count : 0;
+            // Rotation: the crop after the previous one in the faction table, wrapping around. L-18:
+            // with features.rotation=false the record keeps the first table crop instead of cycling
+            // (the controller normally converted it to the fixed policy; this is the no-catalog guard).
+            var start = rotationDisabled || lastIndex < 0 ? 0 : (lastIndex + 1) % factionCrops.Count;
             for (var step = 0; step < factionCrops.Count; step++)
             {
                 var candidate = factionCrops[(start + step) % factionCrops.Count];

@@ -146,6 +146,8 @@ internal static class Program
 
         new Localizations(report).Validate(dataDir, blueprintValidator.UsedLocKeys, modRoot);
         new ConfigValidator(report).Validate(dataDir);
+        // L-16: published template-name / footprint history gate (tools/validate/boxfarm-history.json).
+        new BlueprintHistoryChecks(report).Validate(dataDir, modRoot);
 
         return report.Finish(Console.Out);
     }

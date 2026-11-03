@@ -44,8 +44,12 @@ namespace HDBF.UI.Panels
             var coverage = snapshot.Coverage;
             var minCoverage = snapshot.MinCoverage;
             var irrigation = IndoorWaterMath.IrrigationMultiplier(coverage, minCoverage);
-            var flags = snapshot.Warnings;
-            var entranceBlocked = (flags & IndoorWarningFlags.EntranceBlocked) != 0;
+            // L-11: every warning decision below reads the same live-derived flag set the world icon
+            // reads, so the card, the action gate and the head-top icon cannot drift apart. Older
+            // snapshots without LiveWarnings keep using their daily cache (`EffectiveFlags` falls back).
+            var flags = IndoorWarningMap.EffectiveFlags(snapshot);
+            var entranceBlocked = snapshot.EntranceBlocked
+                                  || (flags & IndoorWarningFlags.EntranceBlocked) != 0;
 
             // REQ-V2-UI-02: a refill needs a manual source, a crew and a free entrance.
             var refillReason = RefillBlockedReason(snapshot, entranceBlocked, localize);

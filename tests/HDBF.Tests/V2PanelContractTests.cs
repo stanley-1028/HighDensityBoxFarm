@@ -51,6 +51,8 @@ namespace HDBF.Tests
             "IdleReason", "ManualRefillSourceAvailable", "PipeProbeState",
             // L-12/L-15: the config-resolved tier profile and the live faction crop table.
             "Profile", "CropChoices",
+            // L-11/WP-10: the live warning inputs and the derived flag set the panel/icon read.
+            "CurrentDay", "EntranceBlocked", "LiveWarnings",
         };
 
         // ------------------------------------------------------------------ contract / order

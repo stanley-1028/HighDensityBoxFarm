@@ -30,7 +30,7 @@ namespace HDBF.Integration.Adapters
     /// <see cref="ProbePipe"/> is the observation-only half (WP-05) and delegates the census to
     /// <see cref="TimberPipesWaterBinding.ProbeTanks"/>: no draw, no health strike.
     /// </summary>
-    public sealed class TimberPipesWaterSource : IWaterSource, IIndoorPipeProbe
+    public sealed partial class TimberPipesWaterSource : IWaterSource, IIndoorPipeProbe, IIndoorPipeProbeAnchor
     {
         /// <summary>Throttle identity: one water warning line per 30 s (REQ-V2-READ-03, chapter 10.4).</summary>
         internal const string LogKey = IndoorLogKeys.CompatDegraded + ":HDBF.Adapter.TimberPipes:water";
@@ -120,30 +120,6 @@ namespace HDBF.Integration.Adapters
                 }
                 return false;
             }
-        }
-
-        /// <inheritdoc />
-        public PipeProbe ProbePipe()
-        {
-            if (!IsAdaptorServing())
-            {
-                return new PipeProbe(PipeProbeReason.AdapterUnavailable, 0, 0, "adapter-not-serving");
-            }
-
-            var probe = _binding.ProbeTanks();
-            try
-            {
-                // ThrottledLog keeps this to one line per 30 s for the key (REQ-V2-READ-03).
-                _log?.Write(HdbfLogCategory.Compat, IndoorLogKeys.PipeProbe,
-                    "pipe probe: reason=" + probe.Reason + ", pipeTanks=" + probe.TankCount
-                    + ", waterTanks=" + probe.WaterTankCount + ", detail=" + probe.Detail);
-            }
-            catch (Exception)
-            {
-                // Diagnostics must never break a probe (REQ-V2-SAFE-01).
-            }
-
-            return probe;
         }
 
         /// <inheritdoc />

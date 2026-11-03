@@ -20,7 +20,7 @@ namespace HDBF.Gameplay.Components
     /// and changes all-or-nothing, returns a specific failure key instead of throwing, and logs
     /// under <c>ui.command-failed</c> (or the subsystem key) where the UI can find it.
     /// </summary>
-    public sealed class HdbfFarmCommandService : IBoxFarmCommand
+    public sealed partial class HdbfFarmCommandService : IBoxFarmCommand
     {
         private const string LogKeyCommand = "ui.command-failed";
 

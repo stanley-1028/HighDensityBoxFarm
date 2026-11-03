@@ -12,6 +12,7 @@ using System.Globalization;
 using HDBF.Core;
 using HDBF.Core.Abstractions;
 using HDBF.Core.Balance;
+using HDBF.Core.Config;
 using HDBF.Core.Indoor;
 using HDBF.Core.Logging;
 
@@ -116,7 +117,7 @@ namespace HDBF.Gameplay.Components
             switch (port)
             {
                 case HdbfPortKind.Pipe:
-                    if (!_spec.HasPipePort)
+                    if (!_spec.HasPipePort || !SafeFeatures().PipeConnection)
                     {
                         return false;
                     }
@@ -130,7 +131,7 @@ namespace HDBF.Gameplay.Components
 
                     return true;
                 case HdbfPortKind.Logistics:
-                    if (!_spec.HasLogisticsPort)
+                    if (!_spec.HasLogisticsPort || !SafeFeatures().LogisticsOutput)
                     {
                         return false;
                     }
@@ -173,7 +174,10 @@ namespace HDBF.Gameplay.Components
             cycles = 0;
             failureKey = null;
             var record = _record;
-            if (record is null || _profile.MaintenanceKind == HdbfMaintenanceKind.IrrigationOnly)
+            // L-18: features.maintenance=false means material maintenance is disabled entirely, so the
+            // panel/command report the existing "maintenance unavailable" state and nothing is paid.
+            if (record is null || _profile.MaintenanceKind == HdbfMaintenanceKind.IrrigationOnly
+                || !SafeFeatures().Maintenance)
             {
                 failureKey = HdbfIndoorCommandFailures.MaintenanceUnavailable;
                 return false;
@@ -250,6 +254,23 @@ namespace HDBF.Gameplay.Components
             _log.Write(HdbfLogCategory.Info, IndoorLogKeys.Port,
                 "indoor port " + port + " set to " + (connected ? "connected" : "disconnected")
                 + ", entityId=" + _entityId);
+        }
+
+        /// <summary>
+        /// Config feature flags of this session (L-18). A broken config provider falls back to the
+        /// shipped defaults, so a config failure never silently disables a gameplay feature.
+        /// </summary>
+        /// <returns>Resolved <c>features</c> section; never null.</returns>
+        private FeatureFlags SafeFeatures()
+        {
+            try
+            {
+                return _configProvider.Config.Features;
+            }
+            catch (Exception)
+            {
+                return HdbfConfig.Default.Features;
+            }
         }
     }
 }

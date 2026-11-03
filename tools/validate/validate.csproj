@@ -35,4 +35,15 @@
     </Reference>
   </ItemGroup>
 
+  <!--
+    L-16 blueprint history contract: the pure rules live in HDBF.Core so the offline L1 suite
+    (V2BlueprintHistoryContractTests) tests the exact same function the validator runs. The file is
+    source-linked instead of adding a ProjectReference: the validator deliberately stays a standalone
+    tool (no HDBF assembly reference, only game metadata via Mono.Cecil), and the contract file has
+    no dependency beyond System.Collections.Generic.
+  -->
+  <ItemGroup>
+    <Compile Include="..\..\src\HDBF.Core\Data\BlueprintHistoryContract.cs" Link="Linked\BlueprintHistoryContract.cs" />
+  </ItemGroup>
+
 </Project>

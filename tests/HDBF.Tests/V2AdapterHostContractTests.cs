@@ -12,6 +12,7 @@ using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using HDBF.Core;
+using HDBF.Core.Compat;
 using HDBF.Core.Indoor;
 
 namespace HDBF.Tests
@@ -31,6 +32,8 @@ namespace HDBF.Tests
         private const string InterfaceResource = "HDBF.Tests.Source.IIndoorAdapterHost.cs";
         private const string TankFile = "src/HDBF.Integration/Adapters/TimberPipesWaterBinding.Tank.cs";
         private const string ProbeFile = "src/HDBF.Integration/Adapters/TimberPipesWaterBinding.Probe.cs";
+        private const string FarmGraphFile = "src/HDBF.Integration/Adapters/TimberPipesWaterBinding.FarmGraph.cs";
+        private const string ProbeSourceFile = "src/HDBF.Integration/Adapters/TimberPipesWaterSource.Probe.cs";
         private const string RegistryFile = "src/HDBF.Integration/Adapters/CompatAdapterRegistry.IndoorHost.cs";
 
         private static readonly string[] HostSources = { HostResource, SourceResource, BindingResource, InterfaceResource };
@@ -56,7 +59,8 @@ namespace HDBF.Tests
             }
 
             var source = ReadResource(SourceResource);
-            TestAssert.True(source.Contains("public sealed class TimberPipesWaterSource : IWaterSource", StringComparison.Ordinal),
+            TestAssert.True(source.Contains("public sealed partial class TimberPipesWaterSource : IWaterSource",
+                    StringComparison.Ordinal),
                 "the pipe water source must implement IWaterSource");
             TestAssert.True(source.Contains("public WaterSupplyKind Kind => WaterSupplyKind.Pipe;", StringComparison.Ordinal),
                 "the pipe source kind must be WaterSupplyKind.Pipe");
@@ -189,6 +193,14 @@ namespace HDBF.Tests
             TestAssert.True(adapter.Contains("internal void NoteRuntimeFailure(string reason)", StringComparison.Ordinal));
             TestAssert.True(adapter.Contains("RecordFailure(reason, null)", StringComparison.Ordinal),
                 "runtime failures must reuse RecordFailure/CompatStateMachine.Fail");
+            // L-02(c): the production caller supplies the monotonic timestamp, so the Core window is
+            // really used in game (a single failed draw is Degraded, not session-wide Failed).
+            TestAssert.True(adapter.Contains("_state.Fail(reason, timestampSeconds)", StringComparison.Ordinal),
+                "the production failure path must pass the caller clock into the state machine");
+            TestAssert.True(adapter.Contains("Stopwatch.GetTimestamp()", StringComparison.Ordinal),
+                "the caller clock must be the process monotonic Stopwatch, not Unity render time");
+            TestAssert.True(adapter.Contains("double.IsNaN(timestampSeconds)", StringComparison.Ordinal),
+                "a missing clock must fall back to the legacy timestampless rule");
 
             var host = ReadResource(HostResource);
             TestAssert.True(host.Contains("ReportRuntimeFailure(CompatAnchorTable.TimberPipesId", StringComparison.Ordinal),
@@ -242,6 +254,24 @@ namespace HDBF.Tests
             TestAssert.Equal(5, (int)PipeProbeReason.AdapterUnavailable);
             TestAssert.Equal(6, (int)PipeProbeReason.BindingFailed);
             TestAssert.Equal(7, (int)PipeProbeReason.PortOff);
+            TestAssert.Equal(8, (int)PipeProbeReason.GlobalSupply,
+                "WP-05/L-02(c): the settlement-wide supply reason comes after the frozen values");
+
+            // WP-05/L-02(c): the farm position travels through a separate optional contract, so the
+            // frozen one-method probe above stays unchanged for every existing implementer.
+            var anchorContract = typeof(IIndoorPipeProbeAnchor);
+            TestAssert.Equal(1, anchorContract.GetMethods().Length,
+                "IIndoorPipeProbeAnchor has exactly one method");
+            TestAssert.True(anchorContract.GetMethod("SetProbeAnchor") is not null,
+                "IIndoorPipeProbeAnchor must expose SetProbeAnchor(PipeProbeAnchor?)");
+            var anchorMethod = anchorContract.GetMethod("SetProbeAnchor")!;
+            TestAssert.Equal(1, anchorMethod.GetParameters().Length, "SetProbeAnchor takes the position");
+            TestAssert.True(anchorMethod.GetParameters()[0].ParameterType == typeof(PipeProbeAnchor?),
+                "the anchor must be a nullable Core value type (no game type crosses the boundary)");
+            TestAssert.True(typeof(PipeProbeAnchor).IsValueType,
+                "PipeProbeAnchor must stay a Core value type");
+            TestAssert.False(typeof(IIndoorAdapterHost).IsAssignableFrom(typeof(IIndoorPipeProbeAnchor)),
+                "the anchor stays a separate optional contract, not a new IIndoorAdapterHost member");
 
             var unknown = PipeProbe.Unknown;
             TestAssert.Equal(PipeProbeReason.Unknown, unknown.Reason, "the default probe answers Unknown");
@@ -254,29 +284,40 @@ namespace HDBF.Tests
         {
             var source = ReadResource(SourceResource);
             TestAssert.True(source.Contains(
-                    "public sealed class TimberPipesWaterSource : IWaterSource, IIndoorPipeProbe",
+                    "public sealed partial class TimberPipesWaterSource : IWaterSource, IIndoorPipeProbe",
                     StringComparison.Ordinal), "the pipe source must implement the read-only probe contract");
-            TestAssert.True(source.Contains("public PipeProbe ProbePipe()", StringComparison.Ordinal),
+            var probeSource = ReadRepoFile(ProbeSourceFile);
+            TestAssert.True(probeSource.Contains("public PipeProbe ProbePipe()", StringComparison.Ordinal),
                 "the pipe source owns ProbePipe()");
-            TestAssert.True(source.Contains("IndoorLogKeys.PipeProbe", StringComparison.Ordinal),
+            TestAssert.True(source.Contains("IIndoorPipeProbeAnchor", StringComparison.Ordinal),
+                "the pipe source must accept the optional farm anchor (WP-05/L-02(c))");
+            TestAssert.True(probeSource.Contains("IndoorLogKeys.PipeProbe", StringComparison.Ordinal),
                 "the probe line must use the registered water.pipe-probe throttle key");
 
             var probeFile = ReadRepoFile(ProbeFile);
-            var probeText = source + "\n" + probeFile;
-            var reasons = new[]
+            var probeText = probeSource + "\n" + probeFile;
+            // Census precedence inside ProbeTanks: binding failure -> no network tank -> no water
+            // tank -> dry -> connected. AdapterUnavailable and GlobalSupply are decided separately
+            // (before/after the census), so they are pinned by presence instead of text order.
+            var censusReasons = new[]
             {
-                "PipeProbeReason.AdapterUnavailable", "PipeProbeReason.BindingFailed",
                 "PipeProbeReason.NoPipeNetwork", "PipeProbeReason.NoPipeTank",
                 "PipeProbeReason.TankDry", "PipeProbeReason.Connected",
             };
-            var previous = -1;
-            foreach (var reason in reasons)
+            var previous = probeFile.IndexOf("PipeProbeReason.BindingFailed", StringComparison.Ordinal);
+            TestAssert.True(previous >= 0, "probe reason missing: PipeProbeReason.BindingFailed");
+            foreach (var reason in censusReasons)
             {
-                var index = probeText.IndexOf(reason, StringComparison.Ordinal);
+                var index = probeFile.IndexOf(reason, StringComparison.Ordinal);
                 TestAssert.True(index > previous,
                     "probe reason missing or out of precedence order: " + reason);
                 previous = index;
             }
+
+            TestAssert.True(probeSource.Contains("PipeProbeReason.AdapterUnavailable", StringComparison.Ordinal),
+                "the probe must report an unavailable adaptor before the census runs");
+            TestAssert.True(probeSource.Contains("PipeProbeReason.GlobalSupply", StringComparison.Ordinal),
+                "the probe must report settlement-wide supply (WP-05/L-02(c))");
 
             foreach (var step in new[]
                      {
@@ -292,17 +333,81 @@ namespace HDBF.Tests
 
         public static void TestPipeProbeNeverDrawsWaterOrFeedsTheFailureCounter()
         {
-            var source = ReadResource(SourceResource);
+            var probeSource = ReadRepoFile(ProbeSourceFile);
             var probeFile = ReadRepoFile(ProbeFile);
-            var probeBody = MethodText(source, "public PipeProbe ProbePipe()")
-                            + MethodText(probeFile, "internal PipeProbe ProbeTanks()");
+            var farmGraph = ReadRepoFile(FarmGraphFile);
+            var probeBody = MethodText(probeSource, "public PipeProbe ProbePipe()")
+                            + MethodText(probeSource, "private PipeProbe ClassifyFarmGraph(")
+                            + MethodText(probeFile, "internal PipeProbe ProbeTanks()")
+                            + MethodText(farmGraph, "internal bool TryProbeFarmGraph(");
             AssertLacks("the pipe probe", probeBody, "TryDrawVolume", "ApplyVolume", "FailDraw",
                 "ReportRuntimeFailure", "_reportFailure", "TryDraw(");
             AssertLacks("the probe file", probeFile, "void Tick", "void Update", "ITickable",
                 "IUpdatable", "DeltaTime", "deltaTime", "Time.deltaTime");
+            AssertLacks("the probe source", probeSource, "TryDraw(", "ApplyVolume", "FailDraw");
             TestAssert.True(MethodText(probeFile, "internal PipeProbe ProbeTanks()")
                     .Contains("catch (Exception", StringComparison.Ordinal),
                 "the probe must be exception-isolated (REQ-V2-SAFE-01)");
+            TestAssert.True(MethodText(farmGraph, "internal bool TryProbeFarmGraph(")
+                    .Contains("catch (Exception", StringComparison.Ordinal),
+                "the farm-graph probe must be exception-isolated (REQ-V2-SAFE-01)");
+        }
+
+        /// <summary>
+        /// WP-05/L-02(c): the probe reports settlement-wide supply honestly. The farm anchor travels
+        /// through the Core optional contract, the host forwards it, the binding asks the verified
+        /// <c>PipeRegistry.TryGetGraph</c> anchor, and every failure keeps the census answer.
+        /// </summary>
+        public static void TestPipeProbeDistinguishesSettlementWideSupplyHonestly()
+        {
+            var probeSource = ReadRepoFile(ProbeSourceFile);
+            TestAssert.True(probeSource.Contains("public void SetProbeAnchor(PipeProbeAnchor? anchor)",
+                    StringComparison.Ordinal), "the source must accept the optional farm anchor");
+            TestAssert.True(probeSource.Contains("PipeProbeReason.GlobalSupply", StringComparison.Ordinal),
+                "the probe must report the settlement-wide reason instead of faking a local connection");
+            TestAssert.True(probeSource.Contains("_binding.TryProbeFarmGraph(anchor.Value.X, anchor.Value.Y, anchor.Value.Z, out var hasGraph)",
+                    StringComparison.Ordinal), "the probe must ask the farm-port graph question");
+            TestAssert.True(probeSource.Contains("if (anchor is null)", StringComparison.Ordinal),
+                "without a farm anchor the probe must keep the census answer");
+
+            var binding = ReadResource(BindingResource);
+            TestAssert.True(binding.Contains("\"TryGetGraph\"", StringComparison.Ordinal),
+                "the binding must resolve the documented PipeRegistry.TryGetGraph anchor");
+            TestAssert.True(binding.Contains("\"UnityEngine.Vector3Int\"", StringComparison.Ordinal)
+                            && binding.Contains("\"TimberPipes.Models.PipeGraph\"", StringComparison.Ordinal),
+                "the TryGetGraph signature must be pinned exactly like CompatAnchorTable");
+            var farmGraph = ReadRepoFile(FarmGraphFile);
+            TestAssert.True(farmGraph.Contains("_tryGetGraph.Invoke(_registry, arguments)",
+                    StringComparison.Ordinal),
+                "the farm-graph probe must invoke the pinned TryGetGraph anchor");
+            TestAssert.True(farmGraph.Contains("SetFailure(\"water-farm-graph-exception\"",
+                    StringComparison.Ordinal),
+                "a reflection failure must degrade to the census answer and be recorded");
+            TestAssert.True(farmGraph.Contains("return false;", StringComparison.Ordinal),
+                "an unknown graph answer must tell the caller to fall back");
+
+            var anchor = CompatAnchorTable.TimberPipes.ApiAnchors.FirstOrDefault(spec =>
+                string.Equals(spec.MemberName, "TryGetGraph", StringComparison.Ordinal));
+            TestAssert.True(anchor is not null,
+                "CompatAnchorTable must keep documenting the TryGetGraph anchor the probe uses");
+            TestAssert.True(anchor!.TypeName.Contains("PipeRegistry", StringComparison.Ordinal));
+            Console.WriteLine("[v2-compat] WP-05: farm-graph anchor pinned; unknown answers fall back to the census");
+        }
+
+        /// <summary>WP-05/L-02(c): the host forwards the optional anchor without drawing or failing.</summary>
+        public static void TestIndoorAdapterHostForwardsTheProbeAnchor()
+        {
+            var host = ReadResource(HostResource);
+            TestAssert.True(host.Contains(
+                    "public sealed class IndoorAdapterHost : IIndoorAdapterHost, IIndoorPipeProbe, IIndoorPipeProbeAnchor",
+                    StringComparison.Ordinal),
+                "the host must implement the optional anchor companion of the probe");
+            var body = MethodText(host, "public void SetProbeAnchor(PipeProbeAnchor? anchor)");
+            TestAssert.True(body.Contains(".SetProbeAnchor(anchor)", StringComparison.Ordinal),
+                "the host must forward the anchor to the Timber Pipes water source");
+            TestAssert.True(body.Contains("catch (Exception", StringComparison.Ordinal),
+                "the anchor forwarding must never throw into the snapshot/render path");
+            AssertLacks("the host anchor setter", body, "TryDraw", "ReportRuntimeFailure", "Fail(");
         }
 
         public static void TestIndoorAdapterHostDelegatesThePipeProbe()

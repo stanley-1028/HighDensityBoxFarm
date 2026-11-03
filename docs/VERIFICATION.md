@@ -1785,3 +1785,52 @@ powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1 -WorkRoot "$env:TE
   Connected），`Output port` 與 `Logistics port` 兩列共用同一語意（合併留後續）；`DisplayNameLocKey`
   只讀 `LabeledEntitySpec`，只有 `SimpleLabeledEntitySpec` 的 mod 作物退回 raw id（仍可選、不再被判無效）；
   `features.logisticsOutput` 等 config 死旗標未動（L-18 pending）。
+
+## 39. 2.5.6 第三維修輪離線驗證（2026-11-03）
+
+> 依據 `docs/BUG_REPAIR_20261102.md` 的 pending 清單；實作卡
+> `docs/workstreams/bugfix-20261102/REPAIR_PLAN_ROUND3.md`。**本輪把「不需要實機/外部模組」的 pending
+> 項目全部落地**；需要實機會話的 fixture（§7.2 A–K）與需要 Emberpelts 主模組的 WP-13 仍 pending。
+> 變更記錄見 `docs/v2/CHANGELOG.md` [2.5.6]；需求/ADR 漂移修訂見 ADR-V2-004 與 §19 `REQ-V2-WATER-02`。
+
+### 39.1 全量門禁（離線）
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1 -WorkRoot "$env:TEMP\hdbf-work"
+```
+
+* 5 個組件（Core / Persistence / Gameplay / Integration / UI）：**0 warning / 0 error**。
+* L1 測試：**PASSED 712 / FAILED 0**（基線 672；本輪新增 40 條）。
+* `tools/validate`：`mod assemblies 5/5 OK`、`RESULT: OK - data/ is valid`（10 blueprints）。
+* `RELEASE GATES: PASSED (44 checks)`；`NFR GATE MATRIX: PASSED`。
+* staged 2,141 KB；未 `-Install`、未跑實機、未上傳 Steam Workshop、未 push GitHub。
+
+### 39.2 本輪修復釘死的契約（L1）
+
+| Bug / WP | 修法一句話 | 釘死測試 |
+|---|---|---|
+| L-02(c) | 適配器失敗改 60 秒滾動時間窗 3-strike；單農場失敗只降級 | `CompatStateMachineTests`（+6）、`V2AdapterHostContractTests`（時間窗呼叫端） |
+| WP-05 部分 | probe 誠實區分「聚落級供水」；per-farm 真實判定仍 pending 實機 | `V2AdapterHostContractTests`（GlobalSupply/anchor）、`V2LiveWarningContractTests`（UI 對應） |
+| L-11 / WP-10 / L-10 | 圖示與面板共用 live 警告旗標；NoWorkers→P1；四視覺不變 | 新檔 `V2LiveWarningContractTests`（13）、`V2WarningIconContractTests`、`V2PanelContractTests` |
+| L-17 | 圖示 tooltip 固定本地化句子（vanilla 無可寫描述 API，已 IL 查證） | `V2LiveWarningContractTests.TestWorldIconTooltipIsFixedAndFreeOfTheDynamicDistance` |
+| L-14（離線部分） | 水流量 30 幀節流、庫存解析冷卻、水源探測/搜尋快取、圖示 pass 短路 | `V2WaterTests`（幀數無關）、`V2NfrPerformanceTests`（節流契約） |
+| L-18 | 5 個 config 旗標全接上（rotation/maintenance/pipeConnection/logisticsOutput/soilFatigue） | 新檔 `V2FeatureFlagContractTests`（7，含「每個旗標都有消費者」） |
+| L-16 | 藍圖模板名/佔格歷史契約＋validator 硬檢查 (a)(b)(c) | 新檔 `V2BlueprintHistoryContractTests`（4，含 negative control） |
+| WP-08 | 一鍵為全部農場補水（每農場各自 all-or-nothing；不做自動多趟） | 新檔 `V2RefillAndProbeContractTests`（4） |
+| WP-07 / RE-03 | 啟動唯讀行為補丁診斷（不註冊任何補丁） | `V2RefillAndProbeContractTests`（2） |
+| L-04 keyed | keyed bridge 與 payload bridge 同一兩態寫入策略 | `V2PersistenceBridgeContractTests`（更新） |
+| L-19 | ADR-V2-004 修訂＋§19 `REQ-V2-WATER-02` 修訂注記 | 文件審查（無程式契約） |
+
+### 39.3 仍 pending（不得寫成已完成）
+
+* **實機 fixture（§7.2 A–K）**：本環境仍無可互動遊戲會話，全部 pending（維護扣料、人工補水、管道真實
+  供水、暫停存檔載入、休耕、拆除、Ember-pelts 等）。
+* **WP-05 真實 per-farm 連通判定/端點**：本輪只做「誠實標示＋唯讀 farm-anchor probe」，抽水仍為
+  settlement-wide；改成 per-farm 會改變平衡且需要實機與 Timber Pipes API 取證，維持 pending。
+* **WP-13 / RE-06 自訂陣營（Ember-pelts）**：**受外部模組阻塞**。`.timbermesh` 是 zlib 壓縮二進位，中立材質
+  變體需要以 Unity/timbermesh 工具鏈重新匯出；盲目改材質名稱會觸發 `MaterialRepository` 失敗，依既有證據
+  會讓**整個建造選單**載入失敗（比現況更糟）。且沒有 Emberpelts 主模組（`3346318229`）無法驗證其
+  `FactionSpec`/材質/作物，故不實作、不猜測。
+* **L-14 100 棟實機 Profiler 量測**：離線節流已落地，實機量測仍 pending。
+* **已知殘留**：`maintenance=false` 期間面板 Next due 顯示舊值（不改 UI）；port 旗標重啟後玩家需重開端口；
+  世界圖示 tooltip 語言切換要等下次註冊；`IndoorEntitySaveBridge.Keyed.cs` 已與 payload bridge 對齊（本輪完成）。

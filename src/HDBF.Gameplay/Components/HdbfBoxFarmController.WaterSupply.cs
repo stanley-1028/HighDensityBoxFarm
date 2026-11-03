@@ -17,8 +17,8 @@ namespace HDBF.Gameplay.Components
 {
     public partial class HdbfBoxFarmController
     {
-        /// <summary>Snapshot reads between two panel water-supply re-probes (~4 s at the panel's 4 Hz).</summary>
-        private const int SupplyProbeSnapshotInterval = 16;
+        /// <summary>Snapshot reads between two panel water-supply re-probes (~6 s at the panel's 4 Hz; L-14).</summary>
+        private const int SupplyProbeSnapshotInterval = 24;
 
         /// <summary>Pipe state read by the activation/daily tick, reused by the panel re-probes.</summary>
         private bool _hasPipeWaterCached;
@@ -156,6 +156,12 @@ namespace HDBF.Gameplay.Components
                 return;
             }
 
+            // L-14: a farm whose water inventory cannot be resolved must not rescan every frame.
+            if (ShouldSkipInventoryResolve())
+            {
+                return;
+            }
+
             // Self-heal: with the vanilla chain the inventory must be enabled before it can be
             // filled; doing it here also covers a farm that was already finished when loaded.
             EnsureWaterInventoryEnabled();
@@ -165,6 +171,7 @@ namespace HDBF.Gameplay.Components
                 return;
             }
 
+            ResetInventoryResolveCooldown();
             try
             {
                 var capacity = _profile.TankCapacity;
@@ -222,6 +229,9 @@ namespace HDBF.Gameplay.Components
                 return;
             }
 
+            // WP-05/L-02(c): tell the read-only probe where this farm stands before the snapshot asks
+            // for its state (the snapshot calls this method first, then ProbePipeState()).
+            PublishProbeAnchor();
             ApplyHauledWater();
             if (_supplyProbeCountdown > 0)
             {

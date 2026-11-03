@@ -62,6 +62,18 @@ namespace HDBF.Core.Abstractions
         /// <param name="failureKey">Specific failure key when false.</param>
         /// <returns>True when the port state was applied.</returns>
         bool TrySetPort(Guid entityId, HdbfPortKind port, bool connected, out string? failureKey);
+
+        /// <summary>
+        /// Settlement-wide convenience action (WP-08): asks every live indoor farm for one manual
+        /// refill trip. Each farm keeps its own all-or-nothing rules (workers, entrance, 2 farm
+        /// actions, a real source within 12 cells), so the pass never forces water into a farm that
+        /// would have rejected a manual click. It never throws; a session without farms fails with
+        /// <see cref="HdbfCommandFailures.NoFarms"/>.
+        /// </summary>
+        /// <param name="failureKey">Specific failure key when false (only when there is nothing to do).</param>
+        /// <param name="refilled">Number of farms that received their refill trip.</param>
+        /// <returns>True when at least one farm was refilled.</returns>
+        bool TryRefillAll(out string? failureKey, out int refilled);
     }
 
     /// <summary>
@@ -94,6 +106,9 @@ namespace HDBF.Core.Abstractions
 
         /// <summary>The port is owned by the physical network (the power port) and cannot be switched here.</summary>
         public const string PortManagedByNetwork = "HDBF.Port.PowerManaged";
+
+        /// <summary>No live indoor farm exists, so the settlement-wide refill action has no target (WP-08).</summary>
+        public const string NoFarms = "HDBF.Error.NoFarms";
 
         /// <summary>Generic fallback for an implementation-specific rejection with no better reason.</summary>
         public const string Unknown = "HDBF.Error.ActionFailed";

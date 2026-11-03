@@ -11,7 +11,7 @@ namespace HDBF.UI.Localization
     /// V2LocalizationTests pin the parity. The <c>Error*</c> values are duplicated in gameplay
     /// because Core cannot reference UI; the panel whitelist keeps an unknown key from the player.
     /// </summary>
-    public static class HdbfUiLocKeys
+    public static partial class HdbfUiLocKeys
     {
         // Tier building names and descriptions (blueprint localization).
         public const string BuildingBasicName = "HDBF.Building.BoxFarm.Basic.Name";

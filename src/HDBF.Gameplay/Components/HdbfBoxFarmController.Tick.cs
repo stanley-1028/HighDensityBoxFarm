@@ -108,6 +108,14 @@ namespace HDBF.Gameplay.Components
                 ManualRefillRequested = manualRequested,
                 ReservedActions = reservedActionsToday,
                 PreviousMode = ModeTransitionPrevious(currentDay),
+                // L-18: config feature flags of the daily simulation. The Core defaults keep every
+                // feature enabled, so a broken/absent config behaves exactly like v2.5.5.
+                Features = new IndoorFeatureToggles
+                {
+                    MaintenanceDisabled = !SafeFeatures().Maintenance,
+                    SoilFatigueDisabled = !SafeFeatures().SoilFatigue,
+                    RotationDisabled = !SafeFeatures().Rotation,
+                },
             };
 
             IndoorDayResult result;

@@ -207,6 +207,22 @@ namespace HDBF.Core.Indoor
         internal static float PanelYieldMultiplier(IndoorFarmRecord record, IndoorSlot[]? slots, int limit,
             float transitionScale)
         {
+            return PanelYieldMultiplier(record, slots, limit, transitionScale, false);
+        }
+
+        /// <summary>
+        /// Panel yield multiplier with the L-18 <c>features.soilFatigue=false</c> switch: a disabled
+        /// soil-fatigue feature makes every slot report G_fat = 1, so an old save that still carries
+        /// fatigue can never show or apply a penalty. The fatigue values themselves are not deleted.
+        /// </summary>
+        /// <param name="record">Farm record (mode and faction only).</param>
+        /// <param name="slots">Slot array of the record; may be null.</param>
+        /// <param name="limit">Number of leading slots to inspect.</param>
+        /// <param name="transitionScale">One-day mode-transition scale in [0,1].</param>
+        /// <param name="soilFatigueDisabled">True when the soil-fatigue feature is config-disabled.</param>
+        internal static float PanelYieldMultiplier(IndoorFarmRecord record, IndoorSlot[]? slots, int limit,
+            float transitionScale, bool soilFatigueDisabled)
+        {
             var modeMultiplier = ModeYieldMultiplier(record.Mode);
             if (slots is null || limit <= 0)
             {
@@ -223,7 +239,7 @@ namespace HDBF.Core.Indoor
                     continue;
                 }
 
-                sum += FatigueYieldMultiplier(slot.Fatigue);
+                sum += soilFatigueDisabled ? 1f : FatigueYieldMultiplier(slot.Fatigue);
                 count++;
             }
 

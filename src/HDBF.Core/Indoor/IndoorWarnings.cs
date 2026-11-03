@@ -5,6 +5,8 @@
 //          the localization keys the gameplay icon service needs. Game-free; no sprites/UI types.
 // Requirements: REQ-V2-BAL-03, REQ-V2-WATER-03, REQ-V2-UI-02, REQ-V2-COMPAT-02
 // ============================================================================
+using HDBF.Core.Balance;
+
 namespace HDBF.Core.Indoor
 {
     /// <summary>Panel priority of one warning row (P0 first), also used for the text marker.</summary>
@@ -118,7 +120,13 @@ namespace HDBF.Core.Indoor
             return IndoorWarningIconKind.None;
         }
 
-        /// <summary>Panel priority of one flag set (P0 when a critical flag is present).</summary>
+        /// <summary>
+        /// Panel priority of one flag set (P0 when a critical flag is present). L-10: an unstaffed
+        /// farm does nothing at all, so <see cref="IndoorWarningFlags.NoWorkers"/> is P1 (High) like
+        /// the other "the farm cannot work" problems - it used to be the lowest priority and read as
+        /// "all green". The four-visual world-icon rule is unchanged: NoWorkers has no icon class of
+        /// its own (see <see cref="IconKindOf"/>), so the panel/status line carries it.
+        /// </summary>
         /// <param name="flags">Daily warning flags of the farm.</param>
         /// <returns>The highest priority the panel must show for these flags.</returns>
         public static IndoorWarningSeverity SeverityOf(IndoorWarningFlags flags)
@@ -129,7 +137,7 @@ namespace HDBF.Core.Indoor
             }
 
             if ((flags & (IndoorWarningFlags.LowWater | IndoorWarningFlags.NoPower
-                          | IndoorWarningFlags.EntranceBlocked)) != 0)
+                          | IndoorWarningFlags.EntranceBlocked | IndoorWarningFlags.NoWorkers)) != 0)
             {
                 return IndoorWarningSeverity.High;
             }
@@ -139,7 +147,7 @@ namespace HDBF.Core.Indoor
                 return IndoorWarningSeverity.Medium;
             }
 
-            if ((flags & (IndoorWarningFlags.OutputFull | IndoorWarningFlags.NoWorkers)) != 0)
+            if ((flags & IndoorWarningFlags.OutputFull) != 0)
             {
                 return IndoorWarningSeverity.Low;
             }
@@ -178,6 +186,96 @@ namespace HDBF.Core.Indoor
                 default:
                     return IndoorWarningKeys.EntranceBlocked;
             }
+        }
+
+        /// <summary>
+        /// Warning flags re-derived from the live values of one snapshot (L-11/WP-10). The daily
+        /// <see cref="IndoorFarmSnapshot.Warnings"/> cache is only refreshed once per game day, which
+        /// is why a refilled tank or a hauled output kept its warning (and its world icon) for a
+        /// whole day. Deriving coverage, overdue maintenance (against
+        /// <see cref="IndoorFarmSnapshot.CurrentDay"/>), power, crew, entrance and output occupancy
+        /// from the snapshot itself makes the panel and the world icon react on the next refresh.
+        /// <see cref="IndoorWarningFlags.MissingMaterial"/> is the one flag with no live source here
+        /// (judging it needs the material stockpile of the daily pass), so it is carried over.
+        /// </summary>
+        /// <param name="snapshot">Read-only farm snapshot; null carries no flags.</param>
+        /// <returns>Live-derived flags of the snapshot.</returns>
+        public static IndoorWarningFlags LiveFlagsOf(IndoorFarmSnapshot? snapshot)
+        {
+            if (snapshot is null)
+            {
+                return IndoorWarningFlags.None;
+            }
+
+            var flags = snapshot.Warnings & IndoorWarningFlags.MissingMaterial;
+            // L-10: a farm without a crew does nothing, so this is a real warning, not a low note.
+            if (snapshot.Workers <= 0) flags |= IndoorWarningFlags.NoWorkers;
+            if (snapshot.EntranceBlocked) flags |= IndoorWarningFlags.EntranceBlocked;
+
+            // Same thresholds the daily settlement uses (and the panel already renders): C = 0 is
+            // "no water", 0 < C < C_min is "water low". A zero demand (no crew) reads C = 1.
+            var coverage = snapshot.Coverage;
+            if (!float.IsNaN(coverage) && !float.IsInfinity(coverage))
+            {
+                if (coverage <= 0f) flags |= IndoorWarningFlags.NoWater;
+                else if (snapshot.MinCoverage > 0f && coverage < snapshot.MinCoverage)
+                    flags |= IndoorWarningFlags.LowWater;
+            }
+
+            var cycles = LiveMaintenanceCycles(snapshot);
+            if (cycles > 0)
+            {
+                flags |= IndoorWarningFlags.MaintenanceDue;
+                if (IndoorMaintenanceMath.IsStalled(cycles))
+                {
+                    flags |= IndoorWarningFlags.MaintenanceStalled;
+                }
+            }
+
+            if (snapshot.Power == PowerConnection.Grid && !snapshot.PowerConnected
+                && (snapshot.Profile is null || snapshot.Profile.NeedsPower))
+            {
+                flags |= IndoorWarningFlags.NoPower;
+            }
+
+            // OutputFull is live from the occupancy: the moment haulers free room in the buffer the
+            // warning clears, instead of waiting for the next day tick to re-evaluate the backlog.
+            var outputCapacity = IndoorConstants.OutputCapacityFor(snapshot.Capacity);
+            if (outputCapacity > 0 && snapshot.OutputOccupied >= outputCapacity)
+                flags |= IndoorWarningFlags.OutputFull;
+
+            return flags;
+        }
+
+        /// <summary>
+        /// Flags the panel and the world icon must render (L-11): the live-derived set when the
+        /// snapshot producer supplied it, otherwise the once-per-day cache. A null snapshot carries
+        /// no flags, so callers never have to special-case a missing farm.
+        /// </summary>
+        /// <param name="snapshot">Read-only farm snapshot; null means "no information".</param>
+        /// <returns>The effective warning flags of the snapshot.</returns>
+        public static IndoorWarningFlags EffectiveFlags(IndoorFarmSnapshot? snapshot) =>
+            snapshot is null ? IndoorWarningFlags.None : snapshot.LiveWarnings ?? snapshot.Warnings;
+
+        /// <summary>
+        /// Maintenance cycles of the live day (L-11): the same formula as the daily tick, so the
+        /// panel reports "maintenance overdue" the moment the deadline passes instead of on the next
+        /// tick. Falls back to the stored counter when the profile/clock is missing (tests, older
+        /// gameplay builds), which keeps those snapshots' behaviour unchanged.
+        /// </summary>
+        /// <param name="snapshot">Read-only farm snapshot.</param>
+        /// <returns>Missed maintenance cycles (0 when maintenance does not apply).</returns>
+        private static int LiveMaintenanceCycles(IndoorFarmSnapshot snapshot)
+        {
+            var profile = snapshot.Profile;
+            var day = snapshot.CurrentDay;
+            if (profile is null || float.IsNaN(day) || float.IsInfinity(day))
+                return snapshot.MaintenanceCyclesMissed;
+            var offGrid = profile.NeedsPower
+                          && !(snapshot.Power == PowerConnection.Grid && snapshot.PowerConnected);
+            var cycleDays = MaintenanceDefaults.CycleDaysFor(profile, offGrid);
+            var cycles = BalanceFormulas.MaintenanceCyclesMissed(snapshot.MaintenanceDueDay, day, cycleDays);
+            return cycles < 0 ? 0 : cycles;
         }
     }
 }

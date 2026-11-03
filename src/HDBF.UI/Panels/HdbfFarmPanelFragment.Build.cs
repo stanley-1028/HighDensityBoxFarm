@@ -30,6 +30,7 @@ namespace HDBF.UI.Panels
         private VisualElement? _actionCard;
         private Button? _refillButton;
         private Label? _refillReason;
+        private Button? _refillAllButton;
         private Button? _maintenanceButton;
         private Label? _maintenanceReason;
         private Button? _autoMaintenanceButton;
@@ -155,6 +156,16 @@ namespace HDBF.UI.Panels
             _refillReason = HdbfPanelControls.CreateNoteLabel(string.Empty);
             _refillReason.style.marginTop = 2f;
             _actionCard.Add(_refillReason);
+
+            // WP-08: settlement-wide refill. Each farm pays its own 2 farm actions and needs its own
+            // reachable source, so this is a convenience button, not a free-water shortcut.
+            _refillAllButton = HdbfPanelControls.CreateButton(_visualElementLoader,
+                _loc.T(HDBF.UI.Localization.HdbfUiLocKeys.ActionRefillAll), OnRefillAllClicked);
+            _tooltips.Register(_refillAllButton,
+                () => _loc.T(HDBF.UI.Localization.HdbfUiLocKeys.TooltipRefillAll));
+            _refillAllButton.style.alignSelf = Align.Stretch;
+            _refillAllButton.style.marginTop = 4f;
+            _actionCard.Add(_refillAllButton);
 
             _maintenanceButton = HdbfPanelControls.CreateButton(_visualElementLoader,
                 _loc.T(HDBF.UI.Localization.HdbfUiLocKeys.ActionMaintenance), OnMaintenanceClicked);

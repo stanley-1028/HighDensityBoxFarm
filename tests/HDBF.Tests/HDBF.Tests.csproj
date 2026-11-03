@@ -36,7 +36,7 @@
     shipped CSVs without referencing the game-facing HDBF.UI assembly (REQ-TEST-03).
   -->
   <ItemGroup>
-    <Compile Include="..\..\src\HDBF.UI\Localization\HdbfUiLocKeys.cs" Link="Linked\HdbfUiLocKeys.cs" />
+    <Compile Include="..\..\src\HDBF.UI\Localization\HdbfUiLocKeys*.cs" Link="Linked\%(Filename)%(Extension)" />
   </ItemGroup>
 
   <!--

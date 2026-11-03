@@ -55,6 +55,33 @@ namespace HDBF.Core.Indoor
         /// "no transition this day".
         /// </summary>
         public IndoorMode? PreviousMode { get; init; }
+
+        /// <summary>
+        /// Config feature toggles that change the daily simulation (L-18). Every member of
+        /// <see cref="IndoorFeatureToggles"/> is a *disabled* flag, so the struct default keeps the
+        /// shipped v2.5.5 behaviour and an old caller never changes its semantics.
+        /// </summary>
+        public IndoorFeatureToggles Features { get; init; }
+    }
+
+    /// <summary>
+    /// The config feature flags that alter one daily tick (L-18): a disabled flag removes a feature's
+    /// effect from the simulation without deleting any saved state (REQ-ARCH-09: re-enabling the
+    /// feature restores the documented behaviour). All flags default to "enabled" on purpose.
+    /// </summary>
+    public readonly struct IndoorFeatureToggles
+    {
+        /// <summary><c>features.maintenance=false</c>: maintenance never expires and G_maint stays 1.</summary>
+        public bool MaintenanceDisabled { get; init; }
+
+        /// <summary><c>features.soilFatigue=false</c>: fatigue never accumulates and G_fat stays 1.</summary>
+        public bool SoilFatigueDisabled { get; init; }
+
+        /// <summary>
+        /// <c>features.rotation=false</c>: a rotation record always plants the first faction crop
+        /// instead of cycling through the table (the controller converts it to the fixed policy).
+        /// </summary>
+        public bool RotationDisabled { get; init; }
     }
 
     /// <summary>Outcome of the optional manual water refill path of one day (section 19.6).</summary>

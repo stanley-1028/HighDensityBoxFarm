@@ -90,6 +90,13 @@ namespace HDBF.UI.Panels
                 hash = hash * 31 + (snapshot.LogisticsPort ? 1 : 0);
                 hash = hash * 31 + (snapshot.PowerPort ? 1 : 0);
                 hash = hash * 31 + (int)snapshot.Warnings;
+                // L-11: the live-derived flags/entrance/day drive warning rows and the status line,
+                // so the dirty check must rerender when only they change (e.g. a refilled tank).
+                hash = hash * 31 + (snapshot.LiveWarnings is null
+                    ? -1
+                    : (int)snapshot.LiveWarnings.Value);
+                hash = hash * 31 + (snapshot.EntranceBlocked ? 1 : 0);
+                hash = hash * 31 + Quantize(snapshot.CurrentDay);
                 hash = hash * 31 + (snapshot.OutputInventoryPortState is null
                     ? 0
                     : snapshot.OutputInventoryPortState.GetHashCode());

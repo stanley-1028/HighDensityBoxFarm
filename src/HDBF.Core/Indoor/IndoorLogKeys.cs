@@ -104,6 +104,27 @@ namespace HDBF.Core.Indoor
         /// <summary>Throttled read-only pipe probe result (tank/network/water counts and reason).</summary>
         public const string PipeProbe = "water.pipe-probe";
 
+        /// <summary>One settlement-wide manual-refill pass finished (WP-08; carries requested/refilled/skipped).</summary>
+        public const string RefillAll = "water.refill-all";
+
+        // ---------------------------------------------------------------- feature.*
+        // Lead-owned keys for the second repair round; indoor.* keeps every gameplay diagnostic.
+
+        /// <summary>
+        /// A config feature flag turned a gameplay feature off (L-18); carries the flag name and the
+        /// affected behaviour so the log explains why the farm behaves differently from the docs.
+        /// </summary>
+        public const string FeatureDisabled = "indoor.feature-disabled";
+
+        /// <summary>
+        /// Read-only startup probe of the beaver work-behavior decision method (WP-07/RE-03): it
+        /// records whether a third-party patch replaced it, without registering any patch.
+        /// </summary>
+        public const string BehaviorProbe = "indoor.behavior-probe";
+
+        /// <summary>The startup probe found a third-party replacement of the beaver behavior method (WP-07).</summary>
+        public const string BehaviorProbePatched = "indoor.behavior-probe-patched";
+
         // ---------------------------------------------------------------- save.*
 
         /// <summary>One farm record was written successfully.</summary>

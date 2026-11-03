@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using HDBF.Core;
 using HDBF.Core.Compat;
 using HDBF.Core.Logging;
@@ -289,6 +290,12 @@ namespace HDBF.Integration.Adapters
         /// <see cref="CompatAdapterRegistry.ReportRuntimeFailure"/> when a reflected mod call
         /// throws, so a broken external API eventually disables just this adapter and the farm
         /// keeps running on manual refill (REQ-V2-COMPAT-02).
+        ///
+        /// L-02(c): the failure is timestamped with the process monotonic clock, so the Core state
+        /// machine only reaches <see cref="HdbfAdapterHealth.Failed"/> when three failures fall
+        /// inside its rolling window. A single farm's failed pipe draw is one strike (Degraded, a
+        /// retry is still allowed); only repeated failures inside the window disable the adapter.
+        /// The clock conversion is guarded: if it ever fails, the legacy timestampless rule applies.
         /// </summary>
         internal void NoteRuntimeFailure(string reason)
         {
@@ -297,7 +304,17 @@ namespace HDBF.Integration.Adapters
 
         private void RecordFailure(string reason, Exception? exception)
         {
-            _state.Fail(reason);
+            var timestampSeconds = TryGetMonotonicSeconds();
+            if (double.IsNaN(timestampSeconds))
+            {
+                // Clock unavailable: keep the legacy "any three failures" rule (REQ-COMPAT-07).
+                _state.Fail(reason);
+            }
+            else
+            {
+                _state.Fail(reason, timestampSeconds);
+            }
+
             if (exception is null)
             {
                 LogError(reason, null);
@@ -305,6 +322,25 @@ namespace HDBF.Integration.Adapters
             else
             {
                 LogError(reason, exception);
+            }
+        }
+
+        /// <summary>
+        /// Process-monotonic time in seconds for the L-02(c) failure window (no Unity/Time
+        /// dependency, no mutable static state). Returns NaN when the clock cannot be read, which
+        /// makes the state machine fall back to its legacy counting rule.
+        /// </summary>
+        /// <returns>Monotonic seconds since an arbitrary process origin, or NaN.</returns>
+        private static double TryGetMonotonicSeconds()
+        {
+            try
+            {
+                var frequency = Stopwatch.Frequency;
+                return frequency <= 0L ? double.NaN : Stopwatch.GetTimestamp() / (double)frequency;
+            }
+            catch (Exception)
+            {
+                return double.NaN;
             }
         }
 

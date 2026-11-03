@@ -3,9 +3,6 @@
 // Purpose: Finished-state activation, query/world-icon registration, tier/faction
 //          resolution and lifetime trigger creation for the indoor controller.
 // Requirements: REQ-V2-BLD-02, REQ-V2-LABOR-03, REQ-V2-SAFE-01/04, REQ-V2-MAINT-04
-// Size: above the 300-line soft gate with a written reason (REQ-V2-MAINT-02): the finished-state
-//       activation, the query/icon registration and the matching idempotent deactivation are the
-//       lifecycle contract of one entity and are reviewed as one unit.
 // ============================================================================
 using System;
 using HDBF.Core;
@@ -37,6 +34,10 @@ namespace HDBF.Gameplay.Components
                 {
                     _record.EntityId = _saveEntityId.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 }
+
+                // L-18: apply the session config feature flags to the record before any daily
+                // subsystem reads it (forced ports, rotation fallback, one-time disabled log).
+                ApplyFeatureFlags();
 
                 // Hauled water (REQ-V2-WATER-02): the vanilla inventory initializer creates the water
                 // input inventory disabled and the owner building must enable it; otherwise the
@@ -185,59 +186,6 @@ namespace HDBF.Gameplay.Components
             }
 
             DisableComponent();
-        }
-
-        /// <summary>
-        /// Fresh buildings get their first material-maintenance deadline from the activation day,
-        /// not from the (much earlier) construction-site day. A loaded record keeps its saved
-        /// deadline; only a missing/unusable deadline is resolved to one full cycle (REQ-V2-BAL-02).
-        /// </summary>
-        private void EnsureMaintenanceDeadline()
-        {
-            if (_maintenanceInitialized || _record is null)
-            {
-                return;
-            }
-
-            _maintenanceInitialized = true;
-            if (_profile.MaintenanceKind == HdbfMaintenanceKind.IrrigationOnly)
-            {
-                return;
-            }
-
-            var today = ReadCurrentDay();
-            var cycleDays = MaintenanceDefaults.DefaultCycleDays(_profile);
-            if (cycleDays <= 0f)
-            {
-                return;
-            }
-
-            var dueDay = today + cycleDays;
-            if (float.IsNaN(dueDay) || float.IsInfinity(dueDay))
-            {
-                return;
-            }
-
-            _record.MaintenanceDueDay = dueDay;
-            _record.MaintenanceCyclesMissed = 0;
-            _saveDirty = true;
-        }
-
-        private void ResolveMaintenanceAfterLoad()
-        {
-            if (_record is null)
-            {
-                return;
-            }
-
-            _maintenanceInitialized = true;
-            var today = ReadCurrentDay();
-            var resolved = MaintenanceDefaults.ResolveDueDay(_profile, today, _record.MaintenanceDueDay);
-            if (resolved != _record.MaintenanceDueDay)
-            {
-                _record.MaintenanceDueDay = resolved;
-                _saveDirty = true;
-            }
         }
 
         private void ResolveTierProfile()

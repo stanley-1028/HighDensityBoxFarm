@@ -135,7 +135,8 @@ namespace HDBF.Core.Indoor
             int reservedActions, float yieldScale)
         {
             return RunActionsCore(record, tier, catalog, activeWorkers, output, farmActionsAllowed,
-                reservedActions, yieldScale, plantAllEmptySlots: false, waterAvailable: true);
+                reservedActions, yieldScale, plantAllEmptySlots: false, waterAvailable: true,
+                soilFatigueDisabled: false, rotationDisabled: false);
         }
 
         /// <summary>
@@ -160,12 +161,42 @@ namespace HDBF.Core.Indoor
             int reservedActions, float yieldScale, bool waterAvailable)
         {
             return RunActionsCore(record, tier, catalog, activeWorkers, output, farmActionsAllowed,
-                reservedActions, yieldScale, plantAllEmptySlots: waterAvailable, waterAvailable: waterAvailable);
+                reservedActions, yieldScale, plantAllEmptySlots: waterAvailable, waterAvailable: waterAvailable,
+                soilFatigueDisabled: false, rotationDisabled: false);
+        }
+
+        /// <summary>
+        /// Runs one day of farm actions with the L-18 config feature switches. A disabled soil-fatigue
+        /// feature skips the harvest fatigue bookkeeping and settles every harvest at G_fat = 1; a
+        /// disabled rotation feature keeps a rotation record on the first faction crop instead of
+        /// cycling through the table (no call site changes semantics by default).
+        /// </summary>
+        /// <param name="record">Farm record mutated in place.</param>
+        /// <param name="tier">Tier profile of the building.</param>
+        /// <param name="catalog">Crop catalog; the built-in fallback covers missing specs.</param>
+        /// <param name="activeWorkers">On-duty workers, source of the action budget.</param>
+        /// <param name="output">Output inventory sink; null means "nowhere to put produce".</param>
+        /// <param name="farmActionsAllowed">False for stalled/fallow/blocked-entrance days.</param>
+        /// <param name="reservedActions">Actions already reserved/consumed today (refill, jobs).</param>
+        /// <param name="yieldScale">Harvest yield scale in [0,1]; 1 means no mode transition.</param>
+        /// <param name="waterAvailable">True when the tank holds water; false plants nothing.</param>
+        /// <param name="soilFatigueDisabled">True when <c>features.soilFatigue=false</c>.</param>
+        /// <param name="rotationDisabled">True when <c>features.rotation=false</c>.</param>
+        /// <returns>What happened today; never null and never throws.</returns>
+        public static IndoorActionStats RunActions(IndoorFarmRecord record, TierProfile tier,
+            ICropCatalog catalog, int activeWorkers, IInventorySink output, bool farmActionsAllowed,
+            int reservedActions, float yieldScale, bool waterAvailable, bool soilFatigueDisabled,
+            bool rotationDisabled)
+        {
+            return RunActionsCore(record, tier, catalog, activeWorkers, output, farmActionsAllowed,
+                reservedActions, yieldScale, plantAllEmptySlots: waterAvailable, waterAvailable: waterAvailable,
+                soilFatigueDisabled: soilFatigueDisabled, rotationDisabled: rotationDisabled);
         }
 
         private static IndoorActionStats RunActionsCore(IndoorFarmRecord record, TierProfile tier,
             ICropCatalog catalog, int activeWorkers, IInventorySink output, bool farmActionsAllowed,
-            int reservedActions, float yieldScale, bool plantAllEmptySlots, bool waterAvailable)
+            int reservedActions, float yieldScale, bool plantAllEmptySlots, bool waterAvailable,
+            bool soilFatigueDisabled, bool rotationDisabled)
         {
             var stats = new IndoorActionStats();
             if (record is null || tier is null || !farmActionsAllowed) return stats;
@@ -183,7 +214,8 @@ namespace HDBF.Core.Indoor
                 if (slot is null || slot.Stage != SlotStage.Mature || string.IsNullOrEmpty(slot.CropId)) continue;
                 try
                 {
-                    if (TryHarvest(record, tier, slot, catalog, output, yieldScale, out var blocked))
+                    if (TryHarvest(record, tier, slot, catalog, output, yieldScale, soilFatigueDisabled,
+                            out var blocked))
                     {
                         stats.Harvested++;
                         stats.ActionsUsed++;
@@ -213,7 +245,7 @@ namespace HDBF.Core.Indoor
                 if (slot is null || slot.Stage != SlotStage.Empty) continue;
                 try
                 {
-                    if (!TryPlant(record, slot, catalog, factionCrops)) continue;
+                    if (!TryPlant(record, slot, catalog, factionCrops, rotationDisabled)) continue;
                     stats.Planted++;
                     // Auto-fill planting is free of the daily budget; the old modes keep paying.
                     if (!plantAllEmptySlots) stats.ActionsUsed++;

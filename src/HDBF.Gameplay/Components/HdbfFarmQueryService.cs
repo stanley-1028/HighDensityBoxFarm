@@ -98,5 +98,27 @@ namespace HDBF.Gameplay.Components
                 _sources.Remove(entityId);
             }
         }
+
+        /// <summary>
+        /// Snapshot of every live indoor farm id (WP-08 settlement-wide refill-all). The list is
+        /// materialized so the caller can iterate without holding the session table; commands run on
+        /// the main thread and are rare, so the small allocation is acceptable.
+        /// </summary>
+        /// <returns>Entity ids of the registered farms; empty when none are live.</returns>
+        public IReadOnlyList<Guid> LiveFarmIds()
+        {
+            if (_sources.Count == 0)
+            {
+                return Array.Empty<Guid>();
+            }
+
+            var ids = new List<Guid>(_sources.Count);
+            foreach (var pair in _sources)
+            {
+                ids.Add(pair.Key);
+            }
+
+            return ids;
+        }
     }
 }

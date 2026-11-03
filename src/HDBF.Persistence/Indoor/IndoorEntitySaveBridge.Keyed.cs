@@ -21,17 +21,22 @@ namespace HDBF.Persistence.Indoor
     /// payload string, while the old payload and v1 nodes stay readable (REQ-V2-SAVE-02).
     ///
     /// Safety contract (section 19.18.3-A): the write path validates a deep copy first and refuses
-    /// the write on any repair, so the live record and the previous entity record are never
-    /// replaced by a damaged one; the read path never throws into the save callback and repairs a
-    /// damaged building in isolation. Both entry points are total functions: null arguments and
-    /// broken game nodes return false/null, never an exception (REQ-V2-SAVE-06, REQ-V2-SAFE-01).
+    /// the write only when the record cannot be represented at all (<see cref="IndoorRepairResult.CannotWrite"/>);
+    /// a repairable record is written as the repaired copy with the pre-repair state kept as a
+    /// rollback copy (L-04, same two-state rule as the payload bridge), so the live record is never
+    /// mutated and the previous entity record is never replaced by a damaged one; the read path
+    /// never throws into the save callback and repairs a damaged building in isolation. Both entry
+    /// points are total functions: null arguments and broken game nodes return false/null, never an
+    /// exception (REQ-V2-SAVE-06, REQ-V2-SAFE-01).
     /// </summary>
     public static partial class IndoorEntitySaveBridge
     {
         /// <summary>
         /// Writes one validated schema-v2 record through the game entity saver (REQ-V2-SAVE-04).
-        /// Validation runs on a deep copy, so a refused write leaves the live record and the
-        /// previous entity record untouched; the caller keeps its dirty flag and retries.
+        /// Validation runs on a deep copy, so the live record is never mutated. L-04: a repaired
+        /// candidate is written as the repaired copy (with a <c>save.write-repaired</c> line and a
+        /// pre-repair rollback copy), and only a <see cref="IndoorRepairResult.CannotWrite"/> pass
+        /// leaves the previous entity record untouched for a retry on the next save.
         /// </summary>
         /// <param name="record">Live record to persist; null fails cleanly.</param>
         /// <param name="tier">Resolved tier profile; null fails cleanly.</param>
@@ -64,9 +69,10 @@ namespace HDBF.Persistence.Indoor
                 return false;
             }
 
-            if (validation is null || validation.Repaired)
+            if (validation is null || validation.CannotWrite)
             {
-                // A repaired record is not the record the caller owns: refuse and retry next save.
+                // L-04: only a record that cannot be represented at all keeps the previous record;
+                // a repair that merely fixed fields/slots is written as the repaired copy below.
                 Notify(warn, IndoorLogKeys.ValidationFailed,
                     "write refused by pre-write validation; previous record kept (" + Describe(validation) + ")");
                 return false;
@@ -81,9 +87,25 @@ namespace HDBF.Persistence.Indoor
                     return false;
                 }
 
+                // L-04: a repaired write first keeps the state it repaired away as a rollback copy
+                // (same PreviousPayload key as the payload bridge); a clean save never grows by it.
+                var rollback = validation.Repaired ? TryEncodeRollbackCopy(record) : null;
+                if (!string.IsNullOrEmpty(rollback))
+                {
+                    component.Set(IndoorSaveKeys.PreviousPayload, rollback!);
+                    Notify(warn, IndoorLogKeys.SavePreviousSnapshot,
+                        "pre-repair rollback copy kept under PreviousPayload (" + rollback!.Length + " chars)");
+                }
+
                 // One complete record per save callback: every field of the schema is set here, so
                 // the game never serializes a partial key set from this path (section 19.18.3-A5).
                 WriteRecord(component, candidate);
+                if (validation.Repaired)
+                {
+                    Notify(warn, IndoorLogKeys.SaveWriteRepaired, "repaired keyed record written ("
+                        + Describe(validation) + ") notes=" + DescribeNotes(validation));
+                }
+
                 return true;
             }
             catch (Exception exception)

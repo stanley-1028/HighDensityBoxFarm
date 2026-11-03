@@ -119,6 +119,39 @@ namespace HDBF.Tests
             TestAssert.Equal(2.4f, record.Tank, 1e-4f, "3.6 minus one continuous game day");
         }
 
+        /// <summary>
+        /// L-14: the frame throttle added to the hauled-water conversion and the inventory resolve
+        /// may only delay work, never change a game-day total. The continuous drain is sliced by
+        /// elapsed game days, so 30 slow frames and 144 fast frames of one game day must leave
+        /// exactly the same tank level (the same day, same condition, same result rule).
+        /// </summary>
+        public static void TestContinuousDrainIsFrameCountIndependent()
+        {
+            var tier = TierCatalog.Get(HdbfTier.Advanced);
+            var slots = IndoorLaborMath.EffectiveSlots(tier, 8);
+            var slow = Record(HdbfTier.Advanced);
+            var fast = Record(HdbfTier.Advanced);
+            Drain(slow, tier, slots, 30);
+            Drain(fast, tier, slots, 144);
+
+            TestAssert.Equal(slow.Tank, fast.Tank, 1e-4f,
+                "the drained tank must be identical at 30 and 144 frames per game day");
+            TestAssert.Equal(IndoorWaterMath.DemandPerDay(slots, tier.WaterPerSlotPerDay, IndoorMode.Normal),
+                Record(HdbfTier.Advanced).Tank - slow.Tank, 1e-4f,
+                "the whole day must drain exactly the daily demand regardless of the frame count");
+        }
+
+        private static void Drain(IndoorFarmRecord record, TierProfile tier, int slots, int frames)
+        {
+            var elapsed = 1f / frames;
+            for (var frame = 0; frame < frames; frame++)
+            {
+                var slice = IndoorWaterMath.DemandForElapsedDays(slots, tier.WaterPerSlotPerDay,
+                    IndoorMode.Normal, elapsed);
+                IndoorWaterMath.Consume(record, tier, slice);
+            }
+        }
+
         public static void TestConsumeClampsAtZeroAndSanitizes()
         {
             var record = Record(HdbfTier.Basic);

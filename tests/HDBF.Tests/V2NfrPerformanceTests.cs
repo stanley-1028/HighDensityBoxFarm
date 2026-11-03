@@ -218,6 +218,50 @@ namespace HDBF.Tests
                 + "continuous drain owned by the Gameplay flow service");
         }
 
+        /// <summary>
+        /// L-14 (water flow part): the per-frame drain path must not convert hauled water, rescan a
+        /// missing water inventory or re-probe the source every frame, and the manual water search
+        /// must reject off-circle cells with integer math before touching the water map. Source
+        /// contract only (the Gameplay assembly references Timberborn); the behaviour is unchanged:
+        /// a conversion moves the same whole goods, only at most ~0.5 s later.
+        /// </summary>
+        public static void TestWaterFlowAndManualSearchAreFrameThrottled()
+        {
+            var components = Path.Combine(RepoRoot(), "src", "HDBF.Gameplay", "Components");
+            var waterFlow = File.ReadAllText(Path.Combine(components, "HdbfBoxFarmController.WaterFlow.cs"));
+            TestAssert.True(waterFlow.Contains("HauledWaterFrameInterval = 30", StringComparison.Ordinal),
+                "L-14: the hauled-water conversion must be frame-throttled (~0.5 s at 60 fps)");
+            TestAssert.True(waterFlow.Contains("ApplyHauledWaterThrottled()", StringComparison.Ordinal),
+                "the per-frame drain must call the throttled conversion, not ApplyHauledWater() directly");
+            TestAssert.True(waterFlow.Contains("WaterInventoryResolveCooldownFrames = 300",
+                    StringComparison.Ordinal),
+                "L-14: an unresolvable water inventory must not be rescanned every frame");
+            TestAssert.True(waterFlow.Contains("private bool ShouldSkipInventoryResolve()",
+                    StringComparison.Ordinal),
+                "L-14: the inventory resolve cooldown must gate the per-frame scan");
+            TestAssert.True(waterFlow.Contains("var before = _record.Tank;", StringComparison.Ordinal)
+                            && waterFlow.Contains("_record.Tank != before", StringComparison.Ordinal),
+                "L-14: the dirty bit may only be set when the tank really changed");
+
+            var supply = File.ReadAllText(Path.Combine(components, "HdbfBoxFarmController.WaterSupply.cs"));
+            TestAssert.True(supply.Contains("SupplyProbeSnapshotInterval = 24", StringComparison.Ordinal),
+                "L-14: the panel source probe cache must be longer than the old 16 snapshots");
+            TestAssert.True(supply.Contains("ShouldSkipInventoryResolve()", StringComparison.Ordinal),
+                "L-14: ApplyHauledWater must honour the inventory-resolve cooldown");
+            TestAssert.True(supply.Contains("PublishProbeAnchor();", StringComparison.Ordinal),
+                "WP-05/L-02(c): the snapshot must publish the farm anchor before the probe runs");
+
+            var search = File.ReadAllText(Path.Combine(components, "HdbfManualWaterSource.Search.cs"));
+            TestAssert.True(search.Contains("var offsetSquared = dx * dx + dz * dz;", StringComparison.Ordinal)
+                            && search.Contains("offsetSquared > radiusSquared", StringComparison.Ordinal),
+                "L-14: the manual water search must reject off-circle cells before the sqrt/map probe");
+            TestAssert.True(search.Contains("if (foundDistance <= 1f)", StringComparison.Ordinal),
+                "L-14: the manual water search must stop once the nearest possible cell is found");
+
+            Console.WriteLine("[nfr-perf] L-14: water flow throttled (30 frames), inventory resolve cooldown "
+                              + "(300 frames), source probe cache 24 snapshots, manual search integer prefilter");
+        }
+
         // ------------------------------------------------------------------ helpers
 
         private static IndoorDayContext Context()

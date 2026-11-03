@@ -357,8 +357,28 @@ namespace HDBF.Tests
             TestAssert.True(clone >= 0 && validate > clone,
                 "REQ-V2-SAVE-04: the keyed write path must validate a copy, not the live record");
             TestAssert.True(write > validate, "the complete record must be written only after validation");
-            TestAssert.True(save.Contains("validation.Repaired", StringComparison.Ordinal),
-                "a candidate that needed repair must be refused");
+
+            // L-04 unification: the keyed bridge uses the same two states as the payload bridge -
+            // CannotWrite refuses, a repaired record is written as the repaired copy + rollback copy.
+            TestAssert.True(save.Contains("validation.CannotWrite", StringComparison.Ordinal),
+                "L-04: the keyed write may only refuse CannotWrite");
+            TestAssert.False(save.Contains("validation is null || validation.Repaired", StringComparison.Ordinal),
+                "L-04: a repaired keyed record must not be refused as a whole any more");
+            TestAssert.True(save.Contains("IndoorLogKeys.SaveWriteRepaired", StringComparison.Ordinal),
+                "L-04: a repaired keyed write must log save.write-repaired");
+            TestAssert.True(save.Contains("DescribeNotes(validation)", StringComparison.Ordinal),
+                "L-04: save.write-repaired must carry the repair notes, not only the counters");
+            TestAssert.True(save.Contains("IndoorLogKeys.SavePreviousSnapshot", StringComparison.Ordinal),
+                "L-04: the pre-repair rollback copy must log save.previous-snapshot");
+            var repairedGate = save.IndexOf("validation.Repaired ? TryEncodeRollbackCopy(record) : null",
+                StringComparison.Ordinal);
+            var rollbackWrite = save.IndexOf("component.Set(IndoorSaveKeys.PreviousPayload",
+                StringComparison.Ordinal);
+            var recordWrite = save.IndexOf("WriteRecord(component, candidate)", StringComparison.Ordinal);
+            TestAssert.True(repairedGate >= 0,
+                "the keyed rollback copy must be produced only for a repaired write (clean saves stay small)");
+            TestAssert.True(rollbackWrite > repairedGate && recordWrite > rollbackWrite,
+                "PreviousPayload is set first, then the complete keyed record (L-04 order)");
             TestAssert.True(save.Contains("catch (Exception", StringComparison.Ordinal)
                             && save.Contains("return false", StringComparison.Ordinal),
                 "the keyed save boundary must catch and return false (REQ-V2-SAFE-01)");
