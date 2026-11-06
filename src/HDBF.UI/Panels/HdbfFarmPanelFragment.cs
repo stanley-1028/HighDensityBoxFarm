@@ -149,6 +149,17 @@ namespace HDBF.UI.Panels
                 return;
             }
 
+            // The vanilla crop dropdown closes its open popup when the card that owns it is
+            // rebuilt (DetachFromPanelEvent -> DropdownListDrawer.HideDropdown). While a dropdown
+            // popup is open, skip the periodic refresh entirely: the popup stays open, and the
+            // values catch up on the first refresh after it closes. This is the hard guarantee
+            // behind the per-card content diff - even a rebuild triggered by an unexpected content
+            // change cannot close a popup the player is using.
+            if (IsCropDropdownOpen())
+            {
+                return;
+            }
+
             var now = Time.unscaledTime;
             if (now < _nextRefreshTime)
             {
@@ -161,6 +172,24 @@ namespace HDBF.UI.Panels
             UpdateScrollHeight();
             Refresh(force: false);
         }
+
+        /// <summary>
+        /// True while the vanilla dropdown popup is open. The drawer root is created by the
+        /// drawer's startup load; an unloaded/broken drawer is treated as "closed" so this guard can
+        /// never make the entity panel throw or hide itself.
+        /// </summary>
+        private bool IsCropDropdownOpen()
+        {
+            try
+            {
+                return _dropdownListDrawer.DropdownVisible;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
         /// <inheritdoc />
         public void ClearFragment()
         {

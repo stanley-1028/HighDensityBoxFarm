@@ -128,13 +128,19 @@ cp docs/workshop/publish/* "$USERPROFILE/Documents/Timberborn/Mods/HDBF/"
 
 ## 發佈記錄（2026-11-06，2.5.7 熱修）
 
-- 2.5.7 於 **2026-11-06 17:14（Asia/Macau）** 上傳成功：`ManifestID 6070896543431048995`、
+- 2.5.7 於 **2026-11-06 17:40（Asia/Macau）** 上傳成功：`ManifestID 4408964257799319853`、
   `Upload finished for workshop item 3828809784 : OK`（Steam `logs/workshop_log.txt`）。
+- **⚠ 第一次 17:14 的上傳作廢**：本機 `%TEMP%` 在不同工具呼叫間不一致，實際送出舊 2.5.6 staging
+  （玩家 `Player.log` 仍 `start HDBF version=2.5.6`），`ManifestID 6070896543431048995` 僅為該次
+  錯誤內容；17:40 改用固定預設 work root 重建並重新上傳，以上面 17:40 的 ManifestID 為準。
 - 上傳只更新**內容與 Change Note**；標題/描述/封面/標籤/可見性刻意未動。
-- Change Note（雙語）：作物策略下拉打不開的修復（面板改為逐卡內容簽名 diff，只重建內容變了的卡片，
-  原版 Dropdown 不再被 4 Hz 刷新卸載；選取/items 仍即時同步）；另有 `ui.crop-dropdown` 診斷日誌。
+- Change Note（雙語）：作物策略下拉打不開的修復（逐卡內容簽名 diff + 下拉清單開啟期間暫停面板刷新，
+  原版 Dropdown 不再被卸載/關閉；選取/items 仍即時同步）；另有 `ui.crop-dropdown` 診斷日誌。
 - 建置：L1 **717/717**、`tools/validate` RESULT: OK、`build.ps1` **44 gates PASSED**；
-  staged package **48 files / 2,194,822 bytes / manifest 2.5.7**；GitHub `master` = `3969c76`（修復）
-  + 本篇發佈記錄 commit。
-- **實機點擊驗證仍 pending**（本機無法合成輸入）；玩家若仍打不開，請附 `Player.log`。
+  staged package **48 files / 2,194,822 bytes / manifest 2.5.7**；GitHub `master` = `3969c76`
+  + `b5a4846`（初次發佈記錄）+ 本輪「防護＋正確重傳」修正 commit。
+- **本機測試包**：正確的 2.5.7 stage 已覆蓋到 `Steam\steamapps\workshop\content\1062090\3828809784`
+  （同一個 Workshop item、無重複 Id），下一次啟動遊戲即可測到修復版。
+- **實機點擊驗證仍 pending**（本機無法合成輸入）；玩家若仍打不開，請附 `Player.log`
+  （確認開頭 `start HDBF version=2.5.7`，並看有無 `ui.crop-dropdown`）。
 

@@ -1918,6 +1918,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1 -WorkRoot "$env:TE
   `HdbfFarmPanelFragment.Cards.cs` 逐卡 diff：只有內容真的變了的卡片在同 index 被替換，作物卡
   （含 Dropdown）與工人卡（含模式 RadioToggle）在 4 Hz 值刷新中保持掛載；首次渲染/版面改變才整堆重建。
   下拉選取文字/tooltip/items 仍由 `RenderCrop` 每次刷新同步。
+* **防護（2026-11-06 實機回饋後追加）**：`UpdateFragment` 在 `DropdownListDrawer.DropdownVisible`
+  為 true 時**整個跳過週期刷新**——清單開著時面板不重建任何東西，因此即使有未預期的內容變更也不會關閉清單；
+  清單關閉後第一次刷新補上最新數值。這條同時解釋並覆蓋「暫停時可選、運行時清單消失」的症状路徑。
 * **離線門禁**（`build.ps1 -WorkRoot %TEMP%\hdbf-work`，未部署）：5 組件 **0 warning/0 error**、
   L1 **717/717 PASSED**（+5 條：3 條逐卡簽名契約、1 條渲染器欄位掃描守門、1 條 fragment 源碼契約）、
   `tools/validate` **RESULT: OK**、**RELEASE GATES: PASSED (44 checks)**、staged 48 files / 2,143 KB。
@@ -1926,27 +1929,37 @@ powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1 -WorkRoot "$env:TE
 
 ## 43. 2.5.7 發佈記錄：Steam Workshop 更新 + GitHub push（2026-11-06）
 
-* **Steam Workshop item 3828809784**：2026-11-06 **17:13:57** 開始上傳，**17:14:03**
-  `Uploaded new content ( ManifestID 6070896543431048995 )`、
+* **Steam Workshop item 3828809784**：2026-11-06 **17:40:13** 開始上傳，**17:40:18**
+  `Uploaded new content ( ManifestID 4408964257799319853 )`、
   `Upload finished for workshop item 3828809784 : OK`（Steam `logs/workshop_log.txt`）；
   自製 `SteamUpload.exe`（Steamworks UGC API，`C:\Users\user\hdbf-tools\steamupload`）回報
   `submitDone ioFailure=False eResult=k_EResultOK needsLegalAgreement=False publishedFileId=3828809784`。
-* **上傳內容** = v2.5.7 staged 包（上傳前重新建置；`data/manifest.json` Version 2.5.7）：
+* **上傳內容** = v2.5.7 staged 包（`data/manifest.json` Version 2.5.7，含下拉清單開啟期間暫停刷新的防護）：
   **48 files / 2,194,822 bytes / 2,143 KB**。SHA-256（前 8…後 5）：
-  `manifest.json 11a8142c…3c92c`、`HDBF.Core.dll 650dad7f…68075`、
-  `HDBF.Gameplay.dll bb1ece37…a0e5b`、`HDBF.Persistence.dll 397376f2…6cd4f`、
-  `HDBF.Integration.dll 00d16be2…9e420`、`HDBF.UI.dll 0ac42235…f5836`。
+  `manifest.json 11a8142c…3c92c`、`HDBF.Core.dll 0ca74406…8bffe`、
+  `HDBF.Gameplay.dll d7e40a36…f7f79`、`HDBF.Persistence.dll b3559b77…3f2e6`、
+  `HDBF.Integration.dll 05ef85e1…79996`、`HDBF.UI.dll f662fed1…5a347`。
+* **⚠ 第一次上傳作廢（誠實記錄）**：2026-11-06 **17:14:03** 曾有一次上傳
+  （`ManifestID 6070896543431048995`），但本機 `%TEMP%` 在不同工具呼叫間不一致，上傳來源指到
+  一份舊的 **2.5.6** staging（2,192,262 bytes；玩家 17:24 的 `Player.log` 仍是
+  `start HDBF version=2.5.6`）。**17:40 的第二次上傳才是正確的 2.5.7 包**；以上 ManifestID/hashes 以第二次為準。
 * **Change Note（雙語）**：作物策略下拉修復（逐卡內容簽名 diff、下拉不再被 4 Hz 刷新卸載/關閉、
-  選取/items 仍即時同步）、`ui.crop-dropdown` 診斷日誌、0 Harmony/無新依賴/存檔與既有農場相容。
+  清單開啟期間暫停面板刷新）、`ui.crop-dropdown` 診斷日誌、0 Harmony/無新依賴/存檔與既有農場相容。
 * **刻意未動**：標題/描述/封面/標籤/可見性與頁面 metadata（沿用 2026-10-28 改版頁面；上傳 API 只更新
   內容＋Change Note，與 2.5.1–2.5.6 相同做法）。
-* **建置**：`build.ps1 -WorkRoot %TEMP%\hdbf-work` 全綠：5 組件 **0 warning/0 error**、
-  L1 **717/717**、`tools/validate`「RESULT: OK」、**RELEASE GATES: PASSED (44 checks)**。
-* **GitHub `stanley-1028/HighDensityBoxFarm`**：v2.5.7 code/docs 修復 commit `3969c76`
-  已 push 到 `master`（`758968c..3969c76`）；本篇發佈記錄 commit 隨後 push，最終以 `origin/master` 為準。
+* **建置**：`build.ps1`（**預設 work root** `%USERPROFILE%\.hdbf\work`，不再用不穩定的 `%TEMP%`）全綠：
+  5 組件 **0 warning/0 error**、L1 **717/717**、`tools/validate`「RESULT: OK」、
+  **RELEASE GATES: PASSED (44 checks)**、staged 48 files。
+* **本機測試包**：正確的 2.5.7 stage 已覆蓋到
+  `Steam\steamapps\workshop\content\1062090\3828809784`（同一個 Workshop item，無重複 Id；
+  manifest 2.5.7、`HDBF.UI.dll` SHA-256 與 stage 一致），玩家下一次啟動即可測到修復版；
+  Steam 重啟後會以 17:40 的官方 manifest 為準。
+* **GitHub `stanley-1028/HighDensityBoxFarm`**：v2.5.7 修復 `3969c76`、初次發佈記錄 `b5a4846` 已在
+  `master`；本輪「防護＋正確重傳」的修正 commit 隨後 push，最終以 `origin/master` 為準。
 * **環境**：Steam client 執行中且已登入（`steamRunning=True loggedOn=True
   steamId=76561199800253923`）；`Mods\HDBF` 本機部署**未變動**（避免與訂閱版同 Id 重複載入）。
 * **未做／仍 pending**：本輪仍**沒有**可互動實機點擊驗證（本機合成輸入不可用，§16.2），
   「打開下拉→選固定作物→顯示＋持久化」需作者/玩家實測；若失效請附 `Player.log`
-  （現在會有 `ui.crop-dropdown` 行可分辨是資產缺失還是 detach）。
+  （請確認開頭是 `start HDBF version=2.5.7`；2.5.7 起會有 `ui.crop-dropdown` 行可分辨是資產缺失還是 detach）。
+
 

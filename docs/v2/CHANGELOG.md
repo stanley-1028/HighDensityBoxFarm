@@ -1,6 +1,6 @@
 # HDBF v2 变更记录
 
-> **状态**：**2.5.7 已发布**（2026-11-06 17:14，玩家回馈热修：作物策略下拉；Steam Workshop item 3828809784，ManifestID 6070896543431048995，发行记录见 VERIFICATION §43；实机点击验证仍 pending，不写成已完成）；2.5.6 已发布（Steam Workshop ManifestID 3045694293614393693；GitHub 见 push 后的 master；离线门禁全绿；实机验证部分 pending，见 VERIFICATION §40）；2.5.5 为未发布的第二维修轮；2.5.4 已发布（Steam Workshop ManifestID 2037025195551276545）
+> **状态**：**2.5.7 已发布**（2026-11-06 17:40，玩家回馈热修 + 下拉开启期间暂停刷新的防护；Steam Workshop item 3828809784，ManifestID 4408964257799319853；第一次 17:14 上传误带旧 2.5.6 staging，17:40 已重新上传正确包，详见 VERIFICATION §43；实机点击验证仍 pending，不写成已完成）；2.5.6 已发布（Steam Workshop ManifestID 3045694293614393693；GitHub 见 push 后的 master；离线门禁全绿；实机验证部分 pending，见 VERIFICATION §40）；2.5.5 为未发布的第二维修轮；2.5.4 已发布（Steam Workshop ManifestID 2037025195551276545）
 > **日期**：2026-11-06
 > **适用版本**：2.5.7
 > **变更摘要**：v2.1 需求引入室内农场方案；本文件记录 v1→v2 的行为/数据/工程变更与实现状态。
@@ -25,6 +25,9 @@
   `HdbfFarmPanelFragment.Cards.cs` 的逐卡 diff：只把内容签名变了的卡片在同 index 替换，其余卡片
   （含作物卡的 Dropdown、工人卡的模式 RadioToggle）保持挂载；首次渲染/版面改变才整堆重建。
   下拉的选中文字、tooltip 与 items 仍由 `RenderCrop` 每次刷新同步 `UpdateSelectedValue()`。
+* 【防护】下拉弹出清单开启期间**暂停 4 Hz 面板刷新**（读 `DropdownListDrawer.DropdownVisible`）：
+  即使有任何未预期的卡片重建，也不会关闭玩家正在使用的清单；清单关闭后的第一次刷新补上最新数值。
+  （2026-11-06 玩家实机回馈：暂停时能选、运行时清单很快消失——这是对「刷新拆卡」这条链的最后一道保险。）
 * 【测试】L1 +5：`TestCardSignatureIsStableForIdenticalRenderedContent`、
   `TestCropProgressRefreshDoesNotRebuildTheCropCard`（含「政策改变必须重建作物卡」正向案例）、
   `TestCardSignatureTracksEveryRenderedFieldOfACard`、
@@ -32,6 +35,10 @@
   `TestRefreshRebuildsOnlyChangedCardsAndKeepsTheDropdownAttached`（717/717 PASSED）。
 * 【诊断】`BuildCropDropdown` 的静默 catch 现在记一行 `HDBF/Warn`（key `ui.crop-dropdown`，含异常型别）：
   若玩家的「下拉不见」其实是 UXML 资产缺失而不是 detach，下次 log 就能分辨。
+* 【发布更正】2026-11-06 17:14 的首次上传因本机 `%TEMP%` 在不同工具调用间不一致，实际送出的是旧
+  **2.5.6** staging（玩家端 `Player.log` 仍是 `start HDBF version=2.5.6`）；17:40 已改用固定的默认
+  work root 重建并重新上传**正确的 2.5.7**（ManifestID `4408964257799319853`），本机 workshop 内容
+  文件夹也已覆盖为 2.5.7 供立即测试。详见 VERIFICATION §43。
 * 【未验证】本机无法合成输入、本轮 policy 为 workspace-write：**没有实机点击验证**，
   需要作者/玩家在可互动会话确认「能打开下拉并选固定作物」；不写成已完成。
 

@@ -37,10 +37,11 @@
   刷新把整叠卡片清空重建（指紋含 `CurrentDay`/作物進度，幾乎每個模擬 tick 都 dirty），作物卡裡的
   原版 `Dropdown` 每輪被 detach，而安裝版 Dropdown 的 `DetachFromPanelEvent` callback 會直接
   `DropdownListDrawer.HideDropdown()`。現改為**逐卡內容簽名 diff**：只重建內容真的變了的卡片，
-  作物卡（含下拉）與模式 RadioToggle 保持掛載；下拉選取文字/items 仍每輪同步。另有離線測試
+  作物卡（含下拉）與模式 RadioToggle 保持掛載；下拉選取文字/items 仍每輪同步。另加「下拉清單開啟期間
+  暫停面板刷新」的保險（即使有未預期的重建也不會關閉清單）。另有離線測試
   （L1 717/717）與診斷用 `ui.crop-dropdown` 日誌。詳細見 [CHANGELOG](docs/v2/CHANGELOG.md)、
   [修復記錄](docs/workstreams/feedback-20261106/crop-dropdown.md)、[VERIFICATION §42](docs/VERIFICATION.md)。
-  **已發布到 Steam Workshop**（item `3828809784`，ManifestID `6070896543431048995`，2026-11-06；發行記錄見 VERIFICATION §43）。
+  **已發布到 Steam Workshop**（item `3828809784`，ManifestID `4408964257799319853`，2026-11-06；發行記錄見 VERIFICATION §43）。
 - **2.5.6 修复（第三维修轮，把剩余离线可修项全部落地）：** 管道适配器失败改成 **60 秒滚动时间窗**的 3-strike
   （一次 Timber Pipes 改版不会让全 settlement 同日断水；单农场一次失败只降级）；管道接口新增诚实的
   「聚落级供水」原因（连上管网的任一原版液体水塔可供所有农场）；世界图示与面板改吃**同一组 live 警告旗标**

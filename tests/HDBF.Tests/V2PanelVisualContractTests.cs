@@ -114,6 +114,12 @@ namespace HDBF.Tests
                              && update.Contains("cards.Insert(index, card)", StringComparison.Ordinal),
                 "a changed card is replaced at its own index, never by a full rebuild");
 
+            var lifecycle = ReadUiSources("Panels/HdbfFarmPanelFragment.cs");
+            TestAssert.True(lifecycle.Contains("IsCropDropdownOpen()", StringComparison.Ordinal),
+                "the periodic refresh must stop while a dropdown popup is open");
+            TestAssert.True(lifecycle.Contains("_dropdownListDrawer.DropdownVisible", StringComparison.Ordinal),
+                "the guard must ask the vanilla drawer whether a popup is visible");
+
             var signature = ReadUiSources("Panels/HdbfIndoorPanelSignature.cs");
             foreach (var rendered in new[]
                      {
