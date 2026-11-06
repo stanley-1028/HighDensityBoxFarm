@@ -1899,7 +1899,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1 -WorkRoot "$env:TE
 * **未做**：實機 fixture 其餘回合（§7.2 A–K）與 100 棟量測仍 pending（見 §40）；未建立 Discussion 帖；
   未改工坊頁面文案/封面/標籤。
 
-## 42. 2026-11-06 熱修（未發佈）：作物策略下拉打不開（離線驗證；實機 pending）
+## 42. 2026-11-06 熱修：作物策略下拉打不開（離線驗證；實機 pending）
 
 > 玩家回饋（Steam Workshop，Roslyn）：作物策略下拉打不開，無法從隨機輪作切成固定作物。
 > 根因與修法全文見 `docs/workstreams/feedback-20261106/crop-dropdown.md`。本輪 DSH file policy 為
@@ -1923,4 +1923,30 @@ powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1 -WorkRoot "$env:TE
   `tools/validate` **RESULT: OK**、**RELEASE GATES: PASSED (44 checks)**、staged 48 files / 2,143 KB。
 * **仍未驗證（pending）**：可互動實機的「點開下拉 → 選一個固定作物 → 面板顯示固定作物並持久化」。
   本機合成滑鼠/鍵盤不可用（§16.2），且本輪無權限部署到 `Mods\HDBF`；需作者/玩家用同一包實測。
+
+## 43. 2.5.7 發佈記錄：Steam Workshop 更新 + GitHub push（2026-11-06）
+
+* **Steam Workshop item 3828809784**：2026-11-06 **17:13:57** 開始上傳，**17:14:03**
+  `Uploaded new content ( ManifestID 6070896543431048995 )`、
+  `Upload finished for workshop item 3828809784 : OK`（Steam `logs/workshop_log.txt`）；
+  自製 `SteamUpload.exe`（Steamworks UGC API，`C:\Users\user\hdbf-tools\steamupload`）回報
+  `submitDone ioFailure=False eResult=k_EResultOK needsLegalAgreement=False publishedFileId=3828809784`。
+* **上傳內容** = v2.5.7 staged 包（上傳前重新建置；`data/manifest.json` Version 2.5.7）：
+  **48 files / 2,194,822 bytes / 2,143 KB**。SHA-256（前 8…後 5）：
+  `manifest.json 11a8142c…3c92c`、`HDBF.Core.dll 650dad7f…68075`、
+  `HDBF.Gameplay.dll bb1ece37…a0e5b`、`HDBF.Persistence.dll 397376f2…6cd4f`、
+  `HDBF.Integration.dll 00d16be2…9e420`、`HDBF.UI.dll 0ac42235…f5836`。
+* **Change Note（雙語）**：作物策略下拉修復（逐卡內容簽名 diff、下拉不再被 4 Hz 刷新卸載/關閉、
+  選取/items 仍即時同步）、`ui.crop-dropdown` 診斷日誌、0 Harmony/無新依賴/存檔與既有農場相容。
+* **刻意未動**：標題/描述/封面/標籤/可見性與頁面 metadata（沿用 2026-10-28 改版頁面；上傳 API 只更新
+  內容＋Change Note，與 2.5.1–2.5.6 相同做法）。
+* **建置**：`build.ps1 -WorkRoot %TEMP%\hdbf-work` 全綠：5 組件 **0 warning/0 error**、
+  L1 **717/717**、`tools/validate`「RESULT: OK」、**RELEASE GATES: PASSED (44 checks)**。
+* **GitHub `stanley-1028/HighDensityBoxFarm`**：v2.5.7 code/docs 修復 commit `3969c76`
+  已 push 到 `master`（`758968c..3969c76`）；本篇發佈記錄 commit 隨後 push，最終以 `origin/master` 為準。
+* **環境**：Steam client 執行中且已登入（`steamRunning=True loggedOn=True
+  steamId=76561199800253923`）；`Mods\HDBF` 本機部署**未變動**（避免與訂閱版同 Id 重複載入）。
+* **未做／仍 pending**：本輪仍**沒有**可互動實機點擊驗證（本機合成輸入不可用，§16.2），
+  「打開下拉→選固定作物→顯示＋持久化」需作者/玩家實測；若失效請附 `Player.log`
+  （現在會有 `ui.crop-dropdown` 行可分辨是資產缺失還是 detach）。
 

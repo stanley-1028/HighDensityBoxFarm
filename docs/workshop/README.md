@@ -125,3 +125,16 @@ cp docs/workshop/publish/* "$USERPROFILE/Documents/Timberborn/Mods/HDBF/"
 - **頁面文案同步**：`docs/workshop/DESCRIPTION.md` / `PAGE_COPY.txt` 的 maintenance 句已改為
   「perform maintenance — or enable automatic maintenance」，但本次 API 更新不覆寫頁面描述；
   下次在 Steam 網頁編輯器改描述時直接貼 `PAGE_COPY.txt` 即可（避免覆寫 2026-10-28 改版頁面）。
+
+## 發佈記錄（2026-11-06，2.5.7 熱修）
+
+- 2.5.7 於 **2026-11-06 17:14（Asia/Macau）** 上傳成功：`ManifestID 6070896543431048995`、
+  `Upload finished for workshop item 3828809784 : OK`（Steam `logs/workshop_log.txt`）。
+- 上傳只更新**內容與 Change Note**；標題/描述/封面/標籤/可見性刻意未動。
+- Change Note（雙語）：作物策略下拉打不開的修復（面板改為逐卡內容簽名 diff，只重建內容變了的卡片，
+  原版 Dropdown 不再被 4 Hz 刷新卸載；選取/items 仍即時同步）；另有 `ui.crop-dropdown` 診斷日誌。
+- 建置：L1 **717/717**、`tools/validate` RESULT: OK、`build.ps1` **44 gates PASSED**；
+  staged package **48 files / 2,194,822 bytes / manifest 2.5.7**；GitHub `master` = `3969c76`（修復）
+  + 本篇發佈記錄 commit。
+- **實機點擊驗證仍 pending**（本機無法合成輸入）；玩家若仍打不開，請附 `Player.log`。
+
