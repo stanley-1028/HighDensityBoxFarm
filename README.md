@@ -3,20 +3,20 @@
 > 按需求蓝图 §19（v2.1）实现的 Timberborn 1.1.2.8 模组：**3×3×1 室内高密度农场**。
 > 本工程不是文档摘要，而是可构建、可测试、可安装的代码与数据。
 >
-> **当前版本 2.5.6（v2 室内版 · 2026-11-03 第三维修轮，已发布）**：四档 3×3×1 建筑，内部 60/150/300/600 个抽象槽位，
+> **当前版本 2.5.7（v2 室内版 · 2026-11-06 玩家回馈热修，已发布）**：四档 3×3×1 建筑，内部 60/150/300/600 个抽象槽位，
 > 平屋顶可叠放，内部水罐 + 管道/人工补水；v1 的世界地块扫描、托管格、原版种植派发、
 > 地块高亮、作物可见性补丁与 Harmony 补丁**已全部删除（0 Harmony）**。
 > v2 设计入口：[docs/v2/README.md](docs/v2/README.md)、需求唯一来源 [§19](docs/REQ_V2_SECTION_19.md)。
 
 | 项目 | 值 |
 |---|---|
-| 模组版本 | **2.5.6（v2）** |
+| 模组版本 | **2.5.7（v2）** |
 | 目标游戏 | Timberborn 1.1.2.8（`1.1.2.8-ffc2de0-sw`，Unity 6000.5.11f1） |
 | 存档 schema | **2**（每建筑一条原生持久化记录，含 v1→v2 迁移；见 ADR-V2-003） |
 | 配置 schema | **2**（v1 配置可读并迁移；未知键忽略） |
 | 程序集 | `HDBF.Core` / `HDBF.Persistence` / `HDBF.Gameplay` / `HDBF.Integration` / `HDBF.UI` |
 | Harmony 补丁 | **0** |
-| L1 测试 | **712**（零游戏依赖，`FAILED 0`） |
+| L1 测试 | **717**（零游戏依赖，`FAILED 0`） |
 | 发布门禁 | **PASSED (44 checks)** + `NFR GATE MATRIX: PASSED` |
 
 ## 1. 这是什么
@@ -32,6 +32,15 @@
 农民只占建筑工作位；水由**内部水罐**提供（管道自动补水或工人人工补水）；
 产物进入建筑输出库存后由原版搬运/传送带送出。模型屋顶是**平的、可通行、可叠放建筑**。
 
+- **2.5.7 修复（玩家回馈热修，2026-11-06）：** 面板「作物策略」的原版下拉**打不开**（玩家 Roslyn：
+  「The drop down to change from rotation to a specific crop doesn't open for me」）。根因是面板 4 Hz
+  刷新把整叠卡片清空重建（指紋含 `CurrentDay`/作物進度，幾乎每個模擬 tick 都 dirty），作物卡裡的
+  原版 `Dropdown` 每輪被 detach，而安裝版 Dropdown 的 `DetachFromPanelEvent` callback 會直接
+  `DropdownListDrawer.HideDropdown()`。現改為**逐卡內容簽名 diff**：只重建內容真的變了的卡片，
+  作物卡（含下拉）與模式 RadioToggle 保持掛載；下拉選取文字/items 仍每輪同步。另有離線測試
+  （L1 717/717）與診斷用 `ui.crop-dropdown` 日誌。詳細見 [CHANGELOG](docs/v2/CHANGELOG.md)、
+  [修復記錄](docs/workstreams/feedback-20261106/crop-dropdown.md)、[VERIFICATION §42](docs/VERIFICATION.md)。
+  **已發布到 Steam Workshop**（item `3828809784`，ManifestID `6070896543431048995`，2026-11-06；發行記錄見 VERIFICATION §43）。
 - **2.5.6 修复（第三维修轮，把剩余离线可修项全部落地）：** 管道适配器失败改成 **60 秒滚动时间窗**的 3-strike
   （一次 Timber Pipes 改版不会让全 settlement 同日断水；单农场一次失败只降级）；管道接口新增诚实的
   「聚落级供水」原因（连上管网的任一原版液体水塔可供所有农场）；世界图示与面板改吃**同一组 live 警告旗标**

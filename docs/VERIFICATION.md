@@ -1898,3 +1898,29 @@ powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1 -WorkRoot "$env:TE
   （避免與訂閱版同 Id 重複載入；訂閱端會由 Steam 下載新的 2.5.6 manifest）。
 * **未做**：實機 fixture 其餘回合（§7.2 A–K）與 100 棟量測仍 pending（見 §40）；未建立 Discussion 帖；
   未改工坊頁面文案/封面/標籤。
+
+## 42. 2026-11-06 熱修（未發佈）：作物策略下拉打不開（離線驗證；實機 pending）
+
+> 玩家回饋（Steam Workshop，Roslyn）：作物策略下拉打不開，無法從隨機輪作切成固定作物。
+> 根因與修法全文見 `docs/workstreams/feedback-20261106/crop-dropdown.md`。本輪 DSH file policy 為
+> `workspace-write`，**未部署、未開遊戲**；以下全部是離線證據，不得寫成實機已驗證。
+
+* **根因（IL 取證）**：面板 4 Hz 髒標記幾乎每 tick 都成立（`CurrentDay=PartialDayNumber` 小數日、
+  作物 `AverageProgress` 進指紋；一天 768 ticks、1x 每 tick 0.6 s ⇒ 每 tick 指紋必變，1x 實際重繪
+  約 1.7–2.5 次/秒），舊 `RenderCards` 每次 `_cards.Clear()` 重建全部卡片 → 作物卡的
+  原版 `Dropdown` 被 detach；安裝版 `Timberborn.DropdownSystem.dll` 的
+  `Dropdown.Initialize` 註冊的 `DetachFromPanelEvent` callback 呼叫
+  `DropdownListDrawer.HideDropdown()`（`<Initialize>b__25_0`），彈出清單在下一次刷新即被關閉；
+  按下/放開跨過重建時 ClickEvent 也會因 pointer capture 釋放而遺失（次要機制、未 IL 取證）。
+  彈出層 sorting order = 2（`RootVisualElementProvider.Create(...,2)`），高於 Underlay(0)/PanelStack(1)，
+  已排除被面板遮住。獨立根因審計見 `docs/workstreams/feedback-20261106/root-cause-audit.md`。
+* **修法**：新增 `HdbfIndoorPanelSignature`（逐卡「實際渲染內容」簽名）＋
+  `HdbfFarmPanelFragment.Cards.cs` 逐卡 diff：只有內容真的變了的卡片在同 index 被替換，作物卡
+  （含 Dropdown）與工人卡（含模式 RadioToggle）在 4 Hz 值刷新中保持掛載；首次渲染/版面改變才整堆重建。
+  下拉選取文字/tooltip/items 仍由 `RenderCrop` 每次刷新同步。
+* **離線門禁**（`build.ps1 -WorkRoot %TEMP%\hdbf-work`，未部署）：5 組件 **0 warning/0 error**、
+  L1 **717/717 PASSED**（+5 條：3 條逐卡簽名契約、1 條渲染器欄位掃描守門、1 條 fragment 源碼契約）、
+  `tools/validate` **RESULT: OK**、**RELEASE GATES: PASSED (44 checks)**、staged 48 files / 2,143 KB。
+* **仍未驗證（pending）**：可互動實機的「點開下拉 → 選一個固定作物 → 面板顯示固定作物並持久化」。
+  本機合成滑鼠/鍵盤不可用（§16.2），且本輪無權限部署到 `Mods\HDBF`；需作者/玩家用同一包實測。
+

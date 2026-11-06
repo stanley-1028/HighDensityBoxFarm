@@ -1,8 +1,9 @@
 // ============================================================================
 // HDBF v2 | Layer: UI/Panels | Owner: V2-UI-01
 // Purpose: Applies the localized HdbfIndoorPanelData read model onto the vanilla UIElements tree:
-//          the compact tier/faction subtitle row, the ordered cards (workers/efficiency,
-//          slots, water, maintenance, power, crop strategy, output) and the action card. No value
+//          the action card, the one action-result line, the worker roster/mode group and the
+//          scroller height. The card stack itself (and its per-card content diff) lives in
+//          HdbfFarmPanelFragment.Cards.cs; this file no longer rebuilds the cards. No value
 //          formatting happens here: every string was produced by the pure factory from the Core
 //          snapshot. The scroller height is re-measured at most 4 times per second so the action
 //          card stays reachable on every window size (requirement F), and state is always shown as
@@ -44,75 +45,6 @@ namespace HDBF.UI.Panels
             }
 
             _root.style.display = DisplayStyle.Flex;
-        }
-
-        private void RenderCards(HdbfIndoorPanelData data)
-        {
-            if (_cards is null)
-            {
-                return;
-            }
-
-            _cards.Clear();
-            for (var index = 0; index < data.Sections.Count; index++)
-            {
-                var section = data.Sections[index];
-                var card = HdbfPanelControls.CreateCard(section.Tone);
-                if (section.Kind == HdbfPanelSectionKind.Workers)
-                {
-                    // Requirement A: the compact tier/faction/mode line sits directly under the
-                    // vanilla header as the first card row; the building name is never repeated.
-                    card.Add(HdbfPanelControls.CreateMetaRow(data.MetaLine, data.MetaTooltip, _icons));
-                }
-
-                card.Add(HdbfPanelControls.CreateTitleRow(section.Title, section.IconKey, _icons));
-                var critical = section.Tone == "red";
-                VisualElement? cropPolicyRow = null;
-                for (var rowIndex = 0; rowIndex < section.Rows.Count; rowIndex++)
-                {
-                    var row = section.Rows[rowIndex];
-                    if (row.IsWarning)
-                    {
-                        var warningRow = HdbfPanelControls.CreateWarningRow(row, _icons);
-                        RegisterTooltip(warningRow, row.Tooltip);
-                        card.Add(warningRow);
-                        continue;
-                    }
-
-                    var rowElement = HdbfPanelControls.CreateRow(row, _icons, out var valueLabel);
-                    RegisterTooltip(rowElement, row.Tooltip);
-                    card.Add(rowElement);
-                    if (row.HasBar)
-                    {
-                        card.Add(HdbfPanelControls.CreateBar(row, critical));
-                    }
-
-                    if (section.Kind == HdbfPanelSectionKind.Crops && cropPolicyRow is null)
-                    {
-                        cropPolicyRow = rowElement;
-                        if (_cropDropdown is not null)
-                        {
-                            // The vanilla dropdown shows the current policy itself; hiding the
-                            // static value avoids the duplicated "auto rotation [auto rotation]".
-                            valueLabel.style.display = DisplayStyle.None;
-                        }
-                    }
-                }
-
-                if (section.Kind == HdbfPanelSectionKind.Workers)
-                {
-                    RenderWorkerRoster(card, data);
-                }
-
-                if (cropPolicyRow is not null && _cropHost is not null)
-                {
-                    // Requirement: one row = icon/label + current strategy text + the vanilla dropdown.
-                    cropPolicyRow.Add(_cropHost);
-                    RenderCrop(data);
-                }
-
-                _cards.Add(card);
-            }
         }
 
         private void RenderWorkerRoster(VisualElement card, HdbfIndoorPanelData data)

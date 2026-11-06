@@ -79,11 +79,52 @@ namespace HDBF.Tests
             TestAssert.False(data.MetaLine.Contains("Box Farm", StringComparison.Ordinal),
                 "the compact row must not repeat the building name: " + data.MetaLine);
 
-            var render = ReadUiSources("Panels/HdbfFarmPanelFragment.Render.cs");
-            TestAssert.True(render.Contains("CreateMetaRow(data.MetaLine", StringComparison.Ordinal),
+            var cards = ReadUiSources("Panels/HdbfFarmPanelFragment.Cards.cs");
+            TestAssert.True(cards.Contains("CreateMetaRow(data.MetaLine", StringComparison.Ordinal),
                 "the compact tier/faction/mode row must be rendered");
-            TestAssert.True(render.Contains("HdbfPanelSectionKind.Workers", StringComparison.Ordinal),
+            TestAssert.True(cards.Contains("HdbfPanelSectionKind.Workers", StringComparison.Ordinal),
                 "the compact row belongs to the first (workers) card, directly below the vanilla header");
+        }
+
+        /// <summary>
+        /// Regression contract of the 2026-11-06 player report ("the drop down to change from
+        /// rotation to a specific crop doesn't open for me"): the 4 Hz refresh must not clear and
+        /// rebuild the whole card stack, because that detaches the vanilla crop Dropdown and its
+        /// DetachFromPanel callback hides the open popup. Cards are keyed by a content signature and
+        /// only the changed ones are replaced in place; the crop card (the one that owns the
+        /// dropdown) therefore survives a value-only refresh attached to the panel.
+        /// </summary>
+        public static void TestRefreshRebuildsOnlyChangedCardsAndKeepsTheDropdownAttached()
+        {
+            var cards = ReadUiSources("Panels/HdbfFarmPanelFragment.Cards.cs");
+            var renderCards = Slice(cards, "private void RenderCards", "private bool CanUpdateCardsInPlace");
+            TestAssert.True(renderCards.Contains("UpdateChangedCards", StringComparison.Ordinal),
+                "the refresh path must update changed cards only");
+            TestAssert.Equal(1, CountOccurrences(renderCards, "cards.Clear()"),
+                "the only stack clear left is the empty-layout fallback, not the 4 Hz value refresh");
+            TestAssert.True(renderCards.Contains("_cropHost.panel is not null", StringComparison.Ordinal),
+                "the crop dropdown is re-synced only while it is mounted in the crop card");
+
+            var update = Slice(cards, "private void UpdateChangedCards", "private void RebuildCards");
+            TestAssert.True(update.Contains("HdbfIndoorPanelSignature.ForSection", StringComparison.Ordinal),
+                "the per-card update must decide from the rendered-content signature");
+            TestAssert.True(update.Contains("if (signature == _cardStates[index].Signature)", StringComparison.Ordinal),
+                "a card with an unchanged signature must stay attached");
+            TestAssert.True(update.Contains("cards.RemoveAt(index)", StringComparison.Ordinal)
+                             && update.Contains("cards.Insert(index, card)", StringComparison.Ordinal),
+                "a changed card is replaced at its own index, never by a full rebuild");
+
+            var signature = ReadUiSources("Panels/HdbfIndoorPanelSignature.cs");
+            foreach (var rendered in new[]
+                     {
+                         "row.Label", "row.Value", "row.Tooltip", "row.IsWarning", "Quantize(row.Bar)",
+                         "row.BarText", "Quantize(row.BarMarker)", "row.Marker", "section.Tone",
+                         "data.ModeTransitionText", "chip.Vacant",
+                     })
+            {
+                TestAssert.True(signature.Contains(rendered, StringComparison.Ordinal),
+                    "the card signature must cover every field BuildSectionCard renders: " + rendered);
+            }
         }
 
         // ------------------------------------------------------------------ C: no tan background

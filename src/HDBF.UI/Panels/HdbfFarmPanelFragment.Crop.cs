@@ -9,6 +9,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using HDBF.Core;
 using HDBF.UI.Localization;
 using Timberborn.DropdownSystem;
 using UnityEngine.UIElements;
@@ -52,10 +53,15 @@ namespace HDBF.UI.Panels
                 _cropDropdown = dropdown;
                 _cropHost.Add(dropdown);
             }
-            catch (Exception)
+            catch (Exception exception)
             {
                 // A missing dropdown asset degrades to the text-only policy row; never throws.
+                // The log line matters: a "the crop dropdown does not open" player report cannot
+                // be told apart from the detach/rebuild bug when this failure is silent.
                 _cropDropdown = null;
+                _log.Write(HdbfLogCategory.Warn, LogKeyCropDropdown,
+                    "crop dropdown control unavailable; the crop policy row degrades to text: "
+                    + exception.GetType().Name);
             }
         }
 

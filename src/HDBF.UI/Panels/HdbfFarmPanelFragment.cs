@@ -3,8 +3,9 @@
 // Purpose: Entity panel fragment of the v2 indoor box farm: lifecycle, the 4 Hz refresh gate,
 //          the call into the pure value fingerprint (HdbfIndoorPanelFingerprint) and the
 //          read-model refresh. Rendering lives in .Render.cs, element construction in .Build.cs,
-//          the vanilla crop dropdown in .Crop.cs and command callbacks (mode/crop/refill/
-//          maintenance/auto-maintenance) in .Commands.cs.
+//          the per-card content diff / card-stack reconciliation in .Cards.cs, the vanilla crop
+//          dropdown in .Crop.cs and command callbacks (mode/crop/refill/maintenance/
+//          auto-maintenance) in .Commands.cs.
 // Requirements: REQ-V2-UI-01/02/03/04, REQ-V2-UI-05, REQ-V2-READ-04, REQ-V2-SAFE-01
 // Size: above the 300-line soft gate with a written reason (REQ-V2-MAINT-02): the lifecycle, the
 //       fixed 4 Hz gate and the refresh path stay in one file so they are reviewed as one unit;
@@ -52,6 +53,8 @@ namespace HDBF.UI.Panels
         private const string LogKeyCommandRejected = "ui.command-rejected";
         private const string LogKeyCommandFailed = "ui.command-exception";
         private const string LogKeyRenderFailed = "ui.render";
+        /// <summary>The vanilla crop dropdown asset could not be created (panel degrades to text).</summary>
+        private const string LogKeyCropDropdown = "ui.crop-dropdown";
 
         private readonly IBoxFarmCommand _command;
         private readonly HdbfIndoorCommandBridge _indoor;

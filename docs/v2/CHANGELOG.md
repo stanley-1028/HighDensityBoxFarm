@@ -1,9 +1,39 @@
 # HDBF v2 变更记录
 
-> **状态**：2.5.6 已发布（Steam Workshop ManifestID 3045694293614393693；GitHub 见 push 后的 master；离线门禁全绿；实机验证部分 pending，见 VERIFICATION §40）；2.5.5 为未发布的第二维修轮；2.5.4 已发布（Steam Workshop ManifestID 2037025195551276545）
-> **日期**：2026-11-03
-> **适用版本**：2.5.6
+> **状态**：**2.5.7 已发布**（2026-11-06 17:14，玩家回馈热修：作物策略下拉；Steam Workshop item 3828809784，ManifestID 6070896543431048995，发行记录见 VERIFICATION §43；实机点击验证仍 pending，不写成已完成）；2.5.6 已发布（Steam Workshop ManifestID 3045694293614393693；GitHub 见 push 后的 master；离线门禁全绿；实机验证部分 pending，见 VERIFICATION §40）；2.5.5 为未发布的第二维修轮；2.5.4 已发布（Steam Workshop ManifestID 2037025195551276545）
+> **日期**：2026-11-06
+> **适用版本**：2.5.7
 > **变更摘要**：v2.1 需求引入室内农场方案；本文件记录 v1→v2 的行为/数据/工程变更与实现状态。
+
+## [2.5.7] — 2026-11-06（玩家反馈热修：作物策略下拉打不开）
+
+依据 Steam Workshop 留言（Roslyn）与 `docs/workstreams/feedback-20261106/crop-dropdown.md`
+的根因分析；离线验证见 `docs/VERIFICATION.md` §42。
+
+### 【修复】面板 4 Hz 刷新不再拆掉整叠卡片，作物策略下拉可以正常打开/选择固定作物（REQ-V2-UI-01/02/03）
+
+* 【根因】面板 dirty 指纹含 `CurrentDay`（`PartialDayNumber` 小数日，量化 ×1000）与作物
+  `AverageProgress`：一天 768 ticks、1x 每 tick 0.6 秒 ⇒ **每个模拟 tick 指纹必变**，面板以
+  「每个 tick 撞一次 4 Hz 取样」的频率重绘（1x 约 1.7–2.5 次/秒，2x/3x 逼近 4 Hz）；旧
+  `RenderCards` 每次 `_cards.Clear()` 重建全部卡片，作物卡里的原版
+  `Dropdown` 因此不断被 detach/re-attach。安装版 `Timberborn.DropdownSystem.dll` 的
+  `Dropdown.Initialize` 对 `Selection` 注册的 `DetachFromPanelEvent` callback 直接调用
+  `DropdownListDrawer.HideDropdown()`，所以打开的清单一秒内就被关掉（按下/放开跨过一次重建时
+  ClickEvent 还会丢，属次要机制、未 IL 取证），玩家看到的就是「点了打不开」。
+  2.5.6 的 L-11 才把 `CurrentDay` 放进指纹，时间点与 11/06 的回馈吻合。
+* 【修复】新增 `HdbfIndoorPanelSignature`（每张卡的「实际渲染内容」64-bit 签名）与
+  `HdbfFarmPanelFragment.Cards.cs` 的逐卡 diff：只把内容签名变了的卡片在同 index 替换，其余卡片
+  （含作物卡的 Dropdown、工人卡的模式 RadioToggle）保持挂载；首次渲染/版面改变才整堆重建。
+  下拉的选中文字、tooltip 与 items 仍由 `RenderCrop` 每次刷新同步 `UpdateSelectedValue()`。
+* 【测试】L1 +5：`TestCardSignatureIsStableForIdenticalRenderedContent`、
+  `TestCropProgressRefreshDoesNotRebuildTheCropCard`（含「政策改变必须重建作物卡」正向案例）、
+  `TestCardSignatureTracksEveryRenderedFieldOfACard`、
+  `TestEveryFieldTheCardRenderersReadIsPartOfTheSignature`（扫渲染器源码，防未来新增渲染字段漏签名）、
+  `TestRefreshRebuildsOnlyChangedCardsAndKeepsTheDropdownAttached`（717/717 PASSED）。
+* 【诊断】`BuildCropDropdown` 的静默 catch 现在记一行 `HDBF/Warn`（key `ui.crop-dropdown`，含异常型别）：
+  若玩家的「下拉不见」其实是 UXML 资产缺失而不是 detach，下次 log 就能分辨。
+* 【未验证】本机无法合成输入、本轮 policy 为 workspace-write：**没有实机点击验证**，
+  需要作者/玩家在可互动会话确认「能打开下拉并选固定作物」；不写成已完成。
 
 ## [2.5.6] — 2026-11-03（第三维修轮：把剩余离线可修项全部落地）
 

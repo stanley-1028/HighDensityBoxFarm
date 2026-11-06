@@ -708,6 +708,242 @@ namespace HDBF.Tests
                 "a changed config-resolved profile must force a panel refresh");
         }
 
+        // ------------------------------------------------------------------ per-card refresh signature
+
+        /// <summary>
+        /// The 4 Hz refresh now decides per card: two renders of the same read model must produce
+        /// the same signature for every card, so an unchanged card (and the controls inside it, e.g.
+        /// the vanilla crop dropdown) stays attached instead of being cleared and rebuilt.
+        /// </summary>
+        public static void TestCardSignatureIsStableForIdenticalRenderedContent()
+        {
+            var first = CreateData(IntermediateFixture(), out _);
+            var second = CreateData(IntermediateFixture(), out _);
+            TestAssert.Equal(first.Sections.Count, second.Sections.Count);
+            for (var index = 0; index < first.Sections.Count; index++)
+            {
+                var section = first.Sections[index];
+                var signature = HdbfIndoorPanelSignature.ForSection(section, first);
+                TestAssert.Equal(signature, HdbfIndoorPanelSignature.ForSection(section, first),
+                    "the signature must be a pure function of the rendered content: " + section.Kind);
+                TestAssert.Equal(signature,
+                    HdbfIndoorPanelSignature.ForSection(second.Sections[index], second),
+                    "an identically rendered card must not be rebuilt: " + section.Kind);
+            }
+
+            TestAssert.Equal(0L, HdbfIndoorPanelSignature.ForSection(null, first));
+            TestAssert.Equal(0L, HdbfIndoorPanelSignature.ForSection(first.Sections[0], null));
+        }
+
+        /// <summary>
+        /// The reported bug (2026-11-06): crop growth and the game clock change every tick and the
+        /// panel refreshes at 4 Hz, but they must NOT invalidate the crop card - that card owns the
+        /// vanilla crop Dropdown, and rebuilding it detaches the dropdown and closes its popup.
+        /// </summary>
+        public static void TestCropProgressRefreshDoesNotRebuildTheCropCard()
+        {
+            var before = CreateData(IntermediateFixture(), out _);
+            var after = CreateData(IntermediateFixture() with
+            {
+                Crops = new[]
+                {
+                    new IndoorCropStatus("Corn", "Corn", GrowingSlots: 40, MatureSlots: 5,
+                        AverageProgress: 0.42f, GrowthTimeInDays: 4f),
+                },
+                GrowingSlots = 45,
+                MatureSlots = 5,
+                EmptySlots = 100,
+                CurrentDay = 30.25f,
+            }, out _);
+
+            TestAssert.Equal(HdbfIndoorPanelSignature.ForSection(
+                    Section(before, HdbfPanelSectionKind.Crops), before),
+                HdbfIndoorPanelSignature.ForSection(Section(after, HdbfPanelSectionKind.Crops), after),
+                "crop growth / the game clock must not rebuild the card that owns the dropdown");
+
+            TestAssert.True(HdbfIndoorPanelSignature.ForSection(
+                               Section(before, HdbfPanelSectionKind.Growing), before)
+                           != HdbfIndoorPanelSignature.ForSection(
+                               Section(after, HdbfPanelSectionKind.Growing), after),
+                "the growing card must still refresh with the new progress");
+
+            TestAssert.True(HdbfIndoorPanelSignature.ForSection(
+                               Section(before, HdbfPanelSectionKind.Slots), before)
+                           != HdbfIndoorPanelSignature.ForSection(
+                               Section(after, HdbfPanelSectionKind.Slots), after),
+                "the slot counters must still refresh");
+
+            // Positive case: a real crop-policy change MUST rebuild the crop card, otherwise the
+            // policy row would go stale. Guards against over-suppressing the rebuild later.
+            var policyChanged = CreateData(IntermediateFixture() with
+            {
+                CropPolicy = CropPolicy.Rotation,
+                FixedCropId = string.Empty,
+            }, out _);
+            TestAssert.True(HdbfIndoorPanelSignature.ForSection(
+                               Section(policyChanged, HdbfPanelSectionKind.Crops), policyChanged)
+                           != HdbfIndoorPanelSignature.ForSection(
+                               Section(before, HdbfPanelSectionKind.Crops), before),
+                "a crop policy change must rebuild the crop card");
+        }
+
+        /// <summary>
+        /// A card is rebuilt only when one of the fields <c>BuildSectionCard</c> renders changed:
+        /// this pins the signature coverage (row text/tooltip/marker/bar, tone/title/icon and the
+        /// worker-card extras) so a new rendered field cannot silently go stale.
+        /// </summary>
+        public static void TestCardSignatureTracksEveryRenderedFieldOfACard()
+        {
+            static HdbfPanelSection WithRow(HdbfPanelSection section, int index, HdbfPanelRow row)
+            {
+                var rows = new List<HdbfPanelRow>(section.Rows);
+                rows[index] = row;
+                return section with { Rows = rows };
+            }
+
+            var data = CreateData(IntermediateFixture(), out _);
+            var crops = Section(data, HdbfPanelSectionKind.Crops);
+            var cropsHash = HdbfIndoorPanelSignature.ForSection(crops, data);
+            var cropsRow = crops.Rows[0];
+            var rowVariants = new (string Name, HdbfPanelSection Section)[]
+            {
+                ("tone", crops with { Tone = crops.Tone == "red" ? "green" : "red" }),
+                ("title", crops with { Title = crops.Title + "x" }),
+                ("icon", crops with { IconKey = crops.IconKey + "x" }),
+                ("row label", WithRow(crops, 0, cropsRow with { Label = cropsRow.Label + "x" })),
+                ("row value", WithRow(crops, 0, cropsRow with { Value = cropsRow.Value + "x" })),
+                ("row tooltip", WithRow(crops, 0, cropsRow with { Tooltip = cropsRow.Tooltip + "x" })),
+                ("row icon", WithRow(crops, 0, cropsRow with { IconKey = cropsRow.IconKey + "x" })),
+            };
+            foreach (var variant in rowVariants)
+            {
+                TestAssert.True(HdbfIndoorPanelSignature.ForSection(variant.Section, data) != cropsHash,
+                    "a changed rendered field must rebuild the card: " + variant.Name);
+            }
+
+            var output = Section(data, HdbfPanelSectionKind.Output);
+            var outputHash = HdbfIndoorPanelSignature.ForSection(output, data);
+            var barIndex = -1;
+            for (var index = 0; index < output.Rows.Count; index++)
+            {
+                if (output.Rows[index].HasBar)
+                {
+                    barIndex = index;
+                    break;
+                }
+            }
+
+            TestAssert.True(barIndex >= 0, "the output card keeps its occupancy progress bar");
+            var barRow = output.Rows[barIndex];
+            var barVariants = new (string Name, HdbfPanelSection Section)[]
+            {
+                ("bar fill", WithRow(output, barIndex, barRow with { Bar = barRow.Bar + 0.25f })),
+                ("bar text", WithRow(output, barIndex, barRow with { BarText = barRow.BarText + "x" })),
+                ("bar marker", WithRow(output, barIndex, barRow with { BarMarker = 0.5f })),
+                ("warning marker", WithRow(output, barIndex, barRow with { Marker = "!", IsWarning = true })),
+            };
+            foreach (var variant in barVariants)
+            {
+                TestAssert.True(HdbfIndoorPanelSignature.ForSection(variant.Section, data) != outputHash,
+                    "a changed rendered bar/warning field must rebuild the card: " + variant.Name);
+            }
+
+            var workers = Section(data, HdbfPanelSectionKind.Workers);
+            var workersHash = HdbfIndoorPanelSignature.ForSection(workers, data);
+            var chips = data.WorkerChips;
+            var changedChips = new HdbfWorkerChip[chips.Count];
+            for (var index = 0; index < chips.Count; index++)
+            {
+                changedChips[index] = index == 0 ? chips[index] with { Vacant = !chips[index].Vacant } : chips[index];
+            }
+
+            var dataVariants = new (string Name, HdbfIndoorPanelData Data)[]
+            {
+                ("meta line", data with { MetaLine = data.MetaLine + "x" }),
+                ("meta tooltip", data with { MetaTooltip = data.MetaTooltip + "x" }),
+                ("mode", data with
+                {
+                    Mode = data.Mode == IndoorMode.Dense ? IndoorMode.Normal : IndoorMode.Dense,
+                }),
+                ("transition", data with { ModeTransitionText = data.ModeTransitionText + "x" }),
+                ("roster note", data with { WorkerRosterNote = data.WorkerRosterNote + "x" }),
+                ("roster chip", data with { WorkerChips = changedChips }),
+            };
+            foreach (var variant in dataVariants)
+            {
+                TestAssert.True(
+                    HdbfIndoorPanelSignature.ForSection(workers, variant.Data) != workersHash,
+                    "a changed worker-card extra must rebuild the card: " + variant.Name);
+            }
+        }
+
+        /// <summary>
+        /// Forward-looking guard against a newly rendered field silently missing from the card
+        /// signature (which would leave that card showing stale values): every
+        /// <c>data.X</c>/<c>section.X</c>/<c>row.X</c>/<c>chip.X</c> field read by the card renderers
+        /// must appear in the signature source. The curated test above proves the current fields
+        /// actually change the signature; this one catches a future field added to the renderer but
+        /// forgotten in the signature.
+        /// </summary>
+        public static void TestEveryFieldTheCardRenderersReadIsPartOfTheSignature()
+        {
+            static string Slice(string text, string from, string to)
+            {
+                var start = text.IndexOf(from, StringComparison.Ordinal);
+                TestAssert.True(start >= 0, "missing source anchor: " + from);
+                var end = text.IndexOf(to, start, StringComparison.Ordinal);
+                TestAssert.True(end > start, "missing source anchor: " + to);
+                return text.Substring(start, end - start);
+            }
+
+            var cardsSource = ReadUiFile("Panels/HdbfFarmPanelFragment.Cards.cs");
+            var buildAt = cardsSource.IndexOf("private VisualElement BuildSectionCard", StringComparison.Ordinal);
+            TestAssert.True(buildAt >= 0, "BuildSectionCard must exist in the card partial");
+            var renderSource = ReadUiFile("Panels/HdbfFarmPanelFragment.Render.cs");
+            var renderers = cardsSource.Substring(buildAt)
+                            + Slice(renderSource, "private void RenderWorkerRoster", "private void RenderActions")
+                            + ReadUiFile("Panels/HdbfPanelControls.cs")
+                            + ReadUiFile("Panels/HdbfPanelControls.Widgets.cs");
+            var signature = ReadUiFile("Panels/HdbfIndoorPanelSignature.cs");
+
+            // Only tokens that are real read-model properties count: the builders also use local
+            // variables named row/section (VisualElement helpers), whose Add()/style calls are not
+            // rendered fields.
+            var properties = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var type in new[]
+                     {
+                         typeof(HdbfIndoorPanelData), typeof(HdbfPanelSection), typeof(HdbfPanelRow),
+                         typeof(HdbfWorkerChip),
+                     })
+            {
+                foreach (var property in type.GetProperties(
+                             System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance))
+                {
+                    properties.Add(property.Name);
+                }
+            }
+
+            var tokens = new SortedSet<string>(StringComparer.Ordinal);
+            foreach (System.Text.RegularExpressions.Match match in
+                     System.Text.RegularExpressions.Regex.Matches(
+                         renderers, @"\b(?:data|section|row|chip)\.([A-Za-z_][A-Za-z0-9_]*)"))
+            {
+                var name = match.Groups[1].Value;
+                if (properties.Contains(name))
+                {
+                    tokens.Add(name);
+                }
+            }
+
+            TestAssert.True(tokens.Count >= 15,
+                "the renderer scan must find the rendered fields, found " + tokens.Count);
+            foreach (var token in tokens)
+            {
+                TestAssert.True(signature.Contains("." + token, StringComparison.Ordinal),
+                    "a field the card renderers read must be part of the card signature: " + token);
+            }
+        }
+
         /// <summary>
         /// L-12/L-15 seam: the Gameplay snapshot builder fills the config-resolved profile and the
         /// live faction crop list of the game-backed catalog, and maps it to Core choices; the UI

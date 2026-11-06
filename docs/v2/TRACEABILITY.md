@@ -82,7 +82,7 @@
 
 | 需求 | 实现文件/类 | L1 测试 | 状态 |
 |---|---|---|---|
-| REQ-V2-UI-01 面板 ≤4Hz/脏标记 | `U:Panels/HdbfFarmPanelFragment*.cs` | `T:V2PanelContractTests` | L1 |
+| REQ-V2-UI-01 面板 ≤4Hz/脏标记/每卡内容签名 | `U:Panels/HdbfFarmPanelFragment*.cs`, `U:Panels/HdbfIndoorPanelSignature.cs` | `T:V2PanelContractTests`, `T:V2PanelVisualContractTests` | L1（逐卡 diff 的实机点选验证 pending） |
 | REQ-V2-UI-02 失败原因具体 | `U:Panels/HdbfIndoorCommandBridge.cs`, `G:Components/HdbfIndoorCommandFailures.cs` | `T:V2PanelContractTests`, `T:V2GameplayWiringTests` | L1 |
 | REQ-V2-UI-03 三语本地化键齐全 | `D:Localizations/*.csv`, `U:Localization/HdbfUiLocKeys.cs` | `T:V2LocalizationTests` | L1 |
 | REQ-V2-UI-04 清除 v1 术语 | `D:Localizations/*.csv`, `U:` | `T:V2LocalizationTests`, `T:V2NfrReleaseGateMatrixTests` | L1 |
