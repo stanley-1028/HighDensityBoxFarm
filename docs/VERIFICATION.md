@@ -2136,9 +2136,16 @@ powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1 -WorkRoot "$env:TE
   2,202,809 B / manifest 2.5.9），供玩家下一次啟動立即測到修復版；Steam 重啟後以官方
   ManifestID `9210717745557344144` 為準。舊 2.5.8 內容備份於
   `C:\Users\user\hdbf-tools\workshop-backup\3828809784-2.5.8`。
+* **Steam 頁面核對（2026-11-07 21:52，公開頁面 `https://steamcommunity.com/sharedfiles/filedetails/?id=3828809784`）**：
+  `Updated 7 Nov @ 5:49am`（Steam 網頁以 PST 顯示 = 2026-11-07 21:49 Asia/Macau）、
+  `File Size 2.203 MB`、`Change Notes` 共 **11** 條；最新一條即 v2.5.9 雙語 Change Note（內容與
+  `%USERPROFILE%\.hdbf\release-259-changenote.txt` 一致）；標題/描述/封面/標籤/可見性未變（刻意只更新
+  內容與 Change Note，與 2.5.1–2.5.8 相同做法）。
 * **GitHub `stanley-1028/HighDensityBoxFarm`**：修復 commit **`d187cd6`**
-  （v2.5.9：輸出庫存暫存語義修復——整盒容量改滿員一天暫存；L1 732/732、44 gates）已 push 到 `master`；
-  本發佈記錄 commit 隨後 push，最終以 `origin/master` 為準。
+  （v2.5.9：輸出庫存暫存語義修復——整盒容量改滿員一天暫存；L1 732/732、44 gates）與發佈記錄 commit
+  **`57fee2d`** 已 push 到 `master`（push 回報 `61b7f11..57fee2d master -> master`，
+  `git ls-remote` 遠端 = `57fee2d2bd3866f6c7abb1ab62fda934746748fb`）；頁面核對記錄 commit 隨後 push，
+  最終以 `origin/master` 為準。
 * **仍未實機**：本輪無可互動實機會話（sandbox 亦不允許寫 `Saves`/遊戲目錄，見 §46）；實機檢查點：
   面板輸出庫存上限顯示 104/208/416/832；有接收倉庫時產物被搬走並維持在一天產量內；無接收倉庫時
   OutputFull/積壓而不是無限囤貨；舊存檔超容量庫存保留、搬走後恢復收穫。若仍有問題請附 `Player.log`

@@ -149,6 +149,8 @@ cp docs/workshop/publish/* "$USERPROFILE/Documents/Timberborn/Mods/HDBF/"
 - 2.5.9 於 **2026-11-07 21:49（Asia/Macau）** 上傳成功：`ManifestID 9210717745557344144`、
   `Uploaded new content ( ManifestID 9210717745557344144 ) for item 3828809784.`、
   `Upload finished for workshop item 3828809784 : OK`（Steam `logs/workshop_log.txt`，AppID 1062090）。
+- 頁面核對（2026-11-07 21:52）：`Updated 7 Nov @ 5:49am`（PST 顯示）、`File Size 2.203 MB`、
+  `Change Notes` 共 11 條，最新一條為 v2.5.9 雙語 Change Note；標題/描述/封面/標籤/可見性未動。
 - 上傳只更新**內容與 Change Note**；標題/描述/封面/標籤/可見性刻意未動。
 - Change Note（雙語）：輸出庫存改為「滿員一天暫存」（104/208/416/832，原整盒 240/600/1200/2400）；
   原因（原版搬運按輸出填充率排序清空任務，且必須有接受該貨物的倉庫）；空緩衝下單日收穫必裝得下
