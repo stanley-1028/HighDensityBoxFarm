@@ -2048,8 +2048,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1 -WorkRoot "$env:TE
 * **用戶實機存檔證據**（只讀，未改原檔；`Documents\Timberborn\Saves\1110\`，遊戲日 26→27，2.5.8）：
   * Basic / Intermediate / Advanced 農場 `Inventory:SimpleOutputInventory` 的 Carrot：
     **141 / 110 / 226 → 161 / 174 / 334**（一天內持續增長）；Top 尚未產生輸出庫存組件。
-  * 同地區唯一倉庫 `LargeWarehouse`：`SingleGoodAllower = GrilledPotato`，Carrot 528 件全部只在農場
-    輸出庫存裡；`DistrictGoodsBalance.ProductionRegistry` Carrot 210/日、Consumption 18/日。
+  * 同地區唯一倉庫 `LargeWarehouse`：`SingleGoodAllower = GrilledPotato`，不接受 Carrot；三座農場輸出
+    庫存的 Carrot 合計 **477 → 669**（141+110+226 → 161+174+334）全部只在農場輸出庫存裡，倉庫側沒有
+    任何 Carrot；`DistrictGoodsBalance.ProductionRegistry` Carrot 210/日、Consumption 18/日。
     → 無接收倉庫 + 大容量 = 农场输出库存事实上是玩家唯一的「Carrot 倉庫」（兩個因素疊加）。
 * **修法**（`docs/v2/CHANGELOG.md` [2.5.9]）：
   `IndoorConstants.OutputCapacityFor(slots)` = `ceil(slots / 38) × 13 × 4` = **104/208/416/832**，
@@ -2097,6 +2098,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1 -WorkRoot "$env:TE
   5. **單槽 ≤4 件的假設**：一槽最多 3 × 1.35 四捨五入 = 4 件僅對原版 Farmhouse 組作物成立；若第三方
      作物 `BaseYield ≥ 4`，單日收穫可能超過 832 → 每天先回壓（不會永久卡死，但容量不再是「單日上界」）；
      屬機制限制，未來可加作物目錄契約（本輪未做）。
+  6. **多作物總上界**：`SimpleOutputInventorySpec.Capacity` 是**每貨物**上限，輪作農場同時存在多種作物時
+     總庫存上限 = 各貨物上限之和（例如 Top 4 種作物 → 最多 4 × 832 = 3328 件；舊整盒規則同樣按每貨物計，
+     因而每種貨物相對舊規則仍縮小約 2.3–2.9 倍，但絕對總量隨作物數增長，且搬運權重的分母同時變大、
+     清空優先級恢復較慢）。本輪文檔一律寫「**每種貨物**滿員一天」；若要嚴格綁定「總量 ≤ 一天」，需按
+     實際在庫作物數動態分配每貨物上限或改輸出模型，屬後續設計（另開卡）。
+  7. **第三方改派工模組**：若有模組改變工位/在岗人數超過藍圖 `MaxWorkers`，單日收穫可超過本容量
+     （只會回壓、不丟貨）；本輪未納入契約。
 * **存檔兼容（IL 推導，未實機）**：容量是藍圖值、讀檔後立即生效；舊存檔中超過新容量的庫存由
   `Inventory.Load → LoadFromNamedComponent` 直接寫入 `_storage`（**無容量校驗/裁剪**），不抹除、不拋錯；
   但該貨物 `UnreservedCapacity = 0` → **暫不再收**（槽位保持成熟、不丟貨），若存在接收倉庫則按
@@ -2104,5 +2112,34 @@ powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1 -WorkRoot "$env:TE
   夾在 100%，文字仍誠實顯示 e.g. `161/104`。
 * **仍未實機驗證（pending，不得寫成完成）**：舊存檔（含超容量庫存）載入無異常；有接收倉庫時農場輸出
   庫存被搬空並維持在一天產量以內；無接收倉庫時按設計回壓（OutputFull 警告，不再無限囤積）；
-  面板容量顯示 104/208/416/832。**本輪未部署、未啟動遊戲、未發佈。**
+  面板容量顯示 104/208/416/832。**本節為離線門禁證據（未啟動遊戲）；發佈與本機 Workshop 內容同步見 §47。**
 
+## 47. 2.5.9 發佈記錄：Steam Workshop 更新 + GitHub push（2026-11-07）
+
+* **Steam Workshop item 3828809784**：2026-11-07 **21:49:07–21:49:18**（Asia/Macau）上傳成功：
+  `Upload starting for workshop item 3828809784 by AppID 1062090` →
+  `Uploaded new content ( ManifestID 9210717745557344144 ) for item 3828809784.` →
+  `Upload finished for workshop item 3828809784 : OK`（Steam `logs/workshop_log.txt`，AppID 1062090）。
+  一次性 Steamworks UGC 工具 `C:\Users\user\hdbf-tools\steamupload\bin\Release\net9.0\SteamUpload.exe`
+  回報 `submitDone ioFailure=False eResult=k_EResultOK needsLegalAgreement=False publishedFileId=3828809784`
+  （exit 0；上传进度 2,202,809 B 准备 + 506,311 B 上传后进入 CommittingChanges）。
+* **上傳內容** = 2.5.9 staged 包（**48 files / 2,202,809 bytes / 2,151 KB**、manifest Version 2.5.9），
+  與 §46 離線門禁為同一份：5 組件 0 warning / 0 error、L1 **732/732**、`tools/validate` RESULT: OK、
+  **RELEASE GATES: PASSED (44 checks)**。
+* **Change Note（雙語）**：輸出庫存改為「滿員一天暫存」（104/208/416/832，原整盒 240/600/1200/2400）；
+  原因（原版搬運按輸出庫存填充率排序清空任務，且必須有接受該貨物的倉庫）；空緩衝下單日收穫必裝得下
+  （不會回到 2026-10-29 的「600 玉米只送 50」）；沒有接收倉庫/搬運跟不上時按設計回壓並提示補倉庫；
+  舊存檔超容量貨物保留不刪、暫不再收，搬走後恢復；本版通過 732 項自動測試、未實機。
+  檔案：`%USERPROFILE%\.hdbf\release-259-changenote.txt`（3,061 B）。
+* **本機 Workshop 內容文件夾**：已同步覆蓋為 2.5.9
+  （`C:\Program Files (x86)\Steam\steamapps\workshop\content\1062090\3828809784`：48 files /
+  2,202,809 B / manifest 2.5.9），供玩家下一次啟動立即測到修復版；Steam 重啟後以官方
+  ManifestID `9210717745557344144` 為準。舊 2.5.8 內容備份於
+  `C:\Users\user\hdbf-tools\workshop-backup\3828809784-2.5.8`。
+* **GitHub `stanley-1028/HighDensityBoxFarm`**：修復 commit **`d187cd6`**
+  （v2.5.9：輸出庫存暫存語義修復——整盒容量改滿員一天暫存；L1 732/732、44 gates）已 push 到 `master`；
+  本發佈記錄 commit 隨後 push，最終以 `origin/master` 為準。
+* **仍未實機**：本輪無可互動實機會話（sandbox 亦不允許寫 `Saves`/遊戲目錄，見 §46）；實機檢查點：
+  面板輸出庫存上限顯示 104/208/416/832；有接收倉庫時產物被搬走並維持在一天產量內；無接收倉庫時
+  OutputFull/積壓而不是無限囤貨；舊存檔超容量庫存保留、搬走後恢復收穫。若仍有問題請附 `Player.log`
+  （確認開頭 `start HDBF version=2.5.9`）。

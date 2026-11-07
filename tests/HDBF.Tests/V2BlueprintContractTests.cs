@@ -511,6 +511,16 @@ namespace HDBF.Tests
                     StringComparison.Ordinal),
                 "validator MaxHarvestItemsPerSlot must mirror HDBF.Core IndoorConstants ("
                 + IndoorConstants.MaxHarvestItemsPerSlot + ")");
+            // The constants alone are not enough: the expected value must be the same product
+            // (ceil(slots / 38) x 13 x 4), otherwise e.g. switching the multiplier here would still
+            // pass the three constant assertions above.
+            TestAssert.True(text.Contains(
+                    "farmers * OutputActionsPerFarmerDay * OutputMaxHarvestItemsPerSlot", StringComparison.Ordinal),
+                "validator ExpectedOutputCapacity must multiply the same three factors as HDBF.Core "
+                + "(ceil(slots / 38) x 13 x 4)");
+            TestAssert.True(text.Contains("(plotCapacity + OutputSlotsPerFarmer - 1) / OutputSlotsPerFarmer",
+                    StringComparison.Ordinal),
+                "validator ExpectedOutputCapacity must use the same ceil(slots / farmers) division as HDBF.Core");
         }
 
         // ---------------------------------------------------------------- wiring: models / base / colliders

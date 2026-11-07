@@ -144,3 +144,21 @@ cp docs/workshop/publish/* "$USERPROFILE/Documents/Timberborn/Mods/HDBF/"
 - **實機點擊驗證仍 pending**（本機無法合成輸入）；玩家若仍打不開，請附 `Player.log`
   （確認開頭 `start HDBF version=2.5.7`，並看有無 `ui.crop-dropdown`）。
 
+## 發佈記錄（2026-11-07，2.5.9）
+
+- 2.5.9 於 **2026-11-07 21:49（Asia/Macau）** 上傳成功：`ManifestID 9210717745557344144`、
+  `Uploaded new content ( ManifestID 9210717745557344144 ) for item 3828809784.`、
+  `Upload finished for workshop item 3828809784 : OK`（Steam `logs/workshop_log.txt`，AppID 1062090）。
+- 上傳只更新**內容與 Change Note**；標題/描述/封面/標籤/可見性刻意未動。
+- Change Note（雙語）：輸出庫存改為「滿員一天暫存」（104/208/416/832，原整盒 240/600/1200/2400）；
+  原因（原版搬運按輸出填充率排序清空任務，且必須有接受該貨物的倉庫）；空緩衝下單日收穫必裝得下
+  （不會回到 2026-10-29 的「600 玉米只送 50」）；沒有接收倉庫時按設計回壓並提示補倉庫；舊存檔
+  超容量貨物保留不刪、暫不再收，搬走後恢復。檔案：`%USERPROFILE%\.hdbf\release-259-changenote.txt`。
+- 建置：L1 **732/732**、`tools/validate` RESULT: OK、`build.ps1` **44 gates PASSED**；
+  staged package **48 files / 2,202,809 bytes / manifest 2.5.9**；GitHub `master` = `d187cd6`（修復）
+  + 本篇發佈記錄 commit。
+- **本機測試包**：2.5.9 stage 已覆蓋到 `Steam\steamapps\workshop\content\1062090\3828809784`
+  （同一個 Workshop item、無重複 Id），下一次啟動遊戲即可測到修復版；舊 2.5.8 內容備份在
+  `C:\Users\user\hdbf-tools\workshop-backup\3828809784-2.5.8`。
+- **實機驗證仍 pending**（本輪無可互動實機會話，且 sandbox 禁止寫 Saves/遊戲目錄）；玩家若仍有問題，
+  請附 `Player.log`（確認開頭 `start HDBF version=2.5.9`）。

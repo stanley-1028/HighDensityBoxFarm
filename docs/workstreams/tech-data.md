@@ -579,5 +579,3 @@ Top 的動力 transput 已改為 `(0,1,0)`/`(1,1,0)`/`(2,1,0)` 配 `Left, Up`/`U
 按設計回壓（OutputFull/槽位保持成熟），長期堆存由玩家倉庫承擔。
 `IndoorConstants.OutputCapacityFor`、面板 `HdbfIndoorPanelLimits.OutputCapacity`、8 份藍圖與
 `tools/validate`（獨立復刻同一公式）同步；根因、修正與離線證據見 `docs/VERIFICATION.md` §46。
-
-
