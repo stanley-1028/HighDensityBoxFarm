@@ -139,7 +139,7 @@ HDBF.Tooltip.MaintenanceShutdown,The farm is stalled; one maintenance click pays
 HDBF.Tooltip.Power,Top tier: grid power gives full growth; off-grid or a power cut reduces it.,v2 UI
 HDBF.Tooltip.Rotation,Rotation plants a different crop each cycle; fixed crop always replants the selected crop.,v2 UI
 HDBF.Tooltip.Refill,Requests one manual refill trip.,v2 UI
-HDBF.Tooltip.PipeWater,Auto-refill draws only from vanilla liquid tanks (Small/Medium/Large) connected to the pipe network; a pipe attached to the farm shell does nothing and the farm does not need to stand next to the pipes.,v2 UI
+HDBF.Tooltip.PipeWater,Auto-refill draws only from real pipe water: a Timber Pipes water pipe attached to the farm shell or vanilla liquid tanks (Small/Medium/Large) connected to the pipe network. The pipes must carry clean Water.,v2 UI
 HDBF.Tooltip.NoWaterSource,No water source is connected; the tank only drains.,v2 UI
 HDBF.Tooltip.Output,Output inventory and logistics port state.,v2 UI
 HDBF.Tooltip.CurrentMode,This is the current mode.,v2 UI

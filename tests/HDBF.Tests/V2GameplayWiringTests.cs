@@ -317,6 +317,17 @@ namespace HDBF.Tests
                 "the drain must use the game clock, never Unity render time");
             AssertTokens("HdbfBoxFarmController.WaterFlow.cs", "ConsumeElapsedWater", "ApplyHauledWater",
                 "IndoorWaterMath.DemandForElapsedDays", "IndoorWaterMath.Consume", "catch (Exception");
+            // Player report 2026-11-07 (farm-adjacent pipe intake): the day tick publishes the farm
+            // footprint before asking the adapter, and the panel snapshot publishes it before the
+            // probe, so a Timber Pipes water pipe attached to the farm shell supplies the farm.
+            AssertTokens("HdbfBoxFarmController.PipeIntake.cs", "PositionedBlocks", "GetOccupiedCoordinates()",
+                "IIndoorPipeWaterAnchor", "SetWaterAnchor(", "catch (Exception");
+            var contextSource = Read(Components + "HdbfBoxFarmController.Context.cs");
+            var publishIndex = contextSource.IndexOf("PublishWaterAnchor();", StringComparison.Ordinal);
+            var queryIndex = contextSource.IndexOf("_adapterHost.IsPipeConnected", StringComparison.Ordinal);
+            TestAssert.True(publishIndex >= 0 && queryIndex >= 0 && publishIndex < queryIndex,
+                "the daily tick must publish the farm footprint before IsPipeConnected");
+            AssertTokens("HdbfBoxFarmController.WaterFlow.cs", "PublishWaterAnchor();");
             AssertTokens("HdbfBoxFarmController.Activation.cs", "_waterFlow.Register", "_waterFlow.Unregister");
             TestAssert.True(configurator.Contains("HdbfWaterFlowService", StringComparison.Ordinal),
                 "the configurator must register the continuous water flow service");
@@ -337,6 +348,7 @@ namespace HDBF.Tests
                          "HdbfManualWaterSource.Search.cs", "HdbfManualWaterSource.Sources.cs",
                          "HdbfManualWaterSource.WalkStart.cs",
                          "HdbfMaintenanceTransaction.cs", "HdbfWorldIconService.Evaluate.cs",
+                         "HdbfBoxFarmController.PipeIntake.cs",
                      })
             {
                 var text = Read(Components + file);

@@ -41,7 +41,7 @@ namespace HDBF.Integration.Adapters
                 return new PipeProbe(PipeProbeReason.AdapterUnavailable, 0, 0, "adapter-not-serving");
             }
 
-            var probe = ClassifyFarmGraph(_binding.ProbeTanks());
+            var probe = ClassifyIntake(ClassifyFarmGraph(_binding.ProbeTanks()));
             try
             {
                 // ThrottledLog keeps this to one line per 30 s for the key (REQ-V2-READ-03).
@@ -55,6 +55,44 @@ namespace HDBF.Integration.Adapters
             }
 
             return probe;
+        }
+
+        /// <summary>
+        /// Player report 2026-11-07 (farm-adjacent intake): a transport pipe that physically touches
+        /// the farm shell is read as a local supply. A watered adjacent pipe makes the census reason
+        /// <see cref="PipeProbeReason.Connected"/> with a farm-pipe detail; adjacent pipes that are all
+        /// dry become <see cref="PipeProbeReason.TankDry"/> unless the settlement-wide tank census is
+        /// already connected (then that honest reason wins). Read-only: it never draws, never feeds
+        /// the three-strike failure machine and never throws.
+        /// </summary>
+        /// <param name="census">Census/GlobalSupply result of the settlement-wide tank path.</param>
+        /// <returns>Census result, or the farm-pipe variant when a local pipe is the real source.</returns>
+        private PipeProbe ClassifyIntake(PipeProbe census)
+        {
+            if (!_binding.TryReadIntake(_intakeNeighbors, out var intake))
+            {
+                return census;
+            }
+
+            if (intake.WateredPipes > 0)
+            {
+                return new PipeProbe(PipeProbeReason.Connected, census.TankCount + intake.PipeCount,
+                    census.WaterTankCount, "farm-pipe; watered-pipes=" + intake.WateredPipes);
+            }
+
+            if (census.Reason == PipeProbeReason.Connected || census.Reason == PipeProbeReason.GlobalSupply)
+            {
+                // The settlement-wide tank path still supplies water; keep its honest label.
+                return census;
+            }
+
+            if (intake.PipeCount > 0)
+            {
+                return new PipeProbe(PipeProbeReason.TankDry, census.TankCount + intake.PipeCount,
+                    census.WaterTankCount, "farm-pipe-dry");
+            }
+
+            return census;
         }
 
         /// <summary>

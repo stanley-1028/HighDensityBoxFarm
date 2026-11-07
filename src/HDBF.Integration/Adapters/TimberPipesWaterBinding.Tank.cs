@@ -30,9 +30,14 @@ namespace HDBF.Integration.Adapters
                 var volume = _getVolumeM3.Invoke(tank, null) is float volumeM3 ? volumeM3 : 0f;
                 var pipe = _getPipe.Invoke(tank, null);
                 var graph = pipe is null ? null : _getGraph.Invoke(pipe, null);
+                // A tank's BuildingPipe is a non-transport endpoint: the mod only assigns
+                // Pipe.Graph to transport pipes, so the graph check alone is always false for a
+                // liquid tank (the old filter made the whole tank draw path unreachable). A real
+                // port link to a transport pipe is the honest "connected to a network" test.
+                var hasTransportLink = graph is not null || PipeHasTransportLink(pipe);
                 var fluid = _getFluidGoodId.Invoke(tank, null) as string;
                 var takesWater = _takesGood.Invoke(tank, new object[] { _waterGoodId }) is bool takes && takes;
-                state = new PipeTankState(finished, graph is not null, takesWater, fluid, volume);
+                state = new PipeTankState(finished, hasTransportLink, takesWater, fluid, volume);
                 LastFailureReason = null;
                 return true;
             }

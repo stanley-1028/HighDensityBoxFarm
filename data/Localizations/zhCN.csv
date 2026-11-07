@@ -139,7 +139,7 @@ HDBF.Tooltip.MaintenanceShutdown,农场已停摆；执行一次维护会付清�
 HDBF.Tooltip.Power,顶级：接电时生长全速；离网或断电会降低生长。,v2 UI
 HDBF.Tooltip.Rotation,轮作每轮更换作物；固定作物则始终补种所选作物。,v2 UI
 HDBF.Tooltip.Refill,请求一次人工补水。,v2 UI
-HDBF.Tooltip.PipeWater,自动补水只从接上管网的原版液体水塔（小型/中型/大型）抽水；把管道接在农场外壳上不会生效，农场也不必紧邻管道。,v2 UI
+HDBF.Tooltip.PipeWater,自动补水只抽取真正的管道水：贴在农场外壳上的 Timber Pipes 水管，或接入管网的原版液体水塔（小型/中型/大型）。管道里必须有干净的水。,v2 UI
 HDBF.Tooltip.NoWaterSource,没有补水来源，水罐只会消耗。,v2 UI
 HDBF.Tooltip.Output,输出库存与物流端口状态。,v2 UI
 HDBF.Tooltip.CurrentMode,当前模式。,v2 UI

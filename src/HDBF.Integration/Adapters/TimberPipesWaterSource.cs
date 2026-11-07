@@ -80,6 +80,13 @@ namespace HDBF.Integration.Adapters
                             return true;
                         }
                     }
+
+                    // Player report 2026-11-07: a water pipe physically attached to the farm
+                    // shell is a real local source even when no settlement-wide tank exists.
+                    if (HasIntakeWater())
+                    {
+                        return true;
+                    }
                 }
                 catch (Exception)
                 {
@@ -112,6 +119,13 @@ namespace HDBF.Integration.Adapters
                         {
                             return true;
                         }
+                    }
+
+                    // A transport pipe touching the farm shell is a valid local connection even
+                    // while it is dry: the day tick may still try to draw from it.
+                    if (HasIntakeConnection())
+                    {
+                        return true;
                     }
                 }
                 catch (Exception)
@@ -161,6 +175,13 @@ namespace HDBF.Integration.Adapters
                 var wantedM3 = amount * scale;
                 var drawnM3 = 0f;
                 var anyTank = false;
+                // Player report 2026-11-07: the Timber Pipes transport pipe(s) physically attached
+                // to this farm feed it first; the settlement-wide tank census stays the fallback.
+                if (TryDrawIntake(wantedM3, out var intakeM3) && intakeM3 > 0f)
+                {
+                    drawnM3 += intakeM3;
+                }
+
                 foreach (var tank in tanks!)
                 {
                     if (drawnM3 >= wantedM3 - (scale * 0.001f))

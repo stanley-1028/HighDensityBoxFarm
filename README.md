@@ -3,20 +3,20 @@
 > 按需求蓝图 §19（v2.1）实现的 Timberborn 1.1.2.8 模组：**3×3×1 室内高密度农场**。
 > 本工程不是文档摘要，而是可构建、可测试、可安装的代码与数据。
 >
-> **当前版本 2.5.7（v2 室内版 · 2026-11-06 玩家回馈热修，已发布）**：四档 3×3×1 建筑，内部 60/150/300/600 个抽象槽位，
+> **当前版本 2.5.8（v2 室内版 · 2026-11-07 管道供水修复，未发布）**：四档 3×3×1 建筑，内部 60/150/300/600 个抽象槽位，
 > 平屋顶可叠放，内部水罐 + 管道/人工补水；v1 的世界地块扫描、托管格、原版种植派发、
 > 地块高亮、作物可见性补丁与 Harmony 补丁**已全部删除（0 Harmony）**。
 > v2 设计入口：[docs/v2/README.md](docs/v2/README.md)、需求唯一来源 [§19](docs/REQ_V2_SECTION_19.md)。
 
 | 项目 | 值 |
 |---|---|
-| 模组版本 | **2.5.7（v2）** |
+| 模组版本 | **2.5.8（v2，未发布）** |
 | 目标游戏 | Timberborn 1.1.2.8（`1.1.2.8-ffc2de0-sw`，Unity 6000.5.11f1） |
 | 存档 schema | **2**（每建筑一条原生持久化记录，含 v1→v2 迁移；见 ADR-V2-003） |
 | 配置 schema | **2**（v1 配置可读并迁移；未知键忽略） |
 | 程序集 | `HDBF.Core` / `HDBF.Persistence` / `HDBF.Gameplay` / `HDBF.Integration` / `HDBF.UI` |
 | Harmony 补丁 | **0** |
-| L1 测试 | **717**（零游戏依赖，`FAILED 0`） |
+| L1 测试 | **728**（零游戏依赖，`FAILED 0`） |
 | 发布门禁 | **PASSED (44 checks)** + `NFR GATE MATRIX: PASSED` |
 
 ## 1. 这是什么
@@ -32,6 +32,16 @@
 农民只占建筑工作位；水由**内部水罐**提供（管道自动补水或工人人工补水）；
 产物进入建筑输出库存后由原版搬运/传送带送出。模型屋顶是**平的、可通行、可叠放建筑**。
 
+- **2.5.8 修复（玩家回馈：Timber Pipes 水管接到农场后农场完全不吃水，2026-11-07；未发布，离线门禁全绿、实机 pending）：**
+  根因有二：① HDBF 的「水塔已接网」判定用 `PipeTank.Pipe.Graph != null`，但液体水塔的 BuildingPipe 是
+  非 transport pipe，该 Graph **恒为 null** ⇒ 既有「接网水塔自动补水」路径从未生效；② HDBF 没有任何
+  「从紧邻农场的管取水」的代码，而 TimberPipes 普通输水管贴建筑外壳也不会建立连接。修复：水塔改为
+  「任一 port 连到 transport pipe」判定；新增反射取水路径——农场把自身 `PositionedBlocks` 世界占格发布给
+  适配器，适配器用 `PipeRegistry.TryGetPipe` 找紧邻农场的、已完工、未污染、网络流体为 Water、
+  `FluidHeight>=0.2m³` 的输水管，经公开 `RemoveFluid` 抽出真实管内水（1 水单位 = 0.2m³）再走既有日 tick
+  补水；面板/提示同步为「贴着农场外壳的 Timber Pipes 水管也可供水」。详细见
+  [CHANGELOG](docs/v2/CHANGELOG.md)、[修复记录](docs/workstreams/feedback-20261107/pipes.md)、
+  [VERIFICATION §44](docs/VERIFICATION.md)。
 - **2.5.7 修复（玩家回馈热修，2026-11-06）：** 面板「作物策略」的原版下拉**打不开**（玩家 Roslyn：
   「The drop down to change from rotation to a specific crop doesn't open for me」）。根因是面板 4 Hz
   刷新把整叠卡片清空重建（指紋含 `CurrentDay`/作物進度，幾乎每個模擬 tick 都 dirty），作物卡裡的

@@ -6,6 +6,7 @@
 // Requirements: REQ-V2-COMPAT-01, REQ-V2-COMPAT-02, REQ-V2-COMPAT-03, REQ-V2-SAFE-05
 // ============================================================================
 using System;
+using System.Collections.Generic;
 using Bindito.Core;
 using HDBF.Core;
 using HDBF.Core.Compat;
@@ -35,7 +36,8 @@ namespace HDBF.Integration.Adapters
     /// gets a reason code for the pipe port instead of a single misleading "Not connected" text,
     /// and the probe never draws water nor reports a runtime failure (L-02/L-06).
     /// </summary>
-    public sealed class IndoorAdapterHost : IIndoorAdapterHost, IIndoorPipeProbe, IIndoorPipeProbeAnchor
+    public sealed class IndoorAdapterHost : IIndoorAdapterHost, IIndoorPipeProbe, IIndoorPipeProbeAnchor,
+        IIndoorPipeWaterAnchor
     {
         private readonly CompatAdapterRegistry? _compat;
         private readonly IContainer? _container;
@@ -182,6 +184,25 @@ namespace HDBF.Integration.Adapters
             catch (Exception exception)
             {
                 LogError("pipe-probe-anchor-failed", exception);
+            }
+        }
+
+        /// <inheritdoc />
+        /// <remarks>
+        /// Forwards the farm footprint published by Gameplay to the Timber Pipes water source so a
+        /// water pipe attached to the farm shell can supply it (player report 2026-11-07). It never
+        /// draws water and never reports a runtime failure; a null source (adaptor missing/disabled/
+        /// failed) simply keeps the footprint unset and the draw degrades to manual refill.
+        /// </remarks>
+        public void SetWaterAnchor(IReadOnlyList<PipeCell>? footprint)
+        {
+            try
+            {
+                (PipeWaterSource as TimberPipesWaterSource)?.SetIntakeFootprint(footprint);
+            }
+            catch (Exception exception)
+            {
+                LogError("pipe-water-anchor-failed", exception);
             }
         }
 

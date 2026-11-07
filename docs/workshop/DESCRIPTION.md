@@ -42,7 +42,7 @@ Land is the one resource Timberborn never gives back. Every carrot field you pla
 [list]
 [*][b]Four tiers on the same 3x3x1 footprint[/b] — Basic 60 slots · Intermediate 150 · Advanced 300 · Top 600.
 [*][b]Farming that happens inside[/b] — farmers enter the building and work at indoor slots. Every slot grows a vanilla crop with its real growth time, yield and products; you are not feeding a fake counter.
-[*][b]Water is a system, not a decoration[/b] — the internal tank drains with game time. Refill it automatically through a pipe (Timber Pipes), by hauler trips, or with one click on the manual refill button.
+[*][b]Water is a system, not a decoration[/b] — the internal tank drains with game time. Refill it automatically through a Timber Pipes water pipe attached to the farm or from a liquid tank on the pipe network, by hauler trips, or with one click on the manual refill button.
 [*][b]A roof you can build on[/b] — the top surface is a real floor: stack another box farm, a tank, or a vanilla building on it.
 [*][b]Vanilla-style panel[/b] — slots, tank, coverage, maintenance, power, crop policy and warnings, plus world warning icons so a stalled farm is visible from the map.
 [*][b]English · 简体中文 · 繁體中文[/b] — all UI text and building descriptions are localized.
@@ -104,7 +104,7 @@ Design, code and art direction: [b]stanley1028[/b], in collaboration with [b]Dee
 Cover illustration generated with Seedream 5.0 Lite and finished by hand.
 
 [h2]中文简介[/h2]
-3×3×1 的室内高密度农场，共四档：基础 60 / 中级 150 / 高级 300 / 顶级 600 个作物槽位。屋顶是真正的平屋顶，下一座农场或原版建筑可以直接盖上去。农民在建筑内部作业；内部水罐随游戏时间消耗，可用管道（Timber Pipes）、工人搬运或面板上的手动补水按钮补充。维护材料、电力（顶级 150 动力）与土壤轮作都会影响产量——它不是作弊建筑，而是把土地成本换成水、人力和维护成本。支持原版两个阵营，无 Harmony 补丁、无前置依赖，英文 / 简体中文 / 繁体中文三语。本模组由 stanley1028 与 DeepSeek V4.1 Flash 1017 共同完成。
+3×3×1 的室内高密度农场，共四档：基础 60 / 中级 150 / 高级 300 / 顶级 600 个作物槽位。屋顶是真正的平屋顶，下一座农场或原版建筑可以直接盖上去。农民在建筑内部作业；内部水罐随游戏时间消耗，可用贴在农场上的 Timber Pipes 水管、接上管网的液体水塔、工人搬运或面板上的手动补水按钮补充。维护材料、电力（顶级 150 动力）与土壤轮作都会影响产量——它不是作弊建筑，而是把土地成本换成水、人力和维护成本。支持原版两个阵营，无 Harmony 补丁、无前置依赖，英文 / 简体中文 / 繁体中文三语。本模组由 stanley1028 与 DeepSeek V4.1 Flash 1017 共同完成。
 
 > 镜像到 mod.io 后，在页面末尾加一段链接，例如：
 > `[h2]Links[/h2][list][*][url=https://mod.io/g/timberborn/m/PASTE_SLUG]mod.io mirror[/url][/list]`
@@ -128,7 +128,7 @@ Cover illustration generated with Seedream 5.0 Lite and finished by hand.
 这个模组把种地搬进室内：四档 3×3×1 的「盒子农场」，同一块地基上从 60 个槽位一路做到 600 个，屋顶是真正的平屋顶——下一座农场、水箱、甚至原版建筑都可以直接盖上去。
 
 它不是白给粮食的作弊建筑：
-· 内部水罐会随游戏时间见底，可以接 Timber Pipes 自动补水、让工人去搬、或者点面板上的手动补水；
+· 内部水罐会随游戏时间见底，可以把 Timber Pipes 水管贴在农场上自动补水、接一个装有水的液体水塔进管网、让工人去搬、或者点面板上的手动补水；
 · 高级/顶级要维护材料，顶级还要 150 电力；
 · 有正常/密植/休耕三种模式，密植产量 +35% 但耗水和土壤疲劳更快；
 · 每档满编工人刚好顾满整个盒子（每人 38 个槽位），缺人就是缺产量。

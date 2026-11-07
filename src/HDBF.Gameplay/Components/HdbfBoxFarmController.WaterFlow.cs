@@ -134,6 +134,9 @@ namespace HDBF.Gameplay.Components
         {
             try
             {
+                // Player report 2026-11-07: the panel snapshot also needs the water footprint before
+                // it asks the adapter whether a pipe attached to the farm supplies water.
+                PublishWaterAnchor();
                 var probe = _adapterHost as IIndoorPipeProbeAnchor;
                 var position = _blockObject?.Coordinates;
                 if (probe is null || position is null)

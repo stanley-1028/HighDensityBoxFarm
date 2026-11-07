@@ -280,7 +280,24 @@ public interface IIndoorAdapterHost
     /// <summary>适配器健康快照（None/Ok/Degraded/Disabled/Failed），用于面板与存档。</summary>
     HdbfAdapterHealth PipeHealth { get; }
 }
+
+// 2.5.8（玩家回馈 2026-11-07）：可选的农场占格 companion，与上面冻结的 4 成员接口分离。
+// Gameplay 在每日管道查询 / 面板快照前发布农场世界占格；Integration 由此识别「紧贴农场外壳的
+// Timber Pipes 输水管」并把它作为本地水源（抽取真实管内水）。空/未知时不发布，适配器退回聚落水塔路径。
+public readonly record struct PipeCell(int X, int Y, int Z);
+
+public interface IIndoorPipeWaterAnchor
+{
+    void SetWaterAnchor(IReadOnlyList<PipeCell>? footprint);
+}
 ```
+
+2.5.8 的相邻管语义：占格来自 `BlockObject.PositionedBlocks.GetOccupiedCoordinates()`（世界坐标，旋转/翻转已应用）；
+Core 纯函数 `PipeIntakeMath.NeighborCells` 把 3×3×1 的 9 个占格展开成 30 个 6 面邻格。Integration 只用
+`PipeRegistry.TryGetPipe` 在当前邻格上查找已完工、`IsTransportPipe`、未污染、`NetworkGoodId == "Water"`、
+`FluidHeight >= 0.2m³` 的输水管，并经公开 `RemoveFluid(float)` 抽出至多「当次请求量」的真实管内水
+（1 水单位 = 0.2m³；按实际减少量记账）。只读 probe 不抽取；邻接管有水 → `Connected`（frozen 0–8 不新增），
+有管但干 → `TankDry`，水塔供水时仍保留 `GlobalSupply`。
 
 依赖方向不变：`HDBF.Integration` 实现 `IIndoorAdapterHost`，`HDBF.Gameplay` 通过 DI 消费 Core 接口；
 `Gameplay` 不得引用 `HDBF.Integration` 类型（ADR-002 的装配链限制）。缺失/未连接时 Gameplay 必须

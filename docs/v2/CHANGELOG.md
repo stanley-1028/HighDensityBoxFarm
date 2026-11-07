@@ -1,9 +1,47 @@
 # HDBF v2 变更记录
 
-> **状态**：**2.5.7 已发布**（2026-11-06 17:40，玩家回馈热修 + 下拉开启期间暂停刷新的防护；Steam Workshop item 3828809784，ManifestID 4408964257799319853；第一次 17:14 上传误带旧 2.5.6 staging，17:40 已重新上传正确包，详见 VERIFICATION §43；实机点击验证仍 pending，不写成已完成）；2.5.6 已发布（Steam Workshop ManifestID 3045694293614393693；GitHub 见 push 后的 master；离线门禁全绿；实机验证部分 pending，见 VERIFICATION §40）；2.5.5 为未发布的第二维修轮；2.5.4 已发布（Steam Workshop ManifestID 2037025195551276545）
-> **日期**：2026-11-06
-> **适用版本**：2.5.7
-> **变更摘要**：v2.1 需求引入室内农场方案；本文件记录 v1→v2 的行为/数据/工程变更与实现状态。
+> **状态**：**2.5.8 离线完成（未发布；實機驗證 pending）**；2.5.7 已发布（2026-11-06 17:40，玩家回馈热修 + 下拉开启期间暂停刷新的防护；Steam Workshop item 3828809784，ManifestID 4408964257799319853；第一次 17:14 上传误带旧 2.5.6 staging，17:40 已重新上传正确包，详见 VERIFICATION §43；实机点击验证仍 pending，不写成已完成）；2.5.6 已发布（Steam Workshop ManifestID 3045694293614393693；GitHub 见 push 后的 master；离线门禁全绿；实机验证部分 pending，见 VERIFICATION §40）；2.5.5 为未发布的第二维修轮；2.5.4 已发布（Steam Workshop ManifestID 2037025195551276545）
+> **日期**：2026-11-07
+> **适用版本**：2.5.8
+> **变更摘要**：v2.1 需求引入室内农场方案；本文件记录 v1→v2 的行为/数据/工程变更与实现状态。2.5.8 = 管道供水修复（水塔接网判定 + 紧邻农场的 Timber Pipes 输水管直接供水）。
+
+## [2.5.8] — 2026-11-07（管道供水修复：Timber Pipes 水管接到农场外壳即可供水）
+
+依据玩家回馈（Timber Pipes 水管接在高密度农场上，农场完全不接受管子供的水）与只读根因审计
+（`docs/workstreams/feedback-20261107/pipes.md`）；离线验证见 `docs/VERIFICATION.md` §44。
+**未发布；实机验证 pending，不写成已完成。**
+
+### 【修复】接网液体水塔的自动补水路径恢复可用（REQ-V2-WATER-02，F-PIPE-02 补充）
+
+* 【根因】`TimberPipesWaterBinding.TryDescribeFeedableTank` 以 `PipeTank.Pipe.Graph != null`
+  作为「水塔已接网」条件；但 TimberPipes 11.4.0 只对 transport pipe 赋值 `Pipe.Graph`
+  （`RebuildGraph/AssignMergedGraph`），液体水塔的 BuildingPipe 是非 transport 端点，该 Graph
+  **恒为 null** ⇒ `HasNetwork/IsPipeConnected` 恒 false ⇒ 水塔自动补水路径从未生效。
+* 【修改】改为「水塔 pipe 的任一 port 已连接、且对端是 transport pipe」
+  （`PipePort.IsConnected` + `PipeRegistry.TryGetConnectedBuilding` + `BuildingPipe.IsTransportPipe`，
+  与 TimberPipes 自身 `PipeGraphFlowCache.Rebuild` 的节点判定一致）；`Pipe.Graph` 检查保留给
+  transport pipe 本身。判定与取水仍走既有 3-strike/例外隔离。
+
+### 【新增】紧邻农场的 Timber Pipes 输水管直接供水（玩家回馈主诉求）
+
+* 【新增】Core 可选接口 `IIndoorPipeWaterAnchor`（`SetWaterAnchor(IReadOnlyList<PipeCell>?)`，
+  与 frozen 的 `IIndoorAdapterHost`/`IWaterSource` 分离）与纯函数 `PipeIntakeMath.NeighborCells`
+  （9 格 3×3×1 占格 → 30 个 6 面邻格，去重/排序/空输入安全）。
+* 【新增】Gameplay `HdbfBoxFarmController.PipeIntake.cs`：用 `BlockObject.PositionedBlocks.
+  GetOccupiedCoordinates()` 取世界占格（旋转/翻转已应用），按 block origin 缓存，在
+  `ReadPipeWater` 的 `IsPipeConnected` 之前、以及面板 `PublishProbeAnchor` 之前发布给适配器 host。
+* 【新增】Integration 反射取水（无编译期依赖、无 Harmony）：`PipeRegistry.TryGetPipe` 逐邻格查找
+  已完工、`IsTransportPipe`、未污染、`NetworkGoodId == "Water"`、`FluidHeight >= 0.2m³` 的输水管，
+  经公开 `RemoveFluid(float)` 抽出真实管内水（按实际减少量记账，1 水单位 = 0.2m³，等价 Valve Fill 的
+  镜像）；抽取上限 = 当次请求量，先管后水塔。新 anchor 缺失时只关闭该新路径，不破坏水塔路径。
+* 【修改】`TimberPipesWaterSource.HasNetwork/IsAvailable/TryDraw` 纳入「农场邻接输水管」；
+  只读 probe 先分类：邻接管有水 → `Connected`（frozen 0–8 不新增枚举/本地化 key）；有管但干 →
+  `TankDry`；水塔仍供水 → 保留诚实的 `GlobalSupply`。
+* 【测试】L1 +11（`V2PipeIntakeContractTests` 7 条：Core 接口/邻格数学/Gameplay 发布/反射取水
+  边界/只读 probe/枚举冻结；`V2AdapterHostContractTests` +4 条：锚点、port 接网、host 转发、端到端
+  wiring）；三语 tooltip 语义更新；L1 728/728。
+* 【未验证】实机：本机无游戏交互会话，**未验证**「水管贴农场 → 面板 Connected、水罐上升」、
+  「接网水塔 → 自动抽水」两条路径；需要作者/玩家实机确认（见 VERIFICATION §44.3）。
 
 ## [2.5.7] — 2026-11-06（玩家反馈热修：作物策略下拉打不开）
 

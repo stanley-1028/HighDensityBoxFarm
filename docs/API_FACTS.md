@@ -263,3 +263,16 @@ A-level anchor as bound when this lookup succeeds, so a renamed member degrades 
 | Locate a building | Public `EntitySelectionService.Select(BaseComponent)` and `SelectAndFocusOn(BaseComponent)` (the alert-panel jump path). |
 
 
+
+## 13. Farm footprint + pipe-intake API facts (verified 2026-11-07, 1.1.2.8 / Timber Pipes 11.4.0)
+
+> Sources: Mono.Cecil dumps of the installed `Timberborn.BlockSystem.dll` and `TimberPipes.dll`
+> (`TimberPipes` 11.4.0, Workshop 3801726769). Used by the v2.5.8 farm-adjacent pipe intake.
+
+| Fact | Detail |
+|---|---|
+| Farm footprint | `BlockObject.PositionedBlocks` (public get) is `Timberborn.BlockSystem.PositionedBlocks`; its `GetOccupiedCoordinates()` returns **world** `Vector3Int` cells (`Placement = Coordinates + Orientation + FlipMode` already applied, `Block.IsOccupied` filter). A placed 3x3x1 farm therefore yields 9 occupied cells; the six-face neighbour set of those cells is 30 unique cells. `BlockObject.Blocks` is the local/spec block set — do not use it for world cells. |
+| Pipe grid key | `BuildingPipe.get_Coordinates()` returns `BlockObject.Coordinates` (world block origin); `PipeRegistry.Register` stores each pipe under exactly that key, so `PipeRegistry.TryGetPipe(cell, out pipe)` is an O(1) "is there a pipe on this cell" test. All TimberPipes pipe buildings are 1x1x1 except `OutfallPipe` (1x2x1, registered only at its origin cell). |
+| Pipe water state | `BuildingPipe.get_FluidHeight()` is the pipe volume in m3, clamped to [0,1] (one pipe = 1 m3); `get_NetworkGoodId()` returns `"Water"` / `null` (null when contaminated; contamination sentinel is `"_CONTAMINATED_PIPE_"`); `PipeFluids.GoodsToVolume(1) = 0.2f` so one vanilla water good is 0.2 m3. |
+| Removing pipe water | Public `BuildingPipe.RemoveFluid(float)` is `SetWaterHeight(FluidHeight - amount)`; `SetWaterHeight` = `Math.Clamp(h,0,1)`. It does not quantise 0.2 m3, does not touch the good id or contamination, and silently clamps at 0 — account for the really removed `before - after`, never the requested amount. |
+| Tank network membership | A liquid tank's own `BuildingPipe` is a **non-transport** endpoint: TimberPipes only assigns `Pipe.Graph` to transport pipes (`RebuildGraph` -> `AssignMergedGraph` -> `FloodFillTransport` returns empty for non-transport), so `PipeTank.Pipe.Graph` is always null. The honest predicate (same as TimberPipes' own `PipeGraphFlowCache.Rebuild`) is: a tank pipe port `PipePort.IsConnected` whose `PipeRegistry.TryGetConnectedBuilding(port, out other)` answers a `BuildingPipe` with `IsTransportPipe == true`. |

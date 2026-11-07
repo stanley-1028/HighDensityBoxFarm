@@ -20,7 +20,7 @@
 |---|---|---|---|---|---|
 | RE-01 | 維護只能手動；**逾期 ≥2 期時按一次「執行維護」仍停擺**（按了沒用），面板/tooltip 又說會恢復 | Bug + 設計落差 | 高（玩家直接說「什麼都不發生」） | WP-01、WP-02、WP-06 | ✅ 已修（追平付費＋未到期禁用） |
 | RE-04 | 2.5.3 修了「按暫停當下」的崩潰，但**暫停中存檔→讀檔**仍會把工人留在被封鎖農場內（專案自己的日誌已證實 R1） | 殘留 crash 狀態 | 高（crash 家族） | WP-04 | ✅ 已修（1 Hz reconcile＋撤出強化） |
-| RE-05 | 把管接到農場後面板仍顯示「未連接」：**農場不是 Timber Pipes 端點**，判定看的是全世界的水塔清單 | Bug（語義/判定） | 高（玩家已回報） | WP-05 | 🟡 原因碼/文案/probe／`GlobalSupply` 誠實標示已完成；per-farm 真實連通行為 pending（實機） |
+| RE-05 | 把管接到農場後面板仍顯示「未連接」：**農場不是 Timber Pipes 端點**，判定看的是全世界的水塔清單 | Bug（語義/判定） | 高（玩家已回報） | WP-05 | ✅ 根因已修（v2.5.8 離線：水塔接網判定 + 農場鄰接輸水管取水；實機 pending，見 §3.6） |
 | L-01 | **休耕→常規的第一個日 tick，整盒成熟作物以 0 產量被清空**（未回報，但程式碼已證實） | Bug（資料損失） | 極高（作物人間蒸發） | WP-03 | ✅ 已修（零產量不清槽） |
 | L-03 | 水罐 3–4 天見底後農場**靜默停工**，三條補水路徑在 UI 完全沒揭露 | 設計代價 + UX | 極高（最大負評來源） | WP-06 | 🟡 面板透明度已做；水罐平衡未改 |
 | L-04 | 存檔「驗證有修復就整筆拒寫」：未知作物/舊狀態可能靜默不存檔、進度回捲 | Bug（條件式） | 中（觸發時災難） | WP-14 | ✅ 已修（v2.5.5 離線：可修復即寫入修復副本＋`PreviousPayload` 回滾副本；keyed bridge 待統一） |
@@ -175,7 +175,7 @@ Timberborn.TickSystem.TickerUnityAdapter.Update ()
 | RE-02 | merlin4059 | 比佛不會做 upkeep | 設計落差（無工人維護/補水行為） | P1 | 未修（設計如此） | 🟡 自動維護已補（§3.3） |
 | RE-03 | Annastasya | 盒子農場運作數分鐘後致命崩潰（NRE，beaver Decide） | 第三方補丁 × HDBF 狀態 | **P0（給玩家）** | 未修（HDBF 無法補丁；收斂狀態＋診斷） | 🟡 唯讀 `indoor.behavior-probe` 診斷已實作（v2.5.6）；第三方 patcher 身分仍待玩家 log |
 | RE-04 | merlin4059 | 暫停時 crash（2.5.3 後仍回報） | 2.5.3 修復的殘留時序缺口 | **P0** | 部分修復（R1/R2 殘留） | ✅ 已修（R1/R2/R3/R4；實機 pending）（§3.5） |
-| RE-05 | Annastasya | 已接管道仍顯示 No Connection | Bug（語義/判定） | **P0** | 未修 | 🟡 原因碼/文案/probe；真實連通 pending（§3.6） |
+| RE-05 | Annastasya | 已接管道仍顯示 No Connection | Bug（語義/判定） | **P0** | 已修（v2.5.8 離線） | ✅ 水塔接網判定 + 農場鄰接輸水管取水；實機 pending（§3.6 / VERIFICATION §44） |
 | RE-06 | saqlain141 | Ember-pelts 陣營不能用 | 功能缺口（未支援自訂陣營） | P1 | 未支援 | ⏸ pending（§3.7） |
 | RE-07 | Eltharion | 建議：自動維護選項 | 功能建議 | P0（與 RE-01 同修） | 未實作 | ✅ 已完成（自動維護開關）（§3.2） |
 
@@ -328,6 +328,8 @@ Timberborn.TickSystem.TickerUnityAdapter.Update ()
 ### 3.6 RE-05 — 已接管道仍顯示「No Connection」（Annastasya）
 
 > **維修狀態（v2.5.4）**：🟡 **部分完成**。方案 1（文案＋原因列）✅、方案 2（`IIndoorPipeProbe` 7 原因碼＋`water.pipe-probe` 日誌）✅、方案 6（玩家繞過文案）✅；**方案 3（`PipeRegistry.TryGetGraph` 真實連通判定）⏸ pending、方案 4（讓農場成為 Timber Pipes 端點）⏸、方案 5（實機 G/H/I）pending**。
+>
+> **維修狀態（v2.5.8，2026-11-07）**：🟢 **根因已修（離線；實機 pending）**。修法見下方「v2.5.8 實際修法」：① 接網水塔判定從恆 false 的 `Pipe.Graph != null` 改為「port 連到 transport pipe」；② 新增「緊鄰農場的 Timber Pipes 輸水管」本地取水（反射 `TryGetPipe` + `RemoveFluid`，無編譯期依賴/無 Harmony）；③ 面板 probe 對「農場鄰接管」回 `Connected`。**實機 G/H/I 仍未跑**（本輪無互動會話），不得寫成實機驗證。
 
 #### 現象
 
@@ -367,6 +369,21 @@ Timberborn.TickSystem.TickerUnityAdapter.Update ()
 4. **完整端點方案（P2，設計決策）**：讓農場成為真正 TimberPipes 端點（藍圖加 `BuildingPipeSpec`／`PipeTank`）。風險：缺 TimberPipes 時未知 ComponentSpec 可能解析失敗，破壞「無前置依賴」與 validator；需 optional blueprint injection／分流藍圖 + ADR，不建議本輪。
 5. **實機驗證（P0，所有修復的前提）**：見 §7.2 的 A–E 場景（農場旁鋪管但不接水塔 / 正確接法 / 斷管 / 版本漂移）；同時驗證 `container.GetInstance(PipeRegistry)` 在遊戲內是否成功（若失敗，**所有玩家**的自動補水都不會生效）。
 6. **玩家臨時繞過（可寫進回覆）**：接原版液體水塔進管網；或用單向閥（one-way valve）出水端對準農場勾 Fill（推測可把水 goods 灌進農場 `Inventory:Water`，此時面板可能仍顯示未連接＝顯示 bug）；或用手動補水/搬運工。
+
+#### v2.5.8 實際修法（2026-11-07，離線完成）
+
+* 【水塔路徑根因】TimberPipes 11.4.0 只對 transport pipe 賦值 `Pipe.Graph`；液體水塔的 BuildingPipe 是
+  非 transport 端點，`tank.Pipe.Graph` **恆為 null** ⇒ 舊過濾 `HasPipeGraph` 恆 false ⇒ 就算水塔正確接網，
+  自動補水也從未生效。改為「水塔 pipe 任一 port `IsConnected` 且 `TryGetConnectedBuilding` 對端
+  `IsTransportPipe`」（與 TimberPipes 自身 flow-cache 的節點判定一致）。
+* 【農場鄰接管】新增 Core `IIndoorPipeWaterAnchor` + `PipeIntakeMath`（9 占格 → 30 鄰格）；
+  Gameplay 以 `BlockObject.PositionedBlocks.GetOccupiedCoordinates()`（世界座標）發布占格；
+  Integration 以 `PipeRegistry.TryGetPipe` 找鄰格上已完工、transport、未污染、`NetworkGoodId=="Water"`、
+  `FluidHeight>=0.2m³` 的管，經公開 `RemoveFluid` 抽取真實管內水（1 單位 = 0.2m³，按實際減量記帳）。
+* 【面板】probe 先看鄰接管：有水 → `Connected`（frozen 0–8 不新增枚舉/key）；有管但乾 → `TankDry`；
+  水塔供水仍顯示 `GlobalSupply`。三語 tooltip 改為「貼在農場外殼的 Timber Pipes 水管或接網液體水塔皆可」。
+* 【檔案】`src/HDBF.Core/Indoor/IIndoorPipeWaterAnchor.cs`、`PipeIntakeMath.cs`、`src/HDBF.Integration/Adapters/TimberPipesWaterBinding.{Intake,PipeAnchors,TankConnection}.cs`、`TimberPipesWaterSource.Intake.cs`、`src/HDBF.Gameplay/Components/HdbfBoxFarmController.PipeIntake.cs`；測試 `V2PipeIntakeContractTests`（+7）與 `V2AdapterHostContractTests`（+4）。
+* 【未驗證】實機「管貼農場 → Connected + 水罐上升」、「水塔接網 → 自動抽水」；見 VERIFICATION §44.3。
 
 ### 3.7 RE-06 — Ember-pelts（自訂陣營）不能用（saqlain141）
 

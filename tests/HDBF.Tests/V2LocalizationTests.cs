@@ -586,7 +586,8 @@ namespace HDBF.Tests
         /// L-17: the misleading/duplicated strings are fixed - the warning slots no longer copy
         /// another category, the refill error names the source instead of claiming the feature does
         /// not exist, the shortage sentence says growth slowed (not yield loss) and the pipe texts
-        /// describe the real draw rule (vanilla liquid tanks in the network, not the farm shell).
+        /// describe the real draw rule. 2026-11-07: a Timber Pipes water pipe attached to the farm
+        /// shell now supplies the farm, so the tooltip must name it instead of the old "does nothing".
         /// </summary>
         public static void TestMisleadingAndDuplicatedStringsAreFixed()
         {
@@ -625,11 +626,17 @@ namespace HDBF.Tests
             TestAssert.True(en[HdbfUiLocKeys.TooltipPipeWater].Contains("liquid tanks", StringComparison.Ordinal),
                 "the pipe tooltip names the vanilla liquid tanks: " + en[HdbfUiLocKeys.TooltipPipeWater]);
             TestAssert.True(en[HdbfUiLocKeys.TooltipPipeWater].Contains("farm shell", StringComparison.Ordinal),
-                "the pipe tooltip says a pipe on the farm shell does nothing");
+                "the pipe tooltip names the pipe attached to the farm shell");
+            TestAssert.True(en[HdbfUiLocKeys.TooltipPipeWater].Contains("Timber Pipes", StringComparison.Ordinal),
+                "the pipe tooltip names the Timber Pipes pipe that now feeds the farm shell");
+            TestAssert.False(en[HdbfUiLocKeys.TooltipPipeWater].Contains("does nothing", StringComparison.Ordinal),
+                "the old 'pipe on the farm shell does nothing' claim is exactly the fixed bug");
             TestAssert.True(zh[HdbfUiLocKeys.TooltipPipeWater].Contains("水塔", StringComparison.Ordinal)
-                             && zh[HdbfUiLocKeys.TooltipPipeWater].Contains("外", StringComparison.Ordinal));
+                             && zh[HdbfUiLocKeys.TooltipPipeWater].Contains("外", StringComparison.Ordinal),
+                "zhCN tooltip names the tank and the farm shell");
             TestAssert.True(tw[HdbfUiLocKeys.TooltipPipeWater].Contains("水塔", StringComparison.Ordinal)
-                             && tw[HdbfUiLocKeys.TooltipPipeWater].Contains("外", StringComparison.Ordinal));
+                             && tw[HdbfUiLocKeys.TooltipPipeWater].Contains("外", StringComparison.Ordinal),
+                "zhTW tooltip names the tank and the farm shell");
 
             foreach (var language in Languages)
             {

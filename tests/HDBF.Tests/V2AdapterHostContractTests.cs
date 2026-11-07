@@ -35,6 +35,13 @@ namespace HDBF.Tests
         private const string FarmGraphFile = "src/HDBF.Integration/Adapters/TimberPipesWaterBinding.FarmGraph.cs";
         private const string ProbeSourceFile = "src/HDBF.Integration/Adapters/TimberPipesWaterSource.Probe.cs";
         private const string RegistryFile = "src/HDBF.Integration/Adapters/CompatAdapterRegistry.IndoorHost.cs";
+        private const string IntakeFile = "src/HDBF.Integration/Adapters/TimberPipesWaterBinding.Intake.cs";
+        private const string PipeAnchorsFile = "src/HDBF.Integration/Adapters/TimberPipesWaterBinding.PipeAnchors.cs";
+        private const string TankConnectionFile =
+            "src/HDBF.Integration/Adapters/TimberPipesWaterBinding.TankConnection.cs";
+        private const string SourceIntakeFile = "src/HDBF.Integration/Adapters/TimberPipesWaterSource.Intake.cs";
+        private const string GameplayIntakeFile =
+            "src/HDBF.Gameplay/Components/HdbfBoxFarmController.PipeIntake.cs";
 
         private static readonly string[] HostSources = { HostResource, SourceResource, BindingResource, InterfaceResource };
 
@@ -110,6 +117,30 @@ namespace HDBF.Tests
             }
 
             TestAssert.True(CountOccurrences(tank, "catch (Exception") >= 2, "tank read and drain must each be isolated");
+
+            // 2026-11-07 farm-adjacent intake: every new reflection half is isolated too. The
+            // source partial forwards the farm footprint and shields the tick/panel from exceptions.
+            var intake = ReadRepoFile(IntakeFile);
+            var pipeAnchors = ReadRepoFile(PipeAnchorsFile);
+            var tankConnection = ReadRepoFile(TankConnectionFile);
+            var sourceIntake = ReadRepoFile(SourceIntakeFile);
+            foreach (var text in new[] { intake, pipeAnchors, tankConnection, sourceIntake })
+            {
+                TestAssert.True(text.Contains("catch (Exception", StringComparison.Ordinal),
+                    "every new reflection entry point must catch its own failures");
+            }
+
+            foreach (var method in new[] { "TryReadIntake(", "TryDrawIntake(", "FindAdjacentPipe(",
+                         "TryDescribeIntakePipe(", "ReadFluidHeight(" })
+            {
+                TestAssert.True(intake.Contains(method, StringComparison.Ordinal),
+                    "intake step missing: " + method);
+            }
+
+            TestAssert.True(pipeAnchors.Contains("BindPipeAnchors(", StringComparison.Ordinal),
+                "the optional anchors must be resolved in one guarded bind step");
+            TestAssert.True(tankConnection.Contains("PipeHasTransportLink(", StringComparison.Ordinal),
+                "the tank network test must walk the tank pipe's ports");
         }
 
         public static void TestDegradedPathsAnswerNullAndFalse()
@@ -132,7 +163,8 @@ namespace HDBF.Tests
 
         public static void TestTryDrawIsRequestBoundedAndNotAPerFrameTicker()
         {
-            var all = ReadAllSources() + ReadRepoFile(TankFile);
+            var all = ReadAllSources() + ReadRepoFile(TankFile) + ReadRepoFile(IntakeFile) +
+                      ReadRepoFile(SourceIntakeFile);
             AssertLacks("the water source", all, "void Tick", "void Update", "ITickable", "IUpdatable",
                 "DeltaTime", "deltaTime", "Time.deltaTime");
 
@@ -149,22 +181,54 @@ namespace HDBF.Tests
                 StringComparison.Ordinal), "one tank draw is clamped to the requested volume");
             TestAssert.True(tank.Contains("_applyVolume.Invoke(tank, new object[] { target, _waterGoodId });",
                 StringComparison.Ordinal), "water may only be removed through the mod's public ApplyVolume");
+
+            // 2026-11-07 farm-adjacent intake: one bounded draw per request, real pipe fluid only,
+            // and the credited amount is the fluid really removed (never the requested amount).
+            var intake = ReadRepoFile(IntakeFile);
+            TestAssert.True(intake.Contains("var takeM3 = requestedVolumeM3 - drawnVolumeM3;",
+                StringComparison.Ordinal), "one intake request may only draw what is still requested");
+            TestAssert.True(intake.Contains("var removedM3 = beforeM3 - afterM3;", StringComparison.Ordinal),
+                "the credited water must be the fluid really removed from the pipe");
+            TestAssert.True(intake.Contains("_removeFluid!.Invoke(pipe, new object[] { takeM3 });",
+                StringComparison.Ordinal), "the adjacent pipe may only be drained through RemoveFluid");
+            AssertLacks("the intake binder", intake, "ApplyVolume", "PipeTank");
+
+            var sourceIntake = ReadRepoFile(SourceIntakeFile);
+            TestAssert.True(sourceIntake.Contains(
+                "_binding.TryDrawIntake(_intakeNeighbors, requestedVolumeM3, out drawnVolumeM3);",
+                StringComparison.Ordinal), "the source must delegate the bounded intake draw");
         }
 
         public static void TestWaterSourceUsesOnlyVerifiedRealAnchors()
         {
-            var binding = ReadResource(BindingResource);
+            var binding = ReadResource(BindingResource) + ReadRepoFile(PipeAnchorsFile) +
+                          ReadRepoFile(TankConnectionFile);
             foreach (var anchor in new[] { "\"TimberPipes.Services.PipeRegistry\"", "\"TimberPipes.Components.PipeTank\"",
                          "\"TimberPipes.Components.BuildingPipe\"", "\"TimberPipes.Models.PipeFlowSolver\"",
                          "\"TimberPipes.Models.PipeFluids\"", "\"get_Tanks\"", "\"get_VolumeM3\"", "\"ApplyVolume\"",
                          "\"TakesGood\"", "\"get_Graph\"", "\"get_IsFinished\"", "\"get_FluidGoodId\"", "\"get_Pipe\"",
-                         "\"GoodsToVolume\"", "\"WaterGoodId\"" })
+                         "\"GoodsToVolume\"", "\"WaterGoodId\"",
+                         // 2026-11-07 farm-adjacent intake + tank network-connection fix:
+                         "\"TryGetPipe\"", "\"get_IsTransportPipe\"", "\"get_IsContaminated\"",
+                         "\"get_NetworkGoodId\"", "\"get_FluidHeight\"", "\"RemoveFluid\"", "\"get_Ports\"",
+                         "\"get_Values\"", "\"get_IsConnected\"", "\"TryGetConnectedBuilding\"",
+                         "\"TimberPipes.Models.PipePort\"" })
             {
                 TestAssert.True(binding.Contains(anchor, StringComparison.Ordinal), "verified anchor missing: " + anchor);
             }
 
             TestAssert.True(binding.Contains("new[] { \"System.Single\", \"System.String\" }, \"System.Void\"",
                 StringComparison.Ordinal), "ApplyVolume(float,string) signature must be pinned");
+            TestAssert.True(binding.Contains(
+                    "new[] { \"UnityEngine.Vector3Int\", \"TimberPipes.Components.BuildingPipe\" }, \"System.Boolean\"",
+                    StringComparison.Ordinal), "TryGetPipe(Vector3Int,out BuildingPipe) signature must be pinned");
+            TestAssert.True(binding.Contains(
+                    "new[] { \"TimberPipes.Models.PipePort\", \"TimberPipes.Components.BuildingPipe\" }",
+                    StringComparison.Ordinal), "TryGetConnectedBuilding(PipePort,out BuildingPipe) must be pinned");
+            TestAssert.True(binding.Contains("\"RemoveFluid\"", StringComparison.Ordinal)
+                            && binding.Contains("new[] { \"System.Single\" }, \"System.Void\"",
+                                StringComparison.Ordinal),
+                "RemoveFluid(float) signature must be pinned");
             AssertLacks("the binding", binding, "TimberPipeNetwork", "WaterStorage", "PipeNetwork");
         }
 
@@ -222,12 +286,137 @@ namespace HDBF.Tests
 
         public static void TestAdapterHostHasNoStaticMutableState()
         {
-            var all = ReadAllSources() + ReadRepoFile(TankFile);
+            var all = ReadAllSources() + ReadRepoFile(TankFile) + ReadRepoFile(IntakeFile) +
+                      ReadRepoFile(PipeAnchorsFile) + ReadRepoFile(TankConnectionFile) +
+                      ReadRepoFile(SourceIntakeFile) + ReadRepoFile(GameplayIntakeFile);
             var mutableStatic = Regex.Matches(all, @"(?m)^\s*(?:private|internal|public|protected)\s+static\s+(?!readonly|const)");
             TestAssert.Equal(0, mutableStatic.Count,
                 "the adaptor host may only have const/readonly static fields (REQ-V2-MAINT-04)");
             TestAssert.True(ReadResource(BindingResource).Contains("private static readonly string[] NoParameters",
                 StringComparison.Ordinal), "the only static field is the immutable empty parameter list");
+        }
+
+        // ------------------------------------------- 2026-11-07: farm-adjacent pipe intake
+
+        /// <summary>
+        /// Player report 2026-11-07: a Timber Pipes water pipe attached to the farm shell must supply
+        /// the farm. The host exposes the optional footprint companion, forwards it to the water
+        /// source and never draws/fails from the anchor setter.
+        /// </summary>
+        public static void TestIndoorAdapterHostForwardsTheWaterAnchor()
+        {
+            var host = ReadResource(HostResource);
+            TestAssert.True(host.Contains("IIndoorPipeWaterAnchor", StringComparison.Ordinal),
+                "the host must implement the optional farm-footprint companion contract");
+            var body = MethodText(host, "public void SetWaterAnchor(IReadOnlyList<PipeCell>? footprint)");
+            TestAssert.True(body.Contains(".SetIntakeFootprint(footprint)", StringComparison.Ordinal),
+                "the host must forward the footprint to the Timber Pipes water source");
+            TestAssert.True(body.Contains("catch (Exception", StringComparison.Ordinal),
+                "the anchor forwarding must never throw into the tick/panel path");
+            AssertLacks("the host water-anchor setter", body, "TryDraw", "ReportRuntimeFailure", "Fail(");
+        }
+
+        /// <summary>
+        /// The farm-adjacent intake must resolve only real, pinned Timber Pipes members. Every
+        /// signature below was read from the installed 11.4.0 assembly, exactly like the tank set.
+        /// </summary>
+        public static void TestFarmAdjacentIntakeUsesTheVerifiedPipeAnchors()
+        {
+            var pipeAnchors = ReadRepoFile(PipeAnchorsFile);
+            foreach (var anchor in new[]
+                     {
+                         "\"TryGetPipe\"", "\"TryGetConnectedBuilding\"", "\"get_IsTransportPipe\"",
+                         "\"get_IsFinished\"", "\"get_IsContaminated\"", "\"get_NetworkGoodId\"",
+                         "\"get_FluidHeight\"", "\"RemoveFluid\"", "\"get_Ports\"", "\"get_Values\"",
+                         "\"get_IsConnected\"", "\"TimberPipes.Models.PipePort\"",
+                         "new[] { \"UnityEngine.Vector3Int\", \"TimberPipes.Components.BuildingPipe\" }",
+                     })
+            {
+                TestAssert.True(pipeAnchors.Contains(anchor, StringComparison.Ordinal),
+                    "verified farm-adjacent anchor missing: " + anchor);
+            }
+
+            var binding = ReadResource(BindingResource);
+            TestAssert.True(binding.Contains("BindPipeAnchors(registryType, pipeType);", StringComparison.Ordinal),
+                "the main binding must resolve the optional pipe anchors once");
+            TestAssert.True(binding.Contains("internal const string PortTypeName = \"TimberPipes.Models.PipePort\";",
+                StringComparison.Ordinal), "the PipePort type name must be pinned");
+        }
+
+        /// <summary>
+        /// The old tank filter required <c>Pipe.Graph != null</c>, which is always null for a
+        /// liquid tank (the mod only assigns graphs to transport pipes). The replacement walks the
+        /// tank pipe's ports to a connected transport pipe, like the mod's own flow-cache rebuild.
+        /// </summary>
+        public static void TestTankNetworkConnectionUsesATransportPortLink()
+        {
+            var tank = ReadRepoFile(TankFile);
+            TestAssert.True(tank.Contains("graph is not null || PipeHasTransportLink(pipe)", StringComparison.Ordinal),
+                "the tank filter must OR the transport-port link with the graph check");
+            TestAssert.True(tank.Contains("HasPipeGraph = hasTransportLink", StringComparison.Ordinal)
+                            || tank.Contains("new PipeTankState(finished, hasTransportLink", StringComparison.Ordinal),
+                "the tank state must carry the transport-port link as its network flag");
+
+            var tankConnection = ReadRepoFile(TankConnectionFile);
+            var pipeAnchors = ReadRepoFile(PipeAnchorsFile);
+            foreach (var token in new[] { "\"get_Ports\"", "\"get_IsConnected\"", "\"TryGetConnectedBuilding\"" })
+            {
+                TestAssert.True(pipeAnchors.Contains(token, StringComparison.Ordinal),
+                    "tank network-connection anchor missing: " + token);
+            }
+
+            foreach (var token in new[] { "_getIsTransportPipe",
+                         "_tryGetConnectedBuilding.Invoke(_registry, arguments)" })
+            {
+                TestAssert.True(tankConnection.Contains(token, StringComparison.Ordinal),
+                    "tank network-connection step missing: " + token);
+            }
+        }
+
+        /// <summary>
+        /// End-to-end wiring of the local supply: the probe classifies a watered adjacent pipe as
+        /// Connected, IsAvailable/HasNetwork see it, TryDraw draws it first and Gameplay publishes
+        /// the farm footprint before every pipe query.
+        /// </summary>
+        public static void TestFarmAdjacentIntakeIsWiredIntoTheWaterPath()
+        {
+            var probeSource = ReadRepoFile(ProbeSourceFile);
+            TestAssert.True(probeSource.Contains("ClassifyIntake(ClassifyFarmGraph(_binding.ProbeTanks()))",
+                StringComparison.Ordinal), "the probe must classify the farm-adjacent intake first");
+            var classify = MethodText(probeSource, "private PipeProbe ClassifyIntake(");
+            TestAssert.True(classify.Contains("intake.WateredPipes > 0", StringComparison.Ordinal)
+                            && classify.Contains("PipeProbeReason.Connected", StringComparison.Ordinal),
+                "a watered adjacent pipe must report Connected");
+            TestAssert.True(classify.Contains("PipeProbeReason.GlobalSupply", StringComparison.Ordinal),
+                "the honest settlement-wide label must stay when only tanks supply");
+
+            var source = ReadResource(SourceResource);
+            TestAssert.True(source.Contains("if (HasIntakeWater())", StringComparison.Ordinal),
+                "IsAvailable must include the farm-adjacent intake");
+            TestAssert.True(source.Contains("if (HasIntakeConnection())", StringComparison.Ordinal),
+                "HasNetwork must include the farm-adjacent connection");
+            TestAssert.True(source.Contains("TryDrawIntake(wantedM3, out var intakeM3)", StringComparison.Ordinal),
+                "TryDraw must try the farm-adjacent intake before the tank census");
+
+            var context = ReadRepoFile("src/HDBF.Gameplay/Components/HdbfBoxFarmController.Context.cs");
+            var readPipe = MethodText(context, "private IWaterSource? ReadPipeWater(");
+            var publish = readPipe.IndexOf("PublishWaterAnchor();", StringComparison.Ordinal);
+            var query = readPipe.IndexOf("_adapterHost.IsPipeConnected", StringComparison.Ordinal);
+            TestAssert.True(publish >= 0 && query >= 0 && publish < query,
+                "the daily tick must publish the farm footprint before asking IsPipeConnected");
+
+            var waterFlow = ReadRepoFile("src/HDBF.Gameplay/Components/HdbfBoxFarmController.WaterFlow.cs");
+            TestAssert.True(MethodText(waterFlow, "private void PublishProbeAnchor()")
+                    .Contains("PublishWaterAnchor();", StringComparison.Ordinal),
+                "the panel snapshot path must publish the farm footprint before the probe");
+
+            var gameplay = ReadRepoFile(GameplayIntakeFile);
+            foreach (var token in new[] { "PositionedBlocks.GetOccupiedCoordinates()", "IIndoorPipeWaterAnchor",
+                         "anchor.SetWaterAnchor(ResolveWaterFootprint())", "catch (Exception" })
+            {
+                TestAssert.True(gameplay.Contains(token, StringComparison.Ordinal),
+                    "the Gameplay footprint publisher is missing: " + token);
+            }
         }
 
         // ------------------------------------------- WP-05/RE-05: read-only pipe probe
@@ -338,10 +527,18 @@ namespace HDBF.Tests
             var farmGraph = ReadRepoFile(FarmGraphFile);
             var probeBody = MethodText(probeSource, "public PipeProbe ProbePipe()")
                             + MethodText(probeSource, "private PipeProbe ClassifyFarmGraph(")
+                            + MethodText(probeSource, "private PipeProbe ClassifyIntake(")
                             + MethodText(probeFile, "internal PipeProbe ProbeTanks()")
                             + MethodText(farmGraph, "internal bool TryProbeFarmGraph(");
             AssertLacks("the pipe probe", probeBody, "TryDrawVolume", "ApplyVolume", "FailDraw",
                 "ReportRuntimeFailure", "_reportFailure", "TryDraw(");
+
+            // 2026-11-07 farm-adjacent intake: the probe's census must stay observation-only.
+            var intake = ReadRepoFile(IntakeFile);
+            AssertLacks("the intake census", MethodText(intake, "internal bool TryReadIntake("),
+                "RemoveFluid", "_removeFluid", "ApplyVolume", "FailDraw", "ReportRuntimeFailure",
+                "_reportFailure", "TryDraw(");
+
             AssertLacks("the probe file", probeFile, "void Tick", "void Update", "ITickable",
                 "IUpdatable", "DeltaTime", "deltaTime", "Time.deltaTime");
             AssertLacks("the probe source", probeSource, "TryDraw(", "ApplyVolume", "FailDraw");
@@ -351,6 +548,9 @@ namespace HDBF.Tests
             TestAssert.True(MethodText(farmGraph, "internal bool TryProbeFarmGraph(")
                     .Contains("catch (Exception", StringComparison.Ordinal),
                 "the farm-graph probe must be exception-isolated (REQ-V2-SAFE-01)");
+            TestAssert.True(MethodText(intake, "internal bool TryReadIntake(")
+                    .Contains("catch (Exception", StringComparison.Ordinal),
+                "the intake census must be exception-isolated (REQ-V2-SAFE-01)");
         }
 
         /// <summary>

@@ -86,6 +86,9 @@ namespace HDBF.Gameplay.Components
 
             try
             {
+                // Player report 2026-11-07: tell the adapter host which footprint is asking before
+                // any pipe query, so a pipe attached to the farm shell can supply this farm.
+                PublishWaterAnchor();
                 if (!_adapterHost.IsPipeConnected)
                 {
                     // Degrade, never block: the farm keeps running and manual refill stays possible.

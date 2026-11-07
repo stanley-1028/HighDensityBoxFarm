@@ -1963,3 +1963,29 @@ powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1 -WorkRoot "$env:TE
   （請確認開頭是 `start HDBF version=2.5.7`；2.5.7 起會有 `ui.crop-dropdown` 行可分辨是資產缺失還是 detach）。
 
 
+
+## 44. 2.5.8 離線驗證：管道供水修復（水塔接網判定 + 農場鄰接輸水管）（2026-11-07）
+
+> 環境：`workspace-write`、**未部署、未開遊戲**；以下全部是離線證據，不得寫成實機已驗證。
+
+* **玩家回饋（2026-11-07）**：把 Timber Pipes 水管接到高密度農場，農場完全不接受管子供的水。
+* **根因（IL 取證；TimberPipes 11.4.0）**：
+  1. 接網水塔自動補水路徑從未生效：`TryDescribeFeedableTank` 要求 `PipeTank.Pipe.Graph != null`，但該 mod 只對 transport pipe 賦值 graph（`RebuildGraph`/`AssignMergedGraph`/`FloodFillTransport`；IL `TimberPipes.dll`），液體水塔的 BuildingPipe 是非 transport 端點 ⇒ 恆為 null ⇒ `HasNetwork`/`IsPipeConnected` 恆 false。
+  2. HDBF 沒有任何「從緊鄰農場的管取水」的程式；普通 pipe 貼農場外殼在 TimberPipes 端也不建立連接（只有 valve Fill 走 `BuildingPipeTarget`）。
+* **修法**：見 `docs/v2/CHANGELOG.md` [2.5.8]、`docs/BUG_REPAIR_20261102.md` §3.6「v2.5.8 實際修法」、`docs/workstreams/feedback-20261107/pipes.md`。
+* **離線門禁**（`build.ps1 -WorkRoot <session TEMP>\hdbf-work-gate`，未部署）：
+  * 5 組件 **0 warning / 0 error**
+  * L1 **728/728 PASSED、FAILED 0**（+11：`V2PipeIntakeContractTests` 7 條 + `V2AdapterHostContractTests` 4 條）
+  * `tools/validate` **RESULT: OK / mod assemblies 5/5 OK / WARNINGS: none**（同步更新 `tools/validate/DataChecks.cs` 的 `ExpectedReleaseVersion` 為 2.5.8；此常數自 2.5.3 起未同步，本輪一併修正）
+  * **RELEASE GATES: PASSED (44 checks)**、`NFR GATE MATRIX: PASSED (6 checks)`
+  * staged **48 files / 2,203,071 bytes / 2,151 KB**，manifest Version **2.5.8**
+* **行為設計（離線可證部分）**：
+  * 水塔「已接網」＝任一 port `IsConnected` 且對端 `IsTransportPipe`（與 TimberPipes 自身 `PipeGraphFlowCache.Rebuild` 的節點判定一致）；
+  * 農場占格 → 30 鄰格（Core 純函數 `PipeIntakeMath`，L1 直測）；反射錨點全部取自 11.4.0 已安裝 DLL；取水只經公開 `RemoveFluid`、上限＝當次請求量、按實際減量記帳（1 水單位 = 0.2 m³）；水塔/管皆乾屬播放狀態、不計 3-strike；新反射錨點缺失只關閉新路徑，不破壞水塔路徑；
+  * 只讀 probe 對鄰接管：有水 → `Connected`（frozen 0–8 不新增枚舉/本地化 key）；有管但乾 → `TankDry`；水塔供水仍 `GlobalSupply`。
+* **44.3 仍未實機驗證（pending，不得寫成完成）**：
+  1. 「水管貼農場 → 面板 Pipe network=Connected、水罐上升」；
+  2. 「接網液體水塔（Small/Medium/Large）→ 每日自動抽水、tank 回升」；
+  3. `container.GetInstance(PipeRegistry)` 在真實遊戲容器是否成功（若失敗，日誌/probe 會是 `BindingFailed`，不是本輪可離線證明）；
+  4. 已知盲區：OutfallPipe（1×2×1）只有原點格可被 `TryGetPipe` 命中，管身第二格貼農場不會被識別。
+* **未驗證原因**：本輪無可互動遊戲會話（沿用 §16.2 合成輸入不可用）；且 sandbox 無權寫入 `Documents\Timberborn\Mods\HDBF` 部署路徑，未部署。

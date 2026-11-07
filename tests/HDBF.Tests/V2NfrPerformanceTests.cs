@@ -250,6 +250,23 @@ namespace HDBF.Tests
                 "L-14: ApplyHauledWater must honour the inventory-resolve cooldown");
             TestAssert.True(supply.Contains("PublishProbeAnchor();", StringComparison.Ordinal),
                 "WP-05/L-02(c): the snapshot must publish the farm anchor before the probe runs");
+            // Player report 2026-11-07 (farm-adjacent intake): the footprint is published with the
+            // area anchor and cached by block origin, so neither the snapshot nor the day tick
+            // rebuilds the occupied-cell list on a per-frame path.
+            TestAssert.True(waterFlow.Contains("PublishWaterAnchor();", StringComparison.Ordinal),
+                "the snapshot path must publish the farm footprint for the adjacent-pipe probe");
+            var intakePublisher = File.ReadAllText(
+                Path.Combine(components, "HdbfBoxFarmController.PipeIntake.cs"));
+            TestAssert.True(intakePublisher.Contains("PositionedBlocks.GetOccupiedCoordinates()",
+                    StringComparison.Ordinal)
+                            && intakePublisher.Contains("_waterFootprintOrigin", StringComparison.Ordinal),
+                "the farm footprint is read from the positioned blocks and cached by origin");
+            foreach (var forbidden in new[]
+                     { "Time.deltaTime", "TickableComponent", "void Tick(", "void Update()", "static List<" })
+            {
+                TestAssert.False(intakePublisher.Contains(forbidden, StringComparison.Ordinal),
+                    "the footprint publisher must not run per frame: " + forbidden);
+            }
 
             var search = File.ReadAllText(Path.Combine(components, "HdbfManualWaterSource.Search.cs"));
             TestAssert.True(search.Contains("var offsetSquared = dx * dx + dz * dz;", StringComparison.Ordinal)

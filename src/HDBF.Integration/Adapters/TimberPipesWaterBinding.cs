@@ -43,6 +43,7 @@ namespace HDBF.Integration.Adapters
         internal const string RegistryTypeName = "TimberPipes.Services.PipeRegistry";
         internal const string TankTypeName = "TimberPipes.Components.PipeTank";
         internal const string PipeTypeName = "TimberPipes.Components.BuildingPipe";
+        internal const string PortTypeName = "TimberPipes.Models.PipePort";
         internal const string GraphTypeName = "TimberPipes.Models.PipeGraph";
         internal const string SolverTypeName = "TimberPipes.Models.PipeFlowSolver";
         internal const string FluidsTypeName = "TimberPipes.Models.PipeFluids";
@@ -190,6 +191,10 @@ namespace HDBF.Integration.Adapters
                 _getGraph = getGraph;
                 _goodsToVolume = goodsToVolume;
                 _tryGetGraph = tryGetGraph;
+                // Optional second binding half: the farm-adjacent pipe intake and the tank
+                // port-connectivity fix. A missing member only disables that half (older mod
+                // versions keep the previous behaviour); it never fails the tank water anchors.
+                BindPipeAnchors(registryType, pipeType);
                 _waterGoodId = ReadWaterGoodId() ?? WaterGoodIdFallback;
                 LastFailureReason = null;
                 return true;
