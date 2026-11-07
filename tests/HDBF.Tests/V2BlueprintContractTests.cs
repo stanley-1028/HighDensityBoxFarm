@@ -465,10 +465,11 @@ namespace HDBF.Tests
         // ---------------------------------------------------------------- output inventory
 
         /// <summary>
-        /// §19.3 output inventory row (2026-10-29 bug fix): every tier ships the whole-box harvest
-        /// bound <c>SlotCapacity x 4</c> (240/600/1200/2400) instead of the vanilla farmhouse
-        /// capacity 50, so a full harvest of a 600-slot farm can be buffered and hauled out instead
-        /// of stopping after ~50 items.
+        /// §19.3 output inventory row (2026-11-07 temporary-staging fix): every tier ships the one game
+        /// day full-crew harvest bound <c>ceil(SlotCapacity / 38) x 13 x 4</c> (104/208/416/832)
+        /// instead of the predecessor whole-box bound (240/600/1200/2400), so the in-farm buffer cannot
+        /// hold days of produce like a warehouse. One day of harvesting always fits, so the
+        /// 2026-10-29 "600 corn, only 50 delivered" backlog cannot return through this buffer.
         /// </summary>
         public static void TestOutputInventoryMatchesHarvestCapacityPerTier()
         {
@@ -478,12 +479,38 @@ namespace HDBF.Tests
                 var tierIndex = Array.IndexOf(Tiers, tier);
                 TestAssert.True(tierIndex >= 0, context + ": unknown tier");
                 var inventory = ObjectMember(blueprint, "SimpleOutputInventorySpec", context);
-                TestAssert.Equal(SlotCapacities[tierIndex] * IndoorConstants.MaxHarvestItemsPerSlot,
+                TestAssert.Equal(IndoorConstants.OutputCapacityFor(SlotCapacities[tierIndex]),
                     IntMember(inventory, "Capacity", context + " SimpleOutputInventorySpec"),
-                    context + ": output inventory Capacity (whole-box harvest bound = slots x 4)");
+                    context + ": output inventory Capacity (one-day temporary staging bound)");
                 TestAssert.Equal(false, BoolMember(inventory, "IgnorableCapacity", context + " SimpleOutputInventorySpec"),
                     context + ": IgnorableCapacity (vanilla farmhouse value)");
             }
+        }
+
+        /// <summary>
+        /// The validator duplicates the one-day staging formula on purpose (it has no HDBF.Core
+        /// reference), so this source contract pins its three constants to the Core constants and
+        /// fails when either side silently drifts (2026-11-07 temporary-staging rule).
+        /// </summary>
+        public static void TestValidatorMirrorsTheCoreOneDayOutputCapacityRule()
+        {
+            var path = Path.Combine(RepoRoot(), "tools", "validate", "DataChecks.cs");
+            TestAssert.True(File.Exists(path), "missing tools/validate/DataChecks.cs: " + path);
+            var text = File.ReadAllText(path);
+            TestAssert.True(text.Contains("ExpectedOutputCapacity(expectation.PlotCapacity)", StringComparison.Ordinal),
+                "validator must derive the expected capacity from the tier slot capacity");
+            TestAssert.True(text.Contains(
+                    "OutputSlotsPerFarmer = " + IndoorConstants.SlotsPerFarmer, StringComparison.Ordinal),
+                "validator SlotsPerFarmer must mirror HDBF.Core IndoorConstants (" + IndoorConstants.SlotsPerFarmer + ")");
+            TestAssert.True(text.Contains(
+                    "OutputActionsPerFarmerDay = " + IndoorConstants.ActionsPerFarmerDay, StringComparison.Ordinal),
+                "validator ActionsPerFarmerDay must mirror HDBF.Core IndoorConstants ("
+                + IndoorConstants.ActionsPerFarmerDay + ")");
+            TestAssert.True(text.Contains(
+                    "OutputMaxHarvestItemsPerSlot = " + IndoorConstants.MaxHarvestItemsPerSlot,
+                    StringComparison.Ordinal),
+                "validator MaxHarvestItemsPerSlot must mirror HDBF.Core IndoorConstants ("
+                + IndoorConstants.MaxHarvestItemsPerSlot + ")");
         }
 
         // ---------------------------------------------------------------- wiring: models / base / colliders

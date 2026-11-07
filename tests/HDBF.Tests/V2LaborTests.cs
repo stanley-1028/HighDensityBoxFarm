@@ -134,16 +134,73 @@ namespace HDBF.Tests
             TestAssert.Equal(13, stats.Planted, "blocked harvests do not consume the action budget");
         }
 
-        // ------------------------------------------- tier-scaled output buffer (2026-10-29 bug fix)
+        // ------------------------------------------- one-day temporary output buffer (2026-11-07 fix)
 
         /// <summary>
-        /// Regression for the 2026-10-29 Steam report ("600 corn ready, only 50 delivered to the
-        /// storage"): the buffer must be the whole-box harvest bound <c>SlotCapacity x 4</c>, so a
-        /// 600-slot farm whose slots all matured at once can be harvested completely instead of
-        /// stopping after ~25 slots. The old fixed vanilla-farmhouse capacity (50) is proven to
-        /// block the same box in <see cref="TestVanillaFiftyBufferBlocksAWholeMatureBox"/>.
+        /// 2026-11-07 fix ("the farm stores like a warehouse instead of temporary staging"): the
+        /// in-farm buffer is one game day of the tier's full-crew harvest, so a whole mature box can no
+        /// longer be dumped into it in one day. The buffer must still never block a single day of
+        /// harvesting - 16 farmers x 13 actions = 208 harvests, 208 Carrots x 3 items = 624 &lt;= the
+        /// 832 bound. This is the no-regression guard for the 2026-10-29 report ("600 corn mature,
+        /// only ~50 delivered").
         /// </summary>
-        public static void TestTierSizedOutputBufferHarvestsAWholeMatureBox()
+        public static void TestOneDayHarvestAlwaysFitsTheTemporaryOutputBuffer()
+        {
+            var record = Record(HdbfTier.Top);
+            for (var index = 0; index < record.Slots.Length; index++)
+            {
+                Mature(record, index, "Carrot");
+            }
+
+            var capacity = IndoorConstants.OutputCapacityFor(Top().SlotCapacity);
+            var sink = new CappedSink(capacity);
+            var stats = IndoorLaborMath.RunActions(record, Top(), FallbackCropCatalog.Default,
+                Top().MaxWorkers, sink, true);
+
+            TestAssert.Equal(16 * 13, stats.Harvested, "the whole daily action budget is spent on harvest");
+            TestAssert.Equal(0, stats.BlockedByOutput, "one day of harvesting must always fit the buffer");
+            TestAssert.False(stats.Backlog);
+            TestAssert.Equal(208 * 3, sink.Total, "every harvested Carrot is stored in the temporary buffer");
+        }
+
+        /// <summary>
+        /// The complement of the one-day guard: the whole 600-slot box (600 x 3 = 1800 Carrots) no
+        /// longer fits the temporary buffer, so with NO hauling the farm correctly backpressures after
+        /// the first day instead of silently storing the whole box. That backpressure is the intended
+        /// "temporary staging" semantics: the reporting surface is <c>BlockedByOutput</c>/the
+        /// OutputFull warning, not an ever-growing in-farm warehouse.
+        /// </summary>
+        public static void TestWholeMatureBoxBackpressuresTheTemporaryBuffer()
+        {
+            var record = Record(HdbfTier.Top);
+            for (var index = 0; index < record.Slots.Length; index++)
+            {
+                Mature(record, index, "Carrot");
+            }
+
+            var capacity = IndoorConstants.OutputCapacityFor(Top().SlotCapacity);
+            var sink = new CappedSink(capacity);
+            var dayOne = IndoorLaborMath.RunActions(record, Top(), FallbackCropCatalog.Default,
+                Top().MaxWorkers, sink, true);
+            var dayTwo = IndoorLaborMath.RunActions(record, Top(), FallbackCropCatalog.Default,
+                Top().MaxWorkers, sink, true);
+
+            TestAssert.Equal(16 * 13, dayOne.Harvested, "day one harvests the daily budget");
+            TestAssert.Equal(0, dayOne.BlockedByOutput);
+            TestAssert.True(dayTwo.BlockedByOutput > 0,
+                "without hauling the temporary buffer fills: the farm reports backpressure instead of warehousing the box");
+            TestAssert.True(RemainingMature(record) > 0,
+                "crops that do not fit stay mature and are harvested later (nothing is destroyed)");
+        }
+
+        /// <summary>
+        /// End-to-end regression of the 2026-10-29 player report ("600 corn mature, only 50 delivered
+        /// to the storage"): with a one-day temporary buffer and working haulers (200 items/day, the
+        /// rate the 2026-10-29 analysis used) the whole mature box is harvested and moved out within a
+        /// bounded number of days - no permanent stall - and the buffer never holds more than its
+        /// capacity.
+        /// </summary>
+        public static void TestTemporaryBufferPlusHaulingClearsAWholeMatureBox()
         {
             var record = Record(HdbfTier.Top);
             for (var index = 0; index < record.Slots.Length; index++)
@@ -154,28 +211,30 @@ namespace HDBF.Tests
             var capacity = IndoorConstants.OutputCapacityFor(Top().SlotCapacity);
             var sink = new CappedSink(capacity);
             var harvested = 0;
-            var blocked = 0;
-            for (var day = 0; day < 3; day++)
+            var maxInStock = 0;
+            var days = 0;
+            while (harvested < record.Slots.Length && days < 20)
             {
                 var stats = IndoorLaborMath.RunActions(record, Top(), FallbackCropCatalog.Default,
                     Top().MaxWorkers, sink, true);
                 harvested += stats.Harvested;
-                blocked += stats.BlockedByOutput;
+                maxInStock = Math.Max(maxInStock, sink.InStock);
+                sink.Drain(200);
+                days++;
             }
 
-            TestAssert.Equal(600, harvested, "a tier-sized buffer lets the whole 600-slot box be harvested");
-            TestAssert.Equal(0, blocked, "no output backlog with the scaled buffer");
-            TestAssert.True(sink.Total >= 600 * 3, "the whole Carrot harvest (3 per slot) was stored");
-            foreach (var slot in record.Slots)
-            {
-                TestAssert.True(slot.Stage != SlotStage.Mature, "no slot may stay mature behind the buffer");
-            }
+            TestAssert.Equal(600, harvested, "hauling plus the temporary buffer clears the whole mature box");
+            TestAssert.Equal(0, RemainingMature(record), "no mature slot may be left behind");
+            TestAssert.True(maxInStock <= capacity,
+                "the in-farm buffer never holds more than its one-day capacity (held " + maxInStock + ")");
         }
 
         /// <summary>
-        /// Negative control for the same regression: the old fixed 50-item capacity fills after 16
-        /// Carrot harvests (16 x 3 = 48; the 17th would exceed 50), so 584 slots stay mature and the
-        /// day reports an output backlog. This is the exact state the player saw.
+        /// Negative control kept from the 2026-10-29 fix: the old fixed vanilla-farmhouse capacity 50
+        /// fills after 16 Carrot harvests (16 x 3 = 48; the 17th would exceed 50), so 584 slots stay
+        /// mature and the day reports an output backlog. This is why the 2026-11-07 temporary bound is
+        /// per tier (one full crew day) rather than a fixed 50: a 50-item buffer caps a 16-farmer farm
+        /// at ~16 harvested slots/day even when haulers could move more.
         /// </summary>
         public static void TestVanillaFiftyBufferBlocksAWholeMatureBox()
         {
@@ -195,20 +254,55 @@ namespace HDBF.Tests
         }
 
         /// <summary>
-        /// The buffer formula is one whole-box harvest for every tier (max harvest items per slot 4,
-        /// from 3 x dense 1.35 rounded), which is what makes the fix tier-independent.
+        /// The 2026-11-07 buffer formula is one full crew day for every tier
+        /// (<c>ceil(Slots / SlotsPerFarmer) x ActionsPerFarmerDay x MaxHarvestItemsPerSlot</c>,
+        /// 60/150/300/600 -> 104/208/416/832), which is what makes the temporary staging rule
+        /// tier-independent. The tier crews are sized to cover their box exactly (2/4/8/16), so the
+        /// formula also equals <c>MaxWorkers x 13 x 4</c>.
         /// </summary>
-        public static void TestOutputCapacityForIsTheWholeBoxHarvestBound()
+        public static void TestOutputCapacityForIsOneDayHarvestBound()
         {
-            foreach (var tier in new[] { HdbfTier.Basic, HdbfTier.Intermediate, HdbfTier.Advanced, HdbfTier.Top })
+            var expected = new[] { 104, 208, 416, 832 };
+            var tiers = new[] { HdbfTier.Basic, HdbfTier.Intermediate, HdbfTier.Advanced, HdbfTier.Top };
+            for (var index = 0; index < tiers.Length; index++)
             {
-                var profile = TierCatalog.Get(tier);
-                TestAssert.Equal(profile.SlotCapacity * IndoorConstants.MaxHarvestItemsPerSlot,
-                    IndoorConstants.OutputCapacityFor(profile.SlotCapacity),
-                    tier + ": output buffer must be slots x max harvest items per slot");
+                var profile = TierCatalog.Get(tiers[index]);
+                var capacity = IndoorConstants.OutputCapacityFor(profile.SlotCapacity);
+                TestAssert.Equal(expected[index], capacity,
+                    tiers[index] + ": output buffer must be one full crew day (slots / 38 farmers x 13 actions x 4)");
+                TestAssert.Equal(profile.MaxWorkers * IndoorConstants.ActionsPerFarmerDay
+                                 * IndoorConstants.MaxHarvestItemsPerSlot,
+                    capacity,
+                    tiers[index] + ": the one-day bound equals MaxWorkers x 13 x 4");
             }
 
             TestAssert.Equal(0, IndoorConstants.OutputCapacityFor(0), "an unknown tier has no buffer");
+        }
+
+        /// <summary>
+        /// Tight boundary of the one-day staging rule: dense-mode Top converts the 3-item Carrot base
+        /// yield into 4 items (3 x 1.35 rounded), so a full crew day is 208 harvests x 4 = 832 == the
+        /// temporary bound - still no backlog inside the day. Normal-mode Carrot only fills 624 of 832,
+        /// so this is the zero-margin proof that "capacity &gt;= one full crew day" actually holds.
+        /// </summary>
+        public static void TestDenseOneDayHarvestExactlyFitsTheTemporaryOutputBuffer()
+        {
+            var record = Record(HdbfTier.Top);
+            record.Mode = IndoorMode.Dense;
+            for (var index = 0; index < record.Slots.Length; index++)
+            {
+                Mature(record, index, "Carrot");
+            }
+
+            var capacity = IndoorConstants.OutputCapacityFor(Top().SlotCapacity);
+            var sink = new CappedSink(capacity);
+            var stats = IndoorLaborMath.RunActions(record, Top(), FallbackCropCatalog.Default,
+                Top().MaxWorkers, sink, true);
+
+            TestAssert.Equal(16 * 13, stats.Harvested, "the full daily action budget is spent on harvest");
+            TestAssert.Equal(0, stats.BlockedByOutput,
+                "the dense zero-margin day (208 x 4 = 832) must still fit the one-day bound");
+            TestAssert.Equal(capacity, sink.Total, "the dense day fills the temporary buffer exactly");
         }
 
         public static void TestNullOutputBlocksHarvest()
@@ -375,7 +469,7 @@ namespace HDBF.Tests
             public bool TryAdd(string goodId, int amount) => false;
         }
 
-        /// <summary>Per-good capped sink used by the 2026-10-29 output-buffer regression tests.</summary>
+        /// <summary>Per-good capped sink used by the output-buffer regression tests.</summary>
         private sealed class CappedSink : IInventorySink
         {
             private readonly Dictionary<string, int> _stock = new Dictionary<string, int>(StringComparer.Ordinal);
@@ -386,7 +480,11 @@ namespace HDBF.Tests
                 _capacity = capacity;
             }
 
+            /// <summary>Items ever accepted (monotonic; the regression asserts the whole harvest enters).</summary>
             public int Total { get; private set; }
+
+            /// <summary>Items currently held by the simulated output inventory.</summary>
+            public int InStock { get; private set; }
 
             public bool TryAdd(string goodId, int amount)
             {
@@ -402,7 +500,36 @@ namespace HDBF.Tests
 
                 _stock[goodId] = have + amount;
                 Total += amount;
+                InStock += amount;
                 return true;
+            }
+
+            /// <summary>
+            /// Moves up to <paramref name="amount"/> items out of the buffer, the test-side model of a
+            /// vanilla hauler draining an output inventory (deterministic ascending good id order).
+            /// </summary>
+            public void Drain(int amount)
+            {
+                var goodIds = new List<string>(_stock.Keys);
+                goodIds.Sort(StringComparer.Ordinal);
+                foreach (var goodId in goodIds)
+                {
+                    if (amount <= 0)
+                    {
+                        return;
+                    }
+
+                    var have = _stock[goodId];
+                    if (have <= 0)
+                    {
+                        continue;
+                    }
+
+                    var taken = Math.Min(have, amount);
+                    _stock[goodId] = have - taken;
+                    InStock -= taken;
+                    amount -= taken;
+                }
             }
         }
 
@@ -446,6 +573,20 @@ namespace HDBF.Tests
             slot.CropId = cropId;
             slot.GrowthDays = 4f;
             slot.Stage = SlotStage.Mature;
+        }
+
+        private static int RemainingMature(IndoorFarmRecord record)
+        {
+            var remaining = 0;
+            foreach (var slot in record.Slots)
+            {
+                if (slot is not null && slot.Stage == SlotStage.Mature)
+                {
+                    remaining++;
+                }
+            }
+
+            return remaining;
         }
     }
 }

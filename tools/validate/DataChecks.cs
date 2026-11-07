@@ -19,7 +19,7 @@ internal sealed class DataChecks
     private static readonly Regex ModIdPattern = new(@"^[A-Za-z][A-Za-z0-9._-]*$", RegexOptions.Compiled);
 
     // Release under test: bump together with data/manifest.json on every release (warning only).
-    private const string ExpectedReleaseVersion = "2.5.8";
+    private const string ExpectedReleaseVersion = "2.5.9";
 
     private static readonly string[] BlueprintSuffixes = { "Basic", "Intermediate", "Advanced", "Top" };
 
@@ -81,11 +81,21 @@ internal sealed class DataChecks
     // SimpleOutputInventory + Inventory + InventoryNeedBehavior (verified decorators in
     // SimpleOutputBuildingsTemplateModuleProvider), so hauling works without extra specs.
     //
-    // 2026-10-29 player bug fix: the capacity is NOT the vanilla 50 any more. One slot can yield at
-    // most 4 items (max vanilla crop base yield 3 x dense 1.35, rounded half up), so each tier ships
-    // the whole-box harvest bound PlotCapacity x 4 (240/600/1200/2400). With 50, a 600-slot farm
-    // filled the buffer after ~25 slots and transferred only 50 items instead of the whole harvest.
-    private const int OutputCapacityPerSlot = 4;
+    // 2026-11-07 temporary-staging rule: the capacity is one game day of the tier's full-crew
+    // harvest, NOT the whole-box bound used by the 2026-10-29 hotfix. The predecessor rule sized the
+    // buffer at PlotCapacity x 4 (240/600/1200/2400), which held several days of produce inside the
+    // building and - because vanilla haulers rank empty-output work by output fill percentage -
+    // ranked its own emptying lower, so the farm replaced the player's warehouses (reported as "the
+    // farm stores like a warehouse instead of temporary staging"). The new rule:
+    // ceil(PlotCapacity / 38 farmers) x 13 actions per farmer per day x 4 max harvest items per slot
+    // = 104/208/416/832. From an empty buffer one full day of harvesting always fits (208 actions x
+    // 4 items = 832), so the 2026-10-29 "600 corn, only 50 delivered" backlog cannot return through
+    // the buffer size itself; an already backlogged buffer stays backpressured by design. Vanilla
+    // emptying also needs a receiving PublicInput inventory: without one, no capacity makes goods
+    // move - the small buffer just surfaces the problem as OutputFull instead of silent storage.
+    private const int OutputSlotsPerFarmer = 38;
+    private const int OutputActionsPerFarmerDay = 13;
+    private const int OutputMaxHarvestItemsPerSlot = 4;
 
     // The vanilla field-farm marker specs must NOT be added: farm-loop drives the vanilla
     // worker-side planting/harvesting behaviors itself and does not want the building to become a
@@ -2046,11 +2056,12 @@ internal sealed class DataChecks
     /// <summary>
     /// Every tier needs a vanilla output inventory, otherwise the harvested goods have nowhere to go
     /// (farm-loop writes real grown yields into SimpleOutputInventory and vanilla hauling moves them
-    /// out). The capacity is per tier the whole-box harvest bound
-    /// <c>PlotCapacity x OutputCapacityPerSlot</c> (240/600/1200/2400): the farm harvests in daily
-    /// batches, so the old fixed vanilla-farmhouse capacity 50 filled up after a few slots and then
-    /// blocked every further harvest (2026-10-29 player report: a 600-slot farm transferred only 50
-    /// corn). Sizing the buffer to one whole-box harvest keeps hauling as the only rate limit.
+    /// out). The capacity is the per-tier temporary-staging bound of one game day of the full crew
+    /// harvest, <c>ceil(PlotCapacity / OutputSlotsPerFarmer) x OutputActionsPerFarmerDay x
+    /// OutputMaxHarvestItemsPerSlot</c> (104/208/416/832): the farm harvests in daily batches, so one
+    /// full day must always fit (the old fixed vanilla-farmhouse capacity 50 blocked a 600-slot farm
+    /// after ~16 slots, the 2026-10-29 player report). A whole-box bound was rejected in 2026-11-07
+    /// because it let the farm store days of produce like a warehouse instead of temporary staging.
     /// IgnorableCapacity stays false and the vanilla field-farm marker specs are forbidden: the HDBF
     /// route uses the worker-side behaviors directly, not the field-farm building model.
     /// </summary>
@@ -2096,7 +2107,7 @@ internal sealed class DataChecks
                 {
                     _report.Error(category, $"{relative}: missing SimpleOutputInventorySpec at the blueprint root; "
                                              + "harvest output would have no SimpleOutputInventory to write into "
-                                             + "(all tiers ship the tier-scaled harvest buffer)");
+                                             + "(all tiers ship the one-day temporary staging buffer)");
                     continue;
                 }
 
@@ -2108,15 +2119,36 @@ internal sealed class DataChecks
                     continue;
                 }
 
-                var expectedCapacity = expectation.PlotCapacity * OutputCapacityPerSlot;
+                var expectedCapacity = ExpectedOutputCapacity(expectation.PlotCapacity);
                 if (capacity != expectedCapacity)
                 {
                     _report.Error(category, $"{relative}: SimpleOutputInventorySpec.Capacity must be "
-                                             + $"{expectedCapacity} (PlotCapacity {expectation.PlotCapacity} x "
-                                             + $"{OutputCapacityPerSlot} max harvest items per slot; found {capacity})");
+                                             + $"{expectedCapacity} (one-day temporary staging bound for "
+                                             + $"PlotCapacity {expectation.PlotCapacity}: ceil(slots/"
+                                             + $"{OutputSlotsPerFarmer}) x {OutputActionsPerFarmerDay} actions x "
+                                             + $"{OutputMaxHarvestItemsPerSlot} max harvest items; found {capacity})");
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// One-day temporary staging bound of the tier's full crew, mirroring
+    /// <c>HDBF.Core.Indoor.IndoorConstants.OutputCapacityFor</c> exactly (the validator runs without
+    /// the mod's Core types loaded into its data checks): 60 -> 104, 150 -> 208, 300 -> 416,
+    /// 600 -> 832.
+    /// </summary>
+    /// <param name="plotCapacity">Slot capacity of the tier.</param>
+    /// <returns>Expected per-good output inventory capacity; 0 for a non-positive slot capacity.</returns>
+    private static int ExpectedOutputCapacity(int plotCapacity)
+    {
+        if (plotCapacity <= 0)
+        {
+            return 0;
+        }
+
+        var farmers = (plotCapacity + OutputSlotsPerFarmer - 1) / OutputSlotsPerFarmer;
+        return farmers * OutputActionsPerFarmerDay * OutputMaxHarvestItemsPerSlot;
     }
 
     // ------------------------------------------------------------------ JSON helpers

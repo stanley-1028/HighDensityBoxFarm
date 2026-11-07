@@ -16,9 +16,10 @@ namespace HDBF.UI.Panels
     public static class HdbfIndoorPanelLimits
     {
         /// <summary>
-        /// Capacity of the vanilla simple output inventory of a tier. The snapshot DTO (INTERFACES
-        /// section 9) carries the occupied amount but not the capacity, so the panel derives it from
-        /// the tier's slot capacity with the shared Core rule; the shipped
+        /// Capacity of the vanilla simple output inventory of a tier: one game day of the tier's full
+        /// crew harvest (2026-11-07 temporary-staging rule, 104/208/416/832). The snapshot DTO
+        /// (INTERFACES section 9) carries the occupied amount but not the capacity, so the panel
+        /// derives it from the tier's slot capacity with the shared Core rule; the shipped
         /// <c>SimpleOutputInventorySpec.Capacity</c> is pinned to the same number by a contract test,
         /// so data and code can never drift silently.
         /// </summary>
@@ -75,8 +76,8 @@ namespace HDBF.UI.Panels
 
         /// <summary>
         /// Bounded output-inventory fill. The snapshot has no output capacity; the panel uses the
-        /// tier-scaled blueprint capacity so "0/2400" and the bar stay readable instead of being cut
-        /// off.
+        /// tier-scaled temporary-staging capacity so "0/832" and the bar stay readable instead of
+        /// being cut off (an old save can still hold more than the new bound: the bar clamps at 1).
         /// </summary>
         /// <param name="occupied">Items currently held by the output inventory.</param>
         /// <param name="slotCapacity">Slot capacity of the tier (snapshot <c>Capacity</c>).</param>

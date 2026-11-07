@@ -131,22 +131,34 @@ the no-empty-brace rule, the complete v2 terminology set and the removal of ever
 
 1. **Output capacity is not in the snapshot DTO.** `HDBF.Panel.OutputStock` shows occupied/capacity,
    where capacity is derived from the snapshot's tier slot capacity through
-   `HdbfIndoorPanelLimits.OutputCapacity` (slots x 4 = 240/600/1200/2400) and mirrors the eight
-   shipped `SimpleOutputInventorySpec`s; `TestOutputCapacityMatchesEveryShippedBlueprint` fails if the
+   `HdbfIndoorPanelLimits.OutputCapacity` (one full-crew day: ceil(slots / 38) x 13 x 4 =
+   104/208/416/832, the 2026-11-07 temporary-staging rule) and mirrors the eight shipped
+   `SimpleOutputInventorySpec`s; `TestOutputCapacityMatchesEveryShippedBlueprint` fails if the
    data drifts. Exposing it in the DTO would remove the derivation.
-2. **Worker names are not in the snapshot.** The roster chips show `—` for staffed positions plus a
+2. **Output capacity is per good, the occupied number is the sum of all goods.** `OutputOccupied` is
+   the inventory's `TotalAmountInStock`, while `SimpleOutputInventorySpec.Capacity` limits each good
+   separately, so a rotation farm holding several crops can honestly show e.g. `450/416` (bar clamps
+   at 100%) and the live OutputFull warning can light up while every single crop still has room.
+   This display semantics predates the 2026-11-07 temporary-staging change but the smaller buffer
+   makes it easier to reach; a correct fix needs the snapshot DTO to carry the per-good capacity/full
+   flag (follow-up card, not part of the capacity fix).
+3. **Worker names are not in the snapshot.** The roster chips show `—` for staffed positions plus a
    localized note; the roster is read-only (the game assigns workers).
-3. **The vanilla workplace fragment already shows the crew roster.** The card keeps its own
+4. **The vanilla workplace fragment already shows the crew roster.** The card keeps its own
    read-only roster because chapter 19.11 asks for a worker/efficiency block; the two lists stay
    consistent because both read the same authoritative assignment.
-4. **The generated panel uses the shipped game UXML templates** (`DebugButton`, `WorkerView`,
+5. **The generated panel uses the shipped game UXML templates** (`DebugButton`, `WorkerView`,
    `Core/Dropdown`, `Core/RadioButton`, `Core/ProgressBar`) and the shipped USS classes; these are
    game assets, not copied into the mod package.
-5. **In-game look/feel is compile-verified only.** The L1 suite cannot load UIElements, and this
+6. **In-game look/feel is compile-verified only.** The L1 suite cannot load UIElements, and this
    round was not allowed to launch the game; TC-V2-05/06 still needs a screenshot round.
-6. **The mode radio labels are localized once at panel build time.** A language switch re-renders
+7. **The mode radio labels are localized once at panel build time.** A language switch re-renders
    the cards, but the already built radio buttons keep their original language until the panel is
    reopened; the vanilla `RadioToggleFactory` has no re-localize entry point.
-7. **The 4 Hz snapshot query still allocates on the gameplay side.** UI reuses one invoke buffer,
+8. **The 4 Hz snapshot query still allocates on the gameplay side.** UI reuses one invoke buffer,
    but `IBoxFarmQuery.GetIndoorSnapshot` builds a fresh immutable `IndoorFarmSnapshot` per call
    (4/s, never per frame). A gameplay-side cached DTO would remove that last bounded allocation.
+9. **Tier overrides that change `slotCapacity` desync the panel capacity.** The panel derives the
+   output capacity from the configured snapshot capacity, but `SimpleOutputInventorySpec.Capacity`
+   is a static blueprint value, so a config override of the slot count makes the displayed `x/y`
+   differ from the real inventory bound (pre-existing; the shipped tiers agree).

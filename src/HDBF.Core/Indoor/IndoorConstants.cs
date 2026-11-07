@@ -132,15 +132,29 @@ namespace HDBF.Core.Indoor
         public const int MaxHarvestItemsPerSlot = 4;
 
         /// <summary>
-        /// Output-inventory capacity of one tier: the whole-box harvest bound
-        /// <c>SlotCapacity x MaxHarvestItemsPerSlot</c> (60 -> 240, 150 -> 600, 300 -> 1200, 600 ->
-        /// 2400). The vanilla output inventory is the only place harvested goods can go before
-        /// haulers move them out, and the farm harvests in daily batches. A fixed vanilla-farmhouse
-        /// capacity (50) therefore filled up after a few slots, blocked every further harvest and
-        /// left a 600-slot farm transferring only ~50 items — the 2026-10-29 player bug report. The
-        /// buffer is sized so one whole-box harvest always fits, which makes hauling (not the
-        /// building buffer) the only rate limit; the blueprint data and tools/validate pin the same
-        /// number per tier (TestOutputInventoryMatchesHarvestCapacityPerTier).
+        /// Output-inventory capacity of one tier: the temporary staging bound for one game day of the
+        /// tier's full crew, <c>ceil(SlotCapacity / SlotsPerFarmer) x ActionsPerFarmerDay x
+        /// MaxHarvestItemsPerSlot</c> (60 -> 104, 150 -> 208, 300 -> 416, 600 -> 832). The crew is
+        /// sized to cover the box exactly (ceil(slots / SlotsPerFarmer) = 2/4/8/16 farmers), so a full
+        /// day of harvesting always fits an EMPTY buffer and the 2026-10-29 bug ("600 corn mature, only
+        /// ~50 delivered") cannot come back through the buffer size itself: from an empty buffer the
+        /// only rate limit is hauling. A buffer that is already backlogged stays backpressured by
+        /// design (full -> no harvest, slots stay mature, panel reports the backlog).
+        /// <para>
+        /// 2026-11-07 fix ("the farm stores like a warehouse instead of temporary staging"): the
+        /// previous rule sized the buffer for a whole-box harvest (<c>SlotCapacity x 4</c> =
+        /// 240/600/1200/2400). Vanilla haulers pick empty-output work by the output fill percentage
+        /// (<c>SimpleOutputInventoryHaulBehaviorProvider</c> uses
+        /// <c>InventoryFillCalculator.GetInStockOutputFillPercentage</c>), so a warehouse-sized buffer
+        /// both held several days of produce inside the building and ranked its own emptying lower -
+        /// the farm quietly replaced the player's warehouses whenever a receiving inventory existed.
+        /// (Vanilla emptying also requires a receiving <c>PublicInput</c> inventory at all; without one
+        /// nothing is hauled away at any capacity - the small buffer then backpressures and shows the
+        /// logistics problem instead of silently storing.) One day of harvest is the temporary staging
+        /// bound: it keeps the buffer meaningful for backpressure and keeps goods flowing to real
+        /// warehouses. The blueprint data and tools/validate pin the same number per tier
+        /// (TestOutputInventoryMatchesHarvestCapacityPerTier).
+        /// </para>
         /// </summary>
         /// <param name="slotCapacity">Slot capacity of the tier (PlotCapacity).</param>
         /// <returns>Per-good output inventory capacity; 0 for a non-positive slot capacity.</returns>
@@ -151,7 +165,9 @@ namespace HDBF.Core.Indoor
                 return 0;
             }
 
-            var capacity = (long)slotCapacity * MaxHarvestItemsPerSlot;
+            // The tier crews are sized to cover the box exactly: 2/4/8/16 farmers for 60/150/300/600.
+            var farmers = ((long)slotCapacity + SlotsPerFarmer - 1) / SlotsPerFarmer;
+            var capacity = farmers * ActionsPerFarmerDay * MaxHarvestItemsPerSlot;
             return capacity > int.MaxValue ? int.MaxValue : (int)capacity;
         }
 

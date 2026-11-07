@@ -506,9 +506,13 @@ namespace HDBF.Tests
         public static void TestOutputCardRendersOccupiedOverCapacityAndSeparatePortRows()
         {
             var output = Section(CreateData(IntermediateFixture(), out _), HdbfPanelSectionKind.Output);
-            // 2026-10-29 bug fix: the panel capacity is tier-scaled (150 slots -> 600), not the old 50.
-            TestAssert.Equal("12/600", Row(output, "Output stock").Value, "occupancy/capacity stays complete");
-            TestAssert.Equal("12/600 stored", Row(output, "Output stock").BarText);
+            // 2026-11-07 temporary-staging rule: the panel capacity is tier-scaled (150 slots -> 208,
+            // one full crew day), not the predecessor whole-box bound 600.
+            var outputCapacity = HdbfIndoorPanelLimits.OutputCapacity(150);
+            TestAssert.Equal(208, outputCapacity, "the 150-slot tier stages one full crew day");
+            TestAssert.Equal("12/" + outputCapacity, Row(output, "Output stock").Value,
+                "occupancy/capacity stays complete");
+            TestAssert.Equal("12/" + outputCapacity + " stored", Row(output, "Output stock").BarText);
             TestAssert.True(Row(output, "Output stock").HasBar,
                 "requirement F: the occupancy is a vanilla ProgressBar");
 

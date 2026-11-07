@@ -565,3 +565,19 @@ Top 的動力 transput 已改為 `(0,1,0)`/`(1,1,0)`/`(2,1,0)` 配 `Left, Up`/`U
 `HdbfIndoorPanelLimits.OutputCapacity`、8 份藍圖與 `tools/validate` 共用；根因、修正與離線證據見
 `docs/VERIFICATION.md` §29。本文 §10 的舊數值僅保留為歷史記錄。
 
+## 補記（輸出庫存「一天暫存」修正，2026-11-07，2.5.9）
+
+上一则 2026-10-29 補記的**整盒容量規則已被 2.5.9 取代**（該段保留為歷史記錄，不是現行規則）：
+整盒容量 240/600/1200/2400 讓農場能囤積數日產量，而原版搬運清空輸出建築的權重 = 輸出庫存填充率
+（`SimpleOutputInventoryHaulBehaviorProvider` → `InventoryFillCalculator.GetInStockOutputFillPercentage`；
+`DistrictHaulCandidates.GetWorkplaceBehaviorsOrdered` 按權重降序），容量越大越排後；且清空必須有
+接受該貨物的 PublicInput 倉庫作目的地，沒有目的地時任何容量都不會被搬走。兩者疊加使貨物長期堆在
+農場（玩家回饋：「農場倉庫…像普通倉庫一樣儲存」，見 `docs/workstreams/feedback-20261107/warehouse.md`）。
+現行規則：`SimpleOutputInventorySpec.Capacity` = **滿員一天最大收穫量** =
+`ceil(PlotCapacity / 38) × 13 × 4` = **104/208/416/832**（60/150/300/600 槽），即農場最多只暫存滿員
+一天產量；空緩衝下單日收穫必裝得下（不會退回 §29 的「600 玉米只送 50」），搬運跟不上或沒有接收倉庫時
+按設計回壓（OutputFull/槽位保持成熟），長期堆存由玩家倉庫承擔。
+`IndoorConstants.OutputCapacityFor`、面板 `HdbfIndoorPanelLimits.OutputCapacity`、8 份藍圖與
+`tools/validate`（獨立復刻同一公式）同步；根因、修正與離線證據見 `docs/VERIFICATION.md` §46。
+
+

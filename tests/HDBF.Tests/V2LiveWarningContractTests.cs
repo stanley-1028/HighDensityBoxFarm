@@ -94,11 +94,14 @@ namespace HDBF.Tests
                     PowerConnected = true,
                 }));
 
-            // OutputFull is live from the occupancy: 150 slots -> 600 output capacity.
+            // OutputFull is live from the occupancy: 150 slots -> 208 one-day temporary staging capacity
+            // (2026-11-07 rule; the predecessor whole-box bound was 600).
+            var outputCapacity = IndoorConstants.OutputCapacityFor(150);
+            TestAssert.Equal(208, outputCapacity, "the 150-slot tier stages one full crew day");
             TestAssert.Equal(IndoorWarningFlags.OutputFull,
-                IndoorWarningMap.LiveFlagsOf(Healthy() with { OutputOccupied = 600 }));
+                IndoorWarningMap.LiveFlagsOf(Healthy() with { OutputOccupied = outputCapacity }));
             TestAssert.Equal(IndoorWarningFlags.None,
-                IndoorWarningMap.LiveFlagsOf(Healthy() with { OutputOccupied = 599 }),
+                IndoorWarningMap.LiveFlagsOf(Healthy() with { OutputOccupied = outputCapacity - 1 }),
                 "one free slot in the output buffer is not full");
         }
 

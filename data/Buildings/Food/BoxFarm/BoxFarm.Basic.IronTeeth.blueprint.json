@@ -189,7 +189,7 @@
     "HasPowerPort": false
   },
   "SimpleOutputInventorySpec": {
-    "Capacity": 240,
+    "Capacity": 104,
     "IgnorableCapacity": false
   },
   "WorkplaceIlluminatorSpec": {},

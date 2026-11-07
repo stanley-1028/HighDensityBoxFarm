@@ -2021,3 +2021,88 @@ powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1 -WorkRoot "$env:TE
   實機檢查點：農場旁有水管時面板 Pipe network = `Connected`（log `water.pipe-probe … detail=farm-pipe`）、
   水罐回升（`water.settle`）；接網液體水塔每日自動抽水；若仍有問題請附 `Player.log`
   （確認開頭是 `start HDBF version=2.5.8`）。
+
+## 46. 2.5.9 離線驗證：輸出庫存「一天暫存」修復（2026-11-07）
+
+> 環境：`workspace-write`、**未部署、未開遊戲**；以下全部是離線證據。本輪 sandbox **明文拒絕**寫入
+> `%USERPROFILE%\.hdbf\round`、`Documents\Timberborn\Saves` 與遊戲目錄（實測 `Set-Content` Access denied），
+> 因此無法執行 §14/§16 的「無合成輸入自動實機回合」；不得把本節寫成實機已驗證。
+> 本節**取代 §29 的容量規則**（§29 保留為 2026-10-29 的歷史證據，240/600/1200/2400 不是現行值）。
+
+* **玩家回饋**（用戶原文，2026-11-07）：「高密度農場的倉庫並沒有做暫存，反而是像普通倉庫一樣儲存，
+  我想它的倉庫只做暫存，而不是像普通倉庫一樣儲存。」用戶確認驗收口徑＝**一天產量級暫存**
+  （不是原版固定 50、也不是只改 IgnorableCapacity 的容量口徑方案）。
+* **根因**（完整證據與 IL 細節見 `docs/workstreams/feedback-20261107/warehouse.md`）：
+  1. 2026-10-29 為修「整盒成熟收不完」（§29）把四檔 `SimpleOutputInventorySpec.Capacity` 改為
+     **整盒收成上限** `槽位上限 × 4`（240/600/1200/2400）。
+  2. 原版搬運工清空「輸出建築」的任務權重 = 輸出庫存**填充率**
+     （`SimpleOutputInventoryHaulBehaviorProvider.GetWeightedBehaviors` →
+     `InventoryFillCalculator.GetInStockOutputFillPercentage`；`DistrictHaulCandidates.GetWorkplaceBehaviorsOrdered`
+     按權重降序排序）。容量越大填充率越低 → 清空任務排在同地區空倉庫之後 → 产物傾向滯留農場。
+  3. **清空必須有接收目的地**：`EmptyOutputWorkplaceBehavior` → `CarrierInventoryFinder.GetClosestInventoryWithCapacity`
+     只用 `DistrictInventoryRegistry.ActiveInventoriesWithCapacity`，而只有 `PublicInput` 庫存會進入「有容量」表；
+     `SimpleOutputInventory` 是 PublicOutput-only。⇒ 地區沒有接受該貨物的倉庫時，**任何容量/權重都不會讓搬運工來清**，
+     舊大容量於是讓農場**靜默地**成為唯一倉庫（用戶存檔即此局）；有倉庫時大容量再以低填充率把清空任務排後。
+  4. `IgnorableCapacity` 只影響 `Inventory.GetCapacity` → 地區庫存**容量統計**；不改庫存量、不改
+     `LimitedAmount`、不改搬運權重，因此不是「暫存」開關（不採用）。
+* **用戶實機存檔證據**（只讀，未改原檔；`Documents\Timberborn\Saves\1110\`，遊戲日 26→27，2.5.8）：
+  * Basic / Intermediate / Advanced 農場 `Inventory:SimpleOutputInventory` 的 Carrot：
+    **141 / 110 / 226 → 161 / 174 / 334**（一天內持續增長）；Top 尚未產生輸出庫存組件。
+  * 同地區唯一倉庫 `LargeWarehouse`：`SingleGoodAllower = GrilledPotato`，Carrot 528 件全部只在農場
+    輸出庫存裡；`DistrictGoodsBalance.ProductionRegistry` Carrot 210/日、Consumption 18/日。
+    → 無接收倉庫 + 大容量 = 农场输出库存事实上是玩家唯一的「Carrot 倉庫」（兩個因素疊加）。
+* **修法**（`docs/v2/CHANGELOG.md` [2.5.9]）：
+  `IndoorConstants.OutputCapacityFor(slots)` = `ceil(slots / 38) × 13 × 4` = **104/208/416/832**，
+  容量 ≥ 满员单日最大收穫（208 動作 × 4 件 = 832），故**空緩衝時**單次日 tick 收穫必裝得下，
+  §29 的「600 玉米只送 50」不會回來；若日初已有積壓或搬運跟不上，按設計回壓（滿則不收割、槽位保持
+  成熟、面板 OutputFull/積壓）。有接收倉庫時小容量讓填充率快速到高位、搬運工優先來清；**沒有接收倉庫時
+  貨物不會自動消失**（原版搬運前提），農場約一天產量後回壓並提示補倉庫/補物流——這正是「只做暫存」。
+* **離線門禁**（`build.ps1 -WorkRoot <session TEMP>\hdbf-work`，未部署）：
+  * 改動前基線（同 §44）：5 組件 0 warning / 0 error、L1 **728/728**、`tools/validate` OK、44 gates。
+  * 改動後：5 組件 **0 warning / 0 error**、L1 **PASSED 732 / FAILED 0**（淨 +4：1 條舊回歸改為
+    3 條暫存回歸 = +2；dense 零餘量邊界 +1；validator/Core 公式漂移契約 +1）、
+    `tools/validate` **WARNINGS: none / RESULT: OK（mod assemblies 5/5 OK）**、
+    **RELEASE GATES: PASSED (44 checks)**、`NFR GATE MATRIX: PASSED (6 checks)`。
+  * staged **48 files / 2,202,809 bytes / 2,151 KB**，manifest Version **2.5.9**；四档蓝图
+    `SimpleOutputInventorySpec.Capacity` 实测 104/208/416/832（两阵营一致）。
+* **負向對照（validator，已實際注入並還原）**：把 `BoxFarm.Basic.Folktails` 的 Capacity 104 改成 2400 →
+  `[inventory] Buildings/Food/BoxFarm/BoxFarm.Basic.Folktails.blueprint.json: SimpleOutputInventorySpec.Capacity
+  must be 104 (one-day temporary staging bound for PlotCapacity 60: ceil(slots/38) x 13 actions x 4 max
+  harvest items; found 2400)`、**exit 1 / RESULT: FAILED**；还原后再次全量门禁 RESULT: OK。
+* **新增/改寫的 L1 回歸（`tests/HDBF.Tests/V2LaborTests.cs`）**：
+  1. `TestOneDayHarvestAlwaysFitsTheTemporaryOutputBuffer`：Top 600 槽全成熟，一天 208 動作全部收下、
+     `BlockedByOutput=0`（證明 2026-10-29 的單日積壓不會回來）；
+  2. `TestWholeMatureBoxBackpressuresTheTemporaryBuffer`：無搬運時第二天即回壓、剩餘槽位保持成熟
+     （暫存語義正確，不丟作物）；
+  3. `TestTemporaryBufferPlusHaulingClearsAWholeMatureBox`：搬運 200/日時整盒 600 槽在 20 天內收完、
+     庫存從不超容量（§29 的「收不完」不會回來）；
+  4. `TestOutputCapacityForIsOneDayHarvestBound`：四档 104/208/416/832 且 == `MaxWorkers × 13 × 4`；
+  5. `TestDenseOneDayHarvestExactlyFitsTheTemporaryOutputBuffer`：dense Top 單日 208 × 4 = 832 == 容量，
+     零餘量邊界仍 `BlockedByOutput=0`；
+  6. `TestValidatorMirrorsTheCoreOneDayOutputCapacityRule`：validator 的 38/13/4 常數與 Core 同步
+     （validator 無 Core 引用，公式是獨立復刻，此契約防單邊漂移）；
+     另更新 `V2BlueprintContractTests` / `V2LiveWarningContractTests` / `V2PanelContractTests` /
+     `V2PanelVisualContractTests` 的契约期望。
+* **已知限制（誠實記錄，不屬本修復必須項）**：
+  1. **面板口徑**：`OutputOccupied` 是輸出庫存**所有貨物合計**，而容量是**每種貨物**上限；輪作農場同時有
+     2–3 種作物時可能顯示 `x/832` 中 x 超過容量（進度條夾 100%），live OutputFull 可能提前亮起，而每種
+     作物其實仍有空間。此為既有顯示語義（舊大容量下少見、小容量後更易觸發），正確修法需快照 DTO 增加
+     容量/滿標誌，另開卡；本輪只在 UI README Known gaps 記錄。
+  2. **「一天」= 滿員一天**：容量是靜態藍圖值（滿員 2/4/8/16 人），長期缺員時 832 可暫存多天產量；
+     這是靜態 `SimpleOutputInventorySpec` 的固有限制，文檔統一寫「滿員一天」避免誤導。
+  3. **`slotCapacity` 配置覆蓋**：面板容量由配置後的 snapshot 槽位推導，而藍圖靜態庫存上限不變；覆蓋
+     槽位數時兩者不一致（既有行為，已記入 UI README Known gaps）。
+  4. **恰滿即報 OutputFull**：滿員 dense 單日恰好填到 832 時當天無回壓，但 live 警告因 `>= 容量` 立即
+     顯示；語義上可接受（預告次日會滿），不改代碼。
+  5. **單槽 ≤4 件的假設**：一槽最多 3 × 1.35 四捨五入 = 4 件僅對原版 Farmhouse 組作物成立；若第三方
+     作物 `BaseYield ≥ 4`，單日收穫可能超過 832 → 每天先回壓（不會永久卡死，但容量不再是「單日上界」）；
+     屬機制限制，未來可加作物目錄契約（本輪未做）。
+* **存檔兼容（IL 推導，未實機）**：容量是藍圖值、讀檔後立即生效；舊存檔中超過新容量的庫存由
+  `Inventory.Load → LoadFromNamedComponent` 直接寫入 `_storage`（**無容量校驗/裁剪**），不抹除、不拋錯；
+  但該貨物 `UnreservedCapacity = 0` → **暫不再收**（槽位保持成熟、不丟貨），若存在接收倉庫則按
+  `Clamp01` 權重 1.0 最高優先被清出，回落後恢復收穫；面板進度條由 `HdbfIndoorPanelLimits.Ratio`
+  夾在 100%，文字仍誠實顯示 e.g. `161/104`。
+* **仍未實機驗證（pending，不得寫成完成）**：舊存檔（含超容量庫存）載入無異常；有接收倉庫時農場輸出
+  庫存被搬空並維持在一天產量以內；無接收倉庫時按設計回壓（OutputFull 警告，不再無限囤積）；
+  面板容量顯示 104/208/416/832。**本輪未部署、未啟動遊戲、未發佈。**
+

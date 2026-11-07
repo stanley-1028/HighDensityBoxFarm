@@ -78,9 +78,9 @@ namespace HDBF.UI.Panels
             Func<string, string> localize)
         {
             var tooltip = OutputTooltip(snapshot, localize);
-            // 2026-10-29 bug fix: the in-farm output buffer scales with the tier's slot capacity
-            // (one whole-box harvest, see IndoorConstants.OutputCapacityFor); the panel mirrors the
-            // shipped blueprint value instead of the old fixed 50.
+            // 2026-11-07 temporary-staging rule: the in-farm output buffer holds at most one game day
+            // of the tier's full-crew harvest (104/208/416/832, see
+            // IndoorConstants.OutputCapacityFor); the panel mirrors the shipped blueprint value.
             var outputCapacity = HdbfIndoorPanelLimits.OutputCapacity(snapshot.Capacity);
             // Requirement E/F: the output port and the three physical ports are SEPARATE rows, so a
             // long state list can never overlap the line above it; every value wraps.

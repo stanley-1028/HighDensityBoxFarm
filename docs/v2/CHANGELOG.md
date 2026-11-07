@@ -1,9 +1,37 @@
 # HDBF v2 变更记录
 
-> **状态**：**2.5.8 已发布**（2026-11-07 17:10，Steam Workshop item 3828809784，ManifestID `8359214256551403205`；GitHub `b900e8a`；离线门禁全绿，实机验证仍 pending）；2.5.7 已发布（2026-11-06 17:40，玩家回馈热修 + 下拉开启期间暂停刷新的防护；Steam Workshop item 3828809784，ManifestID 4408964257799319853；第一次 17:14 上传误带旧 2.5.6 staging，17:40 已重新上传正确包，详见 VERIFICATION §43；实机点击验证仍 pending，不写成已完成）；2.5.6 已发布（Steam Workshop ManifestID 3045694293614393693；GitHub 见 push 后的 master；离线门禁全绿；实机验证部分 pending，见 VERIFICATION §40）；2.5.5 为未发布的第二维修轮；2.5.4 已发布（Steam Workshop ManifestID 2037025195551276545）
+> **状态**：**2.5.9 已构建（未发布）**（2026-11-07，暫存语义修复：农场输出库存从「整盒容量/类仓库」改为「一天产量暂存」；离线门禁全绿，实机验证 pending）；**2.5.8 已发布**（2026-11-07 17:10，Steam Workshop item 3828809784，ManifestID `8359214256551403205`；GitHub `b900e8a`；离线门禁全绿，实机验证仍 pending）；2.5.7 已发布（2026-11-06 17:40，玩家回馈热修 + 下拉开启期间暂停刷新的防护；Steam Workshop item 3828809784，ManifestID 4408964257799319853；第一次 17:14 上传误带旧 2.5.6 staging，17:40 已重新上传正确包，详见 VERIFICATION §43；实机点击验证仍 pending，不写成已完成）；2.5.6 已发布（Steam Workshop ManifestID 3045694293614393693；GitHub 见 push 后的 master；离线门禁全绿；实机验证部分 pending，见 VERIFICATION §40）；2.5.5 为未发布的第二维修轮；2.5.4 已发布（Steam Workshop ManifestID 2037025195551276545）
 > **日期**：2026-11-07
-> **适用版本**：2.5.8
-> **变更摘要**：v2.1 需求引入室内农场方案；本文件记录 v1→v2 的行为/数据/工程变更与实现状态。2.5.8 = 管道供水修复（水塔接网判定 + 紧邻农场的 Timber Pipes 输水管直接供水）。
+> **适用版本**：2.5.9
+> **变更摘要**：v2.1 需求引入室内农场方案；本文件记录 v1→v2 的行为/数据/工程变更与实现状态。2.5.8 = 管道供水修复（水塔接网判定 + 紧邻农场的 Timber Pipes 输水管直接供水）；2.5.9 = 输出库存暂存语义修复（整盒容量 → 一天产量暂存，不再像普通仓库一样囤货）。
+
+## [2.5.9] — 2026-11-07（暂存语义修复：农场输出库存只做「一天暂存」，不再像普通仓库一样囤货）
+
+依据玩家回馈：「高密度农场的仓库并没有做暂存，反而是像普通仓库一样储存；希望它的仓库只做暂存」。
+根因（两个叠加因素）：2026-10-29 为修「整盒成熟收不完」把容量从原版农家的 50 提到**整盒收成上限**
+240/600/1200/2400。① 原版搬运「清空输出库存」必须有**接受该货物的 PublicInput 库存**做目的地
+（`EmptyOutputWorkplaceBehavior`→`CarrierInventoryFinder.GetClosestInventoryWithCapacity`）；地区没有
+对应仓库时任何容量都不会被搬走，大容量于是让农场**静默地**变成唯一仓库（用户 Day 26→27 存档：
+Basic/Intermediate/Advanced 输出 Carrot 141/110/226 → 161/174/334 持续增长，而地区没有收 Carrot 的仓库）。
+② 有仓库时，清空任务权重 = 输出库存**填充率**
+（`SimpleOutputInventoryHaulBehaviorProvider` → `InventoryFillCalculator.GetInStockOutputFillPercentage`
+→ `DistrictHaulCandidates.GetWorkplaceBehaviorsOrdered` 按权重降序），容量越大填充率越低、清空任务
+排名越后，产物倾向滞留。修复：容量改为**满员一天的最大收获量**
+`ceil(槽位上限 / 38) × 13 动作/农民/日 × 4 最高每槽产物` = 104/208/416/832；空缓冲下单日收获必装得下
+（不会退回 2026-10-29 的「600 玉米只送 50」积压），超过一天产量的堆存按设计回压并提示补仓库
+（无接收仓库时农场会亮 OutputFull，而不是无限囤货）。
+
+* 【修改】`IndoorConstants.OutputCapacityFor` 规则、注释与四档换算（104/208/416/832）；8 份蓝图
+  `SimpleOutputInventorySpec.Capacity` 同步，`IgnorableCapacity` 保持 false（与原版农家一致）。
+* 【修改】`tools/validate` 的 inventory 检查改为同一条规则（`ExpectedOutputCapacity`，负向对照文案同步）。
+* 【修改】面板容量/进度条/OutputFull 警告沿用共享 Core 规则自动跟随（`HdbfIndoorPanelLimits` /
+  `IndoorWarnings`）；旧存档中超过新容量的库存保留、该货物暂不再收（槽位保持成熟），有接收仓库时
+  优先被清出、回落后续种，面板条夹在 100%。
+* 【测试】L1 契约更新：1 条旧回归改 3 条暂存回归（单日收获必装得下、整盒无搬运会回压、有搬运时整盒
+  仍能收完）+ 1 条 dense 零余量边界 + 1 条 validator/Core 公式漂移契约（L1 **732/732**）；
+  `tools/validate`、44 条 release gates 全绿。
+* 【文档】REQ §19.3/§19.5、ARCHITECTURE §4、UI README、README、VERIFICATION §46 与
+  `docs/workstreams/feedback-20261107/warehouse.md` 同步。
 
 ## [2.5.8] — 2026-11-07（管道供水修复：Timber Pipes 水管接到农场外壳即可供水）
 
