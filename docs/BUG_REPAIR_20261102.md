@@ -117,6 +117,7 @@ Timberborn.TickSystem.TickerUnityAdapter.Update ()
 | 2026-11-02 21:16 | 截圖擷取 |
 | 2026-11-02 | 本維修文檔調查（唯讀） |
 | 2026-11-02 22:56 | **v2.5.4 維修輪發佈**：Steam Workshop ManifestID `2037025195551276545`、GitHub `2a4a237`（見 §10、`VERIFICATION.md` §37） |
+| 2026-11-07 17:10 | **v2.5.8 管道供水修復發佈**：Steam Workshop ManifestID `8359214256551403205`、GitHub `b900e8a`（見 §13、VERIFICATION §45） |
 
 > **推論**：這些留言應是針對 **2.5.3**（除非玩家未重啟遊戲/未更新）。`merlin4059` 的「crash on pause」尤其需要玩家 log 才能確認是否為 2.5.3 的殘留路徑（見 RE-04 判別步驟）。
 
@@ -329,7 +330,7 @@ Timberborn.TickSystem.TickerUnityAdapter.Update ()
 
 > **維修狀態（v2.5.4）**：🟡 **部分完成**。方案 1（文案＋原因列）✅、方案 2（`IIndoorPipeProbe` 7 原因碼＋`water.pipe-probe` 日誌）✅、方案 6（玩家繞過文案）✅；**方案 3（`PipeRegistry.TryGetGraph` 真實連通判定）⏸ pending、方案 4（讓農場成為 Timber Pipes 端點）⏸、方案 5（實機 G/H/I）pending**。
 >
-> **維修狀態（v2.5.8，2026-11-07）**：🟢 **根因已修（離線；實機 pending）**。修法見下方「v2.5.8 實際修法」：① 接網水塔判定從恆 false 的 `Pipe.Graph != null` 改為「port 連到 transport pipe」；② 新增「緊鄰農場的 Timber Pipes 輸水管」本地取水（反射 `TryGetPipe` + `RemoveFluid`，無編譯期依賴/無 Harmony）；③ 面板 probe 對「農場鄰接管」回 `Connected`。**實機 G/H/I 仍未跑**（本輪無互動會話），不得寫成實機驗證。
+> **維修狀態（v2.5.8，2026-11-07）**：🟢 **根因已修並已發佈**（Steam Workshop ManifestID `8359214256551403205`、GitHub `b900e8a`；實機 pending）。修法見下方「v2.5.8 實際修法」：① 接網水塔判定從恆 false 的 `Pipe.Graph != null` 改為「port 連到 transport pipe」；② 新增「緊鄰農場的 Timber Pipes 輸水管」本地取水（反射 `TryGetPipe` + `RemoveFluid`，無編譯期依賴/無 Harmony）；③ 面板 probe 對「農場鄰接管」回 `Connected`。**實機 G/H/I 仍未跑**（本輪無互動會話），不得寫成實機驗證。
 
 #### 現象
 
@@ -803,3 +804,27 @@ Timberborn.TickSystem.TickerUnityAdapter.Update ()
 | L-14 100 棟 Profiler 量測 | 需實機會話。 |
 
 **已知殘留**：`maintenance=false` 期間面板 Next due 顯示舊 due day（UI 未改）；port 旗標重新啟用後玩家需在面板重開端口；世界圖示 tooltip 語言切換要等下一次註冊；大檔（`IndoorDayTick`、`HdbfBoxFarmController` 部分 partial）已用拆檔維持 300 行 gate。
+
+---
+
+## 13. 第四實作輪（2026-11-07，v2.5.8，已發佈）：Timber Pipes 水管接農場供水
+
+> **狀態**：✅ 根因已修並已發佈（Steam Workshop item 3828809784，ManifestID `8359214256551403205`，2026-11-07 17:10；GitHub `b900e8a`）；離線門禁全綠；**實機驗證仍 pending**。
+
+**玩家回饋**：把 Timber Pipes 水管接到高密度農場，農場完全不接受管子供的水。
+
+**根因（兩條，IL 取證）**：
+1. 既有「接網水塔自動補水」從未生效：`PipeTank.Pipe.Graph` 對液體水塔恆為 null（mod 只對 transport pipe 賦值），
+   舊過濾使 `HasNetwork/IsPipeConnected` 恆 false。
+2. HDBF 沒有任何「從緊鄰農場的管取水」的程式；普通 pipe 貼農場外殼在 TimberPipes 端也不建立連接
+   （只有 valve Fill 走 `BuildingPipeTarget`）。
+
+**修法**：水塔改為「port 連到 transport pipe」判定；新增 Core `IIndoorPipeWaterAnchor`/`PipeIntakeMath`
+＋ Gameplay `HdbfBoxFarmController.PipeIntake` 發布 3×3×1 世界占格與 30 鄰格；Integration 以 `TryGetPipe`
+找相鄰的已完工/transport/未污染/`NetworkGoodId=="Water"`/`FluidHeight>=0.2m³` 輸水管，經公開 `RemoveFluid`
+抽取真實管內水（上限＝當次請求量、按實際減量記帳、先管後水塔）；probe 對鄰接管回 `Connected`（不新增
+frozen 枚舉/key），三語 tooltip 與 README/Workshop 描述同步。無新依賴、無 Harmony、存檔/藍圖不變。
+
+**驗證**：5 組件 0/0、L1 **728/728**（+11）、`tools/validate` **WARNINGS: none / RESULT: OK**、
+**RELEASE GATES: PASSED (44 checks)**、staged 48 files / 2,151 KB；Steam 上傳 `ManifestID 8359214256551403205`
+（`Upload finished … OK`）。實機 pending（見 VERIFICATION §44.3/§45）。

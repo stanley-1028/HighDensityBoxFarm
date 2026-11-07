@@ -1,6 +1,6 @@
 # HDBF v2 变更记录
 
-> **状态**：**2.5.8 离线完成（未发布；實機驗證 pending）**；2.5.7 已发布（2026-11-06 17:40，玩家回馈热修 + 下拉开启期间暂停刷新的防护；Steam Workshop item 3828809784，ManifestID 4408964257799319853；第一次 17:14 上传误带旧 2.5.6 staging，17:40 已重新上传正确包，详见 VERIFICATION §43；实机点击验证仍 pending，不写成已完成）；2.5.6 已发布（Steam Workshop ManifestID 3045694293614393693；GitHub 见 push 后的 master；离线门禁全绿；实机验证部分 pending，见 VERIFICATION §40）；2.5.5 为未发布的第二维修轮；2.5.4 已发布（Steam Workshop ManifestID 2037025195551276545）
+> **状态**：**2.5.8 已发布**（2026-11-07 17:10，Steam Workshop item 3828809784，ManifestID `8359214256551403205`；GitHub `b900e8a`；离线门禁全绿，实机验证仍 pending）；2.5.7 已发布（2026-11-06 17:40，玩家回馈热修 + 下拉开启期间暂停刷新的防护；Steam Workshop item 3828809784，ManifestID 4408964257799319853；第一次 17:14 上传误带旧 2.5.6 staging，17:40 已重新上传正确包，详见 VERIFICATION §43；实机点击验证仍 pending，不写成已完成）；2.5.6 已发布（Steam Workshop ManifestID 3045694293614393693；GitHub 见 push 后的 master；离线门禁全绿；实机验证部分 pending，见 VERIFICATION §40）；2.5.5 为未发布的第二维修轮；2.5.4 已发布（Steam Workshop ManifestID 2037025195551276545）
 > **日期**：2026-11-07
 > **适用版本**：2.5.8
 > **变更摘要**：v2.1 需求引入室内农场方案；本文件记录 v1→v2 的行为/数据/工程变更与实现状态。2.5.8 = 管道供水修复（水塔接网判定 + 紧邻农场的 Timber Pipes 输水管直接供水）。
@@ -8,8 +8,9 @@
 ## [2.5.8] — 2026-11-07（管道供水修复：Timber Pipes 水管接到农场外壳即可供水）
 
 依据玩家回馈（Timber Pipes 水管接在高密度农场上，农场完全不接受管子供的水）与只读根因审计
-（`docs/workstreams/feedback-20261107/pipes.md`）；离线验证见 `docs/VERIFICATION.md` §44。
-**未发布；实机验证 pending，不写成已完成。**
+（`docs/workstreams/feedback-20261107/pipes.md`）；离线验证见 `docs/VERIFICATION.md` §44，
+发布记录见 §45。**已发布（Steam Workshop item 3828809784，ManifestID `8359214256551403205`，
+2026-11-07；GitHub `b900e8a`）；实机验证 pending，不写成已完成。**
 
 ### 【修复】接网液体水塔的自动补水路径恢复可用（REQ-V2-WATER-02，F-PIPE-02 补充）
 
@@ -42,6 +43,10 @@
   wiring）；三语 tooltip 语义更新；L1 728/728。
 * 【未验证】实机：本机无游戏交互会话，**未验证**「水管贴农场 → 面板 Connected、水罐上升」、
   「接网水塔 → 自动抽水」两条路径；需要作者/玩家实机确认（见 VERIFICATION §44.3）。
+* 【发布】2026-11-07 17:10:43–17:10:48（Asia/Macau）以 Steamworks UGC API 更新 Workshop item
+  `3828809784`，`Uploaded new content ( ManifestID 8359214256551403205 )`、`Upload finished … : OK`
+  （详见 VERIFICATION §45）；本机 Workshop 内容文件夹已同步为 2.5.8（48 files / 2,151 KB）。
+  GitHub 修复 commit `b900e8a`、发布记录 commit 随后 push 到 `master`。
 
 ## [2.5.7] — 2026-11-06（玩家反馈热修：作物策略下拉打不开）
 

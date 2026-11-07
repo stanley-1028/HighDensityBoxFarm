@@ -1,6 +1,6 @@
 # F-PIPE-20261107：Timber Pipes 水管接在高密度農場上，農場完全不接受管子供的水
 
-> **狀態**：🟢 根因已修（離線門禁全綠；**實機驗證 pending**，不寫成已完成）
+> **狀態**：🟢 根因已修並已發佈（v2.5.8；Steam Workshop item 3828809784，ManifestID `8359214256551403205`，2026-11-07；GitHub `b900e8a`；離線門禁全綠；**實機驗證 pending**，不寫成已完成）
 > **日期**：2026-11-07｜**模組**：v2.5.8（未發布）｜**遊戲**：Timberborn 1.1.2.8｜**Timber Pipes**：11.4.0（Workshop 3801726769）
 > **玩家回饋（原文要點）**：「把 Timber Pipes 中的水管接在高密度農場的時候，我發現高密度農場們都不接受 Timber Pipes 的建築所供的水；我想它接受 Timber Pipes 的建築所供的水。」
 > **離線驗證**：`docs/VERIFICATION.md` §44｜**變更記錄**：`docs/v2/CHANGELOG.md` [2.5.8]｜**歷史條目**：`docs/BUG_REPAIR_20261102.md` §3.6（RE-05）

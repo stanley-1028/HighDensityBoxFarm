@@ -1989,3 +1989,35 @@ powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1 -WorkRoot "$env:TE
   3. `container.GetInstance(PipeRegistry)` 在真實遊戲容器是否成功（若失敗，日誌/probe 會是 `BindingFailed`，不是本輪可離線證明）；
   4. 已知盲區：OutfallPipe（1×2×1）只有原點格可被 `TryGetPipe` 命中，管身第二格貼農場不會被識別。
 * **未驗證原因**：本輪無可互動遊戲會話（沿用 §16.2 合成輸入不可用）；且 sandbox 無權寫入 `Documents\Timberborn\Mods\HDBF` 部署路徑，未部署。
+
+## 45. 2.5.8 發佈記錄：Steam Workshop 更新 + GitHub push（2026-11-07）
+
+* **Steam Workshop item 3828809784**：2026-11-07 **17:10:43**（Asia/Macau）上傳開始，**17:10:48**
+  `Uploaded new content ( ManifestID 8359214256551403205 ) for item 3828809784.`、**17:10:48**
+  `Upload finished for workshop item 3828809784 : OK`（Steam `logs/workshop_log.txt`）。
+  一次性 Steamworks UGC 工具 `C:\Users\user\hdbf-tools\steamupload\SteamUpload.exe`
+  回報 `submitDone ioFailure=False eResult=k_EResultOK needsLegalAgreement=False
+  publishedFileId=3828809784`（exit 0，耗時 5.8 s；上傳位元組 492,611 為 Steam 壓縮後計數）。
+* **上傳內容** = 本次 v2.5.8 staged 包（`data/manifest.json` Version 2.5.8）：
+  **48 files / 2,203,071 bytes / 2,151 KB**。SHA-256（前 8…後 5）：
+  `manifest.json 8501d8df…d2d32`、`HDBF.Core.dll 050379f9…e862e`、`HDBF.Persistence.dll 9bb90d72…4b464`、
+  `HDBF.Gameplay.dll 5a68b48b…2500b`、`HDBF.Integration.dll 01644bed…69f63`、`HDBF.UI.dll ab06a220…156b7`。
+* **Change Note（雙語）**：管道供水修復（農場鄰接 Timber Pipes 輸水管直接供水、接網液體水塔自動補水恢復、
+  面板 Connected/乾管語義、管內需乾淨水、0 Harmony/無新依賴/存檔不變、尚未實機驗證）。
+* **本機 Workshop 內容文件夾**：已同步覆蓋為 2.5.8
+  （`Steam\steamapps\workshop\content\1062090\3828809784`：manifest 2.5.8、48 files、
+  `HDBF.Gameplay.dll` SHA-256 = staged `5a68b48b…2500b`，供玩家下一次啟動立即測到修復版；
+  Steam 重啟後以官方 ManifestID 8359214256551403205 為準）。
+* **GitHub `stanley-1028/HighDensityBoxFarm`**：修復 commit **`b900e8a`**
+  （v2.5.8：管道供水修復…L1 728/728、44 gates）已 push 到 `master`（`93e139e..b900e8a`）；
+  本發佈記錄 commit 隨後 push，最終以 `origin/master` 為準。
+* **建置**：`build.ps1 -WorkRoot <session TEMP>\hdbf-work-release` 全綠：
+  5 組件 **0 warning/0 error**、L1 **728/728 PASSED / FAILED 0**、
+  `tools/validate` **WARNINGS: none / RESULT: OK（5/5 OK）**、**RELEASE GATES: PASSED (44 checks)**、
+  staged 48 files / 2,151 KB。
+* **刻意未動**：Workshop 標題/描述/封面/標籤/可見性（上傳 API 只更新內容＋Change Note，
+  與 2.5.1–2.5.7 相同做法）；`docs/workshop/publish/` 舊模板不參與門禁。
+* **未做／仍 pending**：本輪仍**沒有**可互動實機驗證（本機無遊戲會話，§16.2 合成輸入不可用）。
+  實機檢查點：農場旁有水管時面板 Pipe network = `Connected`（log `water.pipe-probe … detail=farm-pipe`）、
+  水罐回升（`water.settle`）；接網液體水塔每日自動抽水；若仍有問題請附 `Player.log`
+  （確認開頭是 `start HDBF version=2.5.8`）。
