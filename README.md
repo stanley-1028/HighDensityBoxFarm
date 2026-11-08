@@ -3,14 +3,14 @@
 > 按需求蓝图 §19（v2.1）实现的 Timberborn 1.1.2.8 模组：**3×3×1 室内高密度农场**。
 > 本工程不是文档摘要，而是可构建、可测试、可安装的代码与数据。
 >
-> **当前版本 2.5.9（v2 室内版 · 2026-11-07 暂存语义修复，已发布 ManifestID `9210717745557344144`）**：四档 3×3×1 建筑，内部 60/150/300/600 个抽象槽位，
+> **当前版本 2.5.10（v2 室内版 · 2026-11-08 搬运链组件配对修复，本机修复版未发布）**：四档 3×3×1 建筑，内部 60/150/300/600 个抽象槽位，
 > 平屋顶可叠放，内部水罐 + 管道/人工补水；v1 的世界地块扫描、托管格、原版种植派发、
 > 地块高亮、作物可见性补丁与 Harmony 补丁**已全部删除（0 Harmony）**。
 > v2 设计入口：[docs/v2/README.md](docs/v2/README.md)、需求唯一来源 [§19](docs/REQ_V2_SECTION_19.md)。
 
 | 项目 | 值 |
 |---|---|
-| 模组版本 | **2.5.9（v2；暂存语义修复，已发布 Steam Workshop ManifestID `9210717745557344144`）** |
+| 模组版本 | **2.5.10（v2；搬运链组件配对修复，本机修复版未发布；上一发布 2.5.9 = Workshop ManifestID `9210717745557344144`）** |
 | 目标游戏 | Timberborn 1.1.2.8（`1.1.2.8-ffc2de0-sw`，Unity 6000.5.11f1） |
 | 存档 schema | **2**（每建筑一条原生持久化记录，含 v1→v2 迁移；见 ADR-V2-003） |
 | 配置 schema | **2**（v1 配置可读并迁移；未知键忽略） |
@@ -32,6 +32,7 @@
 农民只占建筑工作位；水由**内部水罐**提供（管道自动补水或工人人工补水）；
 产物进入建筑输出库存后由原版搬运/传送带送出。模型屋顶是**平的、可通行、可叠放建筑**。
 
+- **2.5.10 修复（搬运链组件配对，2026-11-08；本机修复版未发布，实机验证通过）：** 玩家回馈「我希望普通搬运工也能把在高密度农场暂存的农作物搬進普通仓库中」。根因：`HdbfGameConfigurator` 只抄了原版 FarmHouse 搬运链的一部分——`Emptiable` 级联带来的 `EmptiableHaulBehaviorProvider` / `UnwantedStockHaulBehaviorProvider` 所需的行为组件 `EmptyInventoriesWorkplaceBehavior` / `RemoveUnwantedStockWorkplaceBehavior` 从未加到农场实体上，provider 对被标记清空的农场（或旧存档超 2.5.9 每货物容量的库存）产出 `WeightedBehavior(权重, NULL)`，搬运工 `HaulWorkplaceBehavior.Decide` 对 NULL 调 `Decide` 抛 `NullReferenceException`，**整个地区每次搬运 tick 都失败 → 农场作物永远搬不进仓库**。修复：补上两个原版行为组件（与 FarmHouse/LumberjackFlag 链完全对齐）+ 契约测试防漏配。本机实机：玩家存档 Basic 农场 93 件 Carrot 在 2.5 个游戏日内被原版搬运工搬进 `LargeWarehouse`，4.1 个游戏日 0 异常；修复前同存档 2.5 分钟内必现崩溃。详细见 [CHANGELOG](docs/v2/CHANGELOG.md)、[修复记录](docs/workstreams/feedback-20261108/hauling.md)、[VERIFICATION §48](docs/VERIFICATION.md)。
 - **2.5.9 修复（暂存语义，2026-11-07；已发布 Steam Workshop ManifestID `9210717745557344144`）：** 玩家回馈「高密度农场的仓库并没有做暂存，
   反而像普通仓库一样储存」→ 根因是 2.5.1 为修「整盒成熟收不完」把输出库存容量提到整盒收成上限
   240/600/1200/2400：原版搬运按输出库存**填充率**排序清空任务，且清空必须有接收该货物的仓库；容量

@@ -1,0 +1,45 @@
+﻿09:47:13 audio before: muted=True volume=0.4000002
+09:47:13 audio muted: True
+09:47:13 steam_appid.txt present: 1062090 launch precondition met
+09:47:13 launched pid=32204 save='haulprobe' settlement=HDBFHaulProbe
+09:47:15 window up: hwnd=919292
+09:50:08 load marker: [HDBF/Info] indoor.haulprobe.postload.f7453412289445c08569c892c66be1cd: haulprobe[postload] entity=f7453412289445c08569c892c66be1cd day=34.17 outComp=True inv=True invEnabled=True invComponentEnabled=
+09:50:08 save loaded: True
+09:50:18 after load : haulprobe lines=8 logBytes=246446
+09:50:28 clicked the load-problems dialog continue button (0.563,0.643)
+09:50:28 clicked fastest speed (0.952,0.015)
+09:50:39 run t+10s : haulprobe lines=8 logBytes=246583
+09:50:49 run t+20s : haulprobe lines=9 logBytes=248222
+09:50:59 run t+30s : haulprobe lines=9 logBytes=248303
+09:51:09 run t+40s : haulprobe lines=9 logBytes=248649
+09:51:19 run t+50s : haulprobe lines=9 logBytes=248649
+09:51:30 run t+60s : haulprobe lines=9 logBytes=248891
+09:51:40 run t+70s : haulprobe lines=11 logBytes=252126
+09:51:50 run t+80s : haulprobe lines=11 logBytes=252287
+09:52:01 run t+90s : haulprobe lines=11 logBytes=252287
+09:52:11 run t+100s : haulprobe lines=11 logBytes=252425
+09:52:21 run t+110s : haulprobe lines=11 logBytes=252679
+09:52:32 run t+120s : haulprobe lines=12 logBytes=254278
+09:52:42 run t+130s : haulprobe lines=13 logBytes=256254
+09:52:52 run t+140s : haulprobe lines=13 logBytes=256254
+09:53:03 run t+150s : haulprobe lines=13 logBytes=256351
+09:53:13 run t+160s : haulprobe lines=13 logBytes=256488
+09:53:23 run t+170s : haulprobe lines=13 logBytes=256566
+09:53:33 run t+180s : haulprobe lines=14 logBytes=258242
+09:53:43 run t+190s : haulprobe lines=14 logBytes=258379
+09:53:54 run t+200s : haulprobe lines=14 logBytes=258379
+09:54:04 run t+210s : haulprobe lines=15 logBytes=259876
+09:54:14 run t+220s : haulprobe lines=15 logBytes=260093
+09:54:24 run t+230s : haulprobe lines=16 logBytes=261484
+09:54:35 run t+240s : haulprobe lines=16 logBytes=261631
+09:54:45 run t+250s : haulprobe lines=16 logBytes=261769
+09:54:55 run t+260s : haulprobe lines=16 logBytes=261887
+09:55:06 run t+270s : haulprobe lines=17 logBytes=263433
+09:55:16 run t+280s : haulprobe lines=18 logBytes=265048
+09:55:26 run t+290s : haulprobe lines=18 logBytes=265048
+09:55:37 run t+300s : haulprobe lines=18 logBytes=265048
+09:55:40 stopped pid=32204
+09:55:40 audio restored: muted=True volume=0.4000002
+09:55:41 probe lines written: 18
+09:55:41 summary written: 53 lines
+09:55:41 round finished

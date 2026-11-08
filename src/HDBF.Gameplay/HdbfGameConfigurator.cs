@@ -130,11 +130,26 @@ namespace HDBF.Gameplay
             builder.AddDecorator<HdbfBoxFarmSpec, FillInputHaulBehaviorProvider>();
 
             // Vanilla haul-out chain; the inventory itself comes from SimpleOutputInventorySpec.
+            // This mirrors Timberborn.Fields.FieldsConfigurator (FarmHouse) / ForestryConfigurator
+            // (LumberjackFlagSpec) EXACTLY, including the two workplace behaviors that serve the
+            // providers cascaded by the Emptying configurator:
+            //   Emptiable            -> EmptiableHaulBehaviorProvider            (behavior:
+            //                           EmptyInventoriesWorkplaceBehavior)
+            //   Emptiable            -> UnwantedStockHaulBehaviorProvider        (behavior:
+            //                           RemoveUnwantedStockWorkplaceBehavior)
+            // 2026-11-08 player report: haulers never carried the farm output to a warehouse. The
+            // two provider components were present but their behavior components were not, so a
+            // farm marked for emptying (or an old save whose stock is above the 2.5.9 per-good
+            // capacity) put a NULL WorkplaceBehavior into the district haul-candidate list; the
+            // hauler crashed with a NullReferenceException in HaulWorkplaceBehavior.Decide and no
+            // hauling ran in the district at all. Add the missing behaviors (vanilla parity).
             builder.AddDecorator<HdbfBoxFarmSpec, AutoEmptiable>();
             builder.AddDecorator<HdbfBoxFarmSpec, Emptiable>();
             builder.AddDecorator<HdbfBoxFarmSpec, HaulCandidate>();
             builder.AddDecorator<HdbfBoxFarmSpec, SimpleOutputInventoryHaulBehaviorProvider>();
             builder.AddDecorator<HdbfBoxFarmSpec, EmptyOutputWorkplaceBehavior>();
+            builder.AddDecorator<HdbfBoxFarmSpec, EmptyInventoriesWorkplaceBehavior>();
+            builder.AddDecorator<HdbfBoxFarmSpec, RemoveUnwantedStockWorkplaceBehavior>();
             return builder.Build();
         }
     }

@@ -2150,3 +2150,82 @@ powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1 -WorkRoot "$env:TE
   面板輸出庫存上限顯示 104/208/416/832；有接收倉庫時產物被搬走並維持在一天產量內；無接收倉庫時
   OutputFull/積壓而不是無限囤貨；舊存檔超容量庫存保留、搬走後恢復收穫。若仍有問題請附 `Player.log`
   （確認開頭 `start HDBF version=2.5.9`）。
+
+## 48. 2.5.10 搬运链组件配对修复：普通搬运工恢复把农场暂存作物搬进普通仓库（2026-11-08）
+
+**回馈**（玩家原文）：「我希望普通搬运工也能把在高密度农场暂存的农作物搬進普通仓库中。」
+玩家存档（`1110 (6).timber`，Cycle 2 Day 17，HDBF 2.5.9；本机只读分析，未改原档）：
+Basic 农场输出库存 Carrot **93/104**，地区 `LargeWarehouse` 已接受 Carrot（Stockpile 569）且距离仅 5 格，
+地区中心 4 名普通搬运工，玩家还把农场 `HaulPrioritizable.Prioritized` 设为 true —— 有目的地、有搬运工、
+优先级拉满，作物却始终不搬。另 3 座已完工农场与 1 台水泵被玩家暂停并标记清空
+（`Emptiable.IsMarkedForEmptying=true`）。
+
+**根因（IL + 实机双层证据）**：`HdbfGameConfigurator` 的模板装饰器只抄了原版 FarmHouse 搬运链的一部分。
+`Emptiable` 会级联 `EmptiableHaulBehaviorProvider` / `UnwantedStockHaulBehaviorProvider`，但这两个 provider
+所需的 `EmptyInventoriesWorkplaceBehavior` / `RemoveUnwantedStockWorkplaceBehavior` 从未添加到 HDBF 实体
+（原版由 `Timberborn.Fields.FieldsConfigurator`（FarmHouse）与 `ForestryConfigurator`（LumberjackFlagSpec）
+的建筑模块添加）。`EmptiableHaulBehaviorProvider.Awake` 用 `GetComponent<EmptyInventoriesWorkplaceBehavior>()`，
+`GetWeightedBehaviors` 在 `Emptiable.IsMarkedForEmptying` 时直接产出
+`new WeightedBehavior(0.51f, _emptyInventoriesWorkplaceBehavior)`（无 null 检查）；`UnwantedStockHaulBehaviorProvider`
+对 `RemoveUnwantedStockWorkplaceBehavior` 同构（旧存档库存超过 2.5.9 每货物容量 → `HasUnwantedStock=true` 时触发）。
+`HaulCandidate.GetWeightedBehaviors` 把这些条目原样送进地区候选表，搬运工
+`HaulWorkplaceBehavior.Decide` 逐条 `behavior.Decide(agent)` → 对 NULL 抛 `NullReferenceException`。
+玩家存档里有被标记清空的农场，于是**每次搬运工行为 tick 都在候选表上抛错**，整个地区的搬运任务无法完成
+（普通游戏里 Unity 捕获 Update 异常后继续，但搬运工永远不搬；本机 T3MP fast-tick 直接把异常重抛成崩溃）。
+
+**修法**（`src/HDBF.Gameplay/HdbfGameConfigurator.cs`，只做加法）：补
+`AddDecorator<HdbfBoxFarmSpec, EmptyInventoriesWorkplaceBehavior>()` 与
+`AddDecorator<HdbfBoxFarmSpec, RemoveUnwantedStockWorkplaceBehavior>()`（与原版 FarmHouse/LumberjackFlag
+链完全对齐），并加根因注释。
+
+**离线门禁**（`build.ps1 -WorkRoot C:\Users\user\.hdbf\work`，未部署到 Workshop）：
+
+* 5 程序集 **0 warning / 0 error**；L1 **PASSED 732 / FAILED 0**（新增 2 条 configurator 契约 token）；
+  `tools/validate` **RESULT: OK（5/5 assemblies）**；**RELEASE GATES: PASSED (44 checks)**；
+  `NFR GATE MATRIX: PASSED`。
+* staged **48 files / 2,203,313 bytes / 2,151 KB**，manifest Version **2.5.10**。
+* 新增回归：`V2GameplayWiringTests.TestGameplayWiringSourceContracts` 断言 configurator 必须包含
+  `EmptyInventoriesWorkplaceBehavior` / `RemoveUnwantedStockWorkplaceBehavior` 两个装饰器 token
+  （防再次出现「provider 有、behavior 没有」的漏配）。
+
+**实机（修复前，同一玩家存档，probe 临时构建）**：载入后 2.5 分钟内必然崩溃：
+`NullReferenceException: Object reference not set to an instance of an object
+ at Timberborn.Hauling.HaulWorkplaceBehavior.Decide … Rethrow as Exception: Exception thrown while
+ ticking entity … 'BeaverAdult 奥佐布尔'`（错误报告 `error-report-2026-11-08-01h00m43s.zip`；
+证据 `docs/in-game/haulprobe2-crash-exception.txt`、`haulprobe2-Player.log`）。修复前探针
+`indoor.haulprobe.activate` 已显示 `providers=…EmptiableHaulBehaviorProvider…`（provider 在），
+但实体没有对应行为组件。
+
+**实机（修复后，2.5.10 probe 构建，2026-11-08 09:47–09:55）**：载入 **115.9 s**；4 座农场全部激活。
+`indoor.haulprobe.postload`（Basic）关键值：
+
+| 字段 | 值 |
+|---|---|
+| `invEnabled` / `invComponentEnabled` | True / True（输出 Inventory 已在 finished-state 启用） |
+| `removeUnwantedBehavior` / `emptyInventoriesBehavior` | True / True（本次补上的两个行为组件） |
+| `providers`（SimpleOutput 提供） | `SimpleOutputInventoryHaulBehaviorProvider(0.89:EmptyOutputWorkplaceBehavior)` |
+| `enabledInventories` | `2[Inventory:Water,SimpleOutputInventory]` |
+| 目的地 | `CarrotDest=Stockpile@5.0`（`WaterDest=Stockpile@11.0`） |
+| 被标记农场 | `EmptiableHaulBehaviorProvider(0.51:EmptyInventoriesWorkplaceBehavior)`（**非 NULL**） |
+
+Basic 农场输出库存随游戏日的时间序列（game day 34.17 载入）：
+
+| 采样 | day 34.17 | 34.35 | 35.15 | 35.17 | 35.94 | 36.17 | 36.72 | 37.17 | 38.17 | 38.29 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 输出 Carrot | 93 | 93 | 93 | 93 | 89 | 89 | **0** | 0 | 0 | 0 |
+
+搬运工先清空 3 座被标记农场的库存，随后在 Day 36.72 前把 Basic 的 93 件 Carrot 全部送进
+`LargeWarehouse`，之后随收随搬；全程 4.1 个游戏日 **0 条 NullReferenceException / 0 条 ticking exception**。
+证据：`docs/in-game/haulprobe5-Player.log`、`haulprobe5-summary.txt`、`haulprobe5-round.log`。
+
+**未做 / 已知限制**：
+
+* **未发布**：本机 `Documents\Timberborn\Mods\HDBF` 已安装 2.5.10；未上传 Steam Workshop、未 push GitHub。
+* 实机探针的「地区候选清单」转储调用了 `GetComponentsAllocating<BaseComponent>()`，被游戏以
+  `Use BaseComponent.AllComponents instead` 拒绝，故未打印逐候选列表；搬运成功 + 修复前后唯一差异
+  （两个行为组件）已足以闭环。
+* 载入后 `HaulCandidate.IsInHaulingCenterRange=False`（候选侧 `_districtHaulCandidates` 未在加载后重绑，
+  只影响状态图标/面板提示；原版行为注册走 DistrictBuildingRegistry 事件，实机搬运成功已证明不影响搬运）。
+  本修复不改它（避免扩大范围），另行开卡。
+* 旧存档“超过 2.5.9 每货物容量”的库存：修复后由原版 `RemoveUnwantedStockWorkplaceBehavior` 正常搬出，
+  不会再触发 NRE；本机玩家存档当时已回落到 104 以内，未单独构造超容量用例实机验证。

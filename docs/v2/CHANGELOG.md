@@ -1,9 +1,30 @@
 # HDBF v2 变更记录
 
-> **状态**：**2.5.9 已发布**（2026-11-07 21:49，Steam Workshop item 3828809784，ManifestID `9210717745557344144`；GitHub 见 push 后的 master；离线门禁全绿，实机验证 pending；暫存语义修复：农场输出库存从「整盒容量/类仓库」改为「一天产量暂存」，见 VERIFICATION §46/§47）；**2.5.8 已发布**（2026-11-07 17:10，Steam Workshop item 3828809784，ManifestID `8359214256551403205`；GitHub `b900e8a`；离线门禁全绿，实机验证仍 pending）；2.5.7 已发布（2026-11-06 17:40，玩家回馈热修 + 下拉开启期间暂停刷新的防护；Steam Workshop item 3828809784，ManifestID 4408964257799319853；第一次 17:14 上传误带旧 2.5.6 staging，17:40 已重新上传正确包，详见 VERIFICATION §43；实机点击验证仍 pending，不写成已完成）；2.5.6 已发布（Steam Workshop ManifestID 3045694293614393693；GitHub 见 push 后的 master；离线门禁全绿；实机验证部分 pending，见 VERIFICATION §40）；2.5.5 为未发布的第二维修轮；2.5.4 已发布（Steam Workshop ManifestID 2037025195551276545）
-> **日期**：2026-11-07
-> **适用版本**：2.5.9
-> **变更摘要**：v2.1 需求引入室内农场方案；本文件记录 v1→v2 的行为/数据/工程变更与实现状态。2.5.8 = 管道供水修复（水塔接网判定 + 紧邻农场的 Timber Pipes 输水管直接供水）；2.5.9 = 输出库存暂存语义修复（整盒容量 → 一天产量暂存，不再像普通仓库一样囤货）。
+> **状态**：**2.5.10 本机修复版（未发布）**（2026-11-08，搬运链组件配对修复：普通搬运工恢复把农场暂存作物搬进普通仓库；**本机实机验证通过**——93 件 Carrot 在 2.5 个游戏日内被搬空、4.1 个游戏日无异常，见 VERIFICATION §48）；**2.5.9 已发布**（2026-11-07 21:49，Steam Workshop item 3828809784，ManifestID `9210717745557344144`；GitHub 见 push 后的 master；离线门禁全绿，实机验证 pending；暫存语义修复：农场输出库存从「整盒容量/类仓库」改为「一天产量暂存」，见 VERIFICATION §46/§47）；**2.5.8 已发布**（2026-11-07 17:10，Steam Workshop item 3828809784，ManifestID `8359214256551403205`；GitHub `b900e8a`；离线门禁全绿，实机验证仍 pending）；2.5.7 已发布（2026-11-06 17:40，玩家回馈热修 + 下拉开启期间暂停刷新的防护；Steam Workshop item 3828809784，ManifestID 4408964257799319853；第一次 17:14 上传误带旧 2.5.6 staging，17:40 已重新上传正确包，详见 VERIFICATION §43；实机点击验证仍 pending，不写成已完成）；2.5.6 已发布（Steam Workshop ManifestID 3045694293614393693；GitHub 见 push 后的 master；离线门禁全绿；实机验证部分 pending，见 VERIFICATION §40）；2.5.5 为未发布的第二维修轮；2.5.4 已发布（Steam Workshop ManifestID 2037025195551276545）
+> **日期**：2026-11-08
+> **适用版本**：2.5.10
+> **变更摘要**：v2.1 需求引入室内农场方案；本文件记录 v1→v2 的行为/数据/工程变更与实现状态。2.5.8 = 管道供水修复（水塔接网判定 + 紧邻农场的 Timber Pipes 输水管直接供水）；2.5.9 = 输出库存暂存语义修复（整盒容量 → 一天产量暂存，不再像普通仓库一样囤货）；2.5.10 = 搬运链组件配对修复（补上 Emptiable 级联 provider 所需的两个原版行为组件，普通搬运工恢复清空农场输出）。
+
+## [2.5.10] — 2026-11-08（搬运链组件配对修复：普通搬运工恢复把农场暂存作物搬进普通仓库）
+
+依据玩家回馈：「我希望普通搬运工也能把在高密度农场暂存的农作物搬進普通仓库中」。
+根因：`HdbfGameConfigurator` 的模板装饰器只抄了原版 FarmHouse 搬运链的一部分。`Emptiable` 会级联
+`EmptiableHaulBehaviorProvider` / `UnwantedStockHaulBehaviorProvider`，但这两个 provider 所需的
+`EmptyInventoriesWorkplaceBehavior` / `RemoveUnwantedStockWorkplaceBehavior` 从未添加到 HDBF 实体
+（原版由 FarmHouse/LumberjackFlag 的建筑模块负责）。provider 的 `GetWeightedBehaviors` 在
+`Emptiable.IsMarkedForEmptying`（或旧存档库存超过 2.5.9 每货物容量、`HasUnwantedStock=true`）时直接
+产出 `WeightedBehavior(权重, NULL)`；地区搬运工 `HaulWorkplaceBehavior.Decide` 对 NULL 调 `Decide` →
+`NullReferenceException`。玩家存档里 3 座农场被暂停并标记清空，于是**每次搬运工行为 tick 都在候选表上
+抛错，整个地区不再有搬运完成**（普通游戏里被 Unity 捕获后搬运工永远不搬；本机 T3MP fast-tick 重抛成
+崩溃）。修复前实机同存档 2.5 分钟内必现崩溃；修复后 Basic 农场 93 件 Carrot 在 2.5 个游戏日内被原版
+搬运工搬进 `LargeWarehouse`，4.1 个游戏日 0 异常。
+
+* 【修改】`HdbfGameConfigurator.BuildTemplateModule`：+`EmptyInventoriesWorkplaceBehavior`、
+  +`RemoveUnwantedStockWorkplaceBehavior`（与原版 FarmHouse/LumberjackFlag 链完全对齐），并加根因注释。
+* 【测试】`V2GameplayWiringTests.TestGameplayWiringSourceContracts` 新增 2 条 configurator 契约 token，
+  防再次出现「provider 有、behavior 没有」的漏配（L1 **732/732**）。
+* 【文档】新增 `docs/workstreams/feedback-20261108/hauling.md`（根因/修复/实机证据）；
+  VERIFICATION §48（离线门禁 + 实机证据）；README、docs/v2/README 版本与摘要同步。
 
 ## [2.5.9] — 2026-11-07（暂存语义修复：农场输出库存只做「一天暂存」，不再像普通仓库一样囤货）
 

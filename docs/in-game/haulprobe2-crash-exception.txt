@@ -1,0 +1,21 @@
+NullReferenceException: Object reference not set to an instance of an object
+Timberborn.Hauling.HaulWorkplaceBehavior.Decide (Timberborn.BehaviorSystem.BehaviorAgent agent) (at <157392b9effa4c1ea89d5fae47b0a897>:0)
+Timberborn.WorkSystem.WorkerRootBehavior.WorkAtWorkplace () (at <693b5b56505141a1826336c022007c33>:0)
+Timberborn.WorkSystem.WorkerRootBehavior.DecideAsWorker () (at <693b5b56505141a1826336c022007c33>:0)
+Timberborn.WorkSystem.WorkerRootBehavior.Decide (Timberborn.BehaviorSystem.BehaviorAgent agent) (at <693b5b56505141a1826336c022007c33>:0)
+Timberborn.BehaviorSystem.BehaviorManager.ProcessBehavior (Timberborn.BehaviorSystem.Behavior behavior) (at <3dc7c04b6eac451ba9f428c02bd00b71>:0)
+Timberborn.BehaviorSystem.BehaviorManager.ProcessBehaviors () (at <3dc7c04b6eac451ba9f428c02bd00b71>:0)
+Timberborn.BehaviorSystem.BehaviorManager.Tick () (at <3dc7c04b6eac451ba9f428c02bd00b71>:0)
+Timberborn.TickSystem.MeteredTickableComponent.Tick () (at <8b15a24f91424e4eac35adaabe14a3bd>:0)
+Timberborn.TickSystem.TickableEntity.TickTickableComponents () (at <8b15a24f91424e4eac35adaabe14a3bd>:0)
+Timberborn.TickSystem.TickableEntity.Tick () (at <8b15a24f91424e4eac35adaabe14a3bd>:0)
+Rethrow as Exception: Exception thrown while ticking entity 891d474f-b6c0-4144-b702-aa2aebdc63fb 'BeaverAdult 奥佐布尔'
+Timberborn.TickSystem.TickableEntity.Tick () (at <8b15a24f91424e4eac35adaabe14a3bd>:0)
+T3MP.Runtime.TickFrontier.TickAllFast (Timberborn.TickSystem.TickableEntityBucket bucket) (at <88c9d202adb9402c9ec8bc49b7b1a640>:0)
+(wrapper dynamic-method) MonoMod.Utils.DynamicMethodDefinition.Timberborn.TickSystem.TickableEntityBucket.TickAll_Patch1(Timberborn.TickSystem.TickableEntityBucket)
+(wrapper dynamic-method) MonoMod.Utils.DynamicMethodDefinition.Timberborn.TickSystem.TickableBucketService.TickNextBucket_Patch1(Timberborn.TickSystem.TickableBucketService)
+(wrapper dynamic-method) MonoMod.Utils.DynamicMethodDefinition.Timberborn.TickSystem.TickableBucketService.TickBuckets_Patch1(Timberborn.TickSystem.TickableBucketService,int)
+Timberborn.TickSystem.Ticker.Update (System.Single deltaTimeInSeconds) (at <8b15a24f91424e4eac35adaabe14a3bd>:0)
+Timberborn.TickSystem.TickerUnityAdapter.Update () (at <8b15a24f91424e4eac35adaabe14a3bd>:0)
+
+

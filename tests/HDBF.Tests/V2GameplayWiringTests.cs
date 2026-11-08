@@ -250,7 +250,15 @@ namespace HDBF.Tests
             var configurator = Read("src/HDBF.Gameplay/HdbfGameConfigurator.cs");
             foreach (var token in new[] { "HdbfWaterInventoryInitializer", "FillInputWorkplaceBehavior",
                          "FillInputHaulBehaviorProvider", "AddDecorator<HdbfBoxFarmSpec, HaulCandidate>",
-                         "WaitInsideIdlyWorkplaceBehavior" })
+                         "WaitInsideIdlyWorkplaceBehavior",
+                         // BUG-11 fix (2026-11-08 hauling report): the Emptying configurator cascades
+                         // Emptiable -> EmptiableHaulBehaviorProvider and UnwantedStockHaulBehaviorProvider;
+                         // those providers emit a behavior component whose type must be present on the same
+                         // entity, exactly like vanilla FarmHouse adds them. Without the two behaviors the
+                         // providers put a NULL WorkplaceBehavior into the district haul-candidate list and
+                         // the hauler throws NullReferenceException in HaulWorkplaceBehavior.Decide.
+                         "AddDecorator<HdbfBoxFarmSpec, EmptyInventoriesWorkplaceBehavior>",
+                         "AddDecorator<HdbfBoxFarmSpec, RemoveUnwantedStockWorkplaceBehavior>" })
             {
                 TestAssert.True(configurator.Contains(token, StringComparison.Ordinal),
                     "configurator must contain " + token);
