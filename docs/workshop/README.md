@@ -185,3 +185,19 @@ cp docs/workshop/publish/* "$USERPROFILE/Documents/Timberborn/Mods/HDBF/"
   `C:\Users\user\hdbf-tools\workshop-backup\3828809784-2.5.9`。
 - **本版已完成實機驗證**（不再是 pending）：證據見 `docs/VERIFICATION.md` §48 與
   `docs/workstreams/feedback-20261108/hauling.md`。
+
+## 發佈記錄（2026-11-09，2.5.11）
+
+- 2.5.11 於 **2026-11-09 00:09（Asia/Macau）** 上傳成功：`ManifestID 2025374107308867942`、
+  `Upload finished for workshop item 3828809784 : OK`（Steam `logs/workshop_log.txt`）。
+- 上傳只更新**內容與 Change Note**；標題/描述/封面/標籤/可見性刻意未動。
+- Change Note（雙語）：盒子農場永不顯示原版「需要搬運工才能運轉」狀態（原版公開
+  `NoHaulingPostStatus.Disable()` opt-out + 每遊戲日復檢 + 契約測試鎖定；無 Harmony/反射/新依賴；搬運鏈不變）。
+  檔案：`%USERPROFILE%\.hdbf\release-2511-changenote.txt`（2,621 B）。
+- 建置：L1 **732/732**、`tools/validate` RESULT: OK、`build.ps1` **44 gates PASSED**；staged package
+  **48 files / 2,204,337 bytes / manifest 2.5.11**；GitHub `master` = `ccf99c0`（修復）+
+  本篇發佈記錄 commit（push 回報見 VERIFICATION §51.1）。
+- **本機測試包**：2.5.11 stage 已覆蓋到 `Steam\steamapps\workshop\content\1062090\3828809784`；
+  舊 2.5.10 內容備份在 `C:\Users\user\hdbf-tools\workshop-backup\3828809784-2.5.10`。
+- **實機**：本機視窗模式載入玩家 21:51 存檔副本，日誌確認 `indoor.hauler-status`（農場無該原版狀態組件）
+  且 `[HDBF/Error]` = 0，見 `docs/VERIFICATION.md` §50。

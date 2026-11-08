@@ -2339,3 +2339,30 @@ Basic 农场输出库存随游戏日的时间序列（game day 34.17 载入）�
 * 若第三方模组在农场**完工之后**才挂上 `NoHaulingPostStatus`，守卫会在下一个 daily tick 前压回；正常游戏中不存在该组件。
 * 本次实机为存档加载 + 45 s 运行（未做建造/拆除交互）；状态组件的挂载属于实体构造期，加载即覆盖。
 
+## 51. 2.5.11 發佈記錄：Steam Workshop 更新 + GitHub push（2026-11-09）
+
+* **Steam Workshop item 3828809784**：2026-11-09 **00:09:28–00:09:33**（Asia/Macau）上傳成功：
+  `Upload starting for workshop item 3828809784 by AppID 1062090` →
+  `Uploaded new content ( ManifestID 2025374107308867942 ) for item 3828809784.` →
+  `Upload finished for workshop item 3828809784 : OK`（Steam `logs/workshop_log.txt`，AppID 1062090）。
+  一次性 Steamworks UGC 工具 `C:\Users\user\hdbf-tools\steamupload\bin\Release\net9.0\SteamUpload.exe`
+  回報 `submitDone ioFailure=False eResult=k_EResultOK needsLegalAgreement=False publishedFileId=3828809784`
+  （exit 0；內容上傳進度 2,204,337 B 後進入 CommittingChanges）。
+* **上傳內容** = 2.5.11 staged 包（**48 files / 2,204,337 bytes / 2,153 KB**、manifest Version 2.5.11），
+  與 §50 離線門禁為同一份：5 組件 0 warning / 0 error、L1 **732/732**、`tools/validate` RESULT: OK、
+  **RELEASE GATES: PASSED (44 checks)**、`NFR GATE MATRIX: PASSED`。
+* **Change Note（雙語）**：盒子農場永不顯示原版「需要搬運工才能運轉」狀態（玩家要求；原版公開 opt-out
+  `NoHaulingPostStatus.Disable()`；每個遊戲日復檢；契約測試鎖定不掛該狀態；無 Harmony/反射/新依賴；搬運鏈不變）。
+  檔案：`%USERPROFILE%\.hdbf\release-2511-changenote.txt`（2,621 B）。
+* **本機 Workshop 內容文件夾**：已同步為 2.5.11（48 files / 2,204,337 bytes / manifest 2.5.11）；
+  舊 2.5.10 內容備份於 `C:\Users\user\hdbf-tools\workshop-backup\3828809784-2.5.10`（48 files）。
+* **GitHub `stanley-1028/HighDensityBoxFarm`**：修復 commit `ccf99c0`（v2.5.11 status guard）+ 本節發佈記錄
+  commit 已準備；push 結果見 §51.1（push 後補記），最終以 `origin/master` 為準。
+
+### 51.1 發佈後補記（push 回報）
+
+* **GitHub push**：見本輪最後一次 `git push` 的實際輸出（`ccf99c0` + 發佈記錄 commit）；`git ls-remote origin
+  master` 為準。本補記 commit 亦一併 push，最終以最後一次 push 為準。
+* **頁面核對**：本機模擬環境的 Steam 公開頁快照（抓取時 2026-11-08 10:19 左右）可能落後於本輪上傳；
+  本節以 **Steam `logs/workshop_log.txt` 的 ManifestID 記錄**為上傳成功的權威證據，不宣稱公開頁已刷新。
+
