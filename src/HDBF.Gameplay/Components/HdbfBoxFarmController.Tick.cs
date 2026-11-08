@@ -43,6 +43,11 @@ namespace HDBF.Gameplay.Components
                 return;
             }
 
+            // Player request 2026-11-08: two null checks keep the vanilla "requires haulers"
+            // status down even if a district reassignment re-activated it during the day
+            // (see .HaulerStatus.cs).
+            SuppressHaulerRequirementStatus();
+
             // Phase 0: live game-object state that the persisted record mirrors once per day:
             // mechanical power (PowerConnected/PowerMode) and adapter-driven port availability.
             var liveStateChanged = false;

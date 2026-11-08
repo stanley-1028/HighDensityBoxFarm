@@ -1,10 +1,47 @@
 # HDBF v2 变更记录
 
-> **状态**：**2.5.10 已发布**（2026-11-08 10:00，Steam Workshop item 3828809784，ManifestID `4179524907985799025`；离线门禁全绿 + **实机验证通过**——93 件 Carrot 在 2.5 个游戏日内被搬空、4.1 个游戏日无异常，见 VERIFICATION §48/§49）；**2.5.9 已发布**（2026-11-07 21:49，Steam Workshop item 3828809784，ManifestID `9210717745557344144`；GitHub 见 push 后的 master；离线门禁全绿，实机验证 pending；暫存语义修复：农场输出库存从「整盒容量/类仓库」改为「一天产量暂存」，见 VERIFICATION §46/§47）；**2.5.8 已发布**（2026-11-07 17:10，Steam Workshop item 3828809784，ManifestID `8359214256551403205`；GitHub `b900e8a`；离线门禁全绿，实机验证仍 pending）；2.5.7 已发布（2026-11-06 17:40，玩家回馈热修 + 下拉开启期间暂停刷新的防护；Steam Workshop item 3828809784，ManifestID 4408964257799319853；第一次 17:14 上传误带旧 2.5.6 staging，17:40 已重新上传正确包，详见 VERIFICATION §43；实机点击验证仍 pending，不写成已完成）；2.5.6 已发布（Steam Workshop ManifestID 3045694293614393693；GitHub 见 push 后的 master；离线门禁全绿；实机验证部分 pending，见 VERIFICATION §40）；2.5.5 为未发布的第二维修轮；2.5.4 已发布（Steam Workshop ManifestID 2037025195551276545）
+> **状态**：**2.5.11 已发布**（2026-11-08，Steam Workshop item 3828809784，ManifestID 見 VERIFICATION §51；离线门禁全绿 + **本机实机存档加载验证**，见 VERIFICATION §50/§51）；**2.5.10 已发布**（2026-11-08 10:00，Steam Workshop item 3828809784，ManifestID `4179524907985799025`；离线门禁全绿 + **实机验证通过**——93 件 Carrot 在 2.5 个游戏日内被搬空、4.1 个游戏日无异常，见 VERIFICATION §48/§49）；**2.5.9 已发布**（2026-11-07 21:49，Steam Workshop item 3828809784，ManifestID `9210717745557344144`；GitHub 见 push 后的 master；离线门禁全绿，实机验证 pending；暫存语义修复：农场输出库存从「整盒容量/类仓库」改为「一天产量暂存」，见 VERIFICATION §46/§47）；**2.5.8 已发布**（2026-11-07 17:10，Steam Workshop item 3828809784，ManifestID `8359214256551403205`；GitHub `b900e8a`；离线门禁全绿，实机验证仍 pending）；2.5.7 已发布（2026-11-06 17:40，玩家回馈热修 + 下拉开启期间暂停刷新的防护；Steam Workshop item 3828809784，ManifestID 4408964257799319853；第一次 17:14 上传误带旧 2.5.6 staging，17:40 已重新上传正确包，详见 VERIFICATION §43；实机点击验证仍 pending，不写成已完成）；2.5.6 已发布（Steam Workshop ManifestID 3045694293614393693；GitHub 见 push 后的 master；离线门禁全绿；实机验证部分 pending，见 VERIFICATION §40）；2.5.5 为未发布的第二维修轮；2.5.4 已发布（Steam Workshop ManifestID 2037025195551276545）
 > **日期**：2026-11-08
-> **适用版本**：2.5.10
-> **变更摘要**：v2.1 需求引入室内农场方案；本文件记录 v1→v2 的行为/数据/工程变更与实现状态。2.5.8 = 管道供水修复（水塔接网判定 + 紧邻农场的 Timber Pipes 输水管直接供水）；2.5.9 = 输出库存暂存语义修复（整盒容量 → 一天产量暂存，不再像普通仓库一样囤货）；2.5.10 = 搬运链组件配对修复（补上 Emptiable 级联 provider 所需的两个原版行为组件，普通搬运工恢复清空农场输出）。
+> **适用版本**：2.5.11
+> **变更摘要**：v2.1 需求引入室内农场方案；本文件记录 v1→v2 的行为/数据/工程变更与实现状态。2.5.8 = 管道供水修复（水塔接网判定 + 紧邻农场的 Timber Pipes 输水管直接供水）；2.5.9 = 输出库存暂存语义修复（整盒容量 → 一天产量暂存，不再像普通仓库一样囤货）；2.5.10 = 搬运链组件配对修复（补上 Emptiable 级联 provider 所需的两个原版行为组件，普通搬运工恢复清空农场输出）。2.5.11 = 「需要搬运工才能运转」状态守卫（即使没有搬运工，盒子农场也不会显示误导性提示；原版公开 opt-out，无 Harmony）。
 
+## [2.5.11] — 2026-11-08（「需要搬运工才能运转」状态守卫：没有搬运工时也不显示误导提示）
+
+依据玩家回馈：「我希望即便是没有搬运工也好，也不会显示『没有搬运工就不能运作』。」
+
+考察（原版 1.1.2.8 IL + 玩家存档）：
+
+1. 这条红字是原版 `Status.Hauling.NoHaulingPost`（enUS `Requires haulers to function.` / zhCN「需要搬运工才能运转。」/
+   zhTW「需要搬運工才能運轉。」，图标 `OutOfHaulersRange`），不是 HDBF 自带的文案。
+2. 全游戏只有 4 个程序集引用 `NoHaulingPostStatus`：定义它的 `Timberborn.Hauling`，以及三条挂载路径——
+   ① 带 `GoodConsumingBuildingSpec` 的建筑（`GoodConsumingBuildingStatusInitializer.OnEnterFinishedState`
+   只在建筑**没有 `Workplace`** 时 `Initialize(() => true)`）；② 设定 Obtain 的仓储（`Stockpile`+`GoodObtainer`）；
+   ③ 烟花发射器。原版 FarmHouse / LumberjackFlag / 所有 `SimpleOutputInventory` 生产建筑都不挂，HDBF 农场也不挂。
+3. 玩家 2026-11-08 21:51 存档（`Saves/3/…Day 4-6`）里 `BoxFarm.Basic.Folktails` 实体的保存组件只有
+   `BlockObject / Workplace / HDBF.IndoorFarm / Inventory:Inventory:Water / WorkplaceWorkerType /
+   Inventory:ConstructionSite`——没有该状态组件，也没有 `GoodConsumingBuilding`/`Stockpile`。同存档里真正
+   挂这个状态的是**无工人的蒸汽引擎**（`SteamBoiler.Small.T1.Folktails` 带 `GoodConsumingBuilding`，属对应模组的
+   修复范围），不是盒子农场。
+
+修复（把「农场不需要搬运工也能工作」锁成硬保证）：盒子农场没有搬运工也能工作——水由管道或手动补水，
+收获先进建筑内一天产量的输出暂存（2.5.9 起 104/208/416/832），搬运工只负责把暂存搬走，没有搬运工时按设计
+回压在面板显示「输出库存已满」。因此新增 `HdbfBoxFarmController.HaulerStatus.cs`：激活/读档后各探测一次
+实体上的 `NoHaulingPostStatus`，若存在就调用原版公开 opt-out `NoHaulingPostStatus.Disable()`（与 vanilla
+initializer 的 `OnExitFinishedState` 同一调用）；每个 daily tick 复检一次（两次 null 检查），覆盖地区重指派
+后的再激活；不存在时写一条 `indoor.hauler-status` 诊断，让「农场上没有该状态」成为可核查的实机证据。
+`HdbfGameConfigurator` 由契约测试锁定**不得**添加 `NoHaulingPostStatus` 装饰器，防止未来把误导性状态挂回农场。
+
+* 【修改】新增 `src/HDBF.Gameplay/Components/HdbfBoxFarmController.HaulerStatus.cs`；`IndoorLogKeys.HaulerStatus`
+  （`indoor.hauler-status`）；激活/停用/激活失败（`.Activation.cs`）、读档后（`.cs` 的 `PostLoadEntity`）、
+  每日 tick（`.Tick.cs`）接入守卫；无 Harmony、无反射、无新依赖、不改搬运链/蓝图/数值/存档 schema。
+* 【测试】`V2GameplayWiringTests.TestGameplayWiringSourceContracts` 新增守卫契约 token + 「农场不得被装饰
+  `NoHaulingPostStatus`」负向契约；新 partial 纳入尺寸/无逐帧门禁（L1 **732/732**）。
+* 【实机】本机 batchmode 载入玩家 21:51 存档副本（HDBF 2.5.11 + 玩家原模组）：日志确认
+  `indoor.hauler-status: no vanilla 'requires haulers' status on this farm`，农场正常激活，无 `[HDBF/Error]`/
+  异常（VERIFICATION §50）。
+* 【文档】新增 `docs/workstreams/feedback-20261108/hauler-status.md`（考察/根因/修复/验证）；
+  VERIFICATION §50（离线 + 实机）、§51（发布记录）；README、docs/v2/README 版本与摘要同步。
+* 【发布】见 VERIFICATION §51（Steam Workshop ManifestID / GitHub push）。
 ## [2.5.10] — 2026-11-08（搬运链组件配对修复：普通搬运工恢复把农场暂存作物搬进普通仓库）
 
 依据玩家回馈：「我希望普通搬运工也能把在高密度农场暂存的农作物搬進普通仓库中」。

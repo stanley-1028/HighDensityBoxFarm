@@ -265,6 +265,27 @@ namespace HDBF.Tests
             }
             AssertTokens("HdbfWaterInventoryInitializer.cs", "CreateGiveableAndTakeable", "HasPublicInput",
                 "IndoorConstants.WaterGoodId");
+            // Player report 2026-11-08: "even with no haulers, the farm must not display 'requires
+            // haulers to function'". The vanilla status (Status.Hauling.NoHaulingPost) is attached
+            // by vanilla only to buildings whose own configuration adds NoHaulingPostStatus
+            // (worker-free good-consuming buildings, obtainable stockpiles, firework launchers);
+            // the Box Farm must never add it, and the controller additionally disables it if it is
+            // ever present (third-party mod / future vanilla change), because the farm works
+            // without haulers: buffered output + pipe/manual water.
+            AssertTokens("HdbfBoxFarmController.HaulerStatus.cs", "NoHaulingPostStatus",
+                "HasComponent<NoHaulingPostStatus>", "GetComponent<NoHaulingPostStatus>", "Disable()",
+                "SuppressHaulerRequirementStatus", "ResetHaulerRequirementStatus", "catch (Exception");
+            AssertTokens("HdbfBoxFarmController.Activation.cs", "SuppressHaulerRequirementStatus",
+                "ResetHaulerRequirementStatus");
+            AssertTokens("HdbfBoxFarmController.Tick.cs", "SuppressHaulerRequirementStatus");
+            TestAssert.True(Read(Components + "HdbfBoxFarmController.cs").Contains(
+                    "SuppressHaulerRequirementStatus", StringComparison.Ordinal),
+                "the post-load path must re-run the hauler status probe");
+            TestAssert.True(Read("src/HDBF.Gameplay/HDBF.Gameplay.csproj").Contains("Timberborn.Hauling",
+                    StringComparison.Ordinal),
+                "HDBF.Gameplay must reference the game hauling assembly for the status guard");
+            TestAssert.False(configurator.Contains("NoHaulingPostStatus", StringComparison.Ordinal),
+                "the Box Farm must never be decorated with the vanilla 'requires haulers' status");
             // BUG-10 fix (water never reached the farm): the vanilla initializer creates the input
             // inventory DISABLED and the owner building must enable it on finish/load; a disabled
             // inventory is absent from Inventories.EnabledInventories, so the fill-input chain
@@ -357,6 +378,7 @@ namespace HDBF.Tests
                          "HdbfManualWaterSource.WalkStart.cs",
                          "HdbfMaintenanceTransaction.cs", "HdbfWorldIconService.Evaluate.cs",
                          "HdbfBoxFarmController.PipeIntake.cs",
+                         "HdbfBoxFarmController.HaulerStatus.cs",
                      })
             {
                 var text = Read(Components + file);

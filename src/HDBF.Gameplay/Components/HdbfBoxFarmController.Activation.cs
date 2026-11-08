@@ -88,6 +88,10 @@ namespace HDBF.Gameplay.Components
                 // loaded in the paused state enters the paused state right here (see .Pause.cs).
                 BindPauseState();
                 SyncPauseStateOnActivate();
+                // Player request 2026-11-08: the farm works without haulers (buffered output,
+                // pipe/manual water), so the vanilla "requires haulers to function." status must
+                // never be shown on it (see .HaulerStatus.cs).
+                SuppressHaulerRequirementStatus();
                 _log.Write(HdbfLogCategory.Info, LogKeyEntity,
                     "indoor farm active, entityId=" + _entityId + ", tier=" + _profile.Tier
                     + ", faction=" + _faction + ", blueprint=" + (BlueprintId() ?? "<null>"));
@@ -109,6 +113,9 @@ namespace HDBF.Gameplay.Components
             }
 
             _activated = false;
+            // A re-activation (rebuilt/reloaded farm) must probe the vanilla hauler status again
+            // instead of trusting the reference of the previous activation.
+            ResetHaulerRequirementStatus();
             // Pause integration stops with the finished state; a later activation re-binds and
             // re-syncs from the live PausableBuilding value (see .Pause.cs).
             UnbindPauseState();
@@ -166,6 +173,7 @@ namespace HDBF.Gameplay.Components
 
         private void TryQuiesceAfterFailedActivation()
         {
+            ResetHaulerRequirementStatus();
             _waterFlow.Unregister(this);
             try
             {

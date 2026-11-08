@@ -125,6 +125,12 @@ namespace HDBF.Core.Indoor
         /// <summary>The startup probe found a third-party replacement of the beaver behavior method (WP-07).</summary>
         public const string BehaviorProbePatched = "indoor.behavior-probe-patched";
 
+        /// <summary>
+        /// The vanilla "requires haulers to function." status was probed/suppressed on a farm
+        /// (2026-11-08 player request: the farm works without haulers and must never show it).
+        /// </summary>
+        public const string HaulerStatus = "indoor.hauler-status";
+
         // ---------------------------------------------------------------- save.*
 
         /// <summary>One farm record was written successfully.</summary>

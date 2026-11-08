@@ -1,0 +1,10 @@
+﻿No manifest file found in C:\Users\user\Documents\Timberborn\Mods\HighDensityBoxFarm
+No manifest file found in C:\Users\user\Documents\Timberborn\Mods\HighDensityBoxFarm
+[HDBF/Info] start HDBF version=2.5.11 modPath=C:\Program Files (x86)\Steam\steamapps\workshop\content\1062090\3828809784
+No manifest file found in C:\Users\user\Documents\Timberborn\Mods\HighDensityBoxFarm
+Opening file: C:\Users\user\Documents\Timberborn\Saves\HDBFHaulerSmoke\2026-11-08 21h51m, Day 4-6.autosave.timber
+[HDBF/Info] startup: HDBF 2.5.11 ready; tiers=4; modPath=C:\Program Files (x86)\Steam\steamapps\workshop\content\1062090\3828809784; config=C:\Program Files (x86)\Steam\steamapps\workshop\content\1062090\3828809784\HDBF_Config.json
+[HDBF/Info] water.settle: water input inventory enabled: capacity=4, entityId=299a06b0-7d9f-4f41-af1d-29983b253fc2
+[HDBF/Info] indoor.hauler-status: no vanilla 'requires haulers' status on this farm (the farm works without haulers; the status is suppressed if it is ever attached), entityId=299a06b0-7d9f-4f41-af1d-29983b253fc2
+[HDBF/Info] indoor.entity: indoor farm active, entityId=299a06b0-7d9f-4f41-af1d-29983b253fc2, tier=Basic, faction=Folktails, blueprint=BoxFarm.Basic.Folktails
+Load time: 96862ms (scene index: 2)

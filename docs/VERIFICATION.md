@@ -2270,3 +2270,72 @@ Basic 农场输出库存随游戏日的时间序列（game day 34.17 载入）�
 * **玩家回饋線索**：上傳頁面可見 5 小時前玩家留言「crash when paused」——與本節修復的
   「暫停農場標記清空 → 搬運候選 NULL 行為 → NRE」故障鏈一致；2.5.10 已修，可在 Change Notes 中看到雙語說明。
 
+## 50. 2.5.11 「需要搬运工才能运转」状态守卫：离线门禁 + 本机实机（2026-11-08）
+
+**玩家回馈（原文）**：「我希望即便是没有搬运工也好，也不会显示『没有搬运工就不能运作』。」
+
+**考察（三层证据）**：
+
+1. **提示本体**：原版状态 `Status.Hauling.NoHaulingPost`（enUS `Requires haulers to function.` /
+   zhCN「需要搬运工才能运转。」/ zhTW「需要搬運工才能運轉。」），浮动图标 `OutOfHaulersRange`
+   （`NoHaulingPostStatus.Awake` → `StatusToggle.CreateNormalStatusWithFloatingIcon("OutOfHaulersRange", …)`）。
+   不是 HDBF 自己的文案（HDBF 三语里没有该提示）。
+2. **原版挂载点（Mono.Cecil IL，1.1.2.8）**：全游戏只有 4 个程序集引用该类型。除定义程序集
+   `Timberborn.Hauling` 外，仅三条挂载路径：
+   * `GoodConsumingBuildingSystemConfigurator.TemplateModuleProvider`：
+     `AddDecorator<GoodConsumingBuildingStatusInitializer, NoHaulingPostStatus>`——任何带
+     `GoodConsumingBuildingSpec` 的建筑；`OnEnterFinishedState` 里**只在建筑没有 `Workplace` 时**调用
+     `NoHaulingPostStatus.Initialize(() => true)`；有 `Workplace` 的消耗型建筑不会挂；
+   * `StockpilePrioritySystemConfigurator.ProvideTemplateModule`：
+     `AddDecorator<GoodObtainerStatusInitializer, NoHaulingPostStatus>`——设为 Obtain 的仓储；
+   * `FireworkSystemConfigurator.TemplateModuleProvider`：烟花发射器。
+   原版 FarmHouse / LumberjackFlag / 所有 `SimpleOutputInventory` 生产建筑都不挂，HDBF 农场也不挂
+   （`HdbfGameConfigurator` 的装饰器清单已由契约测试锁定）。
+3. **玩家自己的存档**：`Saves/3/2026-11-08 21h51m, Day 4-6.autosave.timber`（zip 内 `world.json`）中
+   `BoxFarm.Basic.Folktails` 实体的保存组件为
+   `BlockObject / Workplace / HDBF.IndoorFarm / Inventory:Inventory:Water / WorkplaceWorkerType /
+   Inventory:ConstructionSite`——没有 `GoodConsumingBuilding`/`Stockpile`/`NoHaulingPostStatus`；同存档里真正
+   挂该状态的是 `SteamBoiler.Small.T1.Folktails`（带 `GoodConsumingBuilding`，属 SEE 修复范围）。
+
+**修复（原版公开 opt-out，0 Harmony）**：新增 `HdbfBoxFarmController.HaulerStatus.cs`：激活/读档后探测实体上的
+`NoHaulingPostStatus`，存在则调用公开 `Disable()`（与 vanilla initializer 的 `OnExitFinishedState` 同一调用）；
+每个 daily tick 复检一次（两次 null 检查），覆盖地区重指派后的再激活；不存在时输出 `indoor.hauler-status` 诊断。
+`HdbfGameConfigurator` 由契约测试锁定**不得**添加 `NoHaulingPostStatus` 装饰器。不改搬运链/蓝图/数值/存档 schema。
+
+**离线门禁（`build.ps1 -Install`，本机 2026-11-08 23:57）**：
+
+| 项 | 结果 |
+|---|---|
+| 5 程序集编译 | **0 warning / 0 error** |
+| L1 | **PASSED 732 / FAILED 0** |
+| `tools/validate` | `RESULT: OK`（5/5 assemblies、10 blueprints、660 game assemblies、WARNINGS: none） |
+| REL-01 release gates | **RELEASE GATES: PASSED (44 checks)** |
+| NFR gate matrix | **NFR GATE MATRIX: PASSED（6 checks）**（新日志键 `indoor.hauler-status` 命中 `indoor.*` 注册前缀；新文件过头模板/300 行门禁） |
+| staged package | **48 files / 2,153 KB / manifest 2.5.11** |
+
+**实机（本机 windowed 存档加载，2026-11-09 00:05–00:08）**：
+
+* 方法：把玩家 21:51 存档复制到临时聚落 `Saves\HDBFHaulerSmoke`（只加载副本，源存档与历史 Player.log 未改）；
+  把 staged 2.5.11 包放进本机 Workshop 内容目录（旧 2.5.10 备份于
+  `C:\Users\user\hdbf-tools\workshop-backup\3828809784-2.5.10`）；窗口模式启动
+  `Timberborn.exe -skipModManager -saveName "2026-11-08 21h51m, Day 4-6.autosave"
+  -settlementName HDBFHaulerSmoke -logFile …`（`-skipModManager` 为 IL 验证过的无头跳过 Mods 对话框参数），
+  存档载入后运行约 45 s 再关闭。
+* 结果（证据：`docs/in-game/haulerstatus-2.5.11-Player.log`、`haulerstatus-2.5.11-lines.txt`）：
+  * `[HDBF/Info] start HDBF version=2.5.11`（modPath = Workshop item 3828809784）；
+  * `Opening file: …Saves\HDBFHaulerSmoke\2026-11-08 21h51m, Day 4-6.autosave.timber` → `Load time: 96862ms`；
+  * `[HDBF/Info] indoor.hauler-status: no vanilla 'requires haulers' status on this farm (the farm works
+    without haulers; the status is suppressed if it is ever attached), entityId=299a06b0-…`（存档里唯一的
+    Basic 农场）——**实机确认农场实体上没有该原版状态组件，因此不可能显示该提示**；
+  * `[HDBF/Info] indoor.entity: indoor farm active … blueprint=BoxFarm.Basic.Folktails`——农场正常激活；
+  * `[HDBF/Error]` = **0**，无异常/崩溃行；同环境加载 HDBF 2.5.11 + SEE 0.1.0 + MWP 0.2.2 + TPT。
+* 结论：HDBF 建筑不会显示「需要搬运工才能运转」；本版把「农场不需要搬运工也能工作」变成契约测试锁定的硬保证。
+  玩家在同存档看到的该提示来自无工人蒸汽引擎（`GoodConsumingBuilding`，见考察 2/3），由对应模组修复。
+
+**未做 / 已知限制**：
+
+* 2.5.10 记录的 `HaulCandidate.IsInHaulingCenterRange` 读档后为 `False` 的原版加载顺序限制**未改**
+  （只影响状态图标/面板提示、不影响搬运；本修复后盒子农场不再可能显示任何搬运范围状态）。
+* 若第三方模组在农场**完工之后**才挂上 `NoHaulingPostStatus`，守卫会在下一个 daily tick 前压回；正常游戏中不存在该组件。
+* 本次实机为存档加载 + 45 s 运行（未做建造/拆除交互）；状态组件的挂载属于实体构造期，加载即覆盖。
+

@@ -203,6 +203,10 @@ namespace HDBF.Gameplay.Components
             // registered yet, so the water-supply probe is refreshed again after the whole save.
             Activate();
             RefreshSupplyAfterLoad();
+            // The farm may be finished already during entity initialization, before a third-party
+            // status initializer finished its own OnEnterFinishedState; probe/suppress once more
+            // after the whole save has loaded (see .HaulerStatus.cs).
+            SuppressHaulerRequirementStatus();
         }
 
         /// <inheritdoc />
