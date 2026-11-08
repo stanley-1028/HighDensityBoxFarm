@@ -2251,11 +2251,22 @@ Basic 农场输出库存随游戏日的时间序列（game day 34.17 载入）�
   （`C:\Program Files (x86)\Steam\steamapps\workshop\content\1062090\3828809784`：48 files / manifest 2.5.10），
   供玩家下一次啟動立即測到修復版；Steam 重啟後以官方 ManifestID `4179524907985799025` 為準。
   舊 2.5.9 內容備份於 `C:\Users\user\hdbf-tools\workshop-backup\3828809784-2.5.9`（48 files）。
-* **GitHub `stanley-1028/HighDensityBoxFarm`**：修復 commit **`b94990c`** 與本篇發佈記錄 commit 已 push 到
-  `master`；push 回報與遠端校驗見下方「發佈後補記」（最終以 `origin/master` 為準）。
-* **頁面核對**：待補記；上傳只更新**內容與 Change Note**，標題/描述/封面/標籤/可見性刻意未動
-  （與 2.5.1–2.5.9 相同做法）。
+* **GitHub `stanley-1028/HighDensityBoxFarm`**：修復 commit **`b94990c`** 與發佈記錄 commit **`003d4d4`**
+  已 push 到 `master`（`4d8d570..003d4d4  master -> master`；`git ls-remote origin master` =
+  `003d4d4b2c3ee16ac0954e7bc40834600b4afd13`）；本節核對 commit 隨後 push，最終以 `origin/master` 為準。
+* **頁面核對**（2026-11-08 10:0x，公開頁面 `https://steamcommunity.com/sharedfiles/filedetails/?id=3828809784`）：
+  `Updated 7 Nov @ 6:00pm`（Steam 網頁以 PST 顯示 = 2026-11-08 10:00 Asia/Macau）、
+  `File Size 2.203 MB`、`Change Notes` 共 **12** 條（最新一條即 v2.5.10 雙語 Change Note）。
+  上傳只更新**內容與 Change Note**，標題/描述/封面/標籤/可見性刻意未動（與 2.5.1–2.5.9 相同做法）。
 
 ### 49.1 發佈後補記（push 回報 / 頁面核對）
 
-* 待補記。
+* **GitHub push 回報**：`git push https://github.com/stanley-1028/HighDensityBoxFarm.git master` →
+  `4d8d570..003d4d4  master -> master`（commit `b94990c` 修復 + `003d4d4` 發佈記錄）；
+  `git ls-remote origin master` = `003d4d4b2c3ee16ac0954e7bc40834600b4afd13`。
+  本節「發佈後補記」commit 再 push 一次，最終 `origin/master` 以最後一次 push 為準。
+* **Steam Workshop 頁面核對**：`Updated 7 Nov @ 6:00pm`（PST = 2026-11-08 10:00 Asia/Macau）、
+  `File Size 2.203 MB`、`Change Notes` **12** 條（上一版 2.5.9 為 11 條）；標題/描述/封面/標籤/可見性未動。
+* **玩家回饋線索**：上傳頁面可見 5 小時前玩家留言「crash when paused」——與本節修復的
+  「暫停農場標記清空 → 搬運候選 NULL 行為 → NRE」故障鏈一致；2.5.10 已修，可在 Change Notes 中看到雙語說明。
+
