@@ -2229,3 +2229,33 @@ Basic 农场输出库存随游戏日的时间序列（game day 34.17 载入）�
   本修复不改它（避免扩大范围），另行开卡。
 * 旧存档“超过 2.5.9 每货物容量”的库存：修复后由原版 `RemoveUnwantedStockWorkplaceBehavior` 正常搬出，
   不会再触发 NRE；本机玩家存档当时已回落到 104 以内，未单独构造超容量用例实机验证。
+
+## 49. 2.5.10 發佈記錄：Steam Workshop 更新 + GitHub push（2026-11-08）
+
+* **Steam Workshop item 3828809784**：2026-11-08 **10:00:45–10:00:50**（Asia/Macau）上傳成功：
+  `Upload starting for workshop item 3828809784 by AppID 1062090` →
+  `Uploaded new content ( ManifestID 4179524907985799025 ) for item 3828809784.` →
+  `Upload finished for workshop item 3828809784 : OK`（Steam `logs/workshop_log.txt`，AppID 1062090）。
+  一次性 Steamworks UGC 工具 `C:\Users\user\hdbf-tools\steamupload\bin\Release\net9.0\SteamUpload.exe`
+  回報 `submitDone ioFailure=False eResult=k_EResultOK needsLegalAgreement=False publishedFileId=3828809784`
+  （exit 0；內容上傳進度 452,973 B 後進入 CommittingChanges）。
+* **上傳內容** = 2.5.10 staged 包（**48 files / 2,203,313 bytes / 2,151 KB**、manifest Version 2.5.10），
+  與 §48 離線門禁為同一份：5 組件 0 warning / 0 error、L1 **732/732**、`tools/validate` RESULT: OK、
+  **RELEASE GATES: PASSED (44 checks)**。
+* **Change Note（雙語）**：搬運鏈組件配對修復（普通搬運工恢復把農場暫存作物搬進普通倉庫；補
+  `EmptyInventoriesWorkplaceBehavior` / `RemoveUnwantedStockWorkplaceBehavior` 兩個原版行為組件；
+  被標記清空的農場 / 舊存檔超容量庫存不再把 NULL 行為放進搬運候選表；**本版已完成實機驗證**：
+  93 件 Carrot 2.5 個遊戲日內進倉、4.1 個遊戲日零異常，並附修復前崩潰對照）。
+  檔案：`%USERPROFILE%\.hdbf\release-2510-changenote.txt`（2,786 B）。
+* **本機 Workshop 內容文件夾**：已同步覆蓋為 2.5.10
+  （`C:\Program Files (x86)\Steam\steamapps\workshop\content\1062090\3828809784`：48 files / manifest 2.5.10），
+  供玩家下一次啟動立即測到修復版；Steam 重啟後以官方 ManifestID `4179524907985799025` 為準。
+  舊 2.5.9 內容備份於 `C:\Users\user\hdbf-tools\workshop-backup\3828809784-2.5.9`（48 files）。
+* **GitHub `stanley-1028/HighDensityBoxFarm`**：修復 commit **`b94990c`** 與本篇發佈記錄 commit 已 push 到
+  `master`；push 回報與遠端校驗見下方「發佈後補記」（最終以 `origin/master` 為準）。
+* **頁面核對**：待補記；上傳只更新**內容與 Change Note**，標題/描述/封面/標籤/可見性刻意未動
+  （與 2.5.1–2.5.9 相同做法）。
+
+### 49.1 發佈後補記（push 回報 / 頁面核對）
+
+* 待補記。

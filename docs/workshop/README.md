@@ -164,3 +164,24 @@ cp docs/workshop/publish/* "$USERPROFILE/Documents/Timberborn/Mods/HDBF/"
   `C:\Users\user\hdbf-tools\workshop-backup\3828809784-2.5.8`。
 - **實機驗證仍 pending**（本輪無可互動實機會話，且 sandbox 禁止寫 Saves/遊戲目錄）；玩家若仍有問題，
   請附 `Player.log`（確認開頭 `start HDBF version=2.5.9`）。
+
+## 發佈記錄（2026-11-08，2.5.10）
+
+- 2.5.10 於 **2026-11-08 10:00（Asia/Macau）** 上傳成功：`ManifestID 4179524907985799025`、
+  `Uploaded new content ( ManifestID 4179524907985799025 ) for item 3828809784.`、
+  `Upload finished for workshop item 3828809784 : OK`（Steam `logs/workshop_log.txt`，AppID 1062090；
+  `SteamUpload.exe` 回報 `eResult=k_EResultOK`、`needsLegalAgreement=False`）。
+- 上傳只更新**內容與 Change Note**；標題/描述/封面/標籤/可見性刻意未動。
+- Change Note（雙語）：搬運鏈組件配對修復——補 `EmptyInventoriesWorkplaceBehavior` /
+  `RemoveUnwantedStockWorkplaceBehavior` 兩個原版行為組件，普通搬運工恢復把農場暫存作物搬進普通倉庫；
+  被標記清空的農場 / 舊存檔超容量庫存不再把 NULL 行為放進搬運候選表（修復前整個地區搬運 tick 拋
+  NullReferenceException，搬運工永遠不搬）；**本版已完成實機驗證**（93 件 Carrot 2.5 個遊戲日內進倉、
+  4.1 個遊戲日零異常；修復前同存檔 2.5 分鐘內必崩）。檔案：`%USERPROFILE%\.hdbf\release-2510-changenote.txt`。
+- 建置：L1 **732/732**、`tools/validate` RESULT: OK、`build.ps1` **44 gates PASSED**；
+  staged package **48 files / 2,203,313 bytes / manifest 2.5.10**；GitHub `master` = `b94990c`（修復）
+  + 本篇發佈記錄 commit（push 回報見 VERIFICATION §49.1）。
+- **本機測試包**：2.5.10 stage 已覆蓋到 `Steam\steamapps\workshop\content\1062090\3828809784`
+  （同一個 Workshop item、無重複 Id），下一次啟動遊戲即可測到修復版；舊 2.5.9 內容備份在
+  `C:\Users\user\hdbf-tools\workshop-backup\3828809784-2.5.9`。
+- **本版已完成實機驗證**（不再是 pending）：證據見 `docs/VERIFICATION.md` §48 與
+  `docs/workstreams/feedback-20261108/hauling.md`。
