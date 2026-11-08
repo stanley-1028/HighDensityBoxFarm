@@ -2361,8 +2361,10 @@ Basic 农场输出库存随游戏日的时间序列（game day 34.17 载入）�
 
 ### 51.1 發佈後補記（push 回報）
 
-* **GitHub push**：見本輪最後一次 `git push` 的實際輸出（`ccf99c0` + 發佈記錄 commit）；`git ls-remote origin
-  master` 為準。本補記 commit 亦一併 push，最終以最後一次 push 為準。
+* **GitHub push**：`git push https://github.com/stanley-1028/HighDensityBoxFarm.git master` →
+  `ca0ee6f..7773f70  master -> master`（修復 commit `ccf99c0` + 發佈記錄 commit `7773f70`）；
+  `git ls-remote origin master` = `7773f70b0b153e6bbc662875b22221b921996ebf`（= 本機 HEAD）。
+  本補記 commit 隨後 push 一次，最終 `origin/master` 以最後一次 push 為準。
 * **頁面核對**：本機模擬環境的 Steam 公開頁快照（抓取時 2026-11-08 10:19 左右）可能落後於本輪上傳；
   本節以 **Steam `logs/workshop_log.txt` 的 ManifestID 記錄**為上傳成功的權威證據，不宣稱公開頁已刷新。
 
