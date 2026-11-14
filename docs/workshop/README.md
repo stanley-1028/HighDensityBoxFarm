@@ -215,6 +215,8 @@ cp docs/workshop/publish/* "$USERPROFILE/Documents/Timberborn/Mods/HDBF/"
 - 建置：5 程序集 0/0、L1 **733/733**、`tools/validate` RESULT: OK、
   `build.ps1` **44 gates PASSED**、staged 48 files / manifest **2.6.0**。
 - 上傳只更新**內容與 Change Note**；標題/描述/封面/標籤/可見性刻意未動。
+- 公開頁核對（抓取 2026-11-14）：**File Size 2.208 MB**、**Updated 13 Nov @ 4:38pm**（Steam 顯示時區
+  = 2026-11-14 08:38 Asia/Macau）、**Change Notes 14 筆**（最新為 2.6.0 三語說明）。
 - **本機測試包**：2.6.0 stage 已覆蓋到 `Documents\Timberborn\Mods\HDBF` 與
   `Steam\steamapps\workshop\content\1062090\3828809784`（兩處 manifest 均 2.6.0，`HDBF.UI.dll`
   SHA-256 相同）；舊 2.5.11 內容備份在 `C:\Users\user\hdbf-tools\workshop-backup\3828809784-2.5.11`

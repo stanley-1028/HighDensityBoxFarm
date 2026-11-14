@@ -2425,3 +2425,19 @@ Basic 农场输出库存随游戏日的时间序列（game day 34.17 载入）�
   + 版本/文檔）與本節發佈記錄 commit 一併 push 到 `master`；push 結果見 §53.1。標題/描述/封面/標籤/
   可見性刻意未動（只更新內容與 Change Note）。
 
+### 53.1 發佈後補記（push 回報 + 公開頁核對）
+
+* **GitHub push**：commit `68d7ed1`（v2.6.0 UI/GUI 原版化 + 可折疊分區）→
+  `65dc637..68d7ed1  master -> master`；`git ls-remote origin refs/heads/master` =
+  `68d7ed10571b1dc1aca8364e617e086ad1a9f580`（= 本機 HEAD）。本補記 commit 隨後再 push 一次，
+  最終 `origin/master` 以最後一次 push 為準。
+* **公開頁核對**（`https://steamcommunity.com/sharedfiles/filedetails/?id=3828809784`，抓取 2026-11-14）：
+  **File Size 2.208 MB**（= staged 包 2,208,034 B）、**Updated 13 Nov @ 4:38pm**（Steam 顯示時區，
+  = 2026-11-14 08:38 Asia/Macau）、**Change Notes 14 筆**（最新一筆為 2.6.0 三語變更說明）；
+  標題/描述/封面/標籤/可見性未變（頁面 Description 與 2.5.11 相同）。
+* **上傳成功證據**：以 Steam `logs\workshop_log.txt` 的 ManifestID 記錄為權威
+  （`4848736136601558932`），並以上述公開頁 Size/Updated/Change Notes 三項交叉核對。
+* **玩家回饋對照**：公開頁 2026-11-08 有玩家回報「看不到頂級農場完整面板 / 用 scrollable entity
+  panel 時到不了面板底部（選不到自動化區）」——本版把參考型分區預設折疊、面板變短，即是對該回饋
+  的直接回應；但視覺/互動實機驗證仍 pending（本輪無可互動實機會話）。
+
