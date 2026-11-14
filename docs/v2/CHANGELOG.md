@@ -1,6 +1,6 @@
 # HDBF v2 变更记录
 
-> **状态**：**2.6.0 已发布**（2026-11-14 08:38 Asia/Macau，Steam Workshop item 3828809784，ManifestID `4848736136601558932`；离线门禁全绿 + L1 733/733，实机面板视觉验证 pending，见 VERIFICATION §52/§53）；**2.5.11 已发布**（2026-11-08，Steam Workshop item 3828809784，ManifestID `2025374107308867942`；离线门禁全绿 + **本机实机存档加载验证**，见 VERIFICATION §50/§51）；**2.5.10 已发布**（2026-11-08 10:00，Steam Workshop item 3828809784，ManifestID `4179524907985799025`；离线门禁全绿 + **实机验证通过**——93 件 Carrot 在 2.5 个游戏日内被搬空、4.1 个游戏日无异常，见 VERIFICATION §48/§49）；**2.5.9 已发布**（2026-11-07 21:49，Steam Workshop item 3828809784，ManifestID `9210717745557344144`；GitHub 见 push 后的 master；离线门禁全绿，实机验证 pending；暫存语义修复：农场输出库存从「整盒容量/类仓库」改为「一天产量暂存」，见 VERIFICATION §46/§47）；**2.5.8 已发布**（2026-11-07 17:10，Steam Workshop item 3828809784，ManifestID `8359214256551403205`；GitHub `b900e8a`；离线门禁全绿，实机验证仍 pending）；2.5.7 已发布（2026-11-06 17:40，玩家回馈热修 + 下拉开启期间暂停刷新的防护；Steam Workshop item 3828809784，ManifestID 4408964257799319853；第一次 17:14 上传误带旧 2.5.6 staging，17:40 已重新上传正确包，详见 VERIFICATION §43；实机点击验证仍 pending，不写成已完成）；2.5.6 已发布（Steam Workshop ManifestID 3045694293614393693；GitHub 见 push 后的 master；离线门禁全绿；实机验证部分 pending，见 VERIFICATION §40）；2.5.5 为未发布的第二维修轮；2.5.4 已发布（Steam Workshop ManifestID 2037025195551276545）
+> **状态**：**2.6.0 已发布**（2026-11-14 08:38 Asia/Macau，Steam Workshop item 3828809784，ManifestID `4848736136601558932`；离线门禁全绿 + L1 733/733；**实机面板截图验证通过**（2560×1440，原版卡片/进度条/按钮/单选/折叠 clamp，`[HDBF/Error]`=0），见 VERIFICATION §52/§52.1/§53）；**2.5.11 已发布**（2026-11-08，Steam Workshop item 3828809784，ManifestID `2025374107308867942`；离线门禁全绿 + **本机实机存档加载验证**，见 VERIFICATION §50/§51）；**2.5.10 已发布**（2026-11-08 10:00，Steam Workshop item 3828809784，ManifestID `4179524907985799025`；离线门禁全绿 + **实机验证通过**——93 件 Carrot 在 2.5 个游戏日内被搬空、4.1 个游戏日无异常，见 VERIFICATION §48/§49）；**2.5.9 已发布**（2026-11-07 21:49，Steam Workshop item 3828809784，ManifestID `9210717745557344144`；GitHub 见 push 后的 master；离线门禁全绿，实机验证 pending；暫存语义修复：农场输出库存从「整盒容量/类仓库」改为「一天产量暂存」，见 VERIFICATION §46/§47）；**2.5.8 已发布**（2026-11-07 17:10，Steam Workshop item 3828809784，ManifestID `8359214256551403205`；GitHub `b900e8a`；离线门禁全绿，实机验证仍 pending）；2.5.7 已发布（2026-11-06 17:40，玩家回馈热修 + 下拉开启期间暂停刷新的防护；Steam Workshop item 3828809784，ManifestID 4408964257799319853；第一次 17:14 上传误带旧 2.5.6 staging，17:40 已重新上传正确包，详见 VERIFICATION §43；实机点击验证仍 pending，不写成已完成）；2.5.6 已发布（Steam Workshop ManifestID 3045694293614393693；GitHub 见 push 后的 master；离线门禁全绿；实机验证部分 pending，见 VERIFICATION §40）；2.5.5 为未发布的第二维修轮；2.5.4 已发布（Steam Workshop ManifestID 2037025195551276545）
 > **日期**：2026-11-14
 > **适用版本**：2.6.0
 > **变更摘要**：v2.1 需求引入室内农场方案；本文件记录 v1→v2 的行为/数据/工程变更与实现状态。2.5.8 = 管道供水修复（水塔接网判定 + 紧邻农场的 Timber Pipes 输水管直接供水）；2.5.9 = 输出库存暂存语义修复（整盒容量 → 一天产量暂存，不再像普通仓库一样囤货）；2.5.10 = 搬运链组件配对修复（补上 Emptiable 级联 provider 所需的两个原版行为组件，普通搬运工恢复清空农场输出）。2.5.11 = 「需要搬运工才能运转」状态守卫（即使没有搬运工，盒子农场也不会显示误导性提示；原版公开 opt-out，无 Harmony）。**2.6.0 = UI/GUI 原版化 + 可折叠分区（所有自订颜色/字号/警告色条/假滚动条删除，警告行/滚动条/下拉全部改用游戏自带控件；每张卡片可用原版 `extension-clamp` 折叠，折叠状态不进 read model/签名）。**
@@ -58,6 +58,11 @@
   `ManifestID 4848736136601558932`（`Upload finished for workshop item 3828809784 : OK`）；
   本机 `Documents\Timberborn\Mods\HDBF` 与 Workshop 内容目录均已同步 2.6.0（SHA-256 相同）；
   GitHub push 见 VERIFICATION §53。
+* 【实机】2026-11-14 补做面板截图验证（2560×1440，玩家存档副本）：`start HDBF version=2.6.0`、
+  `Load time: 209725ms`，面板渲染原版九宫格卡片/灰白文字/`progress-bar`/`button-game`/`RadioToggle`/
+  `WorkerView` 与每张卡底部 `extension-clamp` 折叠条，`[HDBF/Error]`=0、无 `ui.render` 异常；
+  截图 `docs/in-game/ui260-{panel-full,panel-crop,panel-annotated}.png`。因本机 DSH 无法注入输入，
+  截图用临时 harness（`EntitySelectionService.SelectAndFocusOn`，未发布、已删除并还原发布 DLL）。见 §52.1。
 
 ## [2.5.11] — 2026-11-08（「需要搬运工才能运转」状态守卫：没有搬运工时也不显示误导提示）
 

@@ -1,0 +1,5 @@
+[HDBF/Info] start HDBF version=2.6.0 modPath=C:\Program Files (x86)\Steam\steamapps\workshop\content\1062090\3828809784
+[HDBF/Info] startup: HDBF 2.6.0 ready; tiers=4; modPath=C:\Program Files (x86)\Steam\steamapps\workshop\content\1062090\3828809784; config=C:\Program Files (x86)\Steam\steamapps\workshop\content\1062090\3828809784\HDBF_Config.json
+[verify-auto-select] noted HdbfBoxFarmController
+[verify-auto-select] selected HdbfBoxFarmController
+Load time: 209725ms (scene index: 2)

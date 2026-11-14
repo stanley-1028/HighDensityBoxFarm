@@ -221,4 +221,6 @@ cp docs/workshop/publish/* "$USERPROFILE/Documents/Timberborn/Mods/HDBF/"
   `Steam\steamapps\workshop\content\1062090\3828809784`（兩處 manifest 均 2.6.0，`HDBF.UI.dll`
   SHA-256 相同）；舊 2.5.11 內容備份在 `C:\Users\user\hdbf-tools\workshop-backup\3828809784-2.5.11`
   與 `...\HDBF-local-2.5.11`。
-- 實機面板視覺驗證 **pending**（本輪無可互動實機會話），見 VERIFICATION §52。
+- 實機面板視覺驗證 **已通過**（2026-11-14，2560×1440，基礎版面版；原版卡片/進度條/按鈕/單選/折疊 clamp，
+  `[HDBF/Error]`=0），證據 `docs/in-game/ui260-*.png` 與 VERIFICATION §52.1。
+  截圖用臨時 harness（自動選中農場，因本機無法注入輸入），**未發佈**，發布 DLL 已還原並核對 SHA-256。

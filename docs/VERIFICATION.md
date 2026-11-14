@@ -2396,8 +2396,41 @@ Basic 农场输出库存随游戏日的时间序列（game day 34.17 载入）�
   行為**，測試相應改為「原版契約」（無 `style.color`、無 `backgroundColor`、無自訂色常數、
   `StatusListElement` 模板、`game-scroll-view`、`extension-clamp`、折疊不進 read model/簽名），
   不是放寬斷言。
-* **實機狀態（誠實）**：本輪**沒有**可互動實機會話（本機合成輸入不可達遊戲視窗，面板只在選中農場時
-  構建），面板視覺效果 **pending**；上線包與證據以離線門禁為準，恢復實機後應補本節截圖。
+* **實機狀態**：本輪原始 round 沒有可互動實機會話（面板只在選中農場時構建）。後續**已補做實機截圖**
+  （2026-11-14 09:5x），見 §52.1；截圖用的臨時 harness 未被發佈，發布包 5 個程序集在截圖後已還原並核對
+  SHA-256。
+
+### 52.1 實機面板截圖驗證（2026-11-14，2.6.0 已發佈包）
+
+* **為什麼需要 harness**：本機 DSH 會話**無法向遊戲注入輸入**。實測（原生 WndProc 計數探針，`_verify/post-probe3.ps1`）：
+  `SendInput` 回報成功但目標窗口收不到 `WM_LBUTTONDOWN`；`PostMessage` 對自有窗口可達，但 Unity（Timberborn
+  使用 Unity Input System 的 raw input）不處理投遞的滑鼠消息。既有 `tools/dev/GameUi.ps1` 的
+  `mouse_event` 路徑同樣不可用。
+* **臨時 harness（未發佈，已刪除）**：`src/HDBF.Gameplay/Components/HdbfUiVerifyAutoSelect.cs`
+  （`IPostLoadableSingleton`）在 `HdbfFarmQueryService.RegisterSource` 記住第一座室內農場，`PostLoad()`
+  時呼叫原版公開 `Timberborn.SelectionSystem.EntitySelectionService.SelectAndFocusOn(BaseComponent)`；
+  `HdbfGameConfigurator` 臨時加 1 行 `Bind<HdbfUiVerifyAutoSelect>().AsSingleton()`。日誌證據：
+  `[verify-auto-select] noted HdbfBoxFarmController` → `selected HdbfBoxFarmController`。
+* **實機結果**（Timberborn 1.1.2.8，2560×1440，玩家 2026-11-08 21:51 存檔副本，`Load time: 209725ms`）：
+  * `[HDBF/Info] start HDBF version=2.6.0`、`startup: HDBF 2.6.0 ready`；
+  * 面板正常渲染：原版九宮格卡片（`entity-sub-panel` + `bg-sub-box--green`）、原版灰色文字
+    （`rgb(204,204,204)`，無自訂暖白）、原版 `progress-bar`（100% / 56% / 56%）、原版 `button-game` 按鈕、
+    原版 `RadioToggle` 模式列、原版 `WorkerView` 工人格、每張卡片底部的原版 `extension-clamp` 折疊條（▲）；
+  * `[HDBF/Error]` = **0**、無 `ui.render` / `ui.crop-dropdown` 例外、無面板構建異常；
+  * 折疊佈局生效：預設折疊的參考型分區（庫存槽/水/維護/動力/輸出）在位元組層與工人/生長中/作物策略一致，
+    僅標題列 + clamp 條，需滾動查看（本輪無法注入滾輪/點擊，折疊互動本身仍待人工點一次確認）。
+* **截圖證據**（`docs/in-game/`）：
+  * `ui260-panel-full.png` — 全屏實機截圖（面板 + 世界）；
+  * `ui260-panel-crop.png` — 面板特寫；
+  * `ui260-panel-annotated.png` — 面板標注圖（1 九宮格卡片 / 2 進度條 / 3 單選 / 4·5 折疊條 / 6 按鈕 / 7 工人格）；
+  * `ui260-Player.log`、`ui260-lines.txt` — `start HDBF version=2.6.0`、`Load time`、harness 選中行。
+* **已知外觀觀察（未在 2.6.0 修）**：面板底部的「自動維護」按鈕與右下角第三方效能覆蓋層（T3MP 的
+  `TSPD/iSPD`/FPS 文字）有輕微重疊；panel 底部預留 `BottomReserve = 26 px`，在無該覆蓋層的原版 UI 上不重疊。
+  若玩家回報遮擋，下一版把底部預留調到 ~64 px 即可（不改 UI 結構）。
+* **還原核對**：截圖後 `Documents\Timberborn\Mods\HDBF` 與
+  `Steam\steamapps\workshop\content\1062090\3828809784` 的 `HDBF.Gameplay.dll` 均還原為發布版
+  SHA-256 `3109ED09274454CC715486CF92B14BB38EDA564388AF2760DADBA7A0C11C1D89`（manifest 2.6.0）；
+  遊戲已關閉、系統音量與 `steam_appid.txt` 已還原、測試存檔副本 `Saves\HDBFUI` 已刪除。
 
 ## 53. 2.6.0 發佈記錄：Steam Workshop 更新 + GitHub push（2026-11-14）
 
@@ -2439,5 +2472,5 @@ Basic 农场输出库存随游戏日的时间序列（game day 34.17 载入）�
   （`4848736136601558932`），並以上述公開頁 Size/Updated/Change Notes 三項交叉核對。
 * **玩家回饋對照**：公開頁 2026-11-08 有玩家回報「看不到頂級農場完整面板 / 用 scrollable entity
   panel 時到不了面板底部（選不到自動化區）」——本版把參考型分區預設折疊、面板變短，即是對該回饋
-  的直接回應；但視覺/互動實機驗證仍 pending（本輪無可互動實機會話）。
+  的直接回應；**實機截圖驗證已於 2026-11-14 補做，見 §52.1**（面板確實更短且為原版控件）。
 
