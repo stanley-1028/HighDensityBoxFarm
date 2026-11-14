@@ -1429,11 +1429,12 @@ namespace HDBF.Tests
             foreach (var token in new[]
                      {
                          "NineSliceVisualElement", "entity-sub-panel", "bg-sub-box--green",
-                         "bg-sub-box--blue", "bg-sub-box--purple-striped", "button-game",
+                         "bg-sub-box--blue", "bg-sub-box--red-striped", "button-game",
                          "entity-fragment__button", "worker-view", "progress-bar",
                          "status-list-element", "game-text-heading", "entity-panel__text",
-                         "game-dropdown", "new Dropdown", "CreateLocalizable", "ProgressBar",
-                         "RadioToggle", "ScrollerVisibility.Hidden", "ApplyLightText",
+                         "game-dropdown", "game-scroll-view", "extension-clamp",
+                         "new Dropdown", "CreateLocalizable", "ProgressBar",
+                         "RadioToggle", "ScrollerVisibility.Hidden",
                          "CreateMetaRow", "CreateWarningRow", "CreateBar",
                      })
             {
@@ -1442,7 +1443,7 @@ namespace HDBF.Tests
             }
 
             // No invented full-screen background / no hand-drawn texture / no bare Unity dropdown.
-            // Requirement C: the six known vanilla sub-box tones are the only card backgrounds.
+            // Requirement C: the shipped vanilla sub-box tones are the only card backgrounds.
             foreach (var forbidden in new[]
                      {
                          "new Texture2D", "GUI.DrawTexture", "DropdownField",
@@ -1453,16 +1454,19 @@ namespace HDBF.Tests
                     "the panel must not invent its own look: " + forbidden);
             }
 
-            // The only raw background colour the panel ever sets is the 3 px warning accent strip
-            // (requirement I); the fragment/root itself stays transparent (requirement C).
-            TestAssert.Equal(1, CountOccurrences(sources, "backgroundColor"),
-                "only the warning accent strip may set a raw background colour");
-            TestAssert.True(sources.Contains("strip.style.backgroundColor", StringComparison.Ordinal),
-                "the warning accent strip is the one allowed colour-only encoding");
+            // Vanilla-isation: the panel never sets a raw background colour - every surface is a
+            // shipped nine-slice/sub-box class (requirement C).
+            TestAssert.Equal(0, CountOccurrences(sources, "backgroundColor"),
+                "no raw background colour may remain in the panel sources");
 
-            // The view templates used for the gold buttons / worker chips are the shipped ones.
+            // The view templates used for the gold buttons / status rows / worker chips are shipped.
             TestAssert.Equal("Game/EntityPanel/DebugButton", HdbfIndoorPanelStyle.ButtonTemplate);
+            TestAssert.Equal("Game/EntityPanel/StatusListElement", HdbfIndoorPanelStyle.StatusRowTemplate);
             TestAssert.Equal("Game/EntityPanel/WorkerView", HdbfIndoorPanelStyle.WorkerChipTemplate);
+
+            // The collapse affordance is the game's own extension clamp, not a hand-drawn chevron.
+            TestAssert.Equal("extension-clamp", HdbfIndoorPanelStyle.Clamp);
+            TestAssert.Equal("extension-clamp--hidden", HdbfIndoorPanelStyle.ClampHidden);
         }
 
         private static int CountOccurrences(string text, string token)

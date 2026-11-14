@@ -47,7 +47,7 @@ namespace HDBF.UI.Panels
             _root.style.display = DisplayStyle.Flex;
         }
 
-        private void RenderWorkerRoster(VisualElement card, HdbfIndoorPanelData data)
+        private void RenderWorkerRoster(VisualElement body, HdbfIndoorPanelData data)
         {
             var roster = new VisualElement();
             roster.AddToClassList(HdbfIndoorPanelStyle.WorkerRoster);
@@ -60,24 +60,24 @@ namespace HDBF.UI.Panels
                 roster.Add(chip);
             }
 
-            card.Add(roster);
+            body.Add(roster);
 
             var note = HdbfPanelControls.CreateLabel(data.WorkerRosterNote,
-                HdbfIndoorPanelStyle.SubText, 12f);
+                HdbfIndoorPanelStyle.SubText);
             note.style.marginTop = 2f;
-            card.Add(note);
+            body.Add(note);
 
             // Vanilla RadioToggle mode group (requirement F) + the one-day transition sentence.
             _modeToggle?.Update((int)data.Mode);
             if (_modeHost is not null)
             {
-                card.Add(_modeHost);
+                body.Add(_modeHost);
             }
 
             if (_modeTransition is not null)
             {
                 SetOptional(_modeTransition, data.ModeTransitionText);
-                card.Add(_modeTransition);
+                body.Add(_modeTransition);
             }
         }
 

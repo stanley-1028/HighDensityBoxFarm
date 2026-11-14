@@ -1,10 +1,10 @@
 // ============================================================================
 // HDBF v2 | Layer: UI/Panels | Owner: V2-UI-01
-// Purpose: The visual vocabulary of the v2 indoor panel: the real vanilla USS class names and
-//          vanilla sprite paths the fragment composes (read-only reference from
-//          %USERPROFILE%\.hdbf\ref\UI\Views, a currently installed game unpack), the semantic icon
-//          keys used by the read model, and the tier -> Icons/BoxFarm* mapping. The fragment never
-//          invents a look; it addToClassList()es these names onto the vanilla controls.
+// Purpose: The visual vocabulary of the v2 indoor panel: the real vanilla USS class names, the
+//          vanilla UXML template paths and the vanilla sprite paths the fragment composes (all
+//          read from the shipped game unpack at %USERPROFILE%\.hdbf\ref\UI\Views, which never
+//          ships). The fragment never invents a look: it either loads one of the shipped templates
+//          below or addToClassList()es a shipped class onto a vanilla control.
 // Requirements: REQ-V2-UI-01/02/03, REQ-V2-READ-04, REQ-V2-UI-04
 // ============================================================================
 using System;
@@ -13,15 +13,18 @@ using HDBF.Core;
 namespace HDBF.UI.Panels
 {
     /// <summary>
-    /// Vanilla class names / sprite keys used by the v2 panel. Keeping them in one place makes the
-    /// "copied from the original UXML/USS" claim audit-able and keeps ad-hoc styling out of the
+    /// Vanilla class names / template paths used by the v2 panel. Keeping them in one place makes
+    /// the "copied from the original UXML/USS" claim audit-able and keeps ad-hoc styling out of the
     /// fragment (REQ-V2-UI-01: no invented skin).
     ///
-    /// One important 19.18/UI fact this round fixes: <c>VisualElement.AddToClassList</c> adds the
-    /// WHOLE argument as ONE class name. The multi-class strings below are therefore always applied
-    /// through <see cref="Split"/> (see <c>HdbfPanelControls.AddClasses</c>); passing e.g.
-    /// "entity-panel__text text--bold" directly would create a single unusable class and the text
-    /// silently fell back to the default (dark) colour.
+    /// Two vanilla facts this table encodes:
+    /// <list type="bullet">
+    /// <item><c>VisualElement.AddToClassList</c> adds the WHOLE argument as ONE class name. The
+    /// multi-class strings below are therefore always applied through <see cref="Split"/> (see
+    /// <c>HdbfPanelControls.AddClasses</c>).</item>
+    /// <item>No text colour is declared here. Vanilla text colour is <c>rgb(204,204,204)</c> from
+    /// <c>.entity-panel__text</c> / <c>.game-text-*</c>; the panel never overrides it.</item>
+    /// </list>
     /// </summary>
     public static class HdbfIndoorPanelStyle
     {
@@ -29,23 +32,20 @@ namespace HDBF.UI.Panels
         /// <summary>Vanilla sub-panel card padding class (EntityPanelCommonStyle).</summary>
         public const string Card = "entity-sub-panel";
 
-        /// <summary>Green sub-box card frame.</summary>
+        /// <summary>Green sub-box card frame (the normal fragment card, e.g. WorkplaceFragment).</summary>
         public const string CardGreen = "bg-sub-box--green";
 
-        /// <summary>Blue sub-box card frame (information cards).</summary>
+        /// <summary>Blue sub-box card frame (vanilla's information card, e.g. the description box).</summary>
         public const string CardBlue = "bg-sub-box--blue";
 
-        /// <summary>Purple striped sub-box card frame (action card).</summary>
-        public const string CardPurple = "bg-sub-box--purple-striped";
-
-        /// <summary>Red striped sub-box card frame (warning cards).</summary>
+        /// <summary>Red striped sub-box card frame (vanilla's status-list card for warnings).</summary>
         public const string CardRed = "bg-sub-box--red-striped";
 
         // ----- section titles and rows -------------------------------------------------------
         /// <summary>Vanilla heading text used for a card title.</summary>
         public const string SectionTitle = "game-text-heading text--bold";
 
-        /// <summary>Bold text weight only (no colour, so the light text colour survives).</summary>
+        /// <summary>Bold text weight only (no colour: the vanilla class colour survives).</summary>
         public const string Bold = "text--bold";
 
         /// <summary>Vanilla row container (EntityPanelCommonStyle .entity-panel__row).</summary>
@@ -63,18 +63,21 @@ namespace HDBF.UI.Panels
         /// <summary>Vanilla small secondary text (notes, inline reasons, transition sentence).</summary>
         public const string SubText = "entity-panel__sub-text";
 
-        // ----- warning rows (StatusListElement.uxml structure) --------------------------------
+        // ----- warning rows (StatusListElement.uxml structure) -------------------------------
         /// <summary>Vanilla status row container.</summary>
         public const string WarningRow = "status-list-element";
 
-        /// <summary>Vanilla 34 px status icon.</summary>
+        /// <summary>Vanilla 34 px status icon slot (the template paints its own sprite).</summary>
         public const string WarningIcon = "status-list-element__icon";
 
-        /// <summary>Vanilla status row text (colour is overridden to the light panel text).</summary>
+        /// <summary>Vanilla status row text.</summary>
         public const string WarningText = "entity-panel__text status-list-element__text";
 
+        /// <summary>Shipped vanilla UXML template of one status row (icon slot + text label).</summary>
+        public const string StatusRowTemplate = "Game/EntityPanel/StatusListElement";
+
         // ----- progress bars (Core/ProgressBar.uxml structure) -------------------------------
-        /// <summary>Vanilla progress bar root.</summary>
+        /// <summary>Vanilla progress bar root (28 px min-height comes from the shipped class).</summary>
         public const string ProgressBar = "progress-bar";
 
         /// <summary>
@@ -100,6 +103,13 @@ namespace HDBF.UI.Panels
         /// <summary>Vanilla narrow game button (two actions on one row).</summary>
         public const string ButtonNarrow = "button-game entity-fragment__button entity-fragment__button--narrow";
 
+        // ----- collapsible card (GameStyle .extension-clamp, vanilla's own fold idiom) --------
+        /// <summary>Vanilla "panel is open, click to collapse" clamp strip.</summary>
+        public const string Clamp = "extension-clamp";
+
+        /// <summary>Vanilla "panel is folded" clamp state (clamp-down sprite + smaller geometry).</summary>
+        public const string ClampHidden = "extension-clamp--hidden";
+
         // ----- worker roster (WorkplaceFragment/WorkerView.uxml structure) --------------------
         /// <summary>Vanilla wrapping worker list container.</summary>
         public const string WorkerRoster = "workplace-user-fragment";
@@ -117,8 +127,8 @@ namespace HDBF.UI.Panels
         /// <summary>Vanilla dropdown flex wrapper.</summary>
         public const string Dropdown = "game-dropdown";
 
-        /// <summary>Vanilla dark, green-decorated scrollbar for the section scroller.</summary>
-        public const string Scroll = "scroll--green-decorated";
+        /// <summary>Vanilla dark, decorated scroll view (nine-slice scrollbars injected by the game).</summary>
+        public const string Scroll = "game-scroll-view";
 
         /// <summary>Shipped vanilla UXML template of a plain gold game button (root = NineSliceButton).</summary>
         public const string ButtonTemplate = "Game/EntityPanel/DebugButton";
@@ -126,30 +136,14 @@ namespace HDBF.UI.Panels
         /// <summary>Shipped vanilla UXML template of a worker chip (avatar + name + vacant icon).</summary>
         public const string WorkerChipTemplate = "Game/EntityPanel/WorkerView";
 
-        // ----- colour ------------------------------------------------------------------------
-        /// <summary>
-        /// Warm-white panel text (#F2EBDD, translucent: opaque). Vanilla ships no ".text--white"
-        /// class; the closest white class is ".text--default" (rgb 255). Every text element this
-        /// panel creates gets this colour through <c>HdbfPanelControls.ApplyLightText</c>, so a
-        /// missing vanilla colour class can never fall back to a dark default again (requirement D).
-        /// </summary>
-        public const uint LightTextRgba = 0xF2EBDDFFu;
-
-        /// <summary>
-        /// Warning accent strip colour (#C4562B): the third, colour-only encoding of a warning row
-        /// (requirement I). It is drawn as a 3 px strip next to the icon + "▲/!" marker + sentence.
-        /// </summary>
-        public const uint WarningAccentRgba = 0xC4562BFFu;
-
         /// <summary>Vanilla card tone name resolved to a sub-box class.</summary>
-        /// <param name="tone">"green", "blue", "purple" or "red".</param>
+        /// <param name="tone">"green", "blue" or "red".</param>
         /// <returns>The vanilla sub-box USS class; green for unknown tones.</returns>
         public static string CardTone(string tone)
         {
             switch (tone)
             {
                 case "blue": return CardBlue;
-                case "purple": return CardPurple;
                 case "red": return CardRed;
                 default: return CardGreen;
             }
@@ -218,7 +212,7 @@ namespace HDBF.UI.Panels
         /// <summary>
         /// Tier icon of the blueprint (<c>Icons/BoxFarmBasic|Intermediate|Advanced|Top</c>). The
         /// vanilla entity panel header renders this badge itself; this mapping documents/pins the
-        /// asset name per tier (the fragment no longer draws a second header, requirement A).
+        /// asset name per tier (the fragment never draws a second header).
         /// </summary>
         /// <param name="tier">Building tier.</param>
         /// <returns>Blueprint icon asset name without extension.</returns>

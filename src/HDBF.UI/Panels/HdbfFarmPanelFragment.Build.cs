@@ -3,11 +3,12 @@
 // Purpose: Construction of the v2 indoor panel UIElements skeleton. There is deliberately NO
 //          second header: the vanilla EntityPanel already renders the building icon, name and
 //          district, so the fragment starts with the full-width card scroller (first card = the
-//          compact tier/faction/mode row + workers/efficiency). Cards are contiguous and span the
-//          whole 325 px panel, the scroller reserves no scrollbar gutter and the fragment root is
-//          transparent, so the tan entity-panel background can no longer show through as a big
-//          "brown box" (requirements A/B/C). Card content is filled by .Render.cs; the vanilla
-//          mode radio group, crop dropdown and the action card are built here.
+//          compact tier/faction/mode row + workers/efficiency). The fragment root stays a plain
+//          container (the vanilla EntityPanel inserts provider fragments into a classless
+//          `Fragments` container); every visible block is a shipped NineSliceVisualElement card
+//          with a vanilla sub-box class. After the tree is built the vanilla
+//          VisualElementInitializer runs once so the shipped initializers (click sound, nine-slice
+//          scrollbars, localization) apply to it exactly as they do to a loaded UXML template.
 // Requirements: REQ-V2-UI-01/03, REQ-V2-READ-04
 // ============================================================================
 using System;
@@ -36,23 +37,34 @@ namespace HDBF.UI.Panels
         private Button? _autoMaintenanceButton;
         private Label? _actionStatus;
         private Label? _actionTitle;
+        private VisualElementInitializer? _visualElementInitializer;
 
         private VisualElement BuildRoot()
         {
             var root = new VisualElement();
             root.style.flexDirection = FlexDirection.Column;
-            // No margin/padding/background: the root is transparent and the cards own the dark
-            // backgrounds (requirement C). A margin here would expose the tan panel background.
+            // No margin/padding/background: the root is the transparent fragment container and the
+            // vanilla NineSlice cards own every background (requirement C).
             root.style.marginTop = 0f;
             root.style.display = DisplayStyle.None;
-            // Inheritance safety net: every text in this subtree is warm white even if a vanilla
-            // template forgets to set a colour (requirement D).
-            HdbfPanelControls.ApplyLightText(root);
 
             BuildCardScroller(root);
             BuildModeToggle();
             BuildCropDropdown();
             BuildActionCard(root);
+
+            // Run the game's own initializers over the code-built tree (the same pass a loaded UXML
+            // template gets): this wires the vanilla click sounds (--click-sound custom property),
+            // the nine-slice scrollbar draggers of the game-scroll-view and element localization.
+            // A failure here is not fatal: the panel keeps working without those extras.
+            try
+            {
+                _visualElementInitializer?.InitializeVisualElement(root);
+            }
+            catch (Exception)
+            {
+                // Swallowed on purpose: a missing initializer must never hide the panel.
+            }
 
             _root = root;
             return root;
@@ -62,11 +74,9 @@ namespace HDBF.UI.Panels
         {
             _scroll = new ScrollView(ScrollViewMode.Vertical);
             HdbfPanelControls.AddClasses(_scroll, HdbfIndoorPanelStyle.Scroll);
-            // Requirement C: a visible scroller would reserve a transparent gutter on the right
-            // where the tan panel background shows through. Hidden takes no space; wheel scrolling
-            // still works because ScrollView handles the wheel event itself.
+            // Vanilla scroller: the game-scroll-view stylesheet draws the shipped nine-slice
+            // draggers. Only the horizontal bar is suppressed (the cards are fixed-width).
             _scroll.horizontalScrollerVisibility = ScrollerVisibility.Hidden;
-            _scroll.verticalScrollerVisibility = ScrollerVisibility.Hidden;
             _scroll.style.maxHeight = InitialScrollHeight;
             _scroll.style.marginTop = 0f;
             _scroll.style.marginBottom = 0f;
@@ -89,7 +99,7 @@ namespace HDBF.UI.Panels
 
             var modeLabel = HdbfPanelControls.CreateLabel(_loc.T(
                 HDBF.UI.Localization.HdbfUiLocKeys.PanelMode),
-                HdbfIndoorPanelStyle.RowLabel, 13f);
+                HdbfIndoorPanelStyle.RowLabel);
             modeLabel.style.marginRight = 8f;
             modeLabel.style.flexGrow = 0f;
             _modeHost.Add(modeLabel);
@@ -106,7 +116,6 @@ namespace HDBF.UI.Panels
                         HDBF.UI.Localization.HdbfUiLocKeys.ModeFallow,
                     }, _modeHost);
                 _modeToggle.RadioButtonSelected += OnModeSelected;
-                PaintRadioButtonText();
             }
             catch (Exception)
             {
@@ -119,29 +128,11 @@ namespace HDBF.UI.Panels
             _modeTransition.style.marginTop = 2f;
         }
 
-        /// <summary>Paints the vanilla radio-button labels with the one light panel text colour.</summary>
-        private void PaintRadioButtonText()
-        {
-            if (_modeHost is null)
-            {
-                return;
-            }
-
-            for (var index = 0; index < _modeHost.childCount; index++)
-            {
-                var child = _modeHost[index];
-                HdbfPanelControls.ApplyLightText(child);
-                var label = child.Q<Label>();
-                if (label is not null)
-                {
-                    HdbfPanelControls.ApplyLightText(label);
-                }
-            }
-        }
-
         private void BuildActionCard(VisualElement root)
         {
-            _actionCard = HdbfPanelControls.CreateCard("purple");
+            // Vanilla action fragments are ordinary green sub-panel cards; the purple-striped tone
+            // belongs to the entity-panel header and is deliberately not reused here.
+            _actionCard = HdbfPanelControls.CreateCard("green");
             var actionTitleRow = HdbfPanelControls.CreateTitleRow(
                 _loc.T(HDBF.UI.Localization.HdbfUiLocKeys.PanelSectionActions),
                 "maintenance", _icons);
@@ -177,10 +168,10 @@ namespace HDBF.UI.Panels
             _maintenanceReason.style.marginTop = 2f;
             _actionCard.Add(_maintenanceReason);
 
-            // WP-02: the per-building automatic-maintenance toggle is a vanilla game button (the
-            // shipped DebugButton nine-slice template) whose text carries the current On/Off state;
-            // pressing it flips the persisted choice. The maintenance card repeats the state as a
-            // read-only row, so the setting is visible even with the action card scrolled away.
+            // WP-02: the per-building automatic-maintenance toggle is a vanilla game button whose
+            // text carries the current On/Off state; pressing it flips the persisted choice. The
+            // maintenance card repeats the state as a read-only row, so the setting is visible even
+            // with the action card scrolled away.
             _autoMaintenanceButton = HdbfPanelControls.CreateButton(_visualElementLoader,
                 string.Empty, OnAutoMaintenanceClicked);
             _tooltips.Register(_autoMaintenanceButton,

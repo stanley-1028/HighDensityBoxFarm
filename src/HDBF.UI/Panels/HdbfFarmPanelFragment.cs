@@ -89,12 +89,14 @@ namespace HDBF.UI.Panels
         /// <param name="radioToggleFactory">Vanilla radio-button group factory (mode switch).</param>
         /// <param name="dropdownItemsSetter">Vanilla dropdown item setter (crop strategy).</param>
         /// <param name="dropdownListDrawer">Vanilla dropdown popup drawer.</param>
-        /// <param name="visualElementLoader">Vanilla UXML loader (button and worker-chip templates).</param>
+        /// <param name="visualElementLoader">Vanilla UXML loader (status-row and worker-chip templates).</param>
+        /// <param name="visualElementInitializer">Vanilla initializer pass (click sounds, nine-slice scrollbars, localization).</param>
         /// <param name="tooltips">Vanilla tooltip registrar (row/button hover texts).</param>
         public HdbfFarmPanelFragment(IBoxFarmQuery query, IBoxFarmCommand command, ILoc loc, IHdbfLog log,
             RadioToggleFactory radioToggleFactory,
             DropdownItemsSetter dropdownItemsSetter, DropdownListDrawer dropdownListDrawer,
-            VisualElementLoader visualElementLoader, ITooltipRegistrar tooltips)
+            VisualElementLoader visualElementLoader, VisualElementInitializer visualElementInitializer,
+            ITooltipRegistrar tooltips)
         {
             _command = command ?? throw new ArgumentNullException(nameof(command));
             _indoor = new HdbfIndoorCommandBridge(query, command);
@@ -104,6 +106,9 @@ namespace HDBF.UI.Panels
             _dropdownItemsSetter = dropdownItemsSetter ?? throw new ArgumentNullException(nameof(dropdownItemsSetter));
             _dropdownListDrawer = dropdownListDrawer ?? throw new ArgumentNullException(nameof(dropdownListDrawer));
             _visualElementLoader = visualElementLoader ?? throw new ArgumentNullException(nameof(visualElementLoader));
+            // Not null-checked: an absent initializer only costs the optional click sounds and the
+            // nine-slice scrollbar draggers, and the panel must never fail to build because of it.
+            _visualElementInitializer = visualElementInitializer;
             _tooltips = tooltips ?? throw new ArgumentNullException(nameof(tooltips));
         }
         /// <summary>True once the fragment rendered a farm snapshot (diagnostics/tests).</summary>
@@ -139,6 +144,7 @@ namespace HDBF.UI.Panels
             _cropSignature = string.Empty;
             _resetScrollOnNextRender = true;
             _lastScrollHeight = 0f;
+            ResetFolds();
             Refresh(force: true);
         }
         /// <inheritdoc />
@@ -202,6 +208,7 @@ namespace HDBF.UI.Panels
             _cropSignature = string.Empty;
             _resetScrollOnNextRender = true;
             _lastScrollHeight = 0f;
+            ResetFolds();
             if (_root is not null)
             {
                 _root.style.display = DisplayStyle.None;

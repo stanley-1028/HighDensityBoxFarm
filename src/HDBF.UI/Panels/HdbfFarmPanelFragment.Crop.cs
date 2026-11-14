@@ -3,7 +3,8 @@
 // Purpose: Crop-strategy block of the indoor panel: one row (icon + label + current policy text)
 //          with the real vanilla Dropdown control attached. The dropdown works on localized
 //          display strings, so the list is rebuilt only when the localized choice signature changed
-//          and a 4 Hz refresh never reallocates the items (REQ-V2-UI-01).
+//          and a 4 Hz refresh never reallocates the items (REQ-V2-UI-01). The dropdown keeps the
+//          shipped vanilla text colours (no override), exactly like the vanilla manufactory panel.
 // Requirements: REQ-V2-UI-01/02/03
 // ============================================================================
 using System;
@@ -22,8 +23,6 @@ namespace HDBF.UI.Panels
         private Dropdown? _cropDropdown;
         private string _cropSignature = string.Empty;
         private readonly HdbfCropDropdownProvider _cropProvider = new();
-        /// <summary>Reused traversal buffer of the dropdown labels (filled after every rebuild).</summary>
-        private readonly List<Label> _dropdownLabels = new(8);
 
         private void BuildCropDropdown()
         {
@@ -42,13 +41,7 @@ namespace HDBF.UI.Panels
                 dropdown.Localize(_loc);
                 dropdown.style.flexGrow = 1f;
                 dropdown.style.flexShrink = 1f;
-                dropdown.style.fontSize = 13f;
-                // Inheritance is NOT enough here: the vanilla .dropdown-item__text rule sets its own
-                // grey colour, so PaintDropdownText re-paints the selection label explicitly after
-                // every rebuild (and PaintDropdownPopupText does the same for the open popup list).
-                HdbfPanelControls.ApplyLightText(dropdown);
                 _cropProvider.Selected += OnCropSelected;
-                dropdown.Showed += OnCropDropdownShowed;
                 _tooltips.Register(dropdown, () => _lastData?.CropTooltip ?? string.Empty);
                 _cropDropdown = dropdown;
                 _cropHost.Add(dropdown);
@@ -84,107 +77,7 @@ namespace HDBF.UI.Panels
                 _cropDropdown.UpdateSelectedValue();
             }
 
-            // The vanilla selection item is (re)built by the calls above and its Label carries the
-            // vanilla grey ".dropdown-item__text" colour; re-paint it after every rebuild so the
-            // closed panel has 100 % light text (requirement D). The item keeps the vanilla
-            // nowrap/ellipsis: the selection is 28 px high and crop names are short, so wrapping it
-            // could overflow; the panel rows that may be long already wrap (requirement H).
-            PaintDropdownText();
             _cropDropdown.tooltip = data.CropTooltip;
-        }
-
-        /// <summary>
-        /// Paints every label of the vanilla dropdown selection subtree (selection item, its label
-        /// prefix) with the panel's one light text colour. The selection item is recreated by
-        /// <c>SetItems</c>/<c>UpdateSelectedValue</c>, so this runs after both of them. The label
-        /// list is reused, so a normal refresh allocates nothing.
-        /// </summary>
-        private void PaintDropdownText()
-        {
-            if (_cropDropdown is null)
-            {
-                return;
-            }
-
-            _dropdownLabels.Clear();
-            CollectLabels(_cropDropdown, _dropdownLabels);
-            for (var index = 0; index < _dropdownLabels.Count; index++)
-            {
-                HdbfPanelControls.ApplyLightText(_dropdownLabels[index]);
-            }
-        }
-
-        /// <summary>
-        /// The open dropdown list lives in the singleton <c>DropdownListDrawer</c>, outside the
-        /// Dropdown subtree, and its items are cloned <c>Core/DropdownItem</c> labels with the
-        /// vanilla grey <c>.dropdown-item__text</c> colour. The popup is attached during the show
-        /// event, so the labels are collected on the next scheduler tick and re-painted light
-        /// (colour only - the list rows stay vanilla nowrap/ellipsis). Failures are swallowed: a
-        /// popup must never break the entity panel.
-        /// </summary>
-        private void PaintDropdownPopupText()
-        {
-            try
-            {
-                var panel = _cropDropdown?.panel;
-                if (panel is null)
-                {
-                    return;
-                }
-
-                _dropdownLabels.Clear();
-                CollectDropdownItemLabels(panel.visualTree, _dropdownLabels);
-                for (var index = 0; index < _dropdownLabels.Count; index++)
-                {
-                    HdbfPanelControls.ApplyLightText(_dropdownLabels[index]);
-                }
-            }
-            catch (Exception)
-            {
-                // A popup that cannot be painted still works; the panel keeps running.
-            }
-        }
-
-        private void OnCropDropdownShowed(object? sender, EventArgs args)
-        {
-            // Defer one tick so the drawer has attached the freshly cloned item labels.
-            _cropDropdown?.schedule.Execute(PaintDropdownPopupText);
-        }
-
-        /// <summary>Collects the labels of a subtree into a reused buffer (depth-first).</summary>
-        private static void CollectLabels(VisualElement root, List<Label> labels)
-        {
-            for (var index = 0; index < root.childCount; index++)
-            {
-                var child = root[index];
-                if (child is Label label)
-                {
-                    labels.Add(label);
-                }
-
-                if (child.childCount > 0)
-                {
-                    CollectLabels(child, labels);
-                }
-            }
-        }
-
-        /// <summary>Collects the popup list labels (class <c>dropdown-item__text</c>) of one panel.</summary>
-        private static void CollectDropdownItemLabels(VisualElement root, List<Label> labels)
-        {
-            for (var index = 0; index < root.childCount; index++)
-            {
-                var child = root[index];
-                if (child is Label label && label.ClassListContains("dropdown-item__text"))
-                {
-                    labels.Add(label);
-                }
-
-                if (child.childCount > 0)
-                {
-                    CollectDropdownItemLabels(child, labels);
-                }
-            }
         }
 
         /// <summary>

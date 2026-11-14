@@ -1,0 +1,7 @@
+HDBF 2.6.0 - Vanilla-style UI + collapsible sections / 原版化面板 + 可折叠分区
+
+[EN] UI/GUI pass. Every panel card now uses the game's own UI: vanilla nine-slice sub-panels and the shipped text colour/classes, the vanilla StatusListElement rows for warnings, the vanilla game-scroll-view scrollbar and the vanilla Dropdown. Removed the custom warm-white text colour, the hand-drawn warning accent strip and "A/!" markers, the forced font sizes/margins, the inert scroll class and the DebugButton debug class. Sections fold with the game's own clamp (extension-clamp): Workers / Growing now / Crop strategy open by default, Slots / Water / Maintenance / Power / Output folded, and any card with a warning opens itself. Fold state survives the 4 Hz refresh, so the crop dropdown still opens while a card is folded. Buildings stay in the vanilla Food build group - the build menu itself is unchanged.
+
+[ZH] 面板全面原版化：卡片、文字颜色与字号、警告行（游戏自带 StatusListElement 模板）、滚动条（原版 game-scroll-view）与作物下拉全部改用游戏自带控件与样式；删除自订暖白文字色、手绘警告色条与「▲/!」标记、强制字号/间距、无效滚动条 class 与 DebugButton 的调试 class。每张卡片可用游戏原版 clamp（extension-clamp）折叠：工人/生长中/作物策略默认展开，库存槽/水/维护/动力/输出默认折叠，带警告的卡片自动展开；折叠状态在 4 Hz 刷新后保留，折起时作物下拉仍可正常打开。建筑仍在原版 Food 建造分组，建造菜单本身不改。
+
+[TW] 面板全面原版化：卡片、文字顏色與字號、警告列（遊戲內建 StatusListElement 模板）、捲軸（原版 game-scroll-view）與作物下拉全部改用遊戲內建控件與樣式；刪除自訂暖白文字色、手繪警告色條與「▲/!」標記、強制字號/間距、無效捲軸 class 與 DebugButton 的除錯 class。每張卡片可用遊戲原版 clamp（extension-clamp）折疊：工人/生長中/作物策略預設展開，庫存槽/水/維護/動力/輸出預設折疊，帶警告的卡片自動展開；折疊狀態在 4 Hz 刷新後保留，折起時作物下拉仍可正常開啟。建築仍在原版 Food 建造分組，建造選單本身不改。

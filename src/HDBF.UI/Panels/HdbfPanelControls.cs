@@ -1,13 +1,13 @@
-// ============================================================================
+﻿// ============================================================================
 // HDBF v2 | Layer: UI/Panels | Owner: V2-UI-01
 // Purpose: Builders of the individual vanilla UIElements the v2 panel is composed from: cards
 //          (NineSliceVisualElement + sub-box classes), section titles, the compact tier/faction
 //          subtitle row, icon+label+value rows, progress bars (core ProgressBar with its value
-//          label and C_min marker) and warning rows (status-list structure + a colour accent
-//          strip). Buttons and worker chips live in HdbfPanelControls.Widgets.cs.
-//          Every text element is painted with ONE light colour (HdbfPanelControls.ApplyLightText),
-//          never with per-row hard-coded colours, and every class list is applied one class at a
-//          time (VisualElement.AddToClassList takes a single class name).
+//          label and C_min marker) and warning rows (the shipped StatusListElement template).
+//          Buttons, the fold clamp and worker chips live in HdbfPanelControls.Widgets.cs.
+//          Every class name and every template path comes from HdbfIndoorPanelStyle; no colour,
+//          font size or spacing is invented here (vanilla text is rgb(204,204,204) from the
+//          shipped classes, so the panel never paints text).
 // Requirements: REQ-V2-UI-01/02/03, REQ-V2-READ-04
 // ============================================================================
 using Timberborn.CoreUI;
@@ -23,19 +23,6 @@ namespace HDBF.UI.Panels
     /// </summary>
     public static partial class HdbfPanelControls
     {
-        /// <summary>
-        /// Panel text colour: warm white #F2EBDD. Vanilla ships no ".text--white" class, so the
-        /// fragment sets this one colour explicitly on every text it creates; this keeps the
-        /// requirement-D rule in a single place (no per-row colours, no dark fallback).
-        /// </summary>
-        public static readonly Color LightText = FromRgba(HdbfIndoorPanelStyle.LightTextRgba);
-
-        /// <summary>
-        /// Warning accent strip colour #C4562B: the second encoding that survives "all text is
-        /// light" (the icon and the "▲/!" marker are the first and third, requirement I).
-        /// </summary>
-        public static readonly Color WarningAccent = FromRgba(HdbfIndoorPanelStyle.WarningAccentRgba);
-
         /// <summary>Adds every class of a space separated vanilla class list, one call per name.</summary>
         /// <param name="element">Target element.</param>
         /// <param name="classNames">Vanilla class list, e.g. "entity-panel__text text--bold".</param>
@@ -53,42 +40,21 @@ namespace HDBF.UI.Panels
             }
         }
 
-        /// <summary>
-        /// Paints one element (and, through USS inheritance, its children) with the light panel
-        /// text colour. Called on every text element this factory creates so a missing/renamed
-        /// vanilla colour class can never leave dark text on a dark card (requirement D).
-        /// </summary>
-        /// <param name="element">Element to paint.</param>
-        public static void ApplyLightText(VisualElement element)
-        {
-            if (element is not null)
-            {
-                element.style.color = new StyleColor(LightText);
-            }
-        }
-
-        /// <summary>Creates a label with the vanilla class list, the light colour and wrapping.</summary>
+        /// <summary>Creates a label with the vanilla class list. The colour comes from the class.</summary>
         /// <param name="text">Localized text.</param>
         /// <param name="classNames">Vanilla class list or empty.</param>
-        /// <param name="fontSize">Font size in points; 0 keeps the vanilla class size.</param>
         /// <returns>Ready-to-add label.</returns>
-        public static Label CreateLabel(string text, string? classNames, float fontSize)
+        public static Label CreateLabel(string text, string? classNames)
         {
             var label = new Label(text);
             AddClasses(label, classNames);
-            ApplyLightText(label);
             label.style.whiteSpace = WhiteSpace.Normal;
             label.style.flexShrink = 1f;
-            if (fontSize > 0f)
-            {
-                label.style.fontSize = fontSize;
-            }
-
             return label;
         }
 
         /// <summary>Creates a vanilla sub-panel card with the requested tone (no gap between cards).</summary>
-        /// <param name="tone">"green", "blue", "purple" or "red".</param>
+        /// <param name="tone">"green", "blue" or "red".</param>
         /// <returns>A NineSliceVisualElement that draws the vanilla card frame.</returns>
         public static NineSliceVisualElement CreateCard(string tone)
         {
@@ -107,10 +73,9 @@ namespace HDBF.UI.Panels
         {
             var row = CreateRowContainer();
             AddIcon(row, iconKey, icons);
-            var label = CreateLabel(title, HdbfIndoorPanelStyle.SectionTitle, 15f);
+            var label = CreateLabel(title, HdbfIndoorPanelStyle.SectionTitle);
             label.style.flexGrow = 1f;
             row.Add(label);
-            row.style.marginBottom = 4f;
             return row;
         }
 
@@ -127,11 +92,10 @@ namespace HDBF.UI.Panels
         {
             var row = CreateRowContainer();
             AddIcon(row, "mode", icons);
-            var label = CreateLabel(text, HdbfIndoorPanelStyle.RowValue, 12f);
+            var label = CreateLabel(text, HdbfIndoorPanelStyle.SubText);
             label.style.flexGrow = 1f;
             row.Add(label);
             SetTooltip(row, tooltip);
-            row.style.marginBottom = 2f;
             return row;
         }
 
@@ -148,16 +112,15 @@ namespace HDBF.UI.Panels
         {
             var root = CreateRowContainer();
             AddIcon(root, row.IconKey, icons);
-            var label = CreateLabel(row.IsWarning ? row.Marker + " " + row.Label : row.Label,
-                row.IsWarning ? HdbfIndoorPanelStyle.WarningText : HdbfIndoorPanelStyle.RowLabel, 0f);
+            var label = CreateLabel(row.Label,
+                row.IsWarning ? HdbfIndoorPanelStyle.WarningText : HdbfIndoorPanelStyle.RowLabel);
             label.style.flexGrow = 1f;
             root.Add(label);
 
-            valueLabel = CreateLabel(row.Value, HdbfIndoorPanelStyle.RowValue, 0f);
+            valueLabel = CreateLabel(row.Value, HdbfIndoorPanelStyle.RowValue);
             valueLabel.style.unityTextAlign = TextAnchor.MiddleRight;
             valueLabel.style.flexShrink = 1f;
             valueLabel.style.minWidth = 0f;
-            valueLabel.style.marginLeft = 6f;
             root.Add(valueLabel);
 
             SetTooltip(root, row.Tooltip);
@@ -180,12 +143,9 @@ namespace HDBF.UI.Panels
             AddClasses(bar, critical
                 ? HdbfIndoorPanelStyle.ProgressBarRed
                 : HdbfIndoorPanelStyle.ProgressBarGreen);
-            bar.style.marginTop = 2f;
-            bar.style.marginBottom = 2f;
-            bar.style.minHeight = 24f;
             bar.SetProgress(HdbfIndoorPanelLimits.Fill(row.Bar));
 
-            var text = CreateLabel(row.BarText, HdbfIndoorPanelStyle.ProgressText, 12f);
+            var text = CreateLabel(row.BarText, HdbfIndoorPanelStyle.ProgressText);
             text.style.unityTextAlign = TextAnchor.MiddleCenter;
             text.style.whiteSpace = WhiteSpace.Normal;
             bar.contentContainer.Add(text);
@@ -203,44 +163,71 @@ namespace HDBF.UI.Panels
         }
 
         /// <summary>
-        /// Creates a vanilla status row: a colour accent strip, the warning icon and the localized
-        /// sentence. Colour is never the only carrier - the row keeps its icon and its "▲/!" text
-        /// marker, and the strip is only the third encoding (requirement I).
+        /// Creates a vanilla status row from the shipped <c>StatusListElement</c> template: 34 px
+        /// icon slot + the localized sentence. The template is the same one the game uses for its
+        /// own status lists, so warning rows are indistinguishable from vanilla ones. A missing
+        /// template degrades to a hand-built row that keeps the same vanilla classes.
         /// </summary>
         /// <param name="row">Warning row model.</param>
         /// <param name="icons">Sprite cache of this panel.</param>
+        /// <param name="loader">Vanilla UXML loader from the game container.</param>
         /// <returns>Status row element.</returns>
-        public static VisualElement CreateWarningRow(HdbfPanelRow row, HdbfPanelIcons icons)
+        public static VisualElement CreateWarningRow(HdbfPanelRow row, HdbfPanelIcons icons,
+            VisualElementLoader loader)
+        {
+            VisualElement? element = null;
+            try
+            {
+                element = loader.LoadVisualElement(HdbfIndoorPanelStyle.StatusRowTemplate);
+            }
+            catch (System.Exception)
+            {
+                // A missing status template must not break the entity panel.
+            }
+
+            if (element is null)
+            {
+                element = CreateFallbackWarningRow(row, icons);
+                return element;
+            }
+
+            var icon = element.Q<VisualElement>("Icon");
+            var sprite = icons.Get(row.IconKey);
+            if (icon is not null && sprite is not null)
+            {
+                icon.style.backgroundImage = new StyleBackground(sprite);
+            }
+
+            var text = element.Q<Label>("Text");
+            if (text is not null)
+            {
+                text.text = row.Label;
+            }
+
+            return element;
+        }
+
+        /// <summary>Hand-built status row used only when the shipped template cannot be loaded.</summary>
+        private static VisualElement CreateFallbackWarningRow(HdbfPanelRow row, HdbfPanelIcons icons)
         {
             var root = new VisualElement();
             root.AddToClassList(HdbfIndoorPanelStyle.WarningRow);
-
-            var strip = new VisualElement();
-            strip.style.width = 3f;
-            strip.style.marginRight = 6f;
-            strip.style.alignSelf = Align.Stretch;
-            strip.style.backgroundColor = new StyleColor(WarningAccent);
-            strip.pickingMode = PickingMode.Ignore;
-            root.Add(strip);
-
             var icon = new Image { sprite = icons.Get(row.IconKey) };
             icon.AddToClassList(HdbfIndoorPanelStyle.WarningIcon);
             icon.pickingMode = PickingMode.Ignore;
             root.Add(icon);
-
-            var text = CreateLabel(row.Marker + " " + row.Label, HdbfIndoorPanelStyle.WarningText, 0f);
+            var text = CreateLabel(row.Label, HdbfIndoorPanelStyle.WarningText);
             text.style.flexGrow = 1f;
             root.Add(text);
-            SetTooltip(root, row.Tooltip);
             return root;
         }
 
         /// <summary>Creates a hidden-by-default note label for inline reasons and the action result.</summary>
         /// <param name="text">Initial localized text.</param>
-        /// <returns>Light, wrapping label with display:none.</returns>
+        /// <returns>Vanilla sub-text label with display:none.</returns>
         public static Label CreateNoteLabel(string text)
         {
-            var label = CreateLabel(text, HdbfIndoorPanelStyle.SubText, 12f);
+            var label = CreateLabel(text, HdbfIndoorPanelStyle.SubText);
             label.style.display = DisplayStyle.None;
             return label;
         }
@@ -281,15 +268,6 @@ namespace HDBF.UI.Panels
             image.AddToClassList(HdbfIndoorPanelStyle.RowIcon);
             image.pickingMode = PickingMode.Ignore;
             parent.Add(image);
-        }
-
-        private static Color FromRgba(uint rgba)
-        {
-            return new Color32(
-                (byte)(rgba >> 24),
-                (byte)(rgba >> 16),
-                (byte)(rgba >> 8),
-                (byte)rgba);
         }
     }
 }

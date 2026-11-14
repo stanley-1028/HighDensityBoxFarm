@@ -2368,3 +2368,60 @@ Basic 农场输出库存随游戏日的时间序列（game day 34.17 载入）�
 * **頁面核對**：本機模擬環境的 Steam 公開頁快照（抓取時 2026-11-08 10:19 左右）可能落後於本輪上傳；
   本節以 **Steam `logs/workshop_log.txt` 的 ManifestID 記錄**為上傳成功的權威證據，不宣稱公開頁已刷新。
 
+## 52. 2.6.0 UI/GUI 原版化 + 可折疊分區：離線驗證（2026-11-14）
+
+* **變更範圍**：只動 `src/HDBF.UI/**` 與兩份 UI 契約測試（`V2PanelVisualContractTests`、
+  `V2PanelContractTests`）；資料/藍圖/遊戲邏輯/存檔/配置/Harmony 均未修改。
+* **考察證據**（離線，原版 1.1.2.8 拆包 `%USERPROFILE%\.hdbf\ref\UI\Views`，31 個 USS + 全部 UXML）：
+  原版 fragment 根 = `cui:NineSliceVisualElement` + `entity-sub-panel` + `bg-sub-box--*`
+  （`WorkplaceFragment.uxml:6`、`DeteriorableFragment.uxml:7`、`StatusListFragment.uxml:6`）；
+  文字由 USS 給色（`.entity-panel__text` = 13 px `rgb(204,204,204)`，`EntityPanelCommonStyle.uss:13-17`）；
+  遊戲內 UI **不用** `ui:Foldout`（只有藍圖編輯器/除錯面板用），原版折疊 idiom 是
+  `entity-panel__description--hidden` 與 `extension-clamp` / `extension-clamp--hidden`
+  （clamp-up / clamp-down 貼圖，`GameStyle.uss:10-54`，用於頂欄計數、地區面板、通知面板）。
+* **審計**：現有面板 30 項視覺決策 = 4 原版 / 13 derived / **13 自訂**；最嚴重的是
+  `LightTextRgba = #F2EBDD` 打到每個文字節點（原版 USS 全表無此顏色）。
+* **實作**：刪除自訂色/字號/警告色條/`▲!` 標記/假滾動條 class/下拉重繪/DebugButton 除錯 class；
+  警告行改用原版 `Game/EntityPanel/StatusListElement` 模板，滾動容器改用 `game-scroll-view`
+  並在建樹後跑一次原版 `VisualElementInitializer`；新增 `HdbfFarmPanelFragment.Fold.cs`
+  （每張卡 = 原版標題行 + body + 原版 `extension-clamp`；折疊只切 `display`，狀態存 fragment，
+  不進 read model/簽名，帶警告的卡強制展開，換實體 `ResetFolds()`）。
+* **構建**（`build.ps1 -WorkRoot <workspace>\_recon\work-gate`）：
+  * 5 程序集 **0 warning / 0 error**；
+  * L1 **PASSED 733 / FAILED 0**（新增折疊契約 1 條、改寫 4 條舊視覺契約）；
+  * `tools/validate` RESULT: OK、mod assemblies 5/5 OK；
+  * **RELEASE GATES: PASSED (44 checks)**、`NFR GATE MATRIX: PASSED`；
+  * staged 包 48 files / manifest Version **2.6.0**。
+* **測試改寫的誠實說明**：舊契約（暖白文字、警告色條、雙隱藏滾動條、下拉重繪）描述的是**被移除的
+  行為**，測試相應改為「原版契約」（無 `style.color`、無 `backgroundColor`、無自訂色常數、
+  `StatusListElement` 模板、`game-scroll-view`、`extension-clamp`、折疊不進 read model/簽名），
+  不是放寬斷言。
+* **實機狀態（誠實）**：本輪**沒有**可互動實機會話（本機合成輸入不可達遊戲視窗，面板只在選中農場時
+  構建），面板視覺效果 **pending**；上線包與證據以離線門禁為準，恢復實機後應補本節截圖。
+
+## 53. 2.6.0 發佈記錄：Steam Workshop 更新 + GitHub push（2026-11-14）
+
+* **上傳**：2026-11-14 08:38（Asia/Macau）成功，item `3828809784`，
+  `ManifestID 4848736136601558932`；Steam `logs\workshop_log.txt`：
+  `Uploaded new content ( ManifestID 4848736136601558932 ) for item 3828809784.` →
+  `Upload finished for workshop item 3828809784 : OK`（AppID 1062090）。
+  一次性 Steamworks UGC 工具
+  `C:\Users\user\hdbf-tools\steamupload\bin\Release\net9.0\SteamUpload.exe` 回報
+  `submitDone ioFailure=False eResult=k_EResultOK needsLegalAgreement=False publishedFileId=3828809784`
+  （exit 0；上傳進度 `UploadingContent 592016/592016` → `CommittingChanges`）。
+* **上傳內容** = 2.6.0 staged 包（**48 files / 2,208,034 bytes / 2,156 KB**、manifest Version 2.6.0），
+  與 §52 離線門禁為同一份：5 組件 0 warning / 0 error、L1 **733/733**、`tools/validate` RESULT: OK、
+  **RELEASE GATES: PASSED (44 checks)**、`NFR GATE MATRIX: PASSED`。
+* **Change Note（三語：EN / zhCN / zhTW）**：面板原版化（刪自訂暖白文字/警告色條/假滾動條，
+  警告行用原版 `StatusListElement`、滾動條用 `game-scroll-view`、按鈕/下拉保留原版樣式）；
+  每張卡片可用原版 `extension-clamp` 折疊（預設展開 工人/生長中/作物策略，其餘折疊，
+  帶警告的卡片自動展開；折疊狀態在 4 Hz 刷新後保留且不卸載作物下拉）。
+  檔案：`docs/workshop/changenote-2.6.0.txt`（2,306 B，隨 repo 追蹤）。
+* **本機部署**：`Documents\Timberborn\Mods\HDBF` 與
+  `Steam\steamapps\workshop\content\1062090\3828809784` 均為 2.6.0（48 files、manifest 2.6.0、
+  `HDBF.UI.dll` SHA-256 相同）；舊 2.5.11 備份於 `C:\Users\user\hdbf-tools\workshop-backup\`
+  （`3828809784-2.5.11`、`HDBF-local-2.5.11`）。
+* **GitHub `stanley-1028/HighDensityBoxFarm`**：源碼 commit（`src/HDBF.UI` 原版化 + 折疊 + 契約測試
+  + 版本/文檔）與本節發佈記錄 commit 一併 push 到 `master`；push 結果見 §53.1。標題/描述/封面/標籤/
+  可見性刻意未動（只更新內容與 Change Note）。
+

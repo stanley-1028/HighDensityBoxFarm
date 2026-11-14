@@ -1,9 +1,63 @@
 # HDBF v2 变更记录
 
-> **状态**：**2.5.11 已发布**（2026-11-08，Steam Workshop item 3828809784，ManifestID `2025374107308867942`；离线门禁全绿 + **本机实机存档加载验证**，见 VERIFICATION §50/§51）；**2.5.10 已发布**（2026-11-08 10:00，Steam Workshop item 3828809784，ManifestID `4179524907985799025`；离线门禁全绿 + **实机验证通过**——93 件 Carrot 在 2.5 个游戏日内被搬空、4.1 个游戏日无异常，见 VERIFICATION §48/§49）；**2.5.9 已发布**（2026-11-07 21:49，Steam Workshop item 3828809784，ManifestID `9210717745557344144`；GitHub 见 push 后的 master；离线门禁全绿，实机验证 pending；暫存语义修复：农场输出库存从「整盒容量/类仓库」改为「一天产量暂存」，见 VERIFICATION §46/§47）；**2.5.8 已发布**（2026-11-07 17:10，Steam Workshop item 3828809784，ManifestID `8359214256551403205`；GitHub `b900e8a`；离线门禁全绿，实机验证仍 pending）；2.5.7 已发布（2026-11-06 17:40，玩家回馈热修 + 下拉开启期间暂停刷新的防护；Steam Workshop item 3828809784，ManifestID 4408964257799319853；第一次 17:14 上传误带旧 2.5.6 staging，17:40 已重新上传正确包，详见 VERIFICATION §43；实机点击验证仍 pending，不写成已完成）；2.5.6 已发布（Steam Workshop ManifestID 3045694293614393693；GitHub 见 push 后的 master；离线门禁全绿；实机验证部分 pending，见 VERIFICATION §40）；2.5.5 为未发布的第二维修轮；2.5.4 已发布（Steam Workshop ManifestID 2037025195551276545）
-> **日期**：2026-11-08
-> **适用版本**：2.5.11
-> **变更摘要**：v2.1 需求引入室内农场方案；本文件记录 v1→v2 的行为/数据/工程变更与实现状态。2.5.8 = 管道供水修复（水塔接网判定 + 紧邻农场的 Timber Pipes 输水管直接供水）；2.5.9 = 输出库存暂存语义修复（整盒容量 → 一天产量暂存，不再像普通仓库一样囤货）；2.5.10 = 搬运链组件配对修复（补上 Emptiable 级联 provider 所需的两个原版行为组件，普通搬运工恢复清空农场输出）。2.5.11 = 「需要搬运工才能运转」状态守卫（即使没有搬运工，盒子农场也不会显示误导性提示；原版公开 opt-out，无 Harmony）。
+> **状态**：**2.6.0 已发布**（2026-11-14 08:38 Asia/Macau，Steam Workshop item 3828809784，ManifestID `4848736136601558932`；离线门禁全绿 + L1 733/733，实机面板视觉验证 pending，见 VERIFICATION §52/§53）；**2.5.11 已发布**（2026-11-08，Steam Workshop item 3828809784，ManifestID `2025374107308867942`；离线门禁全绿 + **本机实机存档加载验证**，见 VERIFICATION §50/§51）；**2.5.10 已发布**（2026-11-08 10:00，Steam Workshop item 3828809784，ManifestID `4179524907985799025`；离线门禁全绿 + **实机验证通过**——93 件 Carrot 在 2.5 个游戏日内被搬空、4.1 个游戏日无异常，见 VERIFICATION §48/§49）；**2.5.9 已发布**（2026-11-07 21:49，Steam Workshop item 3828809784，ManifestID `9210717745557344144`；GitHub 见 push 后的 master；离线门禁全绿，实机验证 pending；暫存语义修复：农场输出库存从「整盒容量/类仓库」改为「一天产量暂存」，见 VERIFICATION §46/§47）；**2.5.8 已发布**（2026-11-07 17:10，Steam Workshop item 3828809784，ManifestID `8359214256551403205`；GitHub `b900e8a`；离线门禁全绿，实机验证仍 pending）；2.5.7 已发布（2026-11-06 17:40，玩家回馈热修 + 下拉开启期间暂停刷新的防护；Steam Workshop item 3828809784，ManifestID 4408964257799319853；第一次 17:14 上传误带旧 2.5.6 staging，17:40 已重新上传正确包，详见 VERIFICATION §43；实机点击验证仍 pending，不写成已完成）；2.5.6 已发布（Steam Workshop ManifestID 3045694293614393693；GitHub 见 push 后的 master；离线门禁全绿；实机验证部分 pending，见 VERIFICATION §40）；2.5.5 为未发布的第二维修轮；2.5.4 已发布（Steam Workshop ManifestID 2037025195551276545）
+> **日期**：2026-11-14
+> **适用版本**：2.6.0
+> **变更摘要**：v2.1 需求引入室内农场方案；本文件记录 v1→v2 的行为/数据/工程变更与实现状态。2.5.8 = 管道供水修复（水塔接网判定 + 紧邻农场的 Timber Pipes 输水管直接供水）；2.5.9 = 输出库存暂存语义修复（整盒容量 → 一天产量暂存，不再像普通仓库一样囤货）；2.5.10 = 搬运链组件配对修复（补上 Emptiable 级联 provider 所需的两个原版行为组件，普通搬运工恢复清空农场输出）。2.5.11 = 「需要搬运工才能运转」状态守卫（即使没有搬运工，盒子农场也不会显示误导性提示；原版公开 opt-out，无 Harmony）。**2.6.0 = UI/GUI 原版化 + 可折叠分区（所有自订颜色/字号/警告色条/假滚动条删除，警告行/滚动条/下拉全部改用游戏自带控件；每张卡片可用原版 `extension-clamp` 折叠，折叠状态不进 read model/签名）。**
+
+## [2.6.0] — 2026-11-14（UI/GUI 原版化 + 可折叠分区：删除自订视觉，改用游戏自带控件与折叠 idiom）
+
+依据玩家要求：「把 UI 和 GUI 都原版化，收缩型菜单也是，同时为他们的建筑菜单做收缩型菜单」。
+
+考察（离线，原版 1.1.2.8 拆包 `%USERPROFILE%\.hdbf\ref\UI\Views` + 现有面板逐行审计）：
+
+1. 原版实体面板的每个 fragment 根节点都是一张卡片：`cui:NineSliceVisualElement` + `entity-sub-panel`
+   + 一个 `bg-sub-box--*` 九宫格 tone（`WorkplaceFragment.uxml:6`、`DeteriorableFragment.uxml:7`、
+   `StatusListFragment.uxml:6`）。文字颜色/字号全部由 USS 给出：`.entity-panel__text` = 13 px
+   `rgb(204,204,204)`（`EntityPanelCommonStyle.uss:13-17`）、`.entity-panel__sub-text` = 12 px
+   （`:36-40`）、`.game-text-heading` = 15 px（`CommonStyle.uss:19-23`）。
+2. 原版**没有**在游戏内 UI 使用 `ui:Foldout`（只有蓝图编辑器/调试面板用，且 vanilla 不提供
+   `.unity-foldout*` 样式）。原版真正的折叠 idiom 有两种：① 实体面板描述块
+   （`entity-panel__description--hidden` + 22 px 圆形按钮）；② `extension-clamp` /
+   `extension-clamp--hidden`（clamp-up / clamp-down 贴图，`GameStyle.uss:10-54`），用于顶栏计数、
+   地区面板、通知面板。→ 本版采用 ② 作为卡片的折叠控件，几何/贴图全部来自原版 class，不新增样式。
+3. 现有面板有 30 项视觉偏差（审计表 §2）：4 项原版、13 项「原版 class + inline 覆写」、**13 项自订**，
+   其中贯穿全面板的是自订暖白文字色 `#F2EBDD`（`HdbfIndoorPanelStyle.LightTextRgba`，
+   经 `ApplyLightText` 打到每个文字节点）——只要它在，面板就不可能看起来像原版。
+
+改版（只动 `src/HDBF.UI` + UI 契约测试）：
+
+* 【修改】删除全部自订视觉：`LightTextRgba` / `WarningAccentRgba` / `ApplyLightText` / `FromRgba`、
+  3 px `#C4562B` 警告色条、`▲/!/•` 文字标记、`CreateLabel(fontSize)` 的字号覆写、卡片 `marginBottom`、
+  进度条 `minHeight/margin` 覆写、按钮 `minHeight/fontSize`、下拉文字重绘（`PaintDropdownText` /
+  `PaintDropdownPopupText` / `OnCropDropdownShowed` 整段删除）、`scroll--green-decorated` 假 class、
+  `bg-sub-box--purple-striped` 行动卡片色板（行动卡回到普通绿色卡片）、`DebugButton.debug-fragment__button`
+  （模板仍用原版 `Game/EntityPanel/DebugButton`，但只保留 `button-game entity-fragment__button` 原版按钮 class）。
+* 【修改】弹窗/警告行改用**原版模板**：警告行由 `Game/EntityPanel/StatusListElement` 模板生成
+  （34 px `__icon` + `entity-panel__text status-list-element__text`），图标由行 sprite 画到模板的
+  `Icon` 槽；模板缺失时才退回同 class 的手工行。
+* 【修改】滚动容器改用原版 `game-scroll-view`（可见的九宫格滚动条），并在建树后调用游戏自己的
+  `VisualElementInitializer.InitializeVisualElement(root)`，让 `--click-sound`、滚动条九宫格与
+  本地化初始化器和加载 UXML 模板时完全一致。
+* 【新增】**可折叠分区**（`HdbfFarmPanelFragment.Fold.cs`）：每张卡片 = 原版标题行 + body + 原版
+  `extension-clamp` 按钮；标题行本身也是折叠热区。折叠**只切 body 的 `display`**，不增删卡片、
+  不改卡片签名、不调用 `Refresh(force)`。折叠状态存在 fragment 的
+  `Dictionary<HdbfPanelSectionKind,bool>`（`_foldOverrides`），4 Hz 重建后由 `BuildSectionCard`
+  重新套用，所以折起时作物下拉仍挂在面板上、弹窗不会被关掉。默认展开：工人&效率 / 生长中 /
+  作物策略；默认折叠：库存槽 / 水 / 维护 / 动力 / 输出；**带警告行的卡片强制展开**（警告被默认折叠
+  就是欺骗玩家）；玩家手动折叠优先于警告默认。切换实体时 `ResetFolds()` 回到默认布局。
+* 【测试】`V2PanelVisualContractTests` 的旧「暖白文字/警告色条/双隐藏滚动条/下拉重绘」契约改写为
+  原版契约：无 `style.color`、无 `backgroundColor`、无自订色常量；警告行 = `StatusListElement` 模板；
+  滚动条 = `game-scroll-view`；新增 `TestCardsFoldWithTheVanillaClampOutsideTheModel`（clamp class、
+  只切 display、折叠状态不进 read model/签名、换实体重置）。`V2PanelContractTests` 的
+  「原版控件词汇」表同步（`game-scroll-view` / `extension-clamp` / `bg-sub-box--red-striped`；
+  `backgroundColor` 计数 1 → 0；三个模板常量）。L1 **733/733**。
+* 【不变】建筑仍在原版 `Food` 建造分组（蓝图 `ToolGroupId: "Food"`、`ToolOrder`），建造菜单/底栏
+  不改；存档 schema、配置 schema、蓝图、数值、Harmony 数量（0）均不变。
+* 【发布】2026-11-14 08:38（Asia/Macau）更新 Steam Workshop item 3828809784，
+  `ManifestID 4848736136601558932`（`Upload finished for workshop item 3828809784 : OK`）；
+  本机 `Documents\Timberborn\Mods\HDBF` 与 Workshop 内容目录均已同步 2.6.0（SHA-256 相同）；
+  GitHub push 见 VERIFICATION §53。
 
 ## [2.5.11] — 2026-11-08（「需要搬运工才能运转」状态守卫：没有搬运工时也不显示误导提示）
 

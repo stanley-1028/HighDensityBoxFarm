@@ -31,8 +31,6 @@ namespace HDBF.Tests
     {
         private const string RepoRootKey = "HdbfRepoRoot";
         private const string UiRoot = "src/HDBF.UI";
-        private const uint ExpectedLightTextRgba = 0xF2EBDDFFu;
-        private const uint ExpectedWarningAccentRgba = 0xC4562BFFu;
 
         private static readonly string[] Languages = { "enUS", "zhCN", "zhTW" };
 
@@ -151,10 +149,11 @@ namespace HDBF.Tests
                              || style.Contains("backgroundImage", StringComparison.Ordinal),
                 "the style vocabulary must not define a background of its own");
 
-            // The only raw background colour in the whole panel is the 3 px warning accent strip.
+            // Vanilla-isation: the panel never sets a raw background colour; every surface is a
+            // shipped nine-slice/sub-box class (sprites are painted through backgroundImage only).
             var allUi = ReadUiSources(string.Empty);
-            TestAssert.Equal(1, CountOccurrences(allUi, "backgroundColor"),
-                "only the warning accent strip may set a raw background colour");
+            TestAssert.Equal(0, CountOccurrences(allUi, "backgroundColor"),
+                "no raw background colour may remain in the panel sources");
 
             // Cards own the dark background: entity-sub-panel + a shipped sub-box tone.
             var controls = ReadUiSources("Panels/HdbfPanelControls.cs");
@@ -173,32 +172,36 @@ namespace HDBF.Tests
                 "cards must not add vertical margins; only the vanilla padding applies");
 
             var build = ReadUiSources("Panels/HdbfFarmPanelFragment.Build.cs");
-            TestAssert.Equal(2, CountOccurrences(build, "ScrollerVisibility.Hidden"),
-                "both scrollers must be hidden so the transparent gutter cannot show the tan panel");
+            TestAssert.Equal(1, CountOccurrences(build, "ScrollerVisibility.Hidden"),
+                "only the horizontal bar stays suppressed; the vertical bar is the vanilla one");
+            TestAssert.True(build.Contains("HdbfPanelControls.AddClasses(_scroll, HdbfIndoorPanelStyle.Scroll)",
+                    StringComparison.Ordinal),
+                "the scroller carries the vanilla game-scroll-view class");
+            TestAssert.Equal("game-scroll-view", HdbfIndoorPanelStyle.Scroll,
+                "the scroller class must be the shipped game-scroll-view");
             TestAssert.True(build.Contains("_scroll.style.marginTop = 0f", StringComparison.Ordinal),
                 "the scroller must not open a gap below the vanilla fragments");
         }
 
-        // ------------------------------------------------------------------ D: one light colour
+        // ------------------------------------------------------------------ D: vanilla text colour
 
-        public static void TestEveryTextUsesTheSingleWarmWhiteColour()
+        public static void TestEveryTextUsesTheShippedVanillaTextColour()
         {
-            TestAssert.True(ExpectedLightTextRgba == HdbfIndoorPanelStyle.LightTextRgba,
-                "the panel text colour must be #F2EBDD");
+            // Vanilla panel text is rgb(204,204,204) from .entity-panel__text / .game-text-*; the
+            // panel must not paint a colour of its own (the old invented warm white is gone).
             var style = ReadUiSources("Panels/HdbfIndoorPanelStyle.cs");
-            TestAssert.True(style.Contains("0xF2EBDDFF", StringComparison.Ordinal),
-                "the warm-white colour must live in exactly one constant");
+            TestAssert.False(style.Contains("F2EBDD", StringComparison.Ordinal),
+                "the invented warm-white colour must be deleted from the vocabulary");
+            TestAssert.False(style.Contains("LightText", StringComparison.Ordinal),
+                "no self-invented text-colour constant may exist");
 
-            var controls = ReadUiSources("Panels/HdbfPanelControls.cs")
-                           + ReadUiSources("Panels/HdbfPanelControls.Widgets.cs");
-            TestAssert.True(controls.Contains("element.style.color = new StyleColor(LightText)",
-                StringComparison.Ordinal),
-                "the one colour must be applied through ApplyLightText");
-            TestAssert.True(CountOccurrences(ReadUiSources(string.Empty), "ApplyLightText(") >= 5,
-                "every text builder must paint the light colour");
-
-            // No dark text hard-coded anywhere in the panel sources.
             var allUi = ReadUiSources(string.Empty);
+            TestAssert.False(allUi.Contains("style.color =", StringComparison.Ordinal),
+                "text colour must come from the vanilla USS classes, never from code");
+            TestAssert.False(allUi.Contains("ApplyLightText", StringComparison.Ordinal),
+                "the light-text repaint pass must be deleted");
+
+            // No dark text hard-coded anywhere either.
             foreach (var dark in new[]
                      {
                          "Color.black", "rgb(0, 0, 0)", "rgb(30, 30, 30)", "0xFF000000", "game-text--black",
@@ -208,7 +211,7 @@ namespace HDBF.Tests
                     "the panel must not hard-code dark text: " + dark);
             }
 
-            // Labels are only built through the light-colour helper.
+            // Labels are only built through the class-driven helper.
             var render = ReadUiSources("Panels/HdbfFarmPanelFragment.Render.cs");
             var build = ReadUiSources("Panels/HdbfFarmPanelFragment.Build.cs");
             TestAssert.False(render.Contains("new Label(", StringComparison.Ordinal)
@@ -366,19 +369,35 @@ namespace HDBF.Tests
                 "the panel must not clip text");
         }
 
-        // ------------------------------------------------------------------ I: colour is not the only carrier
+        // ------------------------------------------------------------------ I: vanilla status rows
 
-        public static void TestWarningRowsKeepIconMarkerAndAccentStrip()
+        /// <summary>
+        /// Warnings are rendered with the game's own StatusListElement template (icon slot + text
+        /// label), i.e. exactly like every vanilla status list. The old invented colour accent strip
+        /// and the "▲/!" text markers are gone: severity is carried by the vanilla red-striped card
+        /// and the status icon, not by a hand-drawn colour bar.
+        /// </summary>
+        public static void TestWarningRowsUseTheVanillaStatusTemplate()
         {
-            TestAssert.True(ExpectedWarningAccentRgba == HdbfIndoorPanelStyle.WarningAccentRgba,
-                "the warning accent strip colour must stay the single #C4562B constant");
+            TestAssert.Equal("Game/EntityPanel/StatusListElement", HdbfIndoorPanelStyle.StatusRowTemplate);
+            var style = ReadUiSources("Panels/HdbfIndoorPanelStyle.cs");
+            TestAssert.False(style.Contains("C4562B", StringComparison.Ordinal),
+                "the invented warning accent colour must be deleted from the vocabulary");
+            TestAssert.False(style.Contains("WarningAccent", StringComparison.Ordinal),
+                "no self-invented warning colour may exist");
+
             var controls = ReadUiSources("Panels/HdbfPanelControls.cs");
-            TestAssert.True(controls.Contains("strip.style.backgroundColor", StringComparison.Ordinal),
-                "the warning row carries a colour accent strip");
-            TestAssert.True(controls.Contains("row.Marker + \" \" + row.Label", StringComparison.Ordinal),
-                "the warning row carries the text marker");
-            TestAssert.True(controls.Contains("icons.Get(row.IconKey)", StringComparison.Ordinal),
-                "the warning row carries an icon");
+            TestAssert.True(controls.Contains(
+                    "loader.LoadVisualElement(HdbfIndoorPanelStyle.StatusRowTemplate)", StringComparison.Ordinal),
+                "the warning row must be the shipped StatusListElement template");
+            TestAssert.True(controls.Contains("element.Q<VisualElement>(\"Icon\")", StringComparison.Ordinal),
+                "the template icon slot must be painted with the row sprite");
+            TestAssert.True(controls.Contains("element.Q<Label>(\"Text\")", StringComparison.Ordinal),
+                "the template text label must carry the localized sentence");
+            TestAssert.False(controls.Contains("strip.style.backgroundColor", StringComparison.Ordinal),
+                "the invented colour accent strip must be deleted");
+            TestAssert.False(controls.Contains("row.Marker + \" \" + row.Label", StringComparison.Ordinal),
+                "the invented ▲/! text marker must be deleted");
 
             var flagged = IntermediateFixture() with
             {
@@ -391,8 +410,8 @@ namespace HDBF.Tests
             TestAssert.True(warnings.Length >= 2, "the fixture must produce warning rows");
             foreach (var row in warnings)
             {
-                TestAssert.True(row.IconKey.Length > 0 && row.Marker.Length > 0 && row.Label.Length > 0,
-                    "warning row must keep icon + text marker + text");
+                TestAssert.True(row.IconKey.Length > 0 && row.Label.Length > 0,
+                    "warning row must keep icon + text");
             }
         }
 
@@ -602,49 +621,80 @@ namespace HDBF.Tests
         }
 
         /// <summary>
-        /// Requirement D covers both dropdown states: the closed selection item is re-painted after
-        /// every rebuild, and the open popup list (owned by the singleton DropdownListDrawer, i.e.
-        /// outside the Dropdown subtree) is re-painted light when it is shown. The popup rows keep
-        /// the vanilla nowrap/ellipsis because they are fixed 28 px list rows (requirement H applies
-        /// to the panel rows, which wrap).
+        /// Vanilla-isation of the crop dropdown: the control keeps the shipped Dropdown text colours
+        /// (no light repaint of the selection or of the open popup list). The panel only sets the
+        /// items and the selected value; everything visual belongs to the vanilla control.
         /// </summary>
-        public static void TestCropDropdownTextIsRepaintedLightInSelectionAndPopup()
+        public static void TestCropDropdownKeepsTheVanillaTextColours()
         {
             var crop = ReadUiSources("Panels/HdbfFarmPanelFragment.Crop.cs");
-            TestAssert.True(crop.Contains("PaintDropdownText();", StringComparison.Ordinal),
-                "the selected dropdown item must be re-painted after SetItems/UpdateSelectedValue");
-            var renderCrop = Slice(crop, "private void RenderCrop", "private void PaintDropdownText");
-            var itemsAt = renderCrop.IndexOf("SetItems(_cropDropdown", StringComparison.Ordinal);
-            var updateAt = renderCrop.IndexOf("UpdateSelectedValue()", StringComparison.Ordinal);
-            var paintAt = renderCrop.IndexOf("PaintDropdownText();", StringComparison.Ordinal);
-            TestAssert.True(paintAt > itemsAt && paintAt > updateAt,
-                "the repaint must run after both dropdown update paths");
+            TestAssert.True(crop.Contains("new Dropdown()", StringComparison.Ordinal),
+                "the crop control must be the vanilla Dropdown");
+            TestAssert.True(crop.Contains("dropdown.Initialize(_dropdownListDrawer)", StringComparison.Ordinal),
+                "the vanilla dropdown needs the game popup drawer");
+            TestAssert.True(crop.Contains("SetItems(_cropDropdown", StringComparison.Ordinal),
+                "the items still come from the vanilla DropdownItemsSetter");
+            TestAssert.True(crop.Contains("UpdateSelectedValue()", StringComparison.Ordinal),
+                "a value-only refresh still re-syncs the vanilla selection");
 
-            var selectionPaint = Slice(crop, "private void PaintDropdownText",
-                "private void PaintDropdownPopupText");
-            TestAssert.True(selectionPaint.Contains("ApplyLightText(", StringComparison.Ordinal),
-                "vanilla .dropdown-item__text grey must be overridden with the light colour");
+            TestAssert.False(crop.Contains("ApplyLightText", StringComparison.Ordinal),
+                "the dropdown must not repaint the vanilla text colour");
+            TestAssert.False(crop.Contains("PaintDropdown", StringComparison.Ordinal),
+                "the light-text repaint helpers must be deleted");
+            TestAssert.False(crop.Contains("style.color", StringComparison.Ordinal),
+                "no code-set text colour in the crop block");
+        }
 
-            // Popup: reachable only through the drawer; paint it when the dropdown is shown.
-            TestAssert.True(crop.Contains("dropdown.Showed += OnCropDropdownShowed", StringComparison.Ordinal),
-                "the popup list must be re-painted when the drawer shows it");
-            TestAssert.True(crop.Contains("private void PaintDropdownPopupText()", StringComparison.Ordinal),
-                "a dedicated popup paint pass must exist");
-            var popupPaint = Slice(crop, "private void PaintDropdownPopupText",
-                "private void OnCropDropdownShowed");
-            TestAssert.True(popupPaint.Contains("panel.visualTree", StringComparison.Ordinal),
-                "the popup lives outside the dropdown subtree; it must be found through the panel tree");
-            var popupCollector = Slice(crop, "private static void CollectDropdownItemLabels",
-                "private void ScheduleCropValueSync");
-            TestAssert.True(popupCollector.Contains("dropdown-item__text", StringComparison.Ordinal),
-                "the popup paint must target the vanilla popup label class");
-            TestAssert.True(popupPaint.Contains("ApplyLightText(", StringComparison.Ordinal),
-                "popup labels must be painted with the one light colour");
-            TestAssert.False(popupPaint.Contains("whiteSpace", StringComparison.Ordinal)
-                             || popupPaint.Contains("textOverflow", StringComparison.Ordinal),
-                "the fixed 28 px popup rows must keep vanilla nowrap/ellipsis (no overflow)");
-            TestAssert.True(popupPaint.Contains("catch (Exception)", StringComparison.Ordinal),
-                "popup painting must never throw into the entity panel");
+        /// <summary>
+        /// Collapsible sections are the game's own collapse idiom: the shipped .extension-clamp
+        /// Button (<c>extension-clamp--hidden</c> = folded) and a display:none body. The fold state
+        /// lives in the fragment, never in the read model or the card signature, because a signature
+        /// change would rebuild the card and detach the vanilla crop dropdown.
+        /// </summary>
+        public static void TestCardsFoldWithTheVanillaClampOutsideTheModel()
+        {
+            TestAssert.Equal("extension-clamp", HdbfIndoorPanelStyle.Clamp);
+            TestAssert.Equal("extension-clamp--hidden", HdbfIndoorPanelStyle.ClampHidden);
+
+            var widgets = ReadUiSources("Panels/HdbfPanelControls.Widgets.cs");
+            TestAssert.True(widgets.Contains("clamp.AddToClassList(HdbfIndoorPanelStyle.Clamp)",
+                    StringComparison.Ordinal),
+                "the fold control must be the shipped extension-clamp Button");
+            TestAssert.True(widgets.Contains(
+                    "clamp.EnableInClassList(HdbfIndoorPanelStyle.ClampHidden, !open)", StringComparison.Ordinal),
+                "the folded state must be the shipped extension-clamp--hidden class");
+
+            var cards = ReadUiSources("Panels/HdbfFarmPanelFragment.Cards.cs");
+            TestAssert.True(cards.Contains("HdbfPanelControls.CreateClampButton", StringComparison.Ordinal),
+                "every card must mount the vanilla clamp");
+            TestAssert.True(cards.Contains("ApplyFold(body, clamp, IsFoldOpen(section.Kind, hasWarnings))",
+                    StringComparison.Ordinal),
+                "the fold state must be re-applied when a card is rebuilt");
+            TestAssert.True(cards.Contains("header.RegisterCallback<ClickEvent>", StringComparison.Ordinal),
+                "the vanilla title row is the second fold target");
+
+            var fold = ReadUiSources("Panels/HdbfFarmPanelFragment.Fold.cs");
+            TestAssert.True(fold.Contains("_foldOverrides", StringComparison.Ordinal),
+                "the fold state must live in the fragment");
+            TestAssert.True(fold.Contains(
+                    "body.style.display = open ? DisplayStyle.Flex : DisplayStyle.None", StringComparison.Ordinal),
+                "folding must only switch the body display, never remove the card");
+            TestAssert.True(fold.Contains("if (hasWarnings)", StringComparison.Ordinal),
+                "a card with warnings is always open (a hidden warning would be a lie)");
+
+            // State separation: the fold must not enter the read model or the card signature.
+            var signature = ReadUiSources("Panels/HdbfIndoorPanelSignature.cs");
+            TestAssert.False(signature.Contains("Fold", StringComparison.Ordinal)
+                             || signature.Contains("Collapsed", StringComparison.Ordinal),
+                "the fold state must not enter the card signature (it would detach the dropdown)");
+            var model = ReadUiSources("Panels/HdbfIndoorPanelData.cs");
+            TestAssert.False(model.Contains("Collapsed", StringComparison.Ordinal)
+                             || model.Contains("Fold", StringComparison.Ordinal),
+                "the fold state must not enter the read model");
+
+            var lifecycle = ReadUiSources("Panels/HdbfFarmPanelFragment.cs");
+            TestAssert.True(CountOccurrences(lifecycle, "ResetFolds();") >= 2,
+                "a newly selected entity must reset to the default fold layout");
         }
 
         /// <summary>A missing WorkerView template still yields a chip whose name label is filled.</summary>

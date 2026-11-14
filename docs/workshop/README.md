@@ -201,3 +201,22 @@ cp docs/workshop/publish/* "$USERPROFILE/Documents/Timberborn/Mods/HDBF/"
   舊 2.5.10 內容備份在 `C:\Users\user\hdbf-tools\workshop-backup\3828809784-2.5.10`。
 - **實機**：本機視窗模式載入玩家 21:51 存檔副本，日誌確認 `indoor.hauler-status`（農場無該原版狀態組件）
   且 `[HDBF/Error]` = 0，見 `docs/VERIFICATION.md` §50。
+
+## 發佈記錄（2026-11-14，2.6.0）
+
+- 2.6.0 = **UI/GUI 原版化 + 可折疊分區**（玩家要求「把 UI 和 GUI 都原版化，收縮型菜單也是」）。
+  只動 `src/HDBF.UI` + UI 契約測試；資料/藍圖/數值/存檔/配置/Harmony 不變。
+- 上傳：2026-11-14 08:38（Asia/Macau）成功，`ManifestID 4848736136601558932`、
+  `Uploaded new content ( ManifestID 4848736136601558932 ) for item 3828809784.`、
+  `Upload finished for workshop item 3828809784 : OK`（Steam `logs\workshop_log.txt`，AppID 1062090）；
+  `SteamUpload.exe` 回報 `submitDone ioFailure=False eResult=k_EResultOK needsLegalAgreement=False
+  publishedFileId=3828809784`（exit 0）。
+- Change Note 檔案：[changenote-2.6.0.txt](changenote-2.6.0.txt)（三語：EN / zhCN / zhTW）。
+- 建置：5 程序集 0/0、L1 **733/733**、`tools/validate` RESULT: OK、
+  `build.ps1` **44 gates PASSED**、staged 48 files / manifest **2.6.0**。
+- 上傳只更新**內容與 Change Note**；標題/描述/封面/標籤/可見性刻意未動。
+- **本機測試包**：2.6.0 stage 已覆蓋到 `Documents\Timberborn\Mods\HDBF` 與
+  `Steam\steamapps\workshop\content\1062090\3828809784`（兩處 manifest 均 2.6.0，`HDBF.UI.dll`
+  SHA-256 相同）；舊 2.5.11 內容備份在 `C:\Users\user\hdbf-tools\workshop-backup\3828809784-2.5.11`
+  與 `...\HDBF-local-2.5.11`。
+- 實機面板視覺驗證 **pending**（本輪無可互動實機會話），見 VERIFICATION §52。

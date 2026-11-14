@@ -8,6 +8,12 @@
 //          replaced at its index, every other card - including the one that owns the dropdown - is
 //          left attached. The legacy "clear the whole stack and rebuild all cards" path is kept as
 //          the fallback for the first render or when the section layout itself changed.
+//
+//          Each card is foldable with the game's own collapse idiom: the vanilla title row plus a
+//          shipped .extension-clamp strip; the clamped body is only display:none, so the card
+//          element (and its index in the stack) never changes. Fold state lives in the fragment
+//          (HdbfFarmPanelFragment.Fold.cs), never in the read model, so folding can neither change
+//          a card signature nor trigger a rebuild.
 // Requirements: REQ-V2-UI-01/02/03/04, REQ-V2-UI-05, REQ-V2-READ-04, REQ-V2-PERF-02
 // ============================================================================
 using System.Collections.Generic;
@@ -166,10 +172,10 @@ namespace HDBF.UI.Panels
         }
 
         /// <summary>
-        /// Builds one card exactly as the panel always rendered it (title row, warning rows, value
-        /// rows, progress bars, the worker roster/mode group and the crop dropdown). Side effect:
-        /// the persistent worker-mode host and crop-dropdown host are re-parented into the new
-        /// card, which is why this is only called for cards that really changed.
+        /// Builds one foldable card: the vanilla title row (the fold affordance), the body that holds
+        /// the rows, and the shipped .extension-clamp strip that clamps the body. Side effect: the
+        /// persistent worker-mode host and crop-dropdown host are re-parented into the new card,
+        /// which is why this is only called for cards that really changed.
         /// </summary>
         /// <param name="section">Card model.</param>
         /// <param name="data">Whole read model (worker roster/meta extras).</param>
@@ -177,14 +183,24 @@ namespace HDBF.UI.Panels
         private VisualElement BuildSectionCard(HdbfPanelSection section, HdbfIndoorPanelData data)
         {
             var card = HdbfPanelControls.CreateCard(section.Tone);
+            var hasWarnings = HasWarningRows(section);
+
+            var header = HdbfPanelControls.CreateTitleRow(section.Title, section.IconKey, _icons);
+            card.Add(header);
+
+            // The foldable body. Only its display is switched, so the card keeps its index in the
+            // stack and the dropdown inside it stays attached to the panel while folded.
+            var body = new VisualElement();
+            body.style.flexDirection = FlexDirection.Column;
+            card.Add(body);
+
             if (section.Kind == HdbfPanelSectionKind.Workers)
             {
                 // Requirement A: the compact tier/faction line sits directly under the vanilla
                 // header as the first card row; the building name is never repeated.
-                card.Add(HdbfPanelControls.CreateMetaRow(data.MetaLine, data.MetaTooltip, _icons));
+                body.Add(HdbfPanelControls.CreateMetaRow(data.MetaLine, data.MetaTooltip, _icons));
             }
 
-            card.Add(HdbfPanelControls.CreateTitleRow(section.Title, section.IconKey, _icons));
             var critical = section.Tone == "red";
             VisualElement? cropPolicyRow = null;
             for (var rowIndex = 0; rowIndex < section.Rows.Count; rowIndex++)
@@ -192,18 +208,18 @@ namespace HDBF.UI.Panels
                 var row = section.Rows[rowIndex];
                 if (row.IsWarning)
                 {
-                    var warningRow = HdbfPanelControls.CreateWarningRow(row, _icons);
+                    var warningRow = HdbfPanelControls.CreateWarningRow(row, _icons, _visualElementLoader);
                     RegisterTooltip(warningRow, row.Tooltip);
-                    card.Add(warningRow);
+                    body.Add(warningRow);
                     continue;
                 }
 
                 var rowElement = HdbfPanelControls.CreateRow(row, _icons, out var valueLabel);
                 RegisterTooltip(rowElement, row.Tooltip);
-                card.Add(rowElement);
+                body.Add(rowElement);
                 if (row.HasBar)
                 {
-                    card.Add(HdbfPanelControls.CreateBar(row, critical));
+                    body.Add(HdbfPanelControls.CreateBar(row, critical));
                 }
 
                 if (section.Kind == HdbfPanelSectionKind.Crops && cropPolicyRow is null)
@@ -220,7 +236,7 @@ namespace HDBF.UI.Panels
 
             if (section.Kind == HdbfPanelSectionKind.Workers)
             {
-                RenderWorkerRoster(card, data);
+                RenderWorkerRoster(body, data);
             }
 
             if (section.Kind == HdbfPanelSectionKind.Crops && _cropHost is not null)
@@ -228,10 +244,35 @@ namespace HDBF.UI.Panels
                 // Requirement: one row = icon/label + current strategy text + the vanilla dropdown.
                 // The fallback keeps the dropdown mounted even if a future crop card lost its
                 // non-warning policy row (today the factory always provides one).
-                (cropPolicyRow ?? card).Add(_cropHost);
+                (cropPolicyRow ?? body).Add(_cropHost);
             }
 
+            Button? clamp = null;
+            clamp = HdbfPanelControls.CreateClampButton(
+                () => ToggleFold(section.Kind, hasWarnings, body, clamp));
+            card.Add(clamp);
+
+            // The title row is a second, friendlier fold target. The click bubbles from the label
+            // and the icon, so the whole header behaves like the vanilla clamp strip.
+            header.RegisterCallback<ClickEvent>(
+                _ => ToggleFold(section.Kind, hasWarnings, body, clamp));
+
+            ApplyFold(body, clamp, IsFoldOpen(section.Kind, hasWarnings));
             return card;
+        }
+
+        /// <summary>True when a card carries at least one warning row (warnings force the card open).</summary>
+        private static bool HasWarningRows(HdbfPanelSection section)
+        {
+            for (var index = 0; index < section.Rows.Count; index++)
+            {
+                if (section.Rows[index].IsWarning)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 }
