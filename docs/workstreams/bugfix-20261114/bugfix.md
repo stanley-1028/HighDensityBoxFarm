@@ -134,6 +134,13 @@ DropdownListDrawer.HideDropdown` 已取證，故本機任何下拉彈窗都會�
 * **玩家側確認**：留言 litos5599 已證實 2.6.0 後回歸（「yesterday it worked fine」）；本機 A/B 受第三方 mod
   干擾（§4），「彈窗保持打開到選完」標 **pending**，等玩家回饋，不寫成已驗證。
 
+## 5.1 發佈後追加（2026-11-15）：真正的干擾源是 SEE hotfix-6
+
+使用者回報 2.6.1 仍無法選作物後，實機 A/B 證實 HDBF 2.6.1 的修復有效（移除 SEE 時下拉保持 5.0 秒、可選）；
+真正干擾源是 Steam Engine Expansion 0.1.0 hotfix-6 的 `BoilerPanelView.SetVisible(false)` 無條件呼叫
+`Dropdown.Hide()`（原版關的是全遊戲共用的單例 drawer），已在 SEE hotfix-7 修復（Workshop ManifestID
+`8352811448294687049`、GitHub `v0.1.0-hotfix-7`）。完整證據見 `docs/VERIFICATION.md` §54.7。
+
 ## 6. 限制與未完成
 
 * 本機 DSH 會話**無法合成 OS 滑鼠/鍵盤輸入**（`docs/VERIFICATION.md` §16.2 已記錄），實機 A/B 透過原版下拉自己的

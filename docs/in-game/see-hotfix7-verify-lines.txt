@@ -1,0 +1,22 @@
+[SEE/Info][SEE/Info/Startup] SEE 0.1.0 ready; maintenance=on; fuelScaling=Proportional
+[HDBF/Info] verify.driver.1: postload source=True
+[HDBF/Info] verify.driver.2: select.sent
+[HDBF/Info] verify.1: attach dropdown=True vis=0 flag=0 popupItems=0 crops=5 applied= t=174.13
+Load time: 119925ms (scene index: 2)
+[HDBF/Info] verify.2: run.open.prepare vis=0 flag=0 popupItems=0 crops=5 applied= t=175.57
+[HDBF/Info] verify.3: run.open.try alreadyOpen=False vis=0 flag=0 popupItems=0 crops=5 applied= t=175.57
+[HDBF/Info] verify.4: dropdown.showed vis=1 flag=1 popupItems=5 crops=5 applied= t=175.58
+[HDBF/Info] verify.5: run.open.sent vis=1 flag=1 popupItems=5 crops=5 applied= t=175.58
+[HDBF/Info] verify.6: run.tick vis=1 flag=1 popupItems=5 crops=5 applied= t=176.19
+[HDBF/Info] verify.7: run.tick vis=1 flag=1 popupItems=5 crops=5 applied= t=176.69
+[HDBF/Info] verify.8: run.tick vis=1 flag=1 popupItems=5 crops=5 applied= t=177.22
+[HDBF/Info] verify.9: run.tick vis=1 flag=1 popupItems=5 crops=5 applied= t=177.72
+[HDBF/Info] verify.10: run.tick vis=1 flag=1 popupItems=5 crops=5 applied= t=178.23
+[HDBF/Info] verify.11: run.tick vis=1 flag=1 popupItems=5 crops=5 applied= t=178.75
+[HDBF/Info] verify.12: run.tick vis=1 flag=1 popupItems=5 crops=5 applied= t=179.27
+[HDBF/Info] verify.13: run.tick vis=1 flag=1 popupItems=5 crops=5 applied= t=179.78
+[HDBF/Info] verify.14: run.tick vis=1 flag=1 popupItems=5 crops=5 applied= t=180.29
+[HDBF/Info] verify.15: run.item.click index=2 text=土豆 count=5 vis=1 flag=1 popupItems=5 crops=5 applied= t=180.58
+[HDBF/Info] verify.16: dropdown.hidden from=<>c__DisplayClass9_0`1::<CreateWrapper>b__0 < DropdownListDrawer::HideDropdown < Dropdown::SetAndUpdate < RuntimeMethodInfo::InternalInvoke < RuntimeMethodInfo::Invoke < MethodBase::Invoke vis=0 flag=0 popupItems=5 crops=5 applied=Potato t=180.59
+[HDBF/Info] verify.17: run.item.done applied=Potato vis=0 flag=0 popupItems=5 crops=5 applied=Potato t=180.59
+[HDBF/Info] verify.18: run.done vis=0 flag=0 popupItems=5 crops=5 applied=Potato t=182.09

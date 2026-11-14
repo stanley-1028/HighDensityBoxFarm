@@ -2636,3 +2636,27 @@ Basic 农场输出库存随游戏日的时间序列（game day 34.17 载入）�
   annotated tag `v2.6.1` → peeled `264f5d8`；`git ls-remote origin refs/heads/master refs/tags/v2.6.1`
   核對 = `264f5d8` / `v2.6.1^{}` = `264f5d8`。本發佈記錄 commit 隨後再 push 一次，`origin/master`
   以最後一次 push 為準。
+
+### 54.7 補充（2026-11-15）：玩家「還是選不了」的真正干擾源 = SEE hotfix-6（已由 SEE hotfix-7 修復）
+
+* **回報**：2026-11-14 23:18 使用者回報 2.6.1 仍無法選作物。其當局 `Player.log`：`start HDBF version=2.6.1`、
+  `[HDBF/Error]`=0、`ui.crop-dropdown`=0；同時載入 **Steam Engine Expansion (SEE) 0.1.0 hotfix-6**
+  （Workshop item 3836039641，14 Nov 08:42 更新）。
+* **實機 A/B（HDBF 2.6.1 + 診斷 harness）**：
+  * **SEE hotfix-6 在場**：作物下拉打開後 **0.04–0.22 s** 被關；`DropdownHiddenEvent` 的 managed stack =
+    `BoilerPanelFragment::Refresh → Hide → BoilerPanelView::SetVisible(false) → Dropdown.Hide →
+    DropdownListDrawer.HideDropdown`（每次 EntityPanel 更新、被選中實體不是鍋爐時都會發生）。
+  * **移除 SEE（本機 Mods 副本 + Workshop 副本）**：作物下拉打開後 **保持 5.0 秒**（`vis=1/flag=1` 連續 10 tick），
+    成功選到「土豆」，唯一關閉事件來自選取本身 → **HDBF 2.6.1 的修復有效**（截圖
+    `docs/in-game/bugfix261-diag-popup.png`）。
+* **根因（SEE 側）**：原版 `Dropdown.Hide()` 關的是**單例 drawer**（全遊戲任何打開中的下拉），不是只關自己的；
+  SEE 面板 `SetVisible(false)` 無條件呼叫自己的 `_waterMode.Hide()`，而 SEE 對「非鍋爐」的每個實體面板更新都走
+  `Hide → SetVisible(false)`。與 HDBF 無關；任何 mod／原版面板的下拉都會受影響。玩家「前一天還正常」也能對上：
+  SEE hotfix-6 與 HDBF 2.6.0 是同一個早上（14 Nov 08:38／08:42）更新的。
+* **處置**：SEE hotfix-7（`BoilerPanelView.SetVisible` 只在 visible→hidden 轉換時才 `Hide()`；
+  `build.ps1 -Clean` → PASS 523/523、G01–G22 全綠；Steam Workshop ManifestID `8352811448294687049`；
+  GitHub `v0.1.0-hotfix-7`）已於 2026-11-15 00:17 發佈。以 **SEE hotfix-7 + HDBF 2.6.1** 同場重跑：
+  作物下拉保持 5.0 秒、成功選到「土豆」（證據 `docs/in-game/see-hotfix7-verify-popup.png`、
+  `docs/in-game/see-hotfix7-verify-lines.txt`；SEE repo 亦有 `docs/evidence-hotfix7/`）。
+* **結論**：HDBF 2.6.1 無需再改；仍安裝 SEE hotfix-6 的玩家需更新 SEE 才會看到修復。玩家側最終確認
+  （litos5599 更新兩者後回報）仍 pending，不寫成已驗證。
