@@ -2623,6 +2623,14 @@ Basic 农场输出库存随游戏日的时间序列（game day 34.17 载入）�
   5 DLL + manifest SHA-256 與 stage 相同）；舊 2.6.0 內容備份於
   `%USERPROFILE%\.hdbf\workshop-backup\3828809784-2.6.0-round` 與
   `C:\Users\user\hdbf-tools\workshop-backup\3828809784-2.6.0`。
+* **關於「上傳包 SHA vs 現在 stage SHA」（誠實記錄，非不一致）**：上傳時的包是以 HEAD `b74f0f8`
+  （2.6.0 提交）+ 本輪工作樹修復建置，`AssemblyInformationalVersion` 內嵌當時的 commit `b74f0f8`；
+  發布後在 release commit（`264f5d8`/`fba79e8`）上重跑 `build.ps1`，SDK 預設把**新的 commit hash**
+  內嵌進 `AssemblyInformationalVersion`（`IncludeSourceRevisionInInformationalVersion` 預設 true），
+  因此重建 DLL 的 PE/MVID/metadata 位元組不同（源碼內容相同；`manifest 2.6.1` 不變）。處置：
+  `Documents\Timberborn\Mods\HDBF` 與 Workshop 內容目錄**保留上傳時（玩家實際收到）的包**；
+  重建只用作「發佈樹仍全綠」的驗證（5 程序集 0/0、L1 **734/734**、validate OK、**44 gates PASSED**）。
+  上傳時的 5 DLL + manifest SHA-256 已列於 §54.3。
 * **GitHub `stanley-1028/HighDensityBoxFarm`**：修復 commit `264f5d8`（v2.6.1，含版本 bump + UI 修復 +
   契約測試 + 本輪文檔）push 到 `master`：`b74f0f8..264f5d8  master -> master`；
   annotated tag `v2.6.1` → peeled `264f5d8`；`git ls-remote origin refs/heads/master refs/tags/v2.6.1`
