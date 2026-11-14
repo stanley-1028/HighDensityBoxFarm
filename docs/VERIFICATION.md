@@ -2596,4 +2596,35 @@ Basic 农场输出库存随游戏日的时间序列（game day 34.17 载入）�
 
 ### 54.6 2.6.1 發佈記錄（Steam Workshop + GitHub）
 
-* （本小節於上傳/push 成功後補：ManifestID、Steam 日誌、公開頁核對、GitHub commit/tag 與 push 回報。本行上傳前不寫成已驗證。）
+* **上傳**：2026-11-14 22:37:15–22:37:20（Asia/Macau）成功，item `3828809784`（AppID 1062090），
+  **ManifestID `5329795286704880229`**。Steam `logs\workshop_log.txt`：
+  `[2026-11-14 22:37:20] Uploaded new content ( ManifestID 5329795286704880229 ) for item 3828809784.` →
+  `Upload finished for workshop item 3828809784 : OK`。一次性 Steamworks UGC 工具
+  `C:\Users\user\hdbf-tools\steamupload\bin\Release\net9.0\SteamUpload.exe` 回報
+  `submitDone ioFailure=False eResult=k_EResultOK needsLegalAgreement=False publishedFileId=3828809784`
+  （exit 0；進度 `UploadingContent 455545/455545` → `CommittingChanges`）。`--probe`：
+  `steamRunning=True loggedOn=True`。
+* **上傳內容** = 2.6.1 staged 包（**48 files / 2,209,062 bytes / manifest 2.6.1**），與 §54.3 為同一份
+  （上傳前 stage/workshop/local 三處 5 DLL + manifest SHA-256 逐一相等）；harness byte-scan 0 命中。
+* **Change Note（三語：EN / ZH / TW）**：修復「運行時作物策略下拉被 4 Hz 面板刷新關掉」——精確開/關狀態
+  （`Showed`/`DropdownHiddenEvent`）、彈窗期間刷新與 items/取值同步延後、切換實體關閉彈窗、1 秒時間制兜底；
+  無 Harmony/無反射/無依賴/無存檔變更。檔案：`docs/workshop/changenote-2.6.1.txt`
+  （鏡像 `%USERPROFILE%\.hdbf\release-261-changenote.txt`）。上傳只更新**內容 + Change Note**；
+  標題/描述/封面/標籤/可見性刻意未動（工具只呼叫 `SetItemContent` + `SubmitItemUpdate`）。
+* **公開頁核對**（抓取 2026-11-14 22:39）：**File Size 2.209 MB**（= 2,209,062 B）、
+  **Updated 14 Nov @ 6:37am**（Steam 顯示時區 PST，= 2026-11-14 22:37 Asia/Macau）、
+  **Change Notes 14 → 15 筆**（最新為 2.6.1 三語說明）；標題/封面/描述未變。
+* **玩家回饋對照**：公開頁留言 litos5599（6 小時前）原話「i cant change the crop production, the crop
+  selector closes all the time and you cant select the crop, i think is something in the new version that
+  changes that」「yesterday it worked fine」→ 證實 2.6.0 後回歸；本版即針對該回報。作者已在留言區預告修復，
+  **玩家側確認仍 pending**（本機第三方 mod 干擾 A/B 的「保持打開」觀察，見 §54.4）。
+* **本機測試包**：`Documents\Timberborn\Mods\HDBF` 與
+  `Steam\steamapps\workshop\content\1062090\3828809784` 均為 2.6.1（48 files、manifest 2.6.1、
+  5 DLL + manifest SHA-256 與 stage 相同）；舊 2.6.0 內容備份於
+  `%USERPROFILE%\.hdbf\workshop-backup\3828809784-2.6.0-round` 與
+  `C:\Users\user\hdbf-tools\workshop-backup\3828809784-2.6.0`。
+* **GitHub `stanley-1028/HighDensityBoxFarm`**：修復 commit `264f5d8`（v2.6.1，含版本 bump + UI 修復 +
+  契約測試 + 本輪文檔）push 到 `master`：`b74f0f8..264f5d8  master -> master`；
+  annotated tag `v2.6.1` → peeled `264f5d8`；`git ls-remote origin refs/heads/master refs/tags/v2.6.1`
+  核對 = `264f5d8` / `v2.6.1^{}` = `264f5d8`。本發佈記錄 commit 隨後再 push 一次，`origin/master`
+  以最後一次 push 為準。

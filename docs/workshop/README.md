@@ -231,3 +231,29 @@ cp docs/workshop/publish/* "$USERPROFILE/Documents/Timberborn/Mods/HDBF/"
 - 實機面板視覺驗證 **已通過**（2026-11-14，2560×1440，基礎版面版；原版卡片/進度條/按鈕/單選/折疊 clamp，
   `[HDBF/Error]`=0），證據 `docs/in-game/ui260-*.png` 與 VERIFICATION §52.1。
   截圖用臨時 harness（自動選中農場，因本機無法注入輸入），**未發佈**，發布 DLL 已還原並核對 SHA-256。
+
+## 發佈記錄（2026-11-14，2.6.1）
+
+- 2.6.1 = 修復玩家回饋「遊戲運行時作物策略下拉彈窗很快消失、選不了」（留言 litos5599；暫停時正常）。
+  只動 `src/HDBF.UI` + UI 契約測試；資料/藍圖/數值/存檔/配置/Harmony 不變。
+- 上傳：2026-11-14 22:37（Asia/Macau）成功，`ManifestID 5329795286704880229`、
+  `Uploaded new content ( ManifestID 5329795286704880229 ) for item 3828809784.`、
+  `Upload finished for workshop item 3828809784 : OK`（Steam `logs\workshop_log.txt`，AppID 1062090）；
+  `SteamUpload.exe` 回報 `submitDone ioFailure=False eResult=k_EResultOK needsLegalAgreement=False
+  publishedFileId=3828809784`（exit 0）。
+- Change Note 檔案：[changenote-2.6.1.txt](changenote-2.6.1.txt)（三語：EN / ZH / TW；鏡像
+  `~/.hdbf/release-261-changenote.txt`）。
+- 建置：5 程序集 0/0、L1 **734/734**、`tools/validate` RESULT: OK、`build.ps1` **44 gates PASSED**、
+  staged 48 files / 2,209,062 B / manifest **2.6.1**。
+- 上傳只更新**內容 + Change Note**；標題/描述/封面/標籤/可見性刻意未動。
+- 公開頁核對（抓取 2026-11-14）：**File Size 2.209 MB**、**Updated 14 Nov @ 6:37am**（Steam 顯示時區）、
+  **Change Notes 15 筆**（最新為 2.6.1 三語說明）。
+- **本機測試包**：2.6.1 已覆蓋 `Documents\Timberborn\Mods\HDBF` 與
+  `Steam\steamapps\workshop\content\1062090\3828809784`（兩處 manifest 2.6.1、5 DLL + manifest
+  SHA-256 與 stage 相同）；舊 2.6.0 內容備份在 `%USERPROFILE%\.hdbf\workshop-backup\3828809784-2.6.0-round`
+  與 `C:\Users\user\hdbf-tools\workshop-backup\3828809784-2.6.0`。
+- **實機**：最終 2.6.1 包以 HDBFTest 存檔副本載入（`Load time: 154651ms`）：`start HDBF version=2.6.1`、
+  `startup: HDBF 2.6.1 ready`、`[HDBF/Error]`=0、無 `ui.render`/`ui.crop-dropdown` 例外；截圖
+  `docs/in-game/bugfix261-final-panel.png`。修復驗證的 A/B 見 VERIFICATION §54.4；本機第三方 mod
+  （Steam Engine Expansion）會用 `Dropdown.Hide()` 關掉共用抽屜，「保持打開」玩家側確認 **pending**。
+- GitHub `master` = `264f5d8`（修復）+ 本發佈記錄 commit；`v2.6.1` tag → `264f5d8`（見 VERIFICATION §54.6）。

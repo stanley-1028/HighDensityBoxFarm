@@ -120,14 +120,19 @@ DropdownListDrawer.HideDropdown` 已取證，故本機任何下拉彈窗都會�
 （harness 截圖；彈窗已被上述第三方 mod 關閉，僅作面板狀態證據）、
 `bugfix261-final-panel.png` + `bugfix261-final-round-Player.log`（最終 2.6.1 發布包實機 smoke，見 §54.5）。
 
-## 5. 發佈記錄（2.6.1）
+## 5. 發佈記錄（2.6.1，2026-11-14）
 
-* **GitHub**：`stanley-1028/HighDensityBoxFarm`，修復 commit 與 `v2.6.1` tag 見 VERIFICATION §54.6
-  （upload 後補本節：最終 master SHA、tag SHA、push 回報）。
-* **Steam Workshop**：item `3828809784`（AppID 1062090），ManifestID、上傳日誌、頁面核對
-  （File Size / Updated / Change Notes 數）見 VERIFICATION §54.6；變更說明
-  [docs/workshop/changenote-2.6.1.txt](../..//workshop/changenote-2.6.1.txt)（EN/zhCN/zhTW），
-  只更新內容 + Change Note，標題/描述/封面/標籤/可見性刻意未動。
+* **Steam Workshop**：item `3828809784`（AppID 1062090）於 **2026-11-14 22:37（Asia/Macau）** 上傳成功，
+  **ManifestID `5329795286704880229`**；`workshop_log.txt`：`Uploaded new content ( ManifestID
+  5329795286704880229 ) for item 3828809784.` → `Upload finished for workshop item 3828809784 : OK`。
+  上傳內容 = 2.6.1 staged 包（48 files / 2,209,062 B / manifest 2.6.1）；公開頁核對：**File Size 2.209 MB**、
+  **Updated 14 Nov @ 6:37am**（Steam PST）、**Change Notes 15 筆**；標題/描述/封面/標籤/可見性未動。
+  變更說明：`docs/workshop/changenote-2.6.1.txt`（EN/zhCN/zhTW；鏡像 `~/.hdbf/release-261-changenote.txt`）。
+* **GitHub** `stanley-1028/HighDensityBoxFarm`：修復 commit **`264f5d8`** push 到 `master`
+  （`b74f0f8..264f5d8`）；annotated tag **`v2.6.1`** → peeled `264f5d8`；push/頁面核對細節見
+  `docs/VERIFICATION.md` §54.6。
+* **玩家側確認**：留言 litos5599 已證實 2.6.0 後回歸（「yesterday it worked fine」）；本機 A/B 受第三方 mod
+  干擾（§4），「彈窗保持打開到選完」標 **pending**，等玩家回饋，不寫成已驗證。
 
 ## 6. 限制與未完成
 
