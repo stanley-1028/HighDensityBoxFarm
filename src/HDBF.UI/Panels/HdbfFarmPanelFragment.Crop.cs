@@ -13,6 +13,7 @@ using System.Text;
 using HDBF.Core;
 using HDBF.UI.Localization;
 using Timberborn.DropdownSystem;
+using Timberborn.SingletonSystem;
 using UnityEngine.UIElements;
 
 namespace HDBF.UI.Panels
@@ -21,6 +22,17 @@ namespace HDBF.UI.Panels
     {
         private VisualElement? _cropHost;
         private Dropdown? _cropDropdown;
+        /// <summary>
+        /// Exact "our crop popup is open" state: set synchronously by the dropdown's <c>Showed</c>
+        /// event and cleared by the drawer's <c>DropdownHiddenEvent</c>. The drawer's own
+        /// <c>DropdownVisible</c> property reads <c>resolvedStyle.display</c>, i.e. the value of the
+        /// last layout pass, so directly after the popup opens it can still report "closed". That
+        /// blind window is what the periodic refresh used to exploit: any items re-set ends in
+        /// <c>Dropdown.ClearItems -&gt; HideDropdown</c>, and a crop-card rebuild detaches the
+        /// selection button whose vanilla DetachFromPanel callback hides the popup. The flag is
+        /// layout-independent, so the refresh is silenced for the whole lifetime of the popup.
+        /// </summary>
+        private bool _cropPopupOpen;
         private string _cropSignature = string.Empty;
         private readonly HdbfCropDropdownProvider _cropProvider = new();
 
@@ -42,6 +54,8 @@ namespace HDBF.UI.Panels
                 dropdown.style.flexGrow = 1f;
                 dropdown.style.flexShrink = 1f;
                 _cropProvider.Selected += OnCropSelected;
+                // Layout-independent "popup is open" signal (see _cropPopupOpen).
+                dropdown.Showed += OnCropDropdownShowed;
                 _tooltips.Register(dropdown, () => _lastData?.CropTooltip ?? string.Empty);
                 _cropDropdown = dropdown;
                 _cropHost.Add(dropdown);
@@ -58,9 +72,39 @@ namespace HDBF.UI.Panels
             }
         }
 
+        /// <summary>Records that the vanilla drawer just opened our crop popup.</summary>
+        private void OnCropDropdownShowed(object? sender, EventArgs args)
+        {
+            _cropPopupOpen = true;
+            _cropPopupStaleSince = -1f;
+        }
+
+        /// <summary>
+        /// The drawer posts this event from <c>HideDropdown</c>, i.e. exactly when the open popup
+        /// (any popup - the drawer is a singleton, only one can be open) is gone. That is the
+        /// authoritative close signal, so the guard never stays stuck after a dropdown closes.
+        /// </summary>
+        [OnEvent]
+        public void OnDropdownHidden(DropdownHiddenEvent dropdownHiddenEvent)
+        {
+            _cropPopupOpen = false;
+            _cropPopupStaleSince = -1f;
+        }
+
         private void RenderCrop(HdbfIndoorPanelData data)
         {
             if (_cropDropdown is null)
+            {
+                return;
+            }
+
+            // A popup that is in use must not be touched at all: DropdownItemsSetter.SetItems ends
+            // in Dropdown.ClearItems -> drawer HideDropdown, and the value sync rebuilds the
+            // selection content of the open control four times per second for no benefit. Defer the
+            // whole sync - items, value and tooltip - to the first refresh after the popup closes.
+            // UpdateFragment already freezes the 4 Hz path; this also covers the command-triggered
+            // force refresh, which runs while the dropdown is still in its own click callback.
+            if (IsCropDropdownOpen())
             {
                 return;
             }

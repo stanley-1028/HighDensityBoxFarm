@@ -131,6 +131,15 @@ namespace HDBF.UI.Panels
             for (var index = 0; index < sections.Count; index++)
             {
                 var section = sections[index];
+                // Belt and braces: the crop card owns the vanilla dropdown, and re-parenting its
+                // selection button closes an open popup. A command-triggered force refresh could
+                // reach this path while the player is using the list, so its rebuild waits for the
+                // first refresh after the popup closes (the signature stays stale until then).
+                if (section.Kind == HdbfPanelSectionKind.Crops && IsCropDropdownOpen())
+                {
+                    continue;
+                }
+
                 var signature = HdbfIndoorPanelSignature.ForSection(section, data);
                 if (signature == _cardStates[index].Signature)
                 {

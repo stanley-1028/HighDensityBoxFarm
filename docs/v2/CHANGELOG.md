@@ -1,9 +1,37 @@
 # HDBF v2 变更记录
 
-> **状态**：**2.6.0 已发布**（2026-11-14 08:38 Asia/Macau，Steam Workshop item 3828809784，ManifestID `4848736136601558932`；离线门禁全绿 + L1 733/733；**实机面板截图验证通过**（2560×1440，原版卡片/进度条/按钮/单选/折叠 clamp，`[HDBF/Error]`=0），见 VERIFICATION §52/§52.1/§53）；**2.5.11 已发布**（2026-11-08，Steam Workshop item 3828809784，ManifestID `2025374107308867942`；离线门禁全绿 + **本机实机存档加载验证**，见 VERIFICATION §50/§51）；**2.5.10 已发布**（2026-11-08 10:00，Steam Workshop item 3828809784，ManifestID `4179524907985799025`；离线门禁全绿 + **实机验证通过**——93 件 Carrot 在 2.5 个游戏日内被搬空、4.1 个游戏日无异常，见 VERIFICATION §48/§49）；**2.5.9 已发布**（2026-11-07 21:49，Steam Workshop item 3828809784，ManifestID `9210717745557344144`；GitHub 见 push 后的 master；离线门禁全绿，实机验证 pending；暫存语义修复：农场输出库存从「整盒容量/类仓库」改为「一天产量暂存」，见 VERIFICATION §46/§47）；**2.5.8 已发布**（2026-11-07 17:10，Steam Workshop item 3828809784，ManifestID `8359214256551403205`；GitHub `b900e8a`；离线门禁全绿，实机验证仍 pending）；2.5.7 已发布（2026-11-06 17:40，玩家回馈热修 + 下拉开启期间暂停刷新的防护；Steam Workshop item 3828809784，ManifestID 4408964257799319853；第一次 17:14 上传误带旧 2.5.6 staging，17:40 已重新上传正确包，详见 VERIFICATION §43；实机点击验证仍 pending，不写成已完成）；2.5.6 已发布（Steam Workshop ManifestID 3045694293614393693；GitHub 见 push 后的 master；离线门禁全绿；实机验证部分 pending，见 VERIFICATION §40）；2.5.5 为未发布的第二维修轮；2.5.4 已发布（Steam Workshop ManifestID 2037025195551276545）
+> **状态**：**2.6.1 已发布**（2026-11-14，Steam Workshop item 3828809784，ManifestID 见 VERIFICATION §54.6；离线门禁全绿 + L1 734/734 + 44 gates；修复玩家反馈「运行时作物选择器一直被关掉」，**实机 A/B 已做、玩家侧确认 pending**（本机第三方 mod 干扰，见 §54.4））；**2.6.0 已发布**（2026-11-14 08:38 Asia/Macau，Steam Workshop item 3828809784，ManifestID `4848736136601558932`；离线门禁全绿 + L1 733/733；**实机面板截图验证通过**（2560×1440，原版卡片/进度条/按钮/单选/折叠 clamp，`[HDBF/Error]`=0），见 VERIFICATION §52/§52.1/§53）；**2.5.11 已发布**（2026-11-08，Steam Workshop item 3828809784，ManifestID `2025374107308867942`；离线门禁全绿 + **本机实机存档加载验证**，见 VERIFICATION §50/§51）；**2.5.10 已发布**（2026-11-08 10:00，Steam Workshop item 3828809784，ManifestID `4179524907985799025`；离线门禁全绿 + **实机验证通过**——93 件 Carrot 在 2.5 个游戏日内被搬空、4.1 个游戏日无异常，见 VERIFICATION §48/§49）；**2.5.9 已发布**（2026-11-07 21:49，Steam Workshop item 3828809784，ManifestID `9210717745557344144`；GitHub 见 push 后的 master；离线门禁全绿，实机验证 pending；暫存语义修复：农场输出库存从「整盒容量/类仓库」改为「一天产量暂存」，见 VERIFICATION §46/§47）；**2.5.8 已发布**（2026-11-07 17:10，Steam Workshop item 3828809784，ManifestID `8359214256551403205`；GitHub `b900e8a`；离线门禁全绿，实机验证仍 pending）；2.5.7 已发布（2026-11-06 17:40，玩家回馈热修 + 下拉开启期间暂停刷新的防护；Steam Workshop item 3828809784，ManifestID 4408964257799319853；第一次 17:14 上传误带旧 2.5.6 staging，17:40 已重新上传正确包，详见 VERIFICATION §43；实机点击验证仍 pending，不写成已完成）；2.5.6 已发布（Steam Workshop ManifestID 3045694293614393693；GitHub 见 push 后的 master；离线门禁全绿；实机验证部分 pending，见 VERIFICATION §40）；2.5.5 为未发布的第二维修轮；2.5.4 已发布（Steam Workshop ManifestID 2037025195551276545）
 > **日期**：2026-11-14
-> **适用版本**：2.6.0
-> **变更摘要**：v2.1 需求引入室内农场方案；本文件记录 v1→v2 的行为/数据/工程变更与实现状态。2.5.8 = 管道供水修复（水塔接网判定 + 紧邻农场的 Timber Pipes 输水管直接供水）；2.5.9 = 输出库存暂存语义修复（整盒容量 → 一天产量暂存，不再像普通仓库一样囤货）；2.5.10 = 搬运链组件配对修复（补上 Emptiable 级联 provider 所需的两个原版行为组件，普通搬运工恢复清空农场输出）。2.5.11 = 「需要搬运工才能运转」状态守卫（即使没有搬运工，盒子农场也不会显示误导性提示；原版公开 opt-out，无 Harmony）。**2.6.0 = UI/GUI 原版化 + 可折叠分区（所有自订颜色/字号/警告色条/假滚动条删除，警告行/滚动条/下拉全部改用游戏自带控件；每张卡片可用原版 `extension-clamp` 折叠，折叠状态不进 read model/签名）。**
+> **适用版本**：2.6.1
+> **变更摘要**：v2.1 需求引入室内农场方案；本文件记录 v1→v2 的行为/数据/工程变更与实现状态。2.5.8 = 管道供水修复（水塔接网判定 + 紧邻农场的 Timber Pipes 输水管直接供水）；2.5.9 = 输出库存暂存语义修复（整盒容量 → 一天产量暂存，不再像普通仓库一样囤货）；2.5.10 = 搬运链组件配对修复（补上 Emptiable 级联 provider 所需的两个原版行为组件，普通搬运工恢复清空农场输出）。2.5.11 = 「需要搬运工才能运转」状态守卫（即使没有搬运工，盒子农场也不会显示误导性提示；原版公开 opt-out，无 Harmony）。**2.6.1 = 作物策略下拉弹窗在游戏运行时不再被 4 Hz 面板刷新关掉**（打开状态改用原版同步 `Showed`/`DropdownHiddenEvent`；弹窗期间刷新与 items/取值同步整体延后，关闭后第一帧补上；无 Harmony/无反射/无存档变更）。**2.6.0 = UI/GUI 原版化 + 可折叠分区（所有自订颜色/字号/警告色条/假滚动条删除，警告行/滚动条/下拉全部改用游戏自带控件；每张卡片可用原版 `extension-clamp` 折叠，折叠状态不进 read model/签名）。**
+
+## [2.6.1] — 2026-11-14（修复：游戏运行时作物策略下拉弹窗被 4 Hz 面板刷新关掉）
+
+依据玩家回馈（Steam Workshop 留言，2026-11-14）：「暂停时能选固定作物；运行时作物选择器一直被关掉，选不了」。
+
+### 变更（相对 2.6.0）
+
+* 【修复】UI：作物策略下拉的「已打开」状态改用原版下拉**同步**的 `Dropdown.Showed` 与抽屉
+  `DropdownHiddenEvent`（layout 无关），不再依赖 `DropdownListDrawer.DropdownVisible`
+  （= `resolvedStyle.display`，弹窗打开当帧必报「关闭」）。
+* 【修复】UI：弹窗打开期间 4 Hz 刷新整体延后；items/取值同步与作物卡重建也延后到关闭后第一帧；
+  关闭后立即恢复刷新。连命令触发的 `Refresh(force: true)` 也不会碰到打开中的控件。
+* 【修复】UI：切换选中建筑 / 隐藏片段时主动 `Dropdown.Hide()` 并清状态，避免抽屉独立 UIDocument
+  留下孤儿弹窗；`HideDropdown` 早退不发事件的情形用 **1 秒时间制**兜底，低帧率也不会冻住面板。
+* 【测试】新增 `TestCropPopupGuardUsesTheExactShowHideSignal` 锁定精确开/关信号、守卫顺序、
+  items/取值延后与作物卡重建守卫。
+* 【无变更】数据 / 蓝图 / 数值 / 存档 schema / 配置 schema / Harmony = 0；只动 `src/HDBF.UI` + UI 契约测试。
+
+### 实现与门禁（本机实测，2026-11-14 22:30）
+
+* 5 程序集 0 warning / 0 error；L1 **734/734**；`tools/validate` RESULT: OK；**44 gates PASSED**；
+  staged **48 files / 2,209,062 bytes / manifest 2.6.1**。
+* 实机 A/B（临时 harness，发布前删除；固定默认 work root）：修复侧弹窗打开期间 **0 次面板侧变更**
+  （guardskip 递增、valuesync/renders/作物卡重建全冻结），关闭后 4 Hz 恢复；跳过守卫重放 2.6.0 行为时
+  打开窗口内即执行刷新（valuesync/renders +1）；暂停/运行下选固定作物命令均生效（Potato / Carrot）。
+  本机另有第三方 mod（Steam Engine Expansion）在自己的面板刷新中调用 `Dropdown.Hide()`，会关掉任何
+  打开中的下拉弹窗（原版共用抽屉语义，与 HDBF 无关），故「弹窗保持打开到玩家选完」的玩家侧确认仍 pending。
+  详见 VERIFICATION §54.4 与 `docs/workstreams/bugfix-20261114/bugfix.md`。
 
 ## [2.6.0] — 2026-11-14（UI/GUI 原版化 + 可折叠分区：删除自订视觉，改用游戏自带控件与折叠 idiom）
 

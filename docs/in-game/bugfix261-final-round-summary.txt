@@ -1,0 +1,23 @@
+﻿round        : bugfix261-final-round
+finished     : 2026-11-14T22:34:14
+save         : 2026-11-05 13h17m, Day 1-1.autosave
+settlement   : HDBFTest
+log          : C:\Users\user\Documents\Timberborn\Mods\HighDensityBoxFarm\docs\in-game\bugfix261-final-round-Player.log
+
+[HDBF/Info] start HDBF version=2.6.1 modPath=C:\Program Files (x86)\Steam\steamapps\workshop\content\1062090\3828809784
+HDBF/Compat: compat.enabled:HDBF.Adapter.TimberPipes: HDBF.Adapter.TimberPipes active; api-anchors=4
+HDBF/Compat: compat.enabled:HDBF.Adapter.PowerLines: HDBF.Adapter.PowerLines active; api-anchors=4
+HDBF/Compat: compat.enabled:HDBF.Adapter.ConveyorBeltsV2: HDBF.Adapter.ConveyorBeltsV2 active; api-anchors=4
+HDBF/Compat: compat.missing:HDBF.Adapter.MoreMines: HDBF.Adapter.MoreMines not detected (not-installed); capability unavailable
+HDBF/Compat: compat.enabled:HDBF.Adapter.HoomanStairs: HDBF.Adapter.HoomanStairs active; api-anchors=3
+Opening file: C:\Users\user\Documents\Timberborn\Saves\HDBFTest\2026-11-05 13h17m, Day 1-1.autosave.timber
+[HDBF/Info] startup: HDBF 2.6.1 ready; tiers=4; modPath=C:\Program Files (x86)\Steam\steamapps\workshop\content\1062090\3828809784; config=C:\Program Files (x86)\Steam\steamapps\workshop\content\1062090\3828809784\HDBF_Config.json
+[HDBF/Info] indoor.behavior-probe-patched: behavior probe: patch framework loaded, frameworks=0Harmony|HarmonySharedState, behaviorMethodFound=True
+[HDBF/Info] indoor.feature-disabled: config feature disabled: features.logisticsOutput (the logistics port is forced off), entityId=6f1d6d0c-36a7-46e4-bf1f-b842e9bb8963
+[HDBF/Info] water.settle: water input inventory enabled: capacity=4, entityId=6f1d6d0c-36a7-46e4-bf1f-b842e9bb8963
+[HDBF/Compat] indoor.port: indoor port state refreshed: adapter=Ok, adapterChanged=True, pipePort=False, logisticsPort=False, powerPort=False, entityId=6f1d6d0c-36a7-46e4-bf1f-b842e9bb8963
+[HDBF/Warn] water.manual-refill: no usable manual water source: HDBF.Error.NoWaterSource
+[HDBF/Info] indoor.paused: indoor farm paused by the player; daily tick, water drain and warning icons stopped, entityId=6f1d6d0c-36a7-46e4-bf1f-b842e9bb8963
+[HDBF/Info] indoor.hauler-status: no vanilla 'requires haulers' status on this farm (the farm works without haulers; the status is suppressed if it is ever attached), entityId=6f1d6d0c-36a7-46e4-bf1f-b842e9bb8963
+[HDBF/Info] indoor.entity: indoor farm active, entityId=6f1d6d0c-36a7-46e4-bf1f-b842e9bb8963, tier=Basic, faction=Folktails, blueprint=BoxFarm.Basic.Folktails
+Load time: 154651ms (scene index: 2)

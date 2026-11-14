@@ -646,6 +646,51 @@ namespace HDBF.Tests
         }
 
         /// <summary>
+        /// Player report 2026-11-14 ("the crop selector closes all the time"): the guard that
+        /// silences the 4 Hz refresh while the popup is open must not depend on
+        /// <c>DropdownListDrawer.DropdownVisible</c> alone, because that property reads
+        /// <c>resolvedStyle.display</c> - the value of the previous layout pass - and can still
+        /// report "closed" on the frame the popup opens. The exact state therefore comes from the
+        /// dropdown's synchronous <c>Showed</c> event (open) and the drawer's
+        /// <c>DropdownHiddenEvent</c> (closed), and both the crop-card rebuild and the items re-set
+        /// are deferred while that state says open.
+        /// </summary>
+        public static void TestCropPopupGuardUsesTheExactShowHideSignal()
+        {
+            var crop = ReadUiSources("Panels/HdbfFarmPanelFragment.Crop.cs");
+            TestAssert.True(crop.Contains("dropdown.Showed += OnCropDropdownShowed", StringComparison.Ordinal),
+                "the open state must come from the dropdown's synchronous Showed event");
+            TestAssert.True(crop.Contains("_cropPopupOpen = true", StringComparison.Ordinal),
+                "Showed must set the exact open flag");
+            TestAssert.True(crop.Contains("_cropPopupOpen = false", StringComparison.Ordinal),
+                "the hidden event must clear the exact open flag");
+            TestAssert.True(crop.Contains("[OnEvent]", StringComparison.Ordinal)
+                             && crop.Contains("OnDropdownHidden(DropdownHiddenEvent", StringComparison.Ordinal),
+                "the close signal must be the drawer's DropdownHiddenEvent");
+
+            // RenderCrop must not call SetItems (-> Dropdown.ClearItems -> HideDropdown) while open.
+            var renderCrop = Slice(crop, "private void RenderCrop", "private static string CropSignature");
+            var deferAt = renderCrop.IndexOf("if (IsCropDropdownOpen())", StringComparison.Ordinal);
+            var setItemsAt = renderCrop.IndexOf("SetItems(", StringComparison.Ordinal);
+            TestAssert.True(deferAt >= 0 && setItemsAt > deferAt,
+                "SetItems must be deferred while the popup is open (it would close the popup)");
+
+            var lifecycle = ReadUiSources("Panels/HdbfFarmPanelFragment.cs");
+            TestAssert.True(lifecycle.Contains("_eventBus.Register(this)", StringComparison.Ordinal),
+                "the fragment must subscribe to the drawer's hidden event");
+            TestAssert.True(lifecycle.Contains("if (_cropPopupOpen)", StringComparison.Ordinal),
+                "the refresh guard must consult the exact open flag before DropdownVisible");
+            TestAssert.True(lifecycle.Contains("_cropPopupOpen = false", StringComparison.Ordinal),
+                "selecting another entity must not inherit a stale open flag");
+
+            var cards = ReadUiSources("Panels/HdbfFarmPanelFragment.Cards.cs");
+            TestAssert.True(cards.Contains(
+                    "section.Kind == HdbfPanelSectionKind.Crops && IsCropDropdownOpen()",
+                    StringComparison.Ordinal),
+                "a force refresh must not rebuild the crop card while the popup is open");
+        }
+
+        /// <summary>
         /// Collapsible sections are the game's own collapse idiom: the shipped .extension-clamp
         /// Button (<c>extension-clamp--hidden</c> = folded) and a display:none body. The fold state
         /// lives in the fragment, never in the read model or the card signature, because a signature

@@ -23,6 +23,7 @@ using Timberborn.DropdownSystem;
 using Timberborn.EntityPanelSystem;
 using Timberborn.EntitySystem;
 using Timberborn.Localization;
+using Timberborn.SingletonSystem;
 using Timberborn.TooltipSystem;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -49,6 +50,13 @@ namespace HDBF.UI.Panels
         private const float MaxScrollHeight = 620f;
         /// <summary>Space kept free under the action card (bottom hotbar of the game UI).</summary>
         private const float BottomReserve = 26f;
+        /// <summary>
+        /// Seconds the Showed-driven "popup open" flag is trusted while the drawer reports the popup
+        /// closed (the drawer reads the previous layout pass). A whole second is far longer than a
+        /// layout pass and still guarantees a stale flag can never freeze the panel (a fixed frame
+        /// budget would mean seconds at low frame rates).
+        /// </summary>
+        private const float CropPopupStaleSeconds = 1f;
 
         private const string LogKeyCommandRejected = "ui.command-rejected";
         private const string LogKeyCommandFailed = "ui.command-exception";
@@ -63,12 +71,16 @@ namespace HDBF.UI.Panels
         private readonly RadioToggleFactory _radioToggleFactory;
         private readonly DropdownItemsSetter _dropdownItemsSetter;
         private readonly DropdownListDrawer _dropdownListDrawer;
+        private readonly EventBus _eventBus;
         private readonly VisualElementLoader _visualElementLoader;
         private readonly ITooltipRegistrar _tooltips;
         private readonly HdbfPanelIcons _icons = new();
 
         private BaseComponent? _entity;
         private Guid _entityId;
+        private bool _dropdownHiddenListenerRegistered;
+        /// <summary>When the drawer first reported "closed" while the exact flag says "open"; -1 = not yet.</summary>
+        private float _cropPopupStaleSince = -1f;
         private long _lastFingerprint;
         private bool _hasSnapshot;
         private float _nextRefreshTime;
@@ -89,12 +101,14 @@ namespace HDBF.UI.Panels
         /// <param name="radioToggleFactory">Vanilla radio-button group factory (mode switch).</param>
         /// <param name="dropdownItemsSetter">Vanilla dropdown item setter (crop strategy).</param>
         /// <param name="dropdownListDrawer">Vanilla dropdown popup drawer.</param>
+        /// <param name="eventBus">Vanilla event bus (the drawer posts DropdownHiddenEvent when a popup closes).</param>
         /// <param name="visualElementLoader">Vanilla UXML loader (status-row and worker-chip templates).</param>
         /// <param name="visualElementInitializer">Vanilla initializer pass (click sounds, nine-slice scrollbars, localization).</param>
         /// <param name="tooltips">Vanilla tooltip registrar (row/button hover texts).</param>
         public HdbfFarmPanelFragment(IBoxFarmQuery query, IBoxFarmCommand command, ILoc loc, IHdbfLog log,
             RadioToggleFactory radioToggleFactory,
             DropdownItemsSetter dropdownItemsSetter, DropdownListDrawer dropdownListDrawer,
+            EventBus eventBus,
             VisualElementLoader visualElementLoader, VisualElementInitializer visualElementInitializer,
             ITooltipRegistrar tooltips)
         {
@@ -105,6 +119,7 @@ namespace HDBF.UI.Panels
             _radioToggleFactory = radioToggleFactory ?? throw new ArgumentNullException(nameof(radioToggleFactory));
             _dropdownItemsSetter = dropdownItemsSetter ?? throw new ArgumentNullException(nameof(dropdownItemsSetter));
             _dropdownListDrawer = dropdownListDrawer ?? throw new ArgumentNullException(nameof(dropdownListDrawer));
+            _eventBus = eventBus ?? throw new ArgumentNullException(nameof(eventBus));
             _visualElementLoader = visualElementLoader ?? throw new ArgumentNullException(nameof(visualElementLoader));
             // Not null-checked: an absent initializer only costs the optional click sounds and the
             // nine-slice scrollbar draggers, and the panel must never fail to build because of it.
@@ -116,6 +131,7 @@ namespace HDBF.UI.Panels
         /// <inheritdoc />
         public VisualElement InitializeFragment()
         {
+            RegisterDropdownHiddenListener();
             try
             {
                 return BuildRoot();
@@ -131,9 +147,36 @@ namespace HDBF.UI.Panels
                 return fallback;
             }
         }
+
+        /// <summary>
+        /// Subscribes this fragment to the drawer's <c>DropdownHiddenEvent</c>: that event is
+        /// posted from <c>HideDropdown</c>, so it is the exact, layout-independent "the open popup
+        /// is gone" signal the refresh guard needs. An already-registered or unavailable bus only
+        /// costs the exact signal (the guard falls back to <c>DropdownVisible</c>), never the panel.
+        /// </summary>
+        private void RegisterDropdownHiddenListener()
+        {
+            if (_dropdownHiddenListenerRegistered)
+            {
+                return;
+            }
+
+            try
+            {
+                _eventBus.Register(this);
+                _dropdownHiddenListenerRegistered = true;
+            }
+            catch (Exception)
+            {
+                // Swallowed on purpose: panel construction must not depend on the event bus.
+            }
+        }
         /// <inheritdoc />
         public void ShowFragment(BaseComponent entity)
         {
+            // Retry the subscription here as well: InitializeFragment may run before the event bus
+            // itself is loadable in some load orders, and the exact popup-close signal matters.
+            RegisterDropdownHiddenListener();
             _entity = entity;
             _entityId = ResolveEntityId(entity);
             _hasSnapshot = false;
@@ -142,6 +185,7 @@ namespace HDBF.UI.Panels
             _actionMessage = string.Empty;
             _lastData = null;
             _cropSignature = string.Empty;
+            CloseCropPopup();
             _resetScrollOnNextRender = true;
             _lastScrollHeight = 0f;
             ResetFolds();
@@ -180,12 +224,62 @@ namespace HDBF.UI.Panels
         }
 
         /// <summary>
-        /// True while the vanilla dropdown popup is open. The drawer root is created by the
-        /// drawer's startup load; an unloaded/broken drawer is treated as "closed" so this guard can
-        /// never make the entity panel throw or hide itself.
+        /// True while the vanilla dropdown popup is open. The exact signal is the explicit open flag
+        /// driven by the dropdown's synchronous <c>Showed</c> event and cleared by the drawer's
+        /// <c>DropdownHiddenEvent</c>; it is consulted first because it never lags a layout pass.
+        /// <c>DropdownListDrawer.DropdownVisible</c> (resolvedStyle = the previous layout pass) is
+        /// only the fallback: it can still report "closed" on the frame the popup opens, and the
+        /// periodic refresh that ran in that window is exactly what closed the popup (any SetItems
+        /// clears the drawer, and a crop-card rebuild detaches the selection button whose vanilla
+        /// DetachFromPanel callback hides the popup). An unloaded or broken drawer counts as
+        /// "closed" so this guard can never make the panel throw or freeze.
         /// </summary>
         private bool IsCropDropdownOpen()
         {
+            if (_cropPopupOpen)
+            {
+                bool visible;
+                try
+                {
+                    visible = _dropdownListDrawer.DropdownVisible;
+                }
+                catch (Exception)
+                {
+                    _cropPopupOpen = false;
+                    _cropPopupStaleSince = -1f;
+                    return false;
+                }
+
+                if (visible)
+                {
+                    _cropPopupStaleSince = -1f;
+                    return true;
+                }
+
+                // The flag is set synchronously by Showed, but DropdownVisible reads the last layout
+                // pass and can still report "closed" on the frame the popup opens, so the flag wins
+                // for a bounded grace period. A stale flag must never freeze the panel, and
+                // HideDropdown can early-return without posting its event when it already believes
+                // the popup is closed, so the grace period is time-based: a frame budget would mean
+                // several seconds on a low frame rate.
+                if (_cropPopupStaleSince < 0f)
+                {
+                    _cropPopupStaleSince = Time.unscaledTime;
+                    return true;
+                }
+
+                if (Time.unscaledTime - _cropPopupStaleSince < CropPopupStaleSeconds)
+                {
+                    return true;
+                }
+
+                _cropPopupOpen = false;
+                _cropPopupStaleSince = -1f;
+                return false;
+            }
+
+            // Fallback for a popup the Showed event did not report (the drawer is a singleton, so a
+            // popup owned by another panel is still "a popup is open" for us).
             try
             {
                 return _dropdownListDrawer.DropdownVisible;
@@ -206,6 +300,7 @@ namespace HDBF.UI.Panels
             _actionMessage = string.Empty;
             _lastData = null;
             _cropSignature = string.Empty;
+            CloseCropPopup();
             _resetScrollOnNextRender = true;
             _lastScrollHeight = 0f;
             ResetFolds();
@@ -213,6 +308,27 @@ namespace HDBF.UI.Panels
             {
                 _root.style.display = DisplayStyle.None;
             }
+        }
+
+        /// <summary>
+        /// Closes the crop popup and forgets its open state. Hiding the panel root is not enough:
+        /// the popup lives in the drawer's own UIDocument, so switching entity (or hiding the
+        /// fragment) would otherwise leave an orphan popup on screen and a flag that disagrees
+        /// with the drawer. Called on every entity switch; a closed drawer is a no-op.
+        /// </summary>
+        private void CloseCropPopup()
+        {
+            try
+            {
+                _cropDropdown?.Hide();
+            }
+            catch (Exception)
+            {
+                // A broken vanilla control must never break the entity panel.
+            }
+
+            _cropPopupOpen = false;
+            _cropPopupStaleSince = -1f;
         }
 
         // ------------------------------------------------------------------ refresh / read model

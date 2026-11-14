@@ -2497,3 +2497,103 @@ Basic 农场输出库存随游戏日的时间序列（game day 34.17 载入）�
 * `v2.6.0` tag（annotated）指向 UI 原版化 commit `68d7ed1`；`master` 最終 commit 見 `origin/master`。
 * README 新增「0. 實機截圖（2.6.0）」段落（內嵌 `docs/in-game/ui260-panel-full.png` 與
   `ui260-panel-annotated.png`，GitHub 直接渲染）。
+
+
+## 54. 2.6.1 修復：遊戲運行時作物策略下拉「彈窗很快消失」（2026-11-14）
+
+### 54.1 玩家回饋與根因（IL 直證 + 獨立審計）
+
+* **玩家回饋**：Steam Workshop 留言 litos5599（2026-11-14，約 5 小時前）「i cant change the crop
+  production, the crop selector closes all the time…」；中文原意：**暫停時能選固定作物，遊戲運行時
+  下拉彈窗很快就消失、選不了**。2.6.0 已發布（ManifestID `4848736136601558932`）。
+* **根因（結構判定 0.90）**：原版下拉的「已打開」唯一同步信號是 `Dropdown.Showed`
+  （`ToggleSelectionListDisplayStyle` IL_0031–0047，`ShowDropdown` 返回後同步 Invoke）；而
+  `DropdownListDrawer.DropdownVisible` = `CoreUI.VisualElementExtensions.IsDisplayed(_root)`
+  = `resolvedStyle.display == Flex`（CoreUI IL 已證）→ **彈窗打開當幀必回報「未開」**。2.6.0 的刷新守衛只
+  讀這個 layout 滯後信號，於是運行時（面板指紋含 `CurrentDay`/作物進度，每模擬 tick 必變 → 4 Hz 刷新體
+  照跑）在盲區幀內執行兩條原版關窗路徑：`RenderCrop → DropdownItemsSetter.SetItems →
+  Dropdown.ClearItems → DropdownListDrawer.HideDropdown`，或作物卡重建 → `_selection` detach →
+  `<Initialize>b__25_0 → HideDropdown`。暫停時指紋凍結、刷新不執行 → 彈窗正常。2.6.0 發布二進位反編譯
+  核對與 HEAD 源碼一致 ⇒ **2.6.0 未引入新關窗路徑，是 2.5.7「下拉打不開」修復不完整的延續**
+  （玩家回饋時間點 2.6.0 之後）。
+* **獨立審計**：`root-cause-auditor`（非 Lead 轉述）重跑 IL 與源碼取證：
+  [docs/workstreams/bugfix-20261114/root-cause-audit.md](workstreams/bugfix-20261114/root-cause-audit.md)。
+  另記 z-order/items 為空/舊版本等備選假設的排除理由；其對候選修復的三點要求（`HideDropdown` 早退不發
+  事件需時間制兜底、切換實體要主動關彈窗、`60 幀 ≠ 1 秒`）已全部納入 54.2。
+
+### 54.2 修法（只動 `src/HDBF.UI` + UI 契約測試）
+
+1. **精確開關狀態**：`dropdown.Showed += OnCropDropdownShowed` 置 `_cropPopupOpen = true`（同步）；
+   抽屜 `DropdownHiddenEvent`（`[OnEvent]`，EventBus）清 false。
+2. **守衛順序**：`IsCropDropdownOpen()` **先**看精確旗標，再看抽屜 `DropdownVisible`；旗標為真而抽屜持續
+   回報關閉超過 **`CropPopupStaleSeconds = 1 s`（時間制）** 才信任抽屜並清旗標（`HideDropdown` 早退時
+   不發事件，避免面板永久凍結）。
+3. **週期刷新整體延後**：彈窗打開期間 `UpdateFragment` 直接 return（不重算/不重建/不 reflow），關閉後下一
+   幀補上。
+4. **items/value 同步延後**：彈窗打開期間 `RenderCrop` 整段 return（`SetItems` 會 `ClearItems →
+   HideDropdown`），關閉後第一次刷新套用最新清單/選取/tooltip；連命令觸發的 `Refresh(force: true)` 也不會
+   碰到打開中的控件。
+5. **作物卡重建守衛**：打開期間跳過作物卡重建（其他卡片照常 diff 刷新）。
+6. **切換實體收尾**：`ShowFragment`/`ClearFragment` → `CloseCropPopup()`（`Dropdown.Hide()` + 清旗標），
+   避免抽屜獨立 UIDocument 留孤兒彈窗。
+7. **契約測試**：`TestCropPopupGuardUsesTheExactShowHideSignal`（`tests/HDBF.Tests/V2PanelVisualContractTests.cs`）
+   鎖定 Showed/Hidden 精確信號、守衛順序、items/value 延後、卡片重建守衛。
+
+無 Harmony、無反射、無新增依賴、無存檔/配置變更。
+
+### 54.3 離線門禁（固定 work root `%USERPROFILE%\.hdbf\work`，2026-11-14 22:30）
+
+* 5 程序集 **0 warning / 0 error**；L1 **PASSED 734 / FAILED 0**；`tools/validate` **RESULT: OK**；
+  **RELEASE GATES: PASSED (44 checks)**；staged **48 files / 2,209,062 bytes / manifest 2.6.1**。
+* 發布包 byte-scan：`HDBF.Gameplay.dll`/`HDBF.UI.dll` 中臨時 harness 字串（`HdbfUiVerifyDriver`/
+  `VerifyClickPopupItem` 等）**0 命中**；`git diff v2.6.0 -- src/HDBF.Gameplay src/HDBF.Core
+  src/HDBF.Persistence src/HDBF.Integration` 為空（修復只在 UI 層）。
+* staged SHA-256：`HDBF.Core.dll 217831A9…A5FD4E96`、`HDBF.Persistence.dll 29A75786…4C5377BD0`、
+  `HDBF.Gameplay.dll 707A6CDD…E5EE59`、`HDBF.Integration.dll 7BD4C7A5…0DC6421`、
+  `HDBF.UI.dll C38CEB89…E0D19DCF6`、`manifest.json B70B65C4…132BFE72`（完整值見發布記錄存檔）。
+
+### 54.4 實機 A/B（臨時 harness，發布前已刪除；本機 DSH 無法注入 OS 輸入，見 §16.2）
+
+* **方法**：harness（`IPostLoadableSingleton`）在載入後用原版公開 `EntitySelectionService.SelectAndFocusOn`
+  選中第一座室內農場；用原版下拉自己的私有回調（`ToggleSelectionListDisplayStyle` / `SetAndUpdate`）打開彈窗
+  與選取（等價於玩家點擊後的下游邏輯，只跳過硬體指標）；同一會話內可切換「跳過守衛」以重放 2.6.0 行為。
+  每 0.5 s 記錄 `vis/flag/valuesync/setitems/croprebuil/stackrebuil/renders/guardskip/hidden`，並在
+  `DropdownHiddenEvent` 回調裡記錄 managed stack（找出誰關的彈窗）。harness 於發布前刪除（見 §54.3 byte-scan）。
+* **結果**（`docs/in-game/bugfix261-Player.log`，234,726 B，`Load time: 132609ms`）：
+
+| 場景 | 彈窗打開 | 打開期間面板側變更 | 關閉後 | 選取命令 |
+|---|---|---|---|---|
+| 暫停（修復側） | `showed`，vis=1/flag=1 | **guardskip 0→8；valuesync/renders/croprebuil/setitems 全不變（0 次）** | — | `applied=Potato` ✓ |
+| 運行（修復側） | `showed`，vis=1/flag=1 | **guardskip 8→14；valuesync 3→3、renders 4→4、croprebuil 1→1（0 次）** | 恢復 4 Hz（4 s 內 valuesync 3→10） | `applied=Carrot` ✓ |
+| 運行（跳過守衛＝2.6.0 行為） | `showed`，vis=1/flag=1 | **打開窗口內即執行一次刷新：valuesync 13→14、renders 14→15**；關閉後 4 Hz 繼續（14→20） | — | `applied=Potato` ✓ |
+
+* **本機環境限制（誠實記錄）**：`DropdownHiddenEvent` 的 managed stack 顯示，彈窗在 0.04–0.22 s 內被
+  **第三方 mod Steam Engine Expansion**（Workshop item `3836039641`）關掉：
+  `BoilerPanelFragment::Refresh → BoilerPanelView::SetVisible → Dropdown.Hide →
+  DropdownListDrawer.HideDropdown`。原版 `Dropdown.Hide()` **無條件**關閉共用的 drawer（不檢查彈窗是否屬於
+  自己）；本地 `Mods\SteamEngineExpansion` 已臨時移走，但該 mod 另有 Workshop 訂閱副本仍被載入
+  （log `modPath=…\workshop\content\1062090\3836039641`），故本機任何下拉彈窗都會被它關掉。這是環境第三方
+  行為、不是 HDBF 路徑。⇒ 本輪可證：**修復側在彈窗打開期間 0 次面板側變更、刷新被凍結；下拉可開、可選、
+  命令生效**；「彈窗保持打開到玩家選完」在本機被第三方 mod 干擾，**標 pending 等玩家回饋**，不寫成已驗證。
+* **證據檔案**：`docs/in-game/bugfix261-Player.log`；A/B harness 截圖 `bugfix261-paused-popup.png` /
+  `bugfix261-running-guarded-popup.png` / `bugfix261-running-legacy-popup.png`（截圖時彈窗已被上述第三方
+  mod 關閉，僅作面板狀態證據）。最終 2.6.1 發布包的實機 smoke 見 §54.5。
+
+### 54.5 最終 2.6.1 發布包實機 smoke（2026-11-14 22:34，無 harness）
+
+* 部署：`stage\HDBF`（48 files / 2,209,062 B / manifest 2.6.1）同時覆蓋
+  `Documents\Timberborn\Mods\HDBF` 與 `Steam\steamapps\workshop\content\1062090\3828809784`（遊戲優先載入
+  Workshop 副本；log `modPath=…\workshop\content\1062090\3828809784`）。
+* 用既有 `HDBFTest` fixture 存檔（2026-11-05 13h17m, Day 1-1.autosave，422,631 B）以
+  `-skipModManager -saveName/-settlementName` 自動載入；`Load time: 154651ms`。
+* `[HDBF/Info] start HDBF version=2.6.1` ✓、`startup: HDBF 2.6.1 ready` ✓、
+  **`[HDBF/Error]` = 0**、`ui.render` / `ui.crop-dropdown` 例外 = 0；面板正常渲染（截圖
+  `docs/in-game/bugfix261-final-panel.png`，2560×1440）。
+* 唯一 `[HDBF/Warn]` = `water.manual-refill: no usable manual water source`，屬 fixture 存檔本身的可預期
+  狀況（該存檔無可用水源；非本版變更引入），不影響本次修復判定。
+* 證據：`docs/in-game/bugfix261-final-round-Player.log`（221,906 B）、`bugfix261-final-round-summary.txt`、
+  `bugfix261-final-panel.png`。
+
+### 54.6 2.6.1 發佈記錄（Steam Workshop + GitHub）
+
+* （本小節於上傳/push 成功後補：ManifestID、Steam 日誌、公開頁核對、GitHub commit/tag 與 push 回報。本行上傳前不寫成已驗證。）
