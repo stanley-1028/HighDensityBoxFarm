@@ -2467,10 +2467,33 @@ Basic 农场输出库存随游戏日的时间序列（game day 34.17 载入）�
 * **公開頁核對**（`https://steamcommunity.com/sharedfiles/filedetails/?id=3828809784`，抓取 2026-11-14）：
   **File Size 2.208 MB**（= staged 包 2,208,034 B）、**Updated 13 Nov @ 4:38pm**（Steam 顯示時區，
   = 2026-11-14 08:38 Asia/Macau）、**Change Notes 14 筆**（最新一筆為 2.6.0 三語變更說明）；
-  標題/描述/封面/標籤/可見性未變（頁面 Description 與 2.5.11 相同）。
+  標題/封面/標籤/可見性未變；頁面 Description 當時仍是 2.5.x 文案，**已於同日另行更新，見 §53.2**。
 * **上傳成功證據**：以 Steam `logs\workshop_log.txt` 的 ManifestID 記錄為權威
   （`4848736136601558932`），並以上述公開頁 Size/Updated/Change Notes 三項交叉核對。
 * **玩家回饋對照**：公開頁 2026-11-08 有玩家回報「看不到頂級農場完整面板 / 用 scrollable entity
   panel 時到不了面板底部（選不到自動化區）」——本版把參考型分區預設折疊、面板變短，即是對該回饋
   的直接回應；**實機截圖驗證已於 2026-11-14 補做，見 §52.1**（面板確實更短且為原版控件）。
 
+### 53.2 頁面說明更新（2026-11-14，metadata-only）
+
+* **為什麼**：2.6.0 的內容與 Change Note 在 08:38 已上傳，但頁面 Description 還是 2.5.x 的文案
+  （只寫「Vanilla-style panel」，沒有折疊分區）。玩家看頁面時看不到這次的 UI 改動。
+* **做法**：Steamworks metadata-only 更新——`SteamUGC.StartItemUpdate` → `SetItemDescription`
+  → `SubmitItemUpdate`（不呼叫 `SetItemContent`，內容不動）；工具 `SteamUpload.exe --description
+  <file>`（`C:\Users\user\hdbf-tools\steamupload`，本次新增模式），輸入檔 = `data/manifest.json`
+  解析後的 Description（5,591 chars，UTF-8）。
+* **結果**：`submitDone ioFailure=False eResult=k_EResultOK needsLegalAgreement=False
+  publishedFileId=3828809784`（exit 0）。
+* **公開頁核對**（抓取 2026-11-14 10:1x）：新 bullet「**Vanilla-style panel with foldable sections**
+  — every block uses the game's own controls … click the clamp strip under a section to collapse it …」
+  與中文簡介「2.6.0 起面板全面改用遊戲原版控件…折疊條（▲）…」均已上線；**原有封面與 3 張截圖未受影響**；
+  File Size 仍 **2.208 MB**、Change Notes 仍 **14 筆**、Updated 仍 **13 Nov @ 4:38pm**
+  （Steam 對 metadata-only 更新不刷新 Updated）。
+* **同步**：同一份文案已同步 `data/manifest.json`、`docs/workshop/PAGE_COPY.txt`、
+  `docs/workshop/DESCRIPTION.md`；GitHub commit 見 §53.3。
+
+### 53.3 2.6.0 GitHub 定版（2026-11-14）
+
+* `v2.6.0` tag（annotated）指向 UI 原版化 commit `68d7ed1`；`master` 最終 commit 見 `origin/master`。
+* README 新增「0. 實機截圖（2.6.0）」段落（內嵌 `docs/in-game/ui260-panel-full.png` 與
+  `ui260-panel-annotated.png`，GitHub 直接渲染）。

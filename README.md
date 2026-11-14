@@ -19,6 +19,15 @@
 | L1 测试 | **733**（零游戏依赖，`FAILED 0`） |
 | 发布门禁 | **PASSED (44 checks)** + `NFR GATE MATRIX: PASSED` |
 
+## 0. 实机截图（2.6.0）
+
+![HDBF 2.6.0 实机全屏：右侧原版化建筑面板](docs/in-game/ui260-panel-full.png)
+
+![HDBF 2.6.0 面板特写（标注：原版卡片/进度条/按钮/单选/折叠 clamp）](docs/in-game/ui260-panel-annotated.png)
+
+> 2560×1440 · Timberborn 1.1.2.8 · 2.6.0 已发布包（`ManifestID 4848736136601558932`）。
+> 截图方式、证据与还原核对见 [VERIFICATION §52.1](docs/VERIFICATION.md)。
+
 ## 1. 这是什么
 
 四档「盒子农场」建筑（基础/中级/高级/顶级），把大量分散农田压缩进一栋 **3×3×1** 的建筑内部：

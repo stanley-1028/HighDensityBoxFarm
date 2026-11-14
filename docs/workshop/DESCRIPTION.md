@@ -44,7 +44,7 @@ Land is the one resource Timberborn never gives back. Every carrot field you pla
 [*][b]Farming that happens inside[/b] — farmers enter the building and work at indoor slots. Every slot grows a vanilla crop with its real growth time, yield and products; you are not feeding a fake counter.
 [*][b]Water is a system, not a decoration[/b] — the internal tank drains with game time. Refill it automatically through a Timber Pipes water pipe attached to the farm or from a liquid tank on the pipe network, by hauler trips, or with one click on the manual refill button.
 [*][b]A roof you can build on[/b] — the top surface is a real floor: stack another box farm, a tank, or a vanilla building on it.
-[*][b]Vanilla-style panel[/b] — slots, tank, coverage, maintenance, power, crop policy and warnings, plus world warning icons so a stalled farm is visible from the map.
+[*][b]Vanilla-style panel with foldable sections[/b] — every block uses the game's own controls (nine-slice cards, vanilla text colours, status rows, the vanilla scrollbar and dropdown) and folds with the game's own clamp: click the clamp strip under a section to collapse it, and a section with a warning opens itself. Slots, tank, coverage, maintenance, power, crop policy and warnings, plus world warning icons so a stalled farm is visible from the map.
 [*][b]English · 简体中文 · 繁體中文[/b] — all UI text and building descriptions are localized.
 [/list]
 
@@ -104,7 +104,7 @@ Design, code and art direction: [b]stanley1028[/b], in collaboration with [b]Dee
 Cover illustration generated with Seedream 5.0 Lite and finished by hand.
 
 [h2]中文简介[/h2]
-3×3×1 的室内高密度农场，共四档：基础 60 / 中级 150 / 高级 300 / 顶级 600 个作物槽位。屋顶是真正的平屋顶，下一座农场或原版建筑可以直接盖上去。农民在建筑内部作业；内部水罐随游戏时间消耗，可用贴在农场上的 Timber Pipes 水管、接上管网的液体水塔、工人搬运或面板上的手动补水按钮补充。维护材料、电力（顶级 150 动力）与土壤轮作都会影响产量——它不是作弊建筑，而是把土地成本换成水、人力和维护成本。支持原版两个阵营，无 Harmony 补丁、无前置依赖，英文 / 简体中文 / 繁体中文三语。本模组由 stanley1028 与 DeepSeek V4.1 Flash 1017 共同完成。
+3×3×1 的室内高密度农场，共四档：基础 60 / 中级 150 / 高级 300 / 顶级 600 个作物槽位。屋顶是真正的平屋顶，下一座农场或原版建筑可以直接盖上去。农民在建筑内部作业；内部水罐随游戏时间消耗，可用贴在农场上的 Timber Pipes 水管、接上管网的液体水塔、工人搬运或面板上的手动补水按钮补充。维护材料、电力（顶级 150 动力）与土壤轮作都会影响产量——它不是作弊建筑，而是把土地成本换成水、人力和维护成本。支持原版两个阵营，无 Harmony 补丁、无前置依赖，英文 / 简体中文 / 繁体中文三语。2.6.0 起面板全面改用游戏原版控件（九宫格卡片／原版文字色／状态行／滚动条／下拉），每个分区底部有原版折叠条（▲），点一下即可收起或展开，带警告的分区会自动展开。本模组由 stanley1028 与 DeepSeek V4.1 Flash 1017 共同完成。
 
 > 镜像到 mod.io 后，在页面末尾加一段链接，例如：
 > `[h2]Links[/h2][list][*][url=https://mod.io/g/timberborn/m/PASTE_SLUG]mod.io mirror[/url][/list]`

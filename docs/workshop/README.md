@@ -215,6 +215,13 @@ cp docs/workshop/publish/* "$USERPROFILE/Documents/Timberborn/Mods/HDBF/"
 - 建置：5 程序集 0/0、L1 **733/733**、`tools/validate` RESULT: OK、
   `build.ps1` **44 gates PASSED**、staged 48 files / manifest **2.6.0**。
 - 上傳只更新**內容與 Change Note**；標題/描述/封面/標籤/可見性刻意未動。
+- **頁面說明已於 2026-11-14 10:0x 更新（僅 metadata，不動內容/圖片）**：用 Steamworks
+  `SteamUGC.SetItemDescription` + `SubmitItemUpdate`（`SteamUpload.exe --description <file>`，
+  `eResult=k_EResultOK`）把 `data/manifest.json` 的 Description 寫上頁面：
+  「Vanilla-style panel with foldable sections」bullet + 中文簡介補一句「原版控件 + 折叠条」。
+  公開頁核對：新文案已上線、原有封面與 3 張截圖未受影響、File Size 仍 2.208 MB、
+  Change Notes 仍 14 筆、Updated 仍 13 Nov 4:38pm（Steam 對 metadata-only 更新不刷新 Updated）。
+  同一份文案已同步 `data/manifest.json` / [PAGE_COPY.txt](PAGE_COPY.txt) / [DESCRIPTION.md](DESCRIPTION.md)。
 - 公開頁核對（抓取 2026-11-14）：**File Size 2.208 MB**、**Updated 13 Nov @ 4:38pm**（Steam 顯示時區
   = 2026-11-14 08:38 Asia/Macau）、**Change Notes 14 筆**（最新為 2.6.0 三語說明）。
 - **本機測試包**：2.6.0 stage 已覆蓋到 `Documents\Timberborn\Mods\HDBF` 與
